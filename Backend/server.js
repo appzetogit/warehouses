@@ -128,15 +128,22 @@ const startServer = async () => {
         }
 
         app.post('/api/deploy', (req, res) => {
-            const signature = req.headers['x-hub-signature-256'];
-            const secret = 'mysecret123';
+            // This route runs a shell script, so it stays off unless a secret is set.
+            // The old hardcoded secret is in git history and must never be reused.
+            const secret = process.env.DEPLOY_WEBHOOK_SECRET || '';
+            if (!secret) {
+                return res.status(404).send('Not found');
+            }
 
+            const signature = String(req.headers['x-hub-signature-256'] || '');
             const hash = 'sha256=' + crypto
                 .createHmac('sha256', secret)
                 .update(JSON.stringify(req.body))
                 .digest('hex');
 
-            if (signature !== hash) {
+            const matches = signature.length === hash.length
+                && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(hash));
+            if (!matches) {
                 return res.status(403).send('Unauthorized');
             }
 

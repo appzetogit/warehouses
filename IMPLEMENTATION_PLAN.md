@@ -55,12 +55,14 @@ Most of the rest already exists and needs extending, not rebuilding (see §1).
 - About 65 `food_*` collections
 - `Food*` model names and the `FOD-` order prefix
 
-**Open security items from `REMEDIATION_PLAN.txt` that must close before coins and wallet work begins** (spot-checked on 2026-09-19):
+**Security items from `REMEDIATION_PLAN.txt`, closed in Phase 0:**
 
-- **H1:** `deductWalletBalance` still reads the balance, subtracts, then saves, so two orders at once can overdraw a wallet. Coins would inherit this bug.
-- **C4:** `/fcm/test-set-token/:phone/:token` is still public.
-- **C5:** the deploy webhook secret is still hardcoded in `server.js`.
-- C1 (server-side pricing) is fixed.
+- **H1:** wallet balance changes are single conditional updates, so concurrent orders cannot overdraw a wallet and concurrent credits cannot overwrite each other.
+- **Wallet top-ups (found in Phase 0):** credited the amount the client claimed, and accepted any paid Razorpay order, including a food order's payment. Top-ups now credit what Razorpay captured, only for a top-up order created for that user, once.
+- **C3 (wider than listed):** any logged-in user could run settlements, and read any seller's or rider's wallet or any order's payment trail by id. Admin routes are admin-only; wallets and order trails are limited to their owners.
+- **C4:** the public FCM test routes are removed.
+- **C5:** the deploy webhook takes `DEPLOY_WEBHOOK_SECRET` and is off without it. The old secret is in git history and must be rotated wherever it was configured.
+- C1 (server-side pricing) and C2 (banner writes) were already fixed.
 
 ---
 
@@ -148,10 +150,11 @@ Tags: **[BE]** backend · **[AD]** admin web · **[SW]** seller web · **[CW]** 
 
 ### 3.1 Phase 0 — Foundations (week 1)
 - [ ] Get sign-off on the business decisions in §5. Coins, courier and gateway choices block Phase 2.
-- [ ] Close remediation items H1, C4 and C5. Re-verify C2, C3 and C7.
+- [x] Close remediation items H1, C4 and C5. Re-verify C2, C3 and C7. (C3 was still open and is now fixed; C7: no `.env` files are tracked.)
 - [ ] Set up a staging environment: a copy of production Mongo, Redis and BullMQ on, and separate Firebase and gateway test keys.
-- [ ] Run the four `*.selfcheck.mjs` files, and exercise the atomic stock decrement and restock against a real Mongo (still marked untested in `QUICK_COMMERCE_CHANGES.md`).
-- [ ] Add a minimal test harness (`node --test`) plus an API smoke suite covering checkout, cancel, refund and dispatch. All the refactors below depend on it.
+- [x] Run the four `*.selfcheck.mjs` files, and exercise the atomic stock decrement and restock against a real Mongo (still marked untested in `QUICK_COMMERCE_CHANGES.md`).
+- [x] Add a minimal test harness (`node --test` + in-memory Mongo replica set, `npm test` in `Backend/`).
+- [ ] Extend it into an API smoke suite covering checkout, cancel, refund and dispatch. All the refactors below depend on it.
 - [ ] Agree on the brand name, package ids and bundle ids for the three apps (iOS needs them early for provisioning).
 
 ### 3.2 Phase 1 — De-food and rename (weeks 1–2)
