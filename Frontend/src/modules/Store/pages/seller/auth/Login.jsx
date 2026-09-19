@@ -8,7 +8,7 @@ import { sellerAPI } from "@store/api"
 import { useCompanyName } from "@store/hooks/useCompanyName"
 import { loadBusinessSettings, getModuleLogoUrl } from "@store/utils/businessSettings"
 import SellerPartnerHero from "@store/components/seller/auth/SellerPartnerHero"
-import quickSpicyLogo from "@store/assets/switcheats-logo.png"
+import brandMark from "@/config/brandMark"
 
 const DEFAULT_COUNTRY_CODE = "+91"
 const THEME = "#FA0272"
@@ -18,7 +18,7 @@ export default function SellerLogin() {
   const navigate = useNavigate()
   const prefersReducedMotion = useReducedMotion()
   const phoneInputRef = useRef(null)
-  const [logoUrl, setLogoUrl] = useState(() => getModuleLogoUrl("seller") || quickSpicyLogo)
+  const [logoUrl, setLogoUrl] = useState(() => getModuleLogoUrl("seller") || brandMark)
   const [formData, setFormData] = useState(() => {
     const saved = sessionStorage.getItem("sellerLoginPhone")
     return {
@@ -164,7 +164,7 @@ export default function SellerLogin() {
                     className="h-full w-full scale-[1.65] object-contain"
                     loading="lazy"
                     onError={(e) => {
-                      if (e.target.src !== quickSpicyLogo) e.target.src = quickSpicyLogo
+                      if (e.target.src !== brandMark) e.target.src = brandMark
                     }}
                   />
                 </div>

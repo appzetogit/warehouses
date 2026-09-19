@@ -22,6 +22,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@stor
 import { Button } from "@store/components/ui/button"
 import { Badge } from "@store/components/ui/badge"
 import { useOrders } from "@store/context/OrdersContext"
+import { getSupportEmail } from "@store/utils/businessSettings"
 
 const commonIssues = [
   {
@@ -434,10 +435,10 @@ export default function OrderHelp() {
                       Include order {order.id} in subject
                     </p>
                     <a
-                      href={`mailto:support@switcheats.com?subject=Help with Order ${order.id}`}
+                      href={`mailto:${getSupportEmail()}?subject=Help with Order ${order.id}`}
                       className="text-sm text-primary hover:underline font-medium"
                     >
-                      support@switcheats.com
+                      {getSupportEmail()}
                     </a>
                   </div>
                 </div>

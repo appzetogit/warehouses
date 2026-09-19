@@ -532,8 +532,7 @@ export default function AddressSelectorPage() {
       const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
       const response = await fetch(url, { 
         headers: { 
-          "Accept-Language": "en",
-          "User-Agent": "SwitchEats-Food-App" 
+          "Accept-Language": "en"
         } 
       })
       const json = await response.json()
@@ -897,7 +896,7 @@ export default function AddressSelectorPage() {
 
               <Label className="text-sm font-bold mb-2 block text-orange-600 dark:text-orange-400">Secondary Address (House No. / Flat / Floor)</Label>
               <Input 
-                placeholder="E.g. Flat 402, 4th Floor, SwitchEats Building" 
+                placeholder="E.g. Flat 402, 4th Floor, Sunrise Apartments" 
                 value={addressFormData.additionalDetails} 
                 onChange={e => setAddressFormData({...addressFormData, additionalDetails: e.target.value})}
                 onFocus={() => scrollFieldIntoView("additionalDetails")}

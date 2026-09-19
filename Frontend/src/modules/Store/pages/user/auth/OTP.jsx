@@ -9,10 +9,12 @@ import { setAuthData as setUserAuthData } from "@store/utils/auth"
 import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@store/utils/firebaseMessaging"
 import { motion, AnimatePresence } from "framer-motion"
 import loginBanner from "@store/assets/loginbanner.png"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 
 const FULL_NAME_REGEX = /^[A-Za-z ]+$/
 
 export default function OTP() {
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const [otp, setOtp] = useState(["", "", "", ""]) // exactly 4 digits
   const [isLoading, setIsLoading] = useState(false)
@@ -454,7 +456,7 @@ export default function OTP() {
 
           <footer className="mt-auto pt-10 text-center">
             <p className="text-[9px] text-zinc-300 dark:text-zinc-700 font-black uppercase tracking-[0.4em]">
-              SwitchEats Secure Network
+              {companyName} Secure Network
             </p>
           </footer>
         </div>

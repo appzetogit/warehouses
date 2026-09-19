@@ -141,16 +141,16 @@ export default function FeatureSettings() {
 
             <Card className="border-slate-200">
                 <CardHeader>
-                    <CardTitle className="text-lg">Root Landing & Unregistered Sellers</CardTitle>
+                    <CardTitle className="text-lg">Unregistered Sellers</CardTitle>
                     <CardDescription>
-                        Controls root URL and Unregistered Sellers visibility. OFF redirects root (/) to /food/user and hides Unregistered Sellers.
+                        Controls whether the Unregistered Sellers section is shown in the admin panel.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-4">
                     <div className="text-sm text-gray-700">
                         {rootLandingAndUnregisteredControl?.isEnabled
-                            ? 'Enabled: root opens Landing Page and Unregistered Sellers is visible'
-                            : 'Disabled: root redirects to /food/user and Unregistered Sellers is hidden'}
+                            ? 'Enabled: Unregistered Sellers is visible'
+                            : 'Disabled: Unregistered Sellers is hidden'}
                     </div>
                     <Switch
                         checked={Boolean(rootLandingAndUnregisteredControl?.isEnabled)}

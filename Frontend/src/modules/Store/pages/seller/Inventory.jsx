@@ -27,6 +27,7 @@ import { Switch } from "@store/components/ui/switch"
 import { useNavigate } from "react-router-dom"
 import { sellerAPI } from "@store/api"
 import { toast } from "sonner"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -749,6 +750,7 @@ function SimpleCalendar({ selectedDate, onDateSelect, isOpen, onClose }) {
 }
 
 export default function Inventory() {
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("")
   const [filterOpen, setFilterOpen] = useState(false)
@@ -2345,7 +2347,7 @@ export default function Inventory() {
                         />
                       </div>
                       <p className="text-sm text-gray-500">
-                        Item won't be visible to customers on SwitchEats app till you mark it back in stock
+                        Item won't be visible to customers on {companyName} till you mark it back in stock
                       </p>
                     </div>
                   </label>

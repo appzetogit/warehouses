@@ -28,8 +28,8 @@ const DEFAULT_FEATURES = [
     },
     {
         key: FEATURE_KEYS.ROOT_LANDING_AND_UNREGISTERED_CONTROL,
-        name: 'Root Landing & Unregistered Sellers',
-        description: 'Controls root URL behavior and Unregistered Sellers visibility. When disabled, root redirects to /food/user and Unregistered Sellers is hidden.',
+        name: 'Unregistered Sellers',
+        description: 'Controls whether the Unregistered Sellers section is shown in the admin panel.',
         isEnabled: true
     }
 ];

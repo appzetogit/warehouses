@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react"
 import { exportToCSV, exportToExcel, exportToPDF, exportToJSON } from "./ordersExportUtils"
-import quickSpicyLogo from "@store/assets/switcheats-logo.png"
+import brandMark from "@/config/brandMark"
+import { APP_CONFIG } from "@/config/constants"
 import { getCachedSettings, loadBusinessSettings } from "@store/utils/businessSettings"
 const debugError = () => {}
 
@@ -302,8 +303,8 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
         : (order.date || new Date().toLocaleDateString())
 
       const settings = getCachedSettings() || await loadBusinessSettings()
-      const companyName = settings?.companyName || "SwitchEats Food"
-      const logoUrl = settings?.logo?.url || quickSpicyLogo
+      const companyName = settings?.companyName || APP_CONFIG.NAME
+      const logoUrl = settings?.logo?.url || brandMark
       const logoDataUrl = await imageUrlToDataUrl(logoUrl)
 
       const items = Array.isArray(order.items) ? order.items : []

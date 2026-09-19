@@ -4,7 +4,7 @@ const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
-const STORAGE_KEY = "switcheats_sellers"
+const STORAGE_KEY = "store_sellers"
 
 // Get sellers from localStorage
 export const getSellers = () => {

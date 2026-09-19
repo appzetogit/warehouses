@@ -12,7 +12,7 @@ import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@store/u
 import { useCompanyName } from "@store/hooks/useCompanyName"
 import { loadBusinessSettings, getModuleLogoUrl } from "@store/utils/businessSettings"
 import SellerPartnerHero from "@store/components/seller/auth/SellerPartnerHero"
-import quickSpicyLogo from "@store/assets/switcheats-logo.png"
+import brandMark from "@/config/brandMark"
 
 const THEME = "#FA0272"
 
@@ -20,7 +20,7 @@ export default function SellerOTP() {
   const companyName = useCompanyName()
   const navigate = useNavigate()
   const prefersReducedMotion = useReducedMotion()
-  const [logoUrl, setLogoUrl] = useState(() => getModuleLogoUrl("seller") || quickSpicyLogo)
+  const [logoUrl, setLogoUrl] = useState(() => getModuleLogoUrl("seller") || brandMark)
   const [otp, setOtp] = useState(["", "", "", ""])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -319,7 +319,7 @@ export default function SellerOTP() {
                     className="h-full w-full scale-[1.65] object-contain"
                     loading="lazy"
                     onError={(e) => {
-                      if (e.target.src !== quickSpicyLogo) e.target.src = quickSpicyLogo
+                      if (e.target.src !== brandMark) e.target.src = brandMark
                     }}
                   />
                 </div>

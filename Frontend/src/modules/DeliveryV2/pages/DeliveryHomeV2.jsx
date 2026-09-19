@@ -35,6 +35,7 @@ import { getHaversineDistance, calculateETA, calculateHeading } from '@/modules/
 import { useCompanyName } from "@store/hooks/useCompanyName";
 import { useNavigate } from 'react-router-dom';
 import useNotificationInbox from "@store/hooks/useNotificationInbox";
+import brandMark from "@/config/brandMark"
 
 const getStoredDeliveryPartnerId = () => {
   if (typeof localStorage === 'undefined') return '';
@@ -681,7 +682,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                   onClick={() => navigate('/food/delivery/profile')}
                   className="w-10 h-10 rounded-full overflow-hidden cursor-pointer active:scale-95 transition-all bg-[#222]"
                 >
-                  <img src={profileImage || "https://i.ibb.co/3m2Yh7r/SwitchEats-Brand-Image.png"} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={profileImage || brandMark} alt="Profile" className="w-full h-full object-cover" />
                 </div>
 
                 <button

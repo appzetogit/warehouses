@@ -24,6 +24,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@stor
 import { Button } from "@store/components/ui/button"
 import { Input } from "@store/components/ui/input"
 import { Badge } from "@store/components/ui/badge"
+import { getSupportEmail } from "@store/utils/businessSettings"
 
 const helpCategories = [
   {
@@ -406,10 +407,10 @@ export default function Help() {
                       We'll respond within 24 hours
                     </p>
                     <a
-                      href="mailto:support@switcheats.com"
+                      href={`mailto:${getSupportEmail()}`}
                       className="text-sm text-primary hover:underline font-medium"
                     >
-                      support@switcheats.com
+                      {getSupportEmail()}
                     </a>
                   </div>
                 </div>

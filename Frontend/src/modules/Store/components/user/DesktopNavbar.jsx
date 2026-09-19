@@ -10,7 +10,7 @@ import { useLocationSelector, useSearchOverlay } from "./UserLayout"
 import { useProfile } from "@store/context/ProfileContext"
 import { FaLocationDot } from "react-icons/fa6"
 import { AnimatePresence, motion } from "framer-motion"
-import quickSpicyLogo from "@store/assets/switcheats-logo.png"
+import brandMark from "@/config/brandMark"
 import { getCachedSettings, loadBusinessSettings } from "@store/utils/businessSettings"
 import { clearHomeScrollState } from "@store/utils/homeScrollRestore"
 const debugLog = (...args) => {}
@@ -164,17 +164,17 @@ export default function DesktopNavbar() {
                             >
                                 {logoUrl || companyName ? (
                                     <img
-                                        src={logoUrl || quickSpicyLogo}
+                                        src={logoUrl || brandMark}
                                         alt={companyName || "Company Logo"}
                                         className="h-10 w-auto md:h-14 lg:h-16 object-contain"
                                         onError={(e) => {
-                                            if (e.target.src !== quickSpicyLogo) {
-                                                e.target.src = quickSpicyLogo
+                                            if (e.target.src !== brandMark) {
+                                                e.target.src = brandMark
                                             }
                                         }}
                                     />
                                 ) : (
-                                    <img src={quickSpicyLogo} alt={companyName || "Logo"} className="h-10 w-auto md:h-14 lg:h-16 object-contain" />
+                                    <img src={brandMark} alt={companyName || "Logo"} className="h-10 w-auto md:h-14 lg:h-16 object-contain" />
                                 )}
                             </Link>
 

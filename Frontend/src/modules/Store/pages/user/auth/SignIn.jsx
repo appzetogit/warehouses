@@ -7,7 +7,7 @@ import { Input } from "@store/components/ui/input"
 import { authAPI } from "@store/api"
 import { motion } from "framer-motion"
 import loginBanner from "@store/assets/loginbanner.png"
-import logoImg from "@store/assets/switcheats-logo copy.png"
+import logoImg from "@/config/brandMark"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
 const debugError = (...args) => { }

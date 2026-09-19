@@ -993,7 +993,7 @@ export default function SellersList() {
       let profileImage = undefined
       if (profileImageFile) {
         const uploadRes = await uploadAPI.uploadMedia(profileImageFile, {
-          folder: "switcheats/seller/profile",
+          folder: "sellers/profile",
         })
         const media = uploadRes?.data?.data?.file || uploadRes?.data?.data || uploadRes?.data?.file
         if (media?.url) {

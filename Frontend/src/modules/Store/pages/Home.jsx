@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@store/components/ui/card"
 import { Button } from "@store/components/ui/button"
 import { getCachedSettings, loadBusinessSettings } from "@store/utils/businessSettings"
-const quickSpicyLogo = "/switcheats-logo.png"
+import brandMark from "@/config/brandMark"
 
 export default function Home() {
   const navigate = useNavigate()
@@ -45,12 +45,12 @@ export default function Home() {
           <div className="flex justify-center mb-6">
             {logoUrl || companyName ? (
               <img
-                src={logoUrl || quickSpicyLogo}
+                src={logoUrl || brandMark}
                 alt={companyName || "Logo"}
                 className="h-16 w-auto object-contain"
                 onError={(e) => {
-                  if (e.target.src !== quickSpicyLogo) {
-                    e.target.src = quickSpicyLogo
+                  if (e.target.src !== brandMark) {
+                    e.target.src = brandMark
                   }
                 }}
               />
@@ -60,7 +60,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          <CardTitle className="text-3xl font-bold text-center">{companyName || "SwitchEats Food"}</CardTitle>
+          <CardTitle className="text-3xl font-bold text-center">{companyName}</CardTitle>
           <CardDescription className="text-lg">
             Welcome to the Food Delivery Platform
           </CardDescription>

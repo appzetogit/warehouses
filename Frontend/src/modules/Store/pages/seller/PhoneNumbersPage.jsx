@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom"
 import useSellerBackNavigation from "@store/hooks/useSellerBackNavigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, Edit, Phone, Users, ChevronDown, X } from "lucide-react"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 
 export default function PhoneNumbersPage() {
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const goBack = useSellerBackNavigation()
   const [editingNumber, setEditingNumber] = useState(null) // { type: 'orderReminder1' | 'orderReminder2' | 'sellerPage' }
@@ -153,7 +155,7 @@ export default function PhoneNumbersPage() {
             <div className="flex-1">
               <h2 className="text-base font-bold text-gray-900">Order reminder numbers</h2>
               <p className="text-xs text-gray-600 mt-1">
-                Should always be available for Zomato to reach out for live order support and order reminders.
+                Should always be available for {companyName} to reach out for live order support and order reminders.
               </p>
             </div>
           </div>
@@ -198,7 +200,7 @@ export default function PhoneNumbersPage() {
             <div className="flex-1">
               <h2 className="text-base font-bold text-gray-900">Store page number</h2>
               <p className="text-xs text-gray-600 mt-1">
-                Number for Zomato customers to call your seller.
+                Number for {companyName} customers to call your seller.
               </p>
             </div>
           </div>

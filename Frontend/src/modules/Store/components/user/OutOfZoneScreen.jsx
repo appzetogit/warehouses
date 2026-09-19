@@ -2,9 +2,10 @@ import React from "react";
 import { MapPin, ChevronDown } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import outOfZoneBg from "@store/assets/Outofzone_bg.jpg";
+import { useCompanyName } from "@store/hooks/useCompanyName"
 
 const OutOfZoneScreen = ({ location }) => {
-  const BRAND_NAME = "SwitchEats";
+  const companyName = useCompanyName()
 
   const routerLocation = useLocation();
 
@@ -84,7 +85,7 @@ const OutOfZoneScreen = ({ location }) => {
 
       <div className="absolute top-[71vh] left-0 w-full pl-8 z-10">
         <span className="text-[34px] font-[1000] text-white/30 italic tracking-tighter leading-none mix-blend-overlay">
-          {BRAND_NAME}
+          {companyName}
         </span>
       </div>
     </div>

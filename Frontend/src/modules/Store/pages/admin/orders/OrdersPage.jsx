@@ -131,7 +131,7 @@ export default function OrdersPage({ statusKey = "all" }) {
   }, [])
 
   const playDeliveryStyleBuzz = useCallback(async () => {
-    const selectedSound = localStorage.getItem("delivery_alert_sound") || "zomato_tone"
+    const selectedSound = localStorage.getItem("delivery_alert_sound") || "alert_tone"
     const soundFile = selectedSound === "original"
       ? resolveAudioSource(originalSound, "admin-original")
       : resolveAudioSource(alertSound, "admin-alert")
@@ -307,7 +307,7 @@ export default function OrdersPage({ statusKey = "all" }) {
         fallbackAudioRef.current.muted = false
 
         if (!notificationAudioRef.current) {
-          const selectedSound = localStorage.getItem("delivery_alert_sound") || "zomato_tone"
+          const selectedSound = localStorage.getItem("delivery_alert_sound") || "alert_tone"
           const soundFile = selectedSound === "original"
             ? resolveAudioSource(originalSound, "admin-original")
             : resolveAudioSource(alertSound, "admin-alert")

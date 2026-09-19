@@ -14,7 +14,7 @@ import { Input } from "@store/components/ui/input"
 import { Label } from "@store/components/ui/label"
 import AdminAuthHero from "@store/components/admin/auth/AdminAuthHero"
 import { Eye, EyeOff, Shield, Loader2 } from "lucide-react"
-import quickSpicyLogo from "@store/assets/switcheats-logo.png"
+import brandMark from "@/config/brandMark"
 
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -37,7 +37,7 @@ export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
-  const [logoUrl, setLogoUrl] = useState(quickSpicyLogo)
+  const [logoUrl, setLogoUrl] = useState(brandMark)
   const [themeColor, setThemeColor] = useState(THEME)
   const submittingRef = useRef(false)
 
@@ -189,8 +189,8 @@ export default function AdminLogin() {
                     className="h-full w-full scale-[1.65] object-contain"
                     loading="lazy"
                     onError={(e) => {
-                      if (e.target.src !== quickSpicyLogo) {
-                        e.target.src = quickSpicyLogo
+                      if (e.target.src !== brandMark) {
+                        e.target.src = brandMark
                       }
                     }}
                   />

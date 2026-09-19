@@ -8,7 +8,7 @@ import { setupSmoothScroll } from './shared/utils/smoothScroll.js'
 
 const NATIVE_LAST_ROUTE_KEY = 'native_last_route'
 
-// ─── Quick-spicy Food Module Initialization ───────────────────────────────────
+// ─── Store Module Initialization ───────────────────────────────────
 
 // Load food module business settings (favicon, title) — non-critical
 import('./modules/Store/utils/businessSettings.js')

@@ -3,7 +3,7 @@ import { userAPI, sellerAPI, deliveryAPI, adminAPI } from "@store/api";
 import { initializeApp, getApp, getApps } from "firebase/app";
 import fallbackNotificationSound from "@store/assets/audio/alert.mp3";
 
-const pushNotificationSoundPath = "/zomato_sms.mp3";
+const pushNotificationSoundPath = "/notification.mp3";
 
 const DEFAULT_FIREBASE_CONFIG = {
   apiKey: "",

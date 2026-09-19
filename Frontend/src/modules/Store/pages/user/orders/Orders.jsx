@@ -5,6 +5,7 @@ import { orderAPI } from "@store/api"
 import { useCart } from "@store/context/CartContext"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@store/utils/businessSettings"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
 const debugError = (...args) => { }
@@ -16,6 +17,7 @@ const toNum = (value) => {
 
 
 export default function Orders() {
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const { replaceCart } = useCart()
   const [orders, setOrders] = useState([])
@@ -1104,7 +1106,7 @@ Order again from this seller in the ${companyName} app.`
 
       {/* Footer Branding */}
       <div className="flex justify-center mt-8 mb-4">
-        <h1 className="text-4xl font-black text-gray-200 dark:text-zinc-900 tracking-tighter italic capitalize">Switcheats</h1>
+        <h1 className="text-4xl font-black text-gray-200 dark:text-zinc-900 tracking-tighter italic capitalize">{companyName}</h1>
       </div>
 
       {/* Rating & Feedback Modal */}

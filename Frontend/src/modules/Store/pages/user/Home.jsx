@@ -101,7 +101,7 @@ import {
   DropdownMenuTrigger,
 } from "@store/components/ui/dropdown-menu";
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext";
-import quickSpicyLogo from "@store/assets/switcheats-logo.png";
+import brandMark from "@/config/brandMark"
 import offerImage from "@store/assets/offerimage.png";
 import api, { sellerAPI, adminAPI } from "@store/api";
 import { usePublicAppConfig } from "@store/context/PublicAppConfigContext";

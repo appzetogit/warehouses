@@ -7,7 +7,7 @@ import { useCart } from "@store/context/CartContext"
 import { useLocationSelector } from "./UserLayout"
 import { FaLocationDot } from "react-icons/fa6"
 import { getCachedSettings, loadBusinessSettings } from "@store/utils/businessSettings"
-import quickSpicyLogo from "@store/assets/switcheats-logo.png"
+import brandMark from "@/config/brandMark"
 
 export default function PageNavbar({
   textColor = "white",
@@ -1018,7 +1018,7 @@ export default function PageNavbar({
               </span>
             ) : (
               <img
-                src={quickSpicyLogo}
+                src={brandMark}
                 alt="Logo"
                 className="h-10 w-auto sm:h-12 md:h-14 object-contain scale-[1.8] sm:scale-[2] origin-left"
               />

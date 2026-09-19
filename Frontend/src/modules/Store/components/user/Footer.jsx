@@ -3,12 +3,12 @@ import { Facebook, Twitter, Instagram, Mail, Phone, MapPin, Heart } from "lucide
 import { useState, useEffect } from "react"
 import { getCachedSettings, loadBusinessSettings } from "@store/utils/businessSettings"
 import { useCompanyName } from "@store/hooks/useCompanyName"
-import quickSpicyLogo from "@store/assets/switcheats-logo.png"
+import brandMark from "@/config/brandMark"
 
 export default function Footer() {
   const companyName = useCompanyName()
   const currentYear = new Date().getFullYear()
-  const [logoUrl, setLogoUrl] = useState(quickSpicyLogo)
+  const [logoUrl, setLogoUrl] = useState(brandMark)
 
   // Load business settings logo
   useEffect(() => {
@@ -82,13 +82,13 @@ export default function Footer() {
             >
               <div className="flex items-center gap-2 mb-4">
                 <img
-                  src={logoUrl || quickSpicyLogo}
+                  src={logoUrl || brandMark}
                   alt="Company Logo"
                   className="h-10 w-10 rounded-full object-cover"
                   crossOrigin="anonymous"
                   onError={(e) => {
-                    if (e.target.src !== quickSpicyLogo) {
-                      e.target.src = quickSpicyLogo
+                    if (e.target.src !== brandMark) {
+                      e.target.src = brandMark
                     }
                   }}
                 />

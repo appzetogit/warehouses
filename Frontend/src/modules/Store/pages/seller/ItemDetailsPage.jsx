@@ -575,7 +575,7 @@ export default function ItemDetailsPage() {
             let uploadResponse
             try {
               uploadResponse = await uploadAPI.uploadMedia(file, {
-                folder: 'switcheats/seller/menu-items'
+                folder: 'sellers/products'
               })
             } catch (folderUploadError) {
               // Fallback: retry without folder in case provider/account rejects custom folder.

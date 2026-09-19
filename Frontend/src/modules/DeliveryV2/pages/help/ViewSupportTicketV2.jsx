@@ -7,11 +7,13 @@ import {
 import { deliveryAPI } from '@store/api';
 import { toast } from 'sonner';
 import useDeliveryBackNavigation from '../../hooks/useDeliveryBackNavigation';
+import { useCompanyName } from "@store/hooks/useCompanyName"
 
 /**
  * ViewSupportTicketV2 - Restored Old UI for Ticket Details.
  */
 export const ViewSupportTicketV2 = () => {
+  const companyName = useCompanyName()
   const goBack = useDeliveryBackNavigation();
   const { ticketId } = useParams();
   const [ticket, setTicket] = useState(null);
@@ -105,7 +107,7 @@ export const ViewSupportTicketV2 = () => {
 
          <div className="mt-10 flex flex-col items-center justify-center opacity-20 gap-4">
             <Mail className="w-12 h-12" />
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-center">SwitchEats Support Fleet</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-center">{companyName} Support</p>
          </div>
       </div>
     </div>

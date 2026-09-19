@@ -338,11 +338,8 @@ export const useSellerNotifications = () => {
       const frontendProtocol = window.location.protocol;
       let suggestedBackendUrl = null;
       
-      // Common patterns:
-      // - If frontend is on products.switcheats.com, backend might be api.products.switcheats.com or products.switcheats.com
-      if (frontendHost.includes('products.switcheats.com')) {
-        suggestedBackendUrl = `${frontendProtocol}//api.products.switcheats.com/api`;
-      } else if (frontendHost.includes('switcheats.com')) {
+      // Common pattern: the API on an api. subdomain of the site.
+      if (frontendHost && frontendHost !== 'localhost') {
         suggestedBackendUrl = `${frontendProtocol}//api.${frontendHost}/api`;
       }
       

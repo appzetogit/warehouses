@@ -42,7 +42,7 @@ import {
   markUserSelectedCoupon,
 } from "@store/utils/autoCoupon"
 import CartAutoCouponBanner from "@store/components/user/CartAutoCouponBanner"
-import zoopSound from "@store/assets/audio/zomato_sms.mp3"
+import zoopSound from "@store/assets/audio/order-placed.mp3"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
 const debugError = (...args) => { }
@@ -2262,7 +2262,7 @@ export default function Cart() {
           `2. Backend is accessible at ${backendUrl}\n` +
           `3. Check browser console (F12) for more details\n\n` +
           `If backend is not running, start it with:\n` +
-          `cd switcheats/backend && npm start`
+          `cd Backend && npm start`
 
         debugError("?? Network Error Details:", {
           code: error.code,

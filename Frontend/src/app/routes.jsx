@@ -1,26 +1,17 @@
-import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
 import { AppShellSkeleton } from '@store/components/ui/loading-skeletons'
-import LandingPage from './LandingPage'
-import { isFeatureEnabled, loadCorePublicAppConfig } from '@store/services/publicAppConfig'
 
 const NATIVE_LAST_ROUTE_KEY = 'native_last_route'
 
-// Lazy load the Food service module (Quick-spicy app)
+// The customer store and the rider web app, both mounted under /food until the
+// Phase 2 storefront gives them their own URLs.
 const StoreApp = lazy(() => import('../modules/Store/routes'))
-const AuthApp = lazy(() => import('../modules/auth/routes'))
 import ProtectedRoute from '@store/components/ProtectedRoute'
 
 const PageLoader = () => <AppShellSkeleton />
 
-/**
- * StoreAppWrapper — Quick-spicy App. को /food prefix के साथ render करता है.
- * 
- * Quick-spicy की App.jsx में routes /seller, /usermain, /admin, /delivery
- * जैसे hain (bina /food prefix ke). Yahan hum useLocation se /food ke baad wala
- * path nikalne ke baad StoreApp render karte hain. StoreApp internally BrowserRouter
- * nahi use karta (sirf Routes use karta hai), isliye ye directly kaam karta hai.
- */
+/** Renders the store module for everything under /food. */
 const StoreAppWrapper = () => {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -36,32 +27,6 @@ const RedirectToStore = () => {
   // and turns them into '/food/seller/login'
   return <Navigate to={`/food${location.pathname}${location.search}`} replace />;
 };
-
-const RootEntryRoute = () => {
-  const [loading, setLoading] = useState(true)
-  const [showLandingAtRoot, setShowLandingAtRoot] = useState(true)
-
-  useEffect(() => {
-    const loadFeatureSettings = async () => {
-      try {
-        await loadCorePublicAppConfig()
-        setShowLandingAtRoot(
-          isFeatureEnabled("root_landing_and_unregistered_control", true),
-        )
-      } catch (_error) {
-        // fallback to landing page when API is unavailable
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadFeatureSettings()
-  }, [])
-
-  if (loading) return <PageLoader />
-  if (!showLandingAtRoot) return <Navigate to="/food/user" replace />
-  return <LandingPage />
-}
-
 
 const AdminRouter = lazy(() => import('../modules/Store/components/admin/AdminRouter'))
 const SellerRouter = lazy(() => import('../modules/Store/components/seller/SellerRouter'))
@@ -108,13 +73,10 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {/* Root → Master Landing Page */}
-      <Route path="/" element={<RootEntryRoute />} />
+      {/* The Phase 2 shop takes over the root; until then it opens the store. */}
+      <Route path="/" element={<Navigate to="/food/user" replace />} />
 
-      {/* Auth Module */}
-
-
-      {/* Food Module */}
+      {/* Store module: customer pages and the rider web app */}
       <Route path="/food/*" element={<StoreAppWrapper />} />
 
       {/* Seller Portal. Canonical home of the partner panel. */}

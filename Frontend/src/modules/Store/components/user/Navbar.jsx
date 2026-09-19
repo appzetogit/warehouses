@@ -13,6 +13,7 @@ import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { useCart } from "@store/context/CartContext"
 import { useLocationSelector } from "./UserLayout"
 import { getCachedSettings, loadBusinessSettings } from "@store/utils/businessSettings"
+import brandMark from "@/config/brandMark"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -136,7 +137,7 @@ export default function Navbar() {
                 {companyName}
               </span>
             ) : (
-              <img src={quickSpicyLogo} alt="Logo" className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 object-contain" />
+              <img src={brandMark} alt="Logo" className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 object-contain" />
             )}
           </Link>
 

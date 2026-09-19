@@ -3,6 +3,7 @@ import { Bell, Info, Search, Download, ChevronDown, Settings, FileText, FileSpre
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@store/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@store/components/ui/dialog"
 import { exportNotificationsToCSV, exportNotificationsToExcel, exportNotificationsToPDF, exportNotificationsToJSON } from "@store/components/admin/notifications/notificationsExportUtils"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 
 const adminNotifications = [
   {
@@ -296,6 +297,7 @@ function ToggleSwitch({ enabled, onToggle }) {
 }
 
 export default function NotificationChannels() {
+  const companyName = useCompanyName()
   const [activeTab, setActiveTab] = useState("admin")
   const [searchQuery, setSearchQuery] = useState("")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -404,7 +406,7 @@ export default function NotificationChannels() {
             <h1 className="text-lg font-bold text-slate-900">Notification Channels Setup</h1>
           </div>
           <p className="text-xs text-slate-600 ml-9">
-            From here you setup who can see what types of notification from StackFood
+            From here you setup who can see what types of notification from {companyName}
           </p>
         </div>
 

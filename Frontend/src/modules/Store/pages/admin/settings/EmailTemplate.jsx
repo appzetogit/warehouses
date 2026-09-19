@@ -12,12 +12,14 @@ import {
   Save,
   RotateCcw
 } from "lucide-react"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
 export default function EmailTemplate() {
+  const companyName = useCompanyName()
   const [activeTemplate, setActiveTemplate] = useState("forgot-password")
   const [activeLanguage, setActiveLanguage] = useState("default")
   const [sendMailEnabled, setSendMailEnabled] = useState(true)
@@ -42,7 +44,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: `© ${new Date().getFullYear()} ${companyName}. All rights reserved.`
     },
     "new-seller": {
       icon: null,
@@ -62,7 +64,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: `© ${new Date().getFullYear()} ${companyName}. All rights reserved.`
     },
     "new-deliveryman": {
       icon: null,
@@ -82,7 +84,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: `© ${new Date().getFullYear()} ${companyName}. All rights reserved.`
     },
     "withdraw-request": {
       icon: null,
@@ -102,7 +104,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: `© ${new Date().getFullYear()} ${companyName}. All rights reserved.`
     },
     "campaign-join": {
       icon: null,
@@ -122,7 +124,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: `© ${new Date().getFullYear()} ${companyName}. All rights reserved.`
     },
     "refund-request": {
       icon: null,
@@ -142,7 +144,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: `© ${new Date().getFullYear()} ${companyName}. All rights reserved.`
     },
     "new-advertisement": {
       icon: null,
@@ -162,7 +164,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: `© ${new Date().getFullYear()} ${companyName}. All rights reserved.`
     }
   }
   
@@ -331,13 +333,13 @@ export default function EmailTemplate() {
 
             <div className="mt-8 pt-6 border-t border-slate-200">
               <p className="text-sm text-slate-600 mb-4">
-                {formData.footerText} Thanks & Regards, StackFood
+                {formData.footerText} Thanks & Regards, {companyName}
               </p>
               
               {/* Logo placeholder */}
               <div className="mb-4">
                 <div className="w-32 h-12 bg-slate-200 rounded flex items-center justify-center">
-                  <span className="text-xs text-slate-500">StackFood Logo</span>
+                  <span className="text-xs text-slate-500">{companyName} Logo</span>
                 </div>
               </div>
 

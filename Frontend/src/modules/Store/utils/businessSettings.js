@@ -3,6 +3,7 @@
  * Handles loading and updating business settings (favicon, title, logo)
  */
 
+import { APP_CONFIG } from "@/config/constants";
 import apiClient from "@store/api/axios";
 import { API_ENDPOINTS } from "@store/api/config";
 import {
@@ -529,22 +530,28 @@ export const getCachedSettings = () => {
 
 /**
  * Get company name from business settings with fallback
- * @returns {string} Company name or default "SwitchEats Food"
+ * @returns {string} Company name, or the configured brand name
  */
 export const getCompanyName = () => {
   const settings = getCachedSettings();
-  return settings?.companyName || "SwitchEats";
+  return settings?.companyName || APP_CONFIG.NAME;
 };
 
 /**
  * Get company name asynchronously (loads if not cached)
- * @returns {Promise<string>} Company name or default "SwitchEats Food"
+ * @returns {Promise<string>} Company name, or the configured brand name
  */
 export const getCompanyNameAsync = async () => {
   try {
     const settings = await loadBusinessSettings();
-    return settings?.companyName || "SwitchEats";
+    return settings?.companyName || APP_CONFIG.NAME;
   } catch (error) {
-    return "SwitchEats";
+    return APP_CONFIG.NAME;
   }
 };
+
+/**
+ * Support email from business settings, or '' before they load or when unset.
+ * Pages show it only when present rather than inventing an address.
+ */
+export const getSupportEmail = () => getCachedSettings()?.email || "";

@@ -18,7 +18,7 @@ export default function LandingPageSettings({ type = "admin" }) {
     subtitle: "when you can order always form",
     tagline: "Start Your Business or Download the App",
     buttonName: "Order Now",
-    redirectLink: "https://stackfood-web.6amtech.com/",
+    redirectLink: "",
     redirectLinkEnabled: true,
   });
   const [adminImageContent, setAdminImageContent] = useState({
@@ -108,7 +108,7 @@ export default function LandingPageSettings({ type = "admin" }) {
         subtitle: "when you can order always form",
         tagline: "Start Your Business or Download the App",
         buttonName: "Order Now",
-        redirectLink: "https://stackfood-web.6amtech.com/",
+        redirectLink: "",
         redirectLinkEnabled: true,
       });
       setAdminImageContent({

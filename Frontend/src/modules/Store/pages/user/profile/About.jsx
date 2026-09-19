@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import AnimatedPage from "@store/components/user/AnimatedPage"
 import { Button } from "@store/components/ui/button"
 import { Card, CardContent } from "@store/components/ui/card"
-import quickSpicyLogo from "@store/assets/switcheats-logo.png"
+import brandMark from "@/config/brandMark"
 import api from "@store/api"
 import { API_ENDPOINTS } from "@store/api/config"
 import { useCompanyName } from "@store/hooks/useCompanyName"
@@ -124,12 +124,12 @@ export default function About() {
                   <div className="absolute inset-0 bg-[#EB590E] rounded-full blur-2xl opacity-30 animate-pulse" />
                   <div className="relative bg-white dark:bg-gray-800 rounded-full p-4 md:p-6 shadow-xl">
                     <img
-                      src={logoUrl || quickSpicyLogo}
+                      src={logoUrl || brandMark}
                       alt={`${aboutData.appName} Logo`}
                       className="h-16 w-16 md:h-20 md:w-20 object-contain rounded-full"
                       onError={(e) => {
-                        if (e.target.src !== quickSpicyLogo) {
-                          e.target.src = quickSpicyLogo
+                        if (e.target.src !== brandMark) {
+                          e.target.src = brandMark
                         }
                       }}
                     />

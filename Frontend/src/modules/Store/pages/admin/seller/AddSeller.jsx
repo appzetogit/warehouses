@@ -549,14 +549,14 @@ export default function AddSeller() {
       // Upload all images first
       let profileImageData = null
       if (step2.profileImage instanceof File) {
-        profileImageData = await handleUpload(step2.profileImage, "switcheats/seller/profile")
+        profileImageData = await handleUpload(step2.profileImage, "sellers/profile")
       } else if (step2.profileImage?.url) {
         profileImageData = step2.profileImage
       }
 
       let menuImagesData = []
       for (const file of step2.menuImages.filter(f => f instanceof File)) {
-        const uploaded = await handleUpload(file, "switcheats/seller/menu")
+        const uploaded = await handleUpload(file, "sellers/menu")
         menuImagesData.push(uploaded)
       }
       const existingMenuUrls = step2.menuImages.filter(img => !(img instanceof File) && (img?.url || (typeof img === 'string' && img.startsWith('http'))))
@@ -564,7 +564,7 @@ export default function AddSeller() {
 
       let panImageData = null
       if (step3.panImage instanceof File) {
-        panImageData = await handleUpload(step3.panImage, "switcheats/seller/pan")
+        panImageData = await handleUpload(step3.panImage, "sellers/pan")
       } else if (step3.panImage?.url) {
         panImageData = step3.panImage
       }
@@ -572,7 +572,7 @@ export default function AddSeller() {
       let gstImageData = null
       if (step3.gstRegistered && step3.gstImage) {
         if (step3.gstImage instanceof File) {
-          gstImageData = await handleUpload(step3.gstImage, "switcheats/seller/gst")
+          gstImageData = await handleUpload(step3.gstImage, "sellers/gst")
         } else if (step3.gstImage?.url) {
           gstImageData = step3.gstImage
         }
@@ -580,7 +580,7 @@ export default function AddSeller() {
 
       let fssaiImageData = null
       if (step3.fssaiImage instanceof File) {
-        fssaiImageData = await handleUpload(step3.fssaiImage, "switcheats/seller/fssai")
+        fssaiImageData = await handleUpload(step3.fssaiImage, "sellers/fssai")
       } else if (step3.fssaiImage?.url) {
         fssaiImageData = step3.fssaiImage
       }

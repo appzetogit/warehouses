@@ -5,6 +5,7 @@ import Lenis from "lenis"
 import { ArrowLeft, ChevronDown } from "lucide-react"
 import BottomPopup from "@delivery/components/BottomPopup"
 import { sellerAPI } from "@store/api"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -17,6 +18,7 @@ const DEFAULT_LAT = 22.7196
 const DEFAULT_LNG = 75.8577
 
 export default function EditSellerAddress() {
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const goBack = useSellerBackNavigation()
   const [address, setAddress] = useState("")
@@ -261,7 +263,7 @@ export default function EditSellerAddress() {
           {/* Informational Banner */}
           <div className="bg-blue-100 rounded-lg px-4 py-3 mb-4">
             <p className="text-sm text-gray-900">
-              Customers and Zomato delivery partners will use this to locate your outlet.
+              Customers and {companyName} delivery partners will use this to locate your outlet.
             </p>
           </div>
 

@@ -26,6 +26,7 @@ import { firebaseAuth, ensureFirebaseInitialized } from "@store/firebase"
 import { ImageSourcePicker } from "@store/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@store/utils/imageUploadUtils"
 import { toast } from "sonner"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -34,6 +35,7 @@ const debugError = (...args) => {}
 const STORAGE_KEY = "seller_owner_contact"
 
 export default function EditOwner() {
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const goBack = useSellerBackNavigation()
   const [ownerData, setOwnerData] = useState({
@@ -419,7 +421,7 @@ export default function EditOwner() {
               className="flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors"
             >
               <Trash2 className="w-5 h-5" />
-              <span className="text-sm font-normal">Delete your Zomato account</span>
+              <span className="text-sm font-normal">Delete your {companyName} account</span>
             </button>
           </div>
         </div>
@@ -432,7 +434,7 @@ export default function EditOwner() {
                 <span className="text-2xl leading-none text-red-600">!</span>
               </div>
               <DialogTitle className="text-base font-semibold text-gray-900 text-center">
-                You are about to delete your Zomato account
+                You are about to delete your {companyName} account
               </DialogTitle>
               <DialogHeader className="mt-2 text-sm text-gray-600">
                 All information associated with your account will be deleted, and you will lose access to your seller permanently.

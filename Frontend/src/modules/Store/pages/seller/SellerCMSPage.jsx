@@ -4,8 +4,11 @@ import { ArrowLeft, Lock, Loader2, Mail, Phone, MessageSquare, Clock, ShieldChec
 import { motion } from "framer-motion"
 import { Button } from "@store/components/ui/button"
 import api from "@store/api"
+import { useCompanyName } from "@store/hooks/useCompanyName"
+import { getSupportEmail } from "@store/utils/businessSettings"
 
 export default function SellerCMSPage({ endpoint, title: defaultTitle, module = "SELLER" }) {
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [pageData, setPageData] = useState({
@@ -106,8 +109,8 @@ export default function SellerCMSPage({ endpoint, title: defaultTitle, module = 
                   <Mail className="w-6 h-6 text-[#FA0272]" />
                 </div>
                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">Merchant Support</h3>
-                <p className="text-gray-500 text-sm font-medium">{pageData.email || 'merchants@switcheats.com'}</p>
-                <a href={`mailto:${pageData.email || 'merchants@switcheats.com'}`} className="mt-4 text-[10px] font-black text-[#FA0272] uppercase tracking-widest hover:underline">Email Support</a>
+                <p className="text-gray-500 text-sm font-medium">{pageData.email || getSupportEmail()}</p>
+                <a href={`mailto:${pageData.email || getSupportEmail()}`} className="mt-4 text-[10px] font-black text-[#FA0272] uppercase tracking-widest hover:underline">Email Support</a>
               </div>
               <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 flex flex-col items-center text-center group transition-all hover:border-[#FA0272]/30">
                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
@@ -178,7 +181,7 @@ export default function SellerCMSPage({ endpoint, title: defaultTitle, module = 
 
         <p className="text-center mt-10 text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] leading-relaxed">
           Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} <br />
-          © {new Date().getFullYear()} SwitchEats. All Rights Reserved.
+          © {new Date().getFullYear()} {companyName}. All Rights Reserved.
         </p>
       </div>
     </div>

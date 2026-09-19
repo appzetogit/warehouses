@@ -10,25 +10,25 @@ const panelLoginUrls = [
   {
     id: 1,
     panelName: "Admin Panel",
-    loginUrl: "https://admin.stackfood.com/login",
+    loginUrl: "/admin/login",
     status: "active"
   },
   {
     id: 2,
     panelName: "Seller Panel",
-    loginUrl: "https://restaurant.stackfood.com/login",
+    loginUrl: "/seller/login",
     status: "active"
   },
   {
     id: 3,
     panelName: "Deliveryman Panel",
-    loginUrl: "https://delivery.stackfood.com/login",
+    loginUrl: "/food/delivery/login",
     status: "active"
   },
   {
     id: 4,
     panelName: "Customer Panel",
-    loginUrl: "https://app.stackfood.com/login",
+    loginUrl: "/food/user/auth/login",
     status: "active"
   }
 ]
