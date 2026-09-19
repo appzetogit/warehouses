@@ -69,7 +69,7 @@ const notificationSchema = new mongoose.Schema(
         }
     },
     {
-        collection: 'food_notifications',
+        collection: 'notifications',
         timestamps: true
     }
 );
@@ -79,4 +79,4 @@ notificationSchema.index({ ownerType: 1, ownerId: 1, isRead: 1, dismissedAt: 1 }
 notificationSchema.index({ broadcastId: 1, ownerType: 1, ownerId: 1 }, { unique: true, sparse: true });
 notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
 
-export const FoodNotification = mongoose.model('FoodNotification', notificationSchema);
+export const Notification = mongoose.model('Notification', notificationSchema);

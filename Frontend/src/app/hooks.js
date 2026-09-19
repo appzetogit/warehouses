@@ -9,10 +9,10 @@ export const selectApp = (state = getStoreState()) => state.app
 export const selectAuth = (state = getStoreState()) => state.auth
 
 // Per-vertical slices
-export const selectFood = (state = getStoreState()) => state.food
+export const selectStore = (state = getStoreState()) => state.food
 export const selectTaxi = (state = getStoreState()) => state.taxi
 export const selectQuick = (state = getStoreState()) => state.quick
 
 // Convenience: food cart (for migration from CartContext)
-export const selectFoodCart = (state = getStoreState()) => state.food?.cart ?? { items: [] }
+export const selectStoreCart = (state = getStoreState()) => state.food?.cart ?? { items: [] }
 

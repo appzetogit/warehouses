@@ -1,2 +1,2 @@
-export { default } from '../modules/food/components/ProtectedRoute.jsx'
+export { default } from '../modules/commerce/components/ProtectedRoute.jsx'
 

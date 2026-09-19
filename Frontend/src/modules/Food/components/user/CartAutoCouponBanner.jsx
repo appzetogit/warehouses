@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import confetti from "canvas-confetti"
 import { BadgePercent, CheckCircle2 } from "lucide-react"
 
-const SESSION_BANNER_KEY = "food_auto_coupon_cart_banner_session"
+const SESSION_BANNER_KEY = "store_auto_coupon_cart_banner_session"
 
 function fireCartOfferConfetti() {
   try {

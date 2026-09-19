@@ -166,7 +166,7 @@ export default function SupportTickets() {
   const loadStats = useCallback(async () => {
     setStatsLoading(true)
     try {
-      const res = await supportAPI.getFoodSupportTicketStats(statsParams)
+      const res = await supportAPI.getUserSupportTicketStats(statsParams)
       const data = res?.data?.data || res?.data || null
       setStats(data)
     } catch {

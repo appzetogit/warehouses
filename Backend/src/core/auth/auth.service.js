@@ -1,22 +1,22 @@
 import crypto from "crypto";
 import ms from "ms";
-import { FoodUser } from "../users/user.model.js";
-import { FoodAdmin } from "../admin/admin.model.js";
+import { User } from "../users/user.model.js";
+import { Admin } from "../admin/admin.model.js";
 import { AdminResetOtp } from "../admin/adminResetOtp.model.js";
-import { FoodSeller } from "../../modules/food/seller/models/seller.model.js";
-import { FoodDeliveryPartner } from "../../modules/food/delivery/models/deliveryPartner.model.js";
-import { FoodOrder } from "../../modules/food/orders/models/order.model.js";
-import { FoodReferralSettings } from "../../modules/food/admin/models/referralSettings.model.js";
-import { FoodReferralLog } from "../../modules/food/admin/models/referralLog.model.js";
+import { Seller } from "../../modules/commerce/seller/models/seller.model.js";
+import { DeliveryPartner } from "../../modules/commerce/delivery/models/deliveryPartner.model.js";
+import { Order } from "../../modules/commerce/orders/models/order.model.js";
+import { ReferralSettings } from "../../modules/commerce/admin/models/referralSettings.model.js";
+import { ReferralLog } from "../../modules/commerce/admin/models/referralLog.model.js";
 import { createOrUpdateOtp, verifyOtp } from "../otp/otp.service.js";
 import { signAccessToken, signRefreshToken } from "./token.util.js";
-import { FoodRefreshToken } from "../refreshTokens/refreshToken.model.js";
+import { RefreshToken } from "../refreshTokens/refreshToken.model.js";
 import { ValidationError, AuthError } from "./errors.js";
 import { config } from "../../config/env.js";
 import { logger } from "../../utils/logger.js";
 import { sendAdminResetOtpEmail } from "../../utils/email.js";
 import mongoose from "mongoose";
-import { creditReferralReward } from "../../modules/food/user/services/userWallet.service.js";
+import { creditReferralReward } from "../../modules/commerce/user/services/userWallet.service.js";
 import { ADMIN_FULL_PERMISSIONS, sanitizeAdminPermissions } from '../../constants/permissions.js';
 import { isMobilePlatform } from "../../utils/platform.js";
 import {
@@ -66,11 +66,11 @@ const saveLoginFcmToken = async ({ ownerType, ownerId, fcmToken, platform, owner
       const otherField = field === "fcmTokenMobile" ? "fcmTokens" : "fcmTokenMobile";
       const model =
         ownerType === ROLES.USER
-          ? FoodUser
+          ? User
           : ownerType === ROLES.SELLER
-            ? FoodSeller
+            ? Seller
             : ownerType === ROLES.DELIVERY_PARTNER
-              ? FoodDeliveryPartner
+              ? DeliveryPartner
               : null;
       if (model) {
         const fresh = await model.findById(ownerId).select("fcmTokens fcmTokenMobile").lean();
@@ -141,7 +141,7 @@ export const verifyUserOtpAndLogin = async (
     throw new AuthError(result.reason || "OTP verification failed");
   }
 
-  let userDoc = await FoodUser.findOne({ phone });
+  let userDoc = await User.findOne({ phone });
   
   // Ensure user exists and mark as verified on successful OTP.
   // Check if user is new or hasn't provided a name yet
@@ -150,7 +150,7 @@ export const verifyUserOtpAndLogin = async (
   const trimmedName = typeof name === "string" ? name.trim() : "";
 
   if (!userDoc) {
-    userDoc = await FoodUser.create({
+    userDoc = await User.create({
       phone,
       isVerified: true,
       ...(trimmedName ? { name: trimmedName } : {}),
@@ -200,8 +200,8 @@ export const verifyUserOtpAndLogin = async (
         const referrerId = new mongoose.Types.ObjectId(refRaw);
         if (String(referrerId) !== String(userDoc._id)) {
           const [referrer, settingsDoc] = await Promise.all([
-            FoodUser.findById(referrerId).select("_id referralCount").lean(),
-            FoodReferralSettings.findOne({ isActive: true })
+            User.findById(referrerId).select("_id referralCount").lean(),
+            ReferralSettings.findOne({ isActive: true })
               .sort({ createdAt: -1 })
               .lean(),
           ]);
@@ -224,7 +224,7 @@ export const verifyUserOtpAndLogin = async (
               userDoc.referredBy = referrerId;
               await userDoc.save();
 
-              const log = await FoodReferralLog.create({
+              const log = await ReferralLog.create({
                 referrerId,
                 refereeId: userDoc._id,
                 role: "USER",
@@ -233,7 +233,7 @@ export const verifyUserOtpAndLogin = async (
               });
 
               await Promise.all([
-                FoodUser.updateOne(
+                User.updateOne(
                   { _id: referrerId },
                   { $inc: { referralCount: 1 } },
                 ),
@@ -244,7 +244,7 @@ export const verifyUserOtpAndLogin = async (
                 }),
               ]);
             } else {
-              await FoodReferralLog.create({
+              await ReferralLog.create({
                 referrerId,
                 refereeId: userDoc._id,
                 role: "USER",
@@ -271,7 +271,7 @@ export const verifyUserOtpAndLogin = async (
   const payload = {
     userId: user._id.toString(),
     role: user.role || "USER",
-    tokenVersion: await bumpTokenVersion(FoodUser, user._id),
+    tokenVersion: await bumpTokenVersion(User, user._id),
   };
 
   const accessToken = signAccessToken(payload);
@@ -280,7 +280,7 @@ export const verifyUserOtpAndLogin = async (
   const ttlMs = ms(config.jwtRefreshExpiresIn || "7d");
   const expiresAt = new Date(Date.now() + ttlMs);
 
-  await FoodRefreshToken.create({
+  await RefreshToken.create({
     userId: user._id,
     token: refreshToken,
     expiresAt,
@@ -294,7 +294,7 @@ export const adminLogin = async (email, password) => {
     throw new ValidationError("Email and password are required");
   }
 
-  const admin = await FoodAdmin.findOne({ email });
+  const admin = await Admin.findOne({ email });
   if (!admin) {
     throw new AuthError("Invalid credentials");
   }
@@ -324,7 +324,7 @@ export const adminLogin = async (email, password) => {
   const ttlMs = ms(config.jwtRefreshExpiresIn || "7d");
   const expiresAt = new Date(Date.now() + ttlMs);
 
-  await FoodRefreshToken.create({
+  await RefreshToken.create({
     userId: admin._id,
     token: refreshToken,
     expiresAt,
@@ -367,7 +367,7 @@ export const verifySellerOtpAndLogin = async (phone, otp, fcmToken, platform) =>
   ];
 
   console.log(`[AUTH] Verifying OTP for seller phone: ${phone}`);
-  const seller = await FoodSeller.findOne({
+  const seller = await Seller.findOne({
     $or: [
       ...phoneOrFields("ownerPhone"),
       ...phoneOrFields("primaryContactNumber"),
@@ -402,7 +402,7 @@ export const verifySellerOtpAndLogin = async (phone, otp, fcmToken, platform) =>
   if (seller.status && seller.status !== "approved") {
     if (seller.status === "pending") {
       const hasHistoricalApproval = Boolean(seller.approvedAt);
-      const hasOperationalHistory = await FoodOrder.exists({
+      const hasOperationalHistory = await Order.exists({
         sellerId: seller._id,
       });
 
@@ -423,14 +423,14 @@ export const verifySellerOtpAndLogin = async (phone, otp, fcmToken, platform) =>
   const payload = {
     userId: seller._id.toString(),
     role: ROLES.SELLER,
-    tokenVersion: await bumpTokenVersion(FoodSeller, seller._id),
+    tokenVersion: await bumpTokenVersion(Seller, seller._id),
   };
   const accessToken = signAccessToken(payload);
   const refreshToken = signRefreshToken(payload);
   const ttlMs = ms(config.jwtRefreshExpiresIn || "7d");
   const expiresAt = new Date(Date.now() + ttlMs);
 
-  await FoodRefreshToken.create({
+  await RefreshToken.create({
     userId: seller._id,
     token: refreshToken,
     expiresAt,
@@ -474,7 +474,7 @@ export const verifyDeliveryOtpAndLogin = async (phone, otp, fcmToken, platform) 
     return { needsRegistration: true, phone };
   }
 
-  const deliveryPartner = await FoodDeliveryPartner.findOne({
+  const deliveryPartner = await DeliveryPartner.findOne({
     $or: [
       { phone: normalized },
       { phone: { $regex: new RegExp(normalized + "$") } },
@@ -515,14 +515,14 @@ export const verifyDeliveryOtpAndLogin = async (phone, otp, fcmToken, platform) 
   const payload = {
     userId: deliveryPartner._id.toString(),
     role: ROLES.DELIVERY_PARTNER,
-    tokenVersion: await bumpTokenVersion(FoodDeliveryPartner, deliveryPartner._id),
+    tokenVersion: await bumpTokenVersion(DeliveryPartner, deliveryPartner._id),
   };
   const accessToken = signAccessToken(payload);
   const refreshToken = signRefreshToken(payload);
   const ttlMs = ms(config.jwtRefreshExpiresIn || "7d");
   const expiresAt = new Date(Date.now() + ttlMs);
 
-  await FoodRefreshToken.create({
+  await RefreshToken.create({
     userId: deliveryPartner._id,
     token: refreshToken,
     expiresAt,
@@ -553,7 +553,7 @@ export const logout = async (refreshToken, fcmToken, platform) => {
   }
 
   // 2. Invalidate the refresh token (standard logout procedure)
-  const deleted = await FoodRefreshToken.deleteOne({ token: refreshToken });
+  const deleted = await RefreshToken.deleteOne({ token: refreshToken });
   return { invalidated: deleted.deletedCount > 0 };
 };
 
@@ -566,10 +566,10 @@ export const getProfile = async (userId, role) => {
 
   switch (role) {
     case ROLES.USER:
-      profile = await FoodUser.findById(id).lean();
+      profile = await User.findById(id).lean();
       break;
     case ROLES.ADMIN:
-      profile = await FoodAdmin.findById(id).select("-password").lean();
+      profile = await Admin.findById(id).select("-password").lean();
       if (profile) {
         profile.effectivePermissions = profile.adminType === "super_admin"
           ? ADMIN_FULL_PERMISSIONS
@@ -578,7 +578,7 @@ export const getProfile = async (userId, role) => {
       break;
     case ROLES.SELLER:
       {
-        const doc = await FoodSeller.findById(id).lean();
+        const doc = await Seller.findById(id).lean();
         if (!doc) break;
 
         const location =
@@ -635,7 +635,7 @@ export const getProfile = async (userId, role) => {
       }
       break;
     case ROLES.DELIVERY_PARTNER: {
-      const partner = await FoodDeliveryPartner.findById(id).lean();
+      const partner = await DeliveryPartner.findById(id).lean();
       if (!partner) break;
       const deliveryId = partner._id
         ? `DP-${partner._id.toString().slice(-8).toUpperCase()}`
@@ -723,7 +723,7 @@ export const updateAdminProfile = async (userId, body) => {
   if (!userId) {
     throw new AuthError("Invalid token payload");
   }
-  const admin = await FoodAdmin.findById(userId);
+  const admin = await Admin.findById(userId);
   if (!admin) {
     throw new AuthError("Profile not found");
   }
@@ -748,7 +748,7 @@ export const updateAdminProfile = async (userId, body) => {
     }
 
     if (normalizedEmail !== admin.email) {
-      const duplicateAdmin = await FoodAdmin.findOne({
+      const duplicateAdmin = await Admin.findOne({
         _id: { $ne: admin._id },
         email: normalizedEmail,
       })
@@ -787,7 +787,7 @@ export const changeAdminPassword = async (
   if (!userId) {
     throw new AuthError("Invalid token payload");
   }
-  const admin = await FoodAdmin.findById(userId);
+  const admin = await Admin.findById(userId);
   if (!admin) {
     throw new AuthError("Profile not found");
   }
@@ -828,7 +828,7 @@ export const requestAdminForgotPasswordOtp = async (email) => {
     throw new ValidationError("Email is required");
   }
 
-  const admin = await FoodAdmin.findOne({ email: normalizedEmail });
+  const admin = await Admin.findOne({ email: normalizedEmail });
   if (!admin) {
     throw new AuthError("This email is not registered as an admin account.");
   }
@@ -892,7 +892,7 @@ export const resetAdminPasswordWithOtp = async (email, otp, newPassword) => {
     throw new AuthError("Invalid OTP.");
   }
 
-  const admin = await FoodAdmin.findOne({ email: normalizedEmail });
+  const admin = await Admin.findOne({ email: normalizedEmail });
   if (!admin) {
     await record.deleteOne();
     throw new AuthError("Account not found.");
@@ -925,7 +925,7 @@ export const refreshAccessToken = async (token) => {
     throw new ValidationError("Refresh token is required");
   }
 
-  const stored = await FoodRefreshToken.findOne({ token }).lean();
+  const stored = await RefreshToken.findOne({ token }).lean();
   if (!stored) {
     throw new AuthError("Invalid refresh token");
   }
@@ -940,7 +940,7 @@ export const refreshAccessToken = async (token) => {
 
   // If deactivated user, do not issue fresh access tokens (forces logout on client)
   if (payload?.role === "USER") {
-    const u = await FoodUser.findById(payload.userId).select("isActive").lean();
+    const u = await User.findById(payload.userId).select("isActive").lean();
     if (!u || u.isActive === false) {
       throw new AuthError("User account is deactivated");
     }
@@ -950,9 +950,9 @@ export const refreshAccessToken = async (token) => {
   // already been replaced. Without this, an evicted device could mint itself a
   // brand-new access token from its still-valid refresh token and stay signed in.
   const sessionModel = {
-    USER: FoodUser,
-    SELLER: FoodSeller,
-    DELIVERY_PARTNER: FoodDeliveryPartner,
+    USER: User,
+    SELLER: Seller,
+    DELIVERY_PARTNER: DeliveryPartner,
   }[payload?.role];
 
   let tokenVersion = payload?.tokenVersion;

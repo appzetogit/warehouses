@@ -143,7 +143,7 @@ export default function RegularOrderReport() {
       const response = await adminAPI.getOrders(params)
 
       if (response.data?.success) {
-        // Transform backend orders (FoodOrder docs) to report format
+        // Transform backend orders (Order docs) to report format
         const rawOrders = response.data.data.orders || []
         const transformedOrders = rawOrders.map((order) => {
           const pricing = order.pricing || {}

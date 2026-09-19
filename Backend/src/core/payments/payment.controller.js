@@ -91,8 +91,8 @@ export const getAdminWalletController = async (req, res, next) => {
 
 export const getAdminFinanceSummaryController = async (req, res, next) => {
     try {
-        const { FoodAdminWallet } = await import('../../modules/food/admin/models/adminWallet.model.js');
-        const adminWallet = await FoodAdminWallet.findOne({ key: 'platform' }).lean();
+        const { AdminWallet } = await import('../../modules/commerce/admin/models/adminWallet.model.js');
+        const adminWallet = await AdminWallet.findOne({ key: 'platform' }).lean();
         const pendingSettlements = await listSettlements({ status: 'pending', limit: 100 });
         const pendingRefunds = await listRefunds({ status: 'pending', limit: 100 });
 

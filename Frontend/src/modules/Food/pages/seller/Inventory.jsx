@@ -1232,7 +1232,7 @@ export default function Inventory() {
     const payload = buildAvailabilityPayload(isAvailable, stockRule)
 
     if (itemId) {
-      await sellerAPI.updateFood(itemId, payload)
+      await sellerAPI.updateProduct(itemId, payload)
       return
     }
 
@@ -1242,7 +1242,7 @@ export default function Inventory() {
     const items = category?.items || []
     await Promise.all(
       items.map((it) =>
-        sellerAPI.updateFood(it.id, payload),
+        sellerAPI.updateProduct(it.id, payload),
       ),
     )
   }
@@ -1478,7 +1478,7 @@ export default function Inventory() {
 
     // Persist to backend
     try {
-      await sellerAPI.updateFood(itemId, { isRecommended: newRecommendationStatus })
+      await sellerAPI.updateProduct(itemId, { isRecommended: newRecommendationStatus })
       toast.success(newRecommendationStatus ? "Marked as recommended" : "Removed from recommended")
     } catch (error) {
       debugError("Failed to update recommendation status:", error)

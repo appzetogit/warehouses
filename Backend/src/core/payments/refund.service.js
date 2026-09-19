@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { Refund } from './models/refund.model.js';
 import { Payment } from './models/payment.model.js';
 import { creditWallet } from './wallet.service.js';
-import { getRazorpayInstance, isRazorpayConfigured } from '../../modules/food/orders/helpers/razorpay.helper.js';
+import { getRazorpayInstance, isRazorpayConfigured } from '../../modules/commerce/orders/helpers/razorpay.helper.js';
 import { logger } from '../../utils/logger.js';
 
 /**
@@ -48,7 +48,7 @@ export async function initiateRefund({ paymentId, orderId, userId, amount, reaso
             refund.processedAt = new Date();
             await refund.save();
 
-            // Also credit back to the existing FoodUserWallet for backward compat
+            // Also credit back to the existing UserWallet for backward compat
             await addRefundToLegacyWallet(userId || payment.userId, refund.amount, orderId);
 
             // Mark payment as refunded
@@ -142,12 +142,12 @@ export async function listRefunds({ status, page = 1, limit = 20 } = {}) {
 }
 
 /**
- * Backward compatibility: add a refund transaction to the legacy FoodUserWallet embedded array.
+ * Backward compatibility: add a refund transaction to the legacy UserWallet embedded array.
  */
 async function addRefundToLegacyWallet(userId, amount, orderId) {
     try {
-        const { FoodUserWallet } = await import('../../modules/food/user/models/userWallet.model.js');
-        const wallet = await FoodUserWallet.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+        const { UserWallet } = await import('../../modules/commerce/user/models/userWallet.model.js');
+        const wallet = await UserWallet.findOne({ userId: new mongoose.Types.ObjectId(userId) });
         if (wallet) {
             wallet.transactions.unshift({
                 type: 'refund',

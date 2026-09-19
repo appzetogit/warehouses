@@ -13,7 +13,7 @@ const PointOfSale = lazy(() => import("@food/pages/admin/PointOfSale"));
 const AdminProfile = lazy(() => import("@food/pages/admin/AdminProfile"));
 const AdminSettings = lazy(() => import("@food/pages/admin/AdminSettings"));
 const NewRefundRequests = lazy(() => import("@food/pages/admin/refunds/NewRefundRequests"));
-const FoodApproval = lazy(() => import("@food/pages/admin/seller/FoodApproval"));
+const ProductApproval = lazy(() => import("@food/pages/admin/seller/ProductApproval"));
 const OrdersPage = lazy(() => import("@food/pages/admin/orders/OrdersPage"));
 const UserCarts = lazy(() => import("@food/pages/admin/orders/UserCarts"));
 const OrderDetectDelivery = lazy(() => import("@food/pages/admin/OrderDetectDelivery"));
@@ -39,10 +39,10 @@ const SubscriptionSettings = lazy(() => import("@food/pages/admin/seller/Subscri
 const SubscriptionHistory = lazy(() => import("@food/pages/admin/seller/SubscriptionHistory"));
 const SellerSettings = lazy(() => import("@food/pages/admin/seller/SellerSettings"));
 // Food Management
-const FoodsList = lazy(() => import("@food/pages/admin/foods/FoodsList"));
+const ProductsList = lazy(() => import("@food/pages/admin/products/ProductsList"));
 // Promotions Management
 const BasicCampaign = lazy(() => import("@food/pages/admin/campaigns/BasicCampaign"));
-const FoodCampaign = lazy(() => import("@food/pages/admin/campaigns/FoodCampaign"));
+const ProductCampaign = lazy(() => import("@food/pages/admin/campaigns/ProductCampaign"));
 const Coupons = lazy(() => import("@food/pages/admin/Coupons"));
 const Cashback = lazy(() => import("@food/pages/admin/Cashback"));
 const Banners = lazy(() => import("@food/pages/admin/Banners"));
@@ -204,7 +204,7 @@ function UnregisteredSellersRouteGuard() {
  * path, the query string and the hash all survive, so a deep link into a
  * filtered list still lands where it was pointing.
  */
-function LegacyFoodPathRedirect() {
+function LegacyStorePathRedirect() {
   const location = useLocation();
   const target =
     location.pathname.replace(/^\/admin\/food/, "/admin/store") +
@@ -245,7 +245,7 @@ export default function AdminRouter() {
           <Route path="/" element={<Navigate to="store" replace />} />
 
           {/* Quick-commerce administration. Everything below hangs off /admin/store. */}
-          <Route path="food/*" element={<LegacyFoodPathRedirect />} />
+          <Route path="food/*" element={<LegacyStorePathRedirect />} />
           <Route path="store/*">
             <Route index element={<AdminHome />} />
             <Route path="point-of-sale" element={<PointOfSale />} />
@@ -276,11 +276,11 @@ export default function AdminRouter() {
             <Route path="zone-setup/add" element={<AddZone />} />
             <Route path="zone-setup/edit/:id" element={<AddZone />} />
             <Route path="zone-setup/view/:id" element={<ViewZone />} />
-            <Route path="food-approval" element={<FoodApproval />} />
-            {/* Canonical paths are products/ and sellers/. The foods/ and
+            <Route path="food-approval" element={<ProductApproval />} />
+            {/* Canonical paths are products/ and sellers/. The products/ and
                 sellers/ twins below them are kept so existing bookmarks and
                 links in already-sent email keep resolving. */}
-            {/* products/ and sellers/ are the canonical paths. The foods/ and
+            {/* products/ and sellers/ are the canonical paths. The products/ and
                 sellers/ twins beside them render the same screens and are kept
                 so existing bookmarks and already-sent links keep resolving. */}
             <Route path="sellers" element={<SellersList />} />
@@ -314,13 +314,13 @@ export default function AdminRouter() {
             <Route path="categories" element={<Category />} />
             <Route path="fee-settings" element={<FeeSettings />} />
             <Route path="referral-settings" element={<ReferralSettings />} />
-            <Route path="foods" element={<FoodsList />} />
-            <Route path="products" element={<FoodsList />} />
-            <Route path="food/list" element={<FoodsList />} />
+            <Route path="products" element={<ProductsList />} />
+            <Route path="products" element={<ProductsList />} />
+            <Route path="food/list" element={<ProductsList />} />
 
             {/* PROMOTIONS, CUSTOMERS, DELIVERYMEN, etc. */}
             <Route path="campaigns/basic" element={<BasicCampaign />} />
-            <Route path="campaigns/food" element={<FoodCampaign />} />
+            <Route path="campaigns/food" element={<ProductCampaign />} />
             <Route path="coupons" element={<Coupons />} />
             <Route path="cashback" element={<Cashback />} />
             <Route path="banners" element={<Banners />} />

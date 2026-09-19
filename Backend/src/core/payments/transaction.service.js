@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 import { Transaction } from './models/transaction.model.js';
-import { FoodUserWallet } from '../../modules/food/user/models/userWallet.model.js';
-import { FoodSellerWallet } from '../../modules/food/seller/models/sellerWallet.model.js';
-import { FoodDeliveryWallet } from '../../modules/food/delivery/models/deliveryWallet.model.js';
-import { FoodAdminWallet } from '../../modules/food/admin/models/adminWallet.model.js';
+import { UserWallet } from '../../modules/commerce/user/models/userWallet.model.js';
+import { SellerWallet } from '../../modules/commerce/seller/models/sellerWallet.model.js';
+import { DeliveryWallet } from '../../modules/commerce/delivery/models/deliveryWallet.model.js';
+import { AdminWallet } from '../../modules/commerce/admin/models/adminWallet.model.js';
 import { logger } from '../../utils/logger.js';
 
 /**
@@ -14,18 +14,18 @@ function resolveWallet(entityType, entityId) {
     switch (entityType) {
         case 'user': {
             const id = new mongoose.Types.ObjectId(entityId);
-            return { Model: FoodUserWallet, filter: { userId: id }, idField: 'userId' };
+            return { Model: UserWallet, filter: { userId: id }, idField: 'userId' };
         }
         case 'seller': {
             const id = new mongoose.Types.ObjectId(entityId);
-            return { Model: FoodSellerWallet, filter: { sellerId: id }, idField: 'sellerId' };
+            return { Model: SellerWallet, filter: { sellerId: id }, idField: 'sellerId' };
         }
         case 'deliveryBoy': {
             const id = new mongoose.Types.ObjectId(entityId);
-            return { Model: FoodDeliveryWallet, filter: { deliveryPartnerId: id }, idField: 'deliveryPartnerId' };
+            return { Model: DeliveryWallet, filter: { deliveryPartnerId: id }, idField: 'deliveryPartnerId' };
         }
         case 'admin':
-            return { Model: FoodAdminWallet, filter: { key: 'platform' }, idField: 'key' };
+            return { Model: AdminWallet, filter: { key: 'platform' }, idField: 'key' };
         default:
             throw new Error(`Unknown entityType: ${entityType}`);
     }

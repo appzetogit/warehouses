@@ -1,4 +1,4 @@
-const STORAGE_KEY = "food_user_home_scroll_v1";
+const STORAGE_KEY = "store_user_home_scroll_v1";
 const MAX_AGE_MS = 30 * 60 * 1000;
 
 /** In-memory pending restore — survives route effects better than storage alone. */

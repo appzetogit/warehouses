@@ -19,7 +19,7 @@ function FinanceOrderRow({ order }) {
             Order ID: {order.orderId || 'N/A'}
           </p>
           <p className="text-xs text-gray-600">
-            {order.foodNames || (order.items && order.items.map(item => item.name).join(', ')) || 'N/A'}
+            {order.productNames || (order.items && order.items.map(item => item.name).join(', ')) || 'N/A'}
           </p>
           {Number(order.discount || 0) > 0 && (
             <p className="mt-1 text-[11px] font-medium text-rose-600">
@@ -627,7 +627,7 @@ export default function HubFinance() {
               <tbody>
                 ${reportData.allOrders.map(order => {
       const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : (order.deliveredAt ? new Date(order.deliveredAt).toLocaleDateString('en-IN') : 'N/A')
-      const foodItems = order.foodNames || (order.items && order.items.map(item => item.name).join(', ')) || 'N/A'
+      const products = order.productNames || (order.items && order.items.map(item => item.name).join(', ')) || 'N/A'
       const itemQuantities = order.items ? order.items.map(item => (item.quantity || 1).toString()).join(', ') : 'N/A'
       const orderAmount = order.totalAmount || order.orderTotal || order.amount || 0
       const earning = order.payout || order.sellerEarning || 0
@@ -636,7 +636,7 @@ export default function HubFinance() {
                     <tr>
                       <td>${order.orderId || 'N/A'}</td>
                       <td>${orderDate}</td>
-                      <td>${foodItems}</td>
+                      <td>${products}</td>
                       <td>${itemQuantities}</td>
                       <td>₹${orderAmount.toFixed(2)}</td>
                       <td>₹${earning.toFixed(2)}</td>

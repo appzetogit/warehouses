@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
-import { FoodUser } from './src/core/users/user.model.js';
+import { User } from './src/core/users/user.model.js';
 import { upsertFirebaseDeviceToken } from './src/core/notifications/firebase.service.js';
 import { connectDB } from './src/config/db.js';
 
 async function run() {
   await connectDB();
-  const user = await FoodUser.findOne({});
+  const user = await User.findOne({});
   if (!user) {
     console.log("No user found.");
     process.exit(0);
@@ -24,7 +24,7 @@ async function run() {
     console.log("Upsert result:", res);
     
     // Check DB
-    const updated = await FoodUser.findById(user._id);
+    const updated = await User.findById(user._id);
     console.log("Stored fcmTokens in DB:", updated.fcmTokens);
   } catch (err) {
     console.error("Error:", err);

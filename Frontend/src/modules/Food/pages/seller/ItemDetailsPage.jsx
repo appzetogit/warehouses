@@ -17,13 +17,13 @@ import {
   Loader2
 } from "lucide-react"
 import { Switch } from "@food/components/ui/switch"
-// Removed getAllFoods and saveFood - now using menu API
+// Removed getAllProducts and saveProduct - now using menu API
 import api from "@food/api"
 import { sellerAPI, uploadAPI } from "@food/api"
 import { toast } from "sonner"
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@food/utils/imageUploadUtils"
-import { getFoodVariants } from "@food/utils/foodVariants"
+import { getProductVariants } from "@food/utils/productVariants"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -124,7 +124,7 @@ export default function ItemDetailsPage() {
     setItemSizeUnit(item.itemSizeUnit || "piece")
     setItemDescription(item.description || "")
     setFoodType(item.foodType === "Veg" || item.foodType === "Non-Veg" ? item.foodType : null)
-    const itemVariants = getFoodVariants(item)
+    const itemVariants = getProductVariants(item)
     setVariants(itemVariants.map(createVariantDraft))
     setBasePrice(itemVariants.length === 0 ? item.price?.toString() || "" : "")
     setOtherPrice(itemVariants.length === 0 ? item.otherPrice?.toString() || "" : "")
@@ -623,7 +623,7 @@ export default function ItemDetailsPage() {
       debugLog('Total image URLs to save:', allImageUrls.length, allImageUrls)
       debugLog('==========================')
 
-      // Resolve categoryId from fetched categories (so FoodItem stores categoryId efficiently).
+      // Resolve categoryId from fetched categories (so Product stores categoryId efficiently).
       const matchedCategory = Array.isArray(categories)
         ? categories.find((c) => String(c?.id || "") === String(selectedCategoryId || ""))
         : null
@@ -685,10 +685,10 @@ export default function ItemDetailsPage() {
         otherPrice: variant.otherPrice > 0 ? variant.otherPrice : 0,
       }))
 
-      // Create/update FoodItem in DB (single call per explicit Save; no autosave spam)
+      // Create/update Product in DB (single call per explicit Save; no autosave spam)
       let itemId
       if (isNewItem) {
-        const createRes = await sellerAPI.createFood({
+        const createRes = await sellerAPI.createProduct({
           name: itemName.trim(),
           description: itemDescription.trim(),
           price: hasVariants ? undefined : parsedBasePrice,
@@ -715,7 +715,7 @@ export default function ItemDetailsPage() {
         if (!itemId) {
           throw new Error("Invalid item id")
         }
-        await sellerAPI.updateFood(itemId, {
+        await sellerAPI.updateProduct(itemId, {
           name: itemName.trim(),
           description: itemDescription.trim(),
           price: hasVariants ? undefined : parsedBasePrice,
@@ -743,7 +743,7 @@ export default function ItemDetailsPage() {
       )
       await new Promise((resolve) => setTimeout(resolve, 200))
       navigate("/seller/inventory", { replace: true })
-      window.dispatchEvent(new CustomEvent('foodsChanged'))
+      window.dispatchEvent(new CustomEvent('productsChanged'))
     } catch (error) {
       debugError('Error saving menu:', error)
       if (error.code === 'ERR_NETWORK') {

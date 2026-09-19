@@ -19,10 +19,10 @@ function ToggleSwitch({ enabled, onToggle }) {
 
 export default function AppWebSettings() {
   const [generalSettings, setGeneralSettings] = useState({
-    popularFoods: true,
+    popularProducts: true,
     newSellers: true,
     popularSellers: true,
-    mostReviewedFoods: true
+    mostReviewedProducts: true
   })
 
   const [userAppAndroid, setUserAppAndroid] = useState({
@@ -105,12 +105,12 @@ export default function AppWebSettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-700">Popular Foods</span>
+                <span className="text-xs text-slate-700">Popular Products</span>
                 <Info className="w-3.5 h-3.5 text-slate-400" />
               </div>
               <ToggleSwitch
-                enabled={generalSettings.popularFoods}
-                onToggle={() => handleGeneralToggle("popularFoods")}
+                enabled={generalSettings.popularProducts}
+                onToggle={() => handleGeneralToggle("popularProducts")}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -135,12 +135,12 @@ export default function AppWebSettings() {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-700">Most Reviewed Foods</span>
+                <span className="text-xs text-slate-700">Most Reviewed Products</span>
                 <Info className="w-3.5 h-3.5 text-slate-400" />
               </div>
               <ToggleSwitch
-                enabled={generalSettings.mostReviewedFoods}
-                onToggle={() => handleGeneralToggle("mostReviewedFoods")}
+                enabled={generalSettings.mostReviewedProducts}
+                onToggle={() => handleGeneralToggle("mostReviewedProducts")}
               />
             </div>
           </div>

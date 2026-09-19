@@ -91,7 +91,7 @@ const debugWarn = (...args) => {};
 const debugError = (...args) => {};
 
 // Import shared food images - prevents duplication
-import { foodImages } from "@food/constants/images";
+import { productImages } from "@food/constants/images";
 
 import { Avatar, AvatarFallback } from "@food/components/ui/avatar";
 import {
@@ -628,7 +628,7 @@ const SellerCard = React.memo(({
             onClick={() => {
               onNavigateAway?.();
               try {
-                sessionStorage.removeItem("food_last_opened_seller_distance")
+                sessionStorage.removeItem("store_last_opened_seller_distance")
               } catch (_) {}
             }}
             className="flex-grow"
@@ -1244,8 +1244,8 @@ export default function Home() {
       name: category.label || category.name || "Category",
       image:
         normalizeImageUrl(category.imageUrl || category.image) ||
-        foodImages[index % foodImages.length] ||
-        foodImages[0],
+        productImages[index % productImages.length] ||
+        productImages[0],
       slug:
         category.slug || slugifyCategory(category.label || category.name || ""),
       label: category.label || category.name || "Category",
@@ -1608,8 +1608,8 @@ export default function Home() {
                 slug: cat?.slug || String(cat?.name || "").toLowerCase().replace(/\s+/g, "-"),
                 image:
                   normalizeImageUrl(cat?.image || cat?.imageUrl) ||
-                  foodImages[idx % foodImages.length] ||
-                  foodImages[0],
+                  productImages[idx % productImages.length] ||
+                  productImages[0],
                 type: cat?.type || "",
               }))
             : []
@@ -2340,8 +2340,8 @@ export default function Home() {
             ...category,
             image:
               category.image ||
-              foodImages[index % foodImages.length] ||
-              foodImages[0],
+              productImages[index % productImages.length] ||
+              productImages[0],
           }));
 
         setMenuCategories(categories);
@@ -2360,7 +2360,7 @@ export default function Home() {
     slugifyCategory,
   ]);
 
-    // Filter sellers and foods based on active filters
+    // Filter sellers and products based on active filters
   const filteredSellers = useMemo(() => {
     // Rely on API data which is already filtered and sorted by the backend.
     return sellersData || [];
@@ -2595,7 +2595,7 @@ export default function Home() {
         ).filter(Boolean),
         seller?.profileImage,
       ]);
-      const image = imageCandidates[0] || foodImages[0];
+      const image = imageCandidates[0] || productImages[0];
 
       return {
         id: seller?.sellerId || sellerId,
@@ -2604,8 +2604,8 @@ export default function Home() {
         rating: Number(seller?.rating) || 0,
         distance: "",
         deliveryTime: "",
-        image: normalizeImageUrl(image) || foodImages[0],
-        images: imageCandidates.length > 0 ? imageCandidates : [foodImages[0]],
+        image: normalizeImageUrl(image) || productImages[0],
+        images: imageCandidates.length > 0 ? imageCandidates : [productImages[0]],
         slug: seller?.slug || seller?.sellerId || sellerId,
         offer: null,
         isActive: true,
@@ -2646,9 +2646,9 @@ export default function Home() {
     normalizeImageUrl,
   ]);
 
-  // Featured foods removed - will be handled by sellers data from API
-  const filteredFeaturedFoods = useMemo(() => {
-    // Return empty array - featured foods will come from API if needed
+  // Featured products removed - will be handled by sellers data from API
+  const filteredFeaturedProducts = useMemo(() => {
+    // Return empty array - featured products will come from API if needed
     return [];
   }, [activeFilters, sortBy]);
 

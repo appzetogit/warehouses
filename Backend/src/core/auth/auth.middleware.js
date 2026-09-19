@@ -1,8 +1,8 @@
 import { verifyAccessToken } from './token.util.js';
 import { sendError } from '../../utils/response.js';
-import { FoodUser } from '../users/user.model.js';
-import { FoodSeller } from '../../modules/food/seller/models/seller.model.js';
-import { FoodDeliveryPartner } from '../../modules/food/delivery/models/deliveryPartner.model.js';
+import { User } from '../users/user.model.js';
+import { Seller } from '../../modules/commerce/seller/models/seller.model.js';
+import { DeliveryPartner } from '../../modules/commerce/delivery/models/deliveryPartner.model.js';
 
 export const requireAdmin = (req, res, next) => {
     if (req.user?.role !== 'ADMIN') {
@@ -19,9 +19,9 @@ export const requireAdmin = (req, res, next) => {
  * regression rather than a safeguard.
  */
 const SESSION_SCOPED_MODELS = {
-    USER: FoodUser,
-    SELLER: FoodSeller,
-    DELIVERY_PARTNER: FoodDeliveryPartner
+    USER: User,
+    SELLER: Seller,
+    DELIVERY_PARTNER: DeliveryPartner
 };
 
 export const authMiddleware = (req, res, next) => {

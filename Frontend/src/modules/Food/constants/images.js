@@ -15,7 +15,7 @@ const samosa = "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=4
 const starters = "https://images.unsplash.com/photo-1525755662778-989d0524087e?w=400&h=300&fit=crop"
 
 // Array of food images to cycle through
-export const foodImages = [
+export const productImages = [
   biryani,
   cake,
   chholeBhature,

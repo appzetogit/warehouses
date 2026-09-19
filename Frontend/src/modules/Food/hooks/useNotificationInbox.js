@@ -13,7 +13,7 @@ const normalizeInboxItems = (rows = []) =>
     category: String(item?.category || "broadcast"),
   }));
 
-const REFRESH_EVENT = "foodNotificationInboxRefresh";
+const REFRESH_EVENT = "storeNotificationInboxRefresh";
 
 export const dispatchNotificationInboxRefresh = () => {
   if (typeof window === "undefined") return;

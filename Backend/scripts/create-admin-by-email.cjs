@@ -20,7 +20,7 @@ async function run() {
   }
 
   await mongoose.connect(mongoUri);
-  const adminCollection = mongoose.connection.collection("food_admins");
+  const adminCollection = mongoose.connection.collection("admins");
   const existing = await adminCollection.findOne({ email: emailArg });
   const hash = await bcrypt.hash(passwordArg, 10);
 

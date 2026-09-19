@@ -5,7 +5,7 @@ import { startDb, stopDb, clearDb } from './helpers/db.js';
 
 // Razorpay as the wallet sees it: orders and payments looked up by id.
 const rz = { orders: new Map(), payments: new Map() };
-mock.module(new URL('../src/modules/food/orders/helpers/razorpay.helper.js', import.meta.url).href, {
+mock.module(new URL('../src/modules/commerce/orders/helpers/razorpay.helper.js', import.meta.url).href, {
     namedExports: {
         isRazorpayConfigured: () => true,
         getRazorpayKeyId: () => 'rzp_test_key',
@@ -21,7 +21,7 @@ mock.module(new URL('../src/modules/food/orders/helpers/razorpay.helper.js', imp
 });
 
 const { createWalletTopupOrder, verifyWalletTopupPayment, getUserWallet } =
-    await import('../src/modules/food/user/services/userWallet.service.js');
+    await import('../src/modules/commerce/user/services/userWallet.service.js');
 
 before(startDb);
 after(stopDb);
@@ -48,8 +48,8 @@ test('credits what Razorpay captured, not what the client claims', async () => {
 
 test('refuses a payment made for something other than a top-up', async () => {
     const userId = new mongoose.Types.ObjectId();
-    rz.orders.set('order_food', { id: 'order_food', amount: 50000, receipt: 'FOD-123', notes: {} });
-    const proof = pay('order_food', 50000);
+    rz.orders.set('order_product', { id: 'order_product', amount: 50000, receipt: 'FOD-123', notes: {} });
+    const proof = pay('order_product', 50000);
 
     await assert.rejects(verifyWalletTopupPayment(userId, { ...proof, amount: 500 }), /not a wallet top-up/);
     assert.equal((await getUserWallet(userId)).balance, 0);

@@ -1,4 +1,4 @@
-import { getFoodDisplayOtherPrice, getFoodDisplayPrice, getFoodVariants } from "./foodVariants"
+import { getProductDisplayOtherPrice, getProductDisplayPrice, getProductVariants } from "./productVariants"
 
 export const getMenuFromResponse = (response) =>
   response?.data?.data?.menu || response?.data?.menu || null
@@ -12,15 +12,15 @@ const normalizeItem = (item = {}, sectionName = "", subsectionName = "") => ({
   name: item?.name || "Unnamed Item",
   category: item?.category || sectionName || "Varieties",
   foodType: item?.foodType || null,
-  price: getFoodDisplayPrice(item),
-  otherPrice: getFoodDisplayOtherPrice(item),
+  price: getProductDisplayPrice(item),
+  otherPrice: getProductDisplayOtherPrice(item),
   rating: Number(item?.rating || 0),
   reviews: Number(item?.reviews || 0),
   stock: item?.stock || "Unlimited",
   approvalStatus: item?.approvalStatus || "pending",
   isAvailable: item?.isAvailable !== false,
-  variants: getFoodVariants(item),
-  variations: getFoodVariants(item),
+  variants: getProductVariants(item),
+  variations: getProductVariants(item),
 })
 
 export const flattenMenuItems = (menu) => {

@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 
-const toFoodPath = (value) => {
+const toProductPath = (value) => {
   if (typeof value !== "string") return null
   const trimmed = value.trim()
   if (!trimmed) return null
@@ -21,7 +21,7 @@ const getNormalizedUserPath = (pathname) => {
 
 const resolveBackPath = ({ pathname, state }) => {
   const normalizedPath = getNormalizedUserPath(pathname)
-  const explicitBackPath = toFoodPath(state?.backTo) || toFoodPath(state?.from)
+  const explicitBackPath = toProductPath(state?.backTo) || toProductPath(state?.from)
   if (explicitBackPath && explicitBackPath !== pathname) {
     return explicitBackPath
   }

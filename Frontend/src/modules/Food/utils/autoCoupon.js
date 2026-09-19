@@ -1,9 +1,9 @@
-const STORAGE_KEY = "food_auto_coupon_state"
-const OPT_OUT_KEY = "food_auto_coupon_opt_out"
-const USER_SELECTED_KEY = "food_auto_coupon_user_selected"
+const STORAGE_KEY = "store_auto_coupon_state"
+const OPT_OUT_KEY = "store_auto_coupon_opt_out"
+const USER_SELECTED_KEY = "store_auto_coupon_user_selected"
 
-export const AUTO_COUPON_APPLIED_EVENT = "food_auto_coupon_applied"
-export const AUTO_COUPON_STATE_EVENT = "food_auto_coupon_state"
+export const AUTO_COUPON_APPLIED_EVENT = "store_auto_coupon_applied"
+export const AUTO_COUPON_STATE_EVENT = "store_auto_coupon_state"
 
 export function getCartSignature(cart = []) {
   return (Array.isArray(cart) ? cart : [])

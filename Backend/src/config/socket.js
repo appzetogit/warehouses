@@ -201,13 +201,13 @@ export const initSocket = async (server) => {
             // only the customer, the seller, and the assigned rider for THIS order may
             // subscribe. Without this any authenticated user could track any order.
             try {
-                const [{ FoodOrder }, { buildOrderIdentityFilter }] = await Promise.all([
-                    import('../modules/food/orders/models/order.model.js'),
-                    import('../modules/food/orders/services/order.helpers.js'),
+                const [{ Order }, { buildOrderIdentityFilter }] = await Promise.all([
+                    import('../modules/commerce/orders/models/order.model.js'),
+                    import('../modules/commerce/orders/services/order.helpers.js'),
                 ]);
                 const identity = buildOrderIdentityFilter(orderId);
                 if (!identity) return;
-                const order = await FoodOrder.findOne(identity)
+                const order = await Order.findOne(identity)
                     .select('userId sellerId dispatch.deliveryPartnerId')
                     .lean();
                 if (!order) return;
@@ -377,7 +377,7 @@ export const initSocket = async (server) => {
                 deliveryPartnerId: String(userId || ''),
               });
             }
-            const { resyncState } = await import('../modules/food/orders/services/order.service.js');
+            const { resyncState } = await import('../modules/commerce/orders/services/order.service.js');
             const state = await resyncState(userId, role);
             if (state.activeOrder) {
               const eventName = role === 'USER' ? 'order_state' : 'active_order';

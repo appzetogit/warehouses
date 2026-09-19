@@ -28,7 +28,7 @@ const otpSchema = new mongoose.Schema(
         }
     },
     {
-        collection: 'food_otps',
+        collection: 'otps',
         timestamps: true
     }
 );
@@ -37,5 +37,5 @@ const otpSchema = new mongoose.Schema(
 otpSchema.index({ phone: 1 });
 otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-export const FoodOtp = mongoose.model('FoodOtp', otpSchema);
+export const Otp = mongoose.model('Otp', otpSchema);
 

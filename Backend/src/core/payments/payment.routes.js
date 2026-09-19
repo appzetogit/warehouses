@@ -17,7 +17,7 @@ import {
 } from './payment.controller.js';
 import { requireRoles } from '../roles/role.middleware.js';
 import { sendError } from '../../utils/response.js';
-import { FoodOrder } from '../../modules/food/orders/models/order.model.js';
+import { Order } from '../../modules/commerce/orders/models/order.model.js';
 
 const router = express.Router();
 
@@ -34,7 +34,7 @@ const requireOrderParty = async (req, res, next) => {
         if (!mongoose.Types.ObjectId.isValid(String(orderId))) {
             return sendError(res, 404, 'Order not found');
         }
-        const order = await FoodOrder.findById(orderId)
+        const order = await Order.findById(orderId)
             .select('userId sellerId dispatch.deliveryPartnerId')
             .lean();
         const partyId = {

@@ -4,7 +4,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { startDb, stopDb } from './helpers/db.js';
 import paymentRoutes from '../src/core/payments/payment.routes.js';
-import { FoodOrder } from '../src/modules/food/orders/models/order.model.js';
+import { Order } from '../src/modules/commerce/orders/models/order.model.js';
 
 // The real router behind a stand-in for authMiddleware, which only sets req.user.
 let server;
@@ -17,7 +17,7 @@ const orderId = new mongoose.Types.ObjectId();
 
 before(async () => {
     await startDb();
-    await FoodOrder.collection.insertOne({
+    await Order.collection.insertOne({
         _id: orderId,
         userId: customer,
         sellerId: seller,

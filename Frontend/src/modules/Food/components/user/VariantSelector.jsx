@@ -1,6 +1,6 @@
 import { motion } from "framer-motion"
 import { Check, Sparkles, ShoppingBag } from "lucide-react"
-import { getFoodDiscountPercent } from "@food/utils/foodVariants"
+import { getProductDiscountPercent } from "@food/utils/productVariants"
 
 const RUPEE_SYMBOL = "\u20B9"
 
@@ -107,9 +107,9 @@ export default function VariantSelector({
                         >
                           {RUPEE_SYMBOL}{Math.round(variantPrice)}
                         </span>
-                        {getFoodDiscountPercent(null, variantPrice, variant.otherPrice) > 0 ? (
+                        {getProductDiscountPercent(null, variantPrice, variant.otherPrice) > 0 ? (
                           <span className="inline-flex items-center rounded-full bg-[#FA0272] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white tabular-nums">
-                            {getFoodDiscountPercent(null, variantPrice, variant.otherPrice)}% OFF
+                            {getProductDiscountPercent(null, variantPrice, variant.otherPrice)}% OFF
                           </span>
                         ) : null}
                       </div>

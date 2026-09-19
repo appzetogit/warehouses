@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { adminAPI, sellerAPI } from "@food/api";
-import { foodImages } from "@food/constants/images";
+import { productImages } from "@food/constants/images";
 import { normalizeImageUrl } from "@food/utils/common";
 
 export const useCategoryData = (zoneId) => {
@@ -21,7 +21,7 @@ export const useCategoryData = (zoneId) => {
           ...cats.map((cat) => ({
             id: cat.slug || cat._id,
             name: cat.name,
-            image: cat.image || foodImages[0],
+            image: cat.image || productImages[0],
             slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
           }))
         ];

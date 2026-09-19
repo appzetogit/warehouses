@@ -693,7 +693,7 @@ export default function OrdersPage({ statusKey = "all" }) {
       const items = Array.isArray(order.items)
         ? order.items.map((item) => ({
             quantity: item.quantity || 1,
-            name: item.name || item.foodName || item.title || "Item",
+            name: item.name || item.productName || item.title || "Item",
             price: item.price || 0,
           }))
         : []
@@ -1355,7 +1355,7 @@ export default function OrdersPage({ statusKey = "all" }) {
           orderOtp: "Order OTP",
           customer: "Customer Information",
           seller: "Seller",
-          foodItems: "Food Items",
+          products: "Food Items",
           totalAmount: "Total Amount",
           paymentType: "Payment Type",
           paymentCollectionStatus: "Payment Status",

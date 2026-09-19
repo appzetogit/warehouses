@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
-import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
-import { FoodSellerOutletTimings } from '../src/modules/food/seller/models/outletTimings.model.js';
+import { Seller } from '../src/modules/commerce/seller/models/seller.model.js';
+import { SellerOutletTimings } from '../src/modules/commerce/seller/models/outletTimings.model.js';
 
 dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
 
@@ -32,7 +32,7 @@ const main = async () => {
   let failed = 0;
 
   try {
-    const cursor = FoodSeller.find({})
+    const cursor = Seller.find({})
       .select('_id openingTime closingTime')
       .lean()
       .cursor();
@@ -55,7 +55,7 @@ const main = async () => {
       }));
 
       try {
-        await FoodSellerOutletTimings.updateOne(
+        await SellerOutletTimings.updateOne(
           { sellerId: r._id },
           { $set: { timings } },
           { upsert: true }

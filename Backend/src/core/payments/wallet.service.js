@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { recordTransaction, ensureWallet, getBalance, getTransactionsByEntity } from './transaction.service.js';
-import { FoodUserWallet } from '../../modules/food/user/models/userWallet.model.js';
+import { UserWallet } from '../../modules/commerce/user/models/userWallet.model.js';
 import { logger } from '../../utils/logger.js';
 
 /**
@@ -106,7 +106,7 @@ export async function unlockWalletAmount(entityType, entityId, amount) {
 
 /**
  * USER WALLET: Get wallet with transactions in the format the existing frontend expects.
- * This maintains backward compatibility with the existing FoodUserWallet embedded transactions.
+ * This maintains backward compatibility with the existing UserWallet embedded transactions.
  */
 export async function getUserWalletForFrontend(userId) {
     const id = String(userId || '');
@@ -114,9 +114,9 @@ export async function getUserWalletForFrontend(userId) {
         return { balance: 0, referralEarnings: 0, transactions: [] };
     }
 
-    // Read from the existing FoodUserWallet for backward compat
+    // Read from the existing UserWallet for backward compat
     const oid = new mongoose.Types.ObjectId(id);
-    const wallet = await FoodUserWallet.findOne({ userId: oid });
+    const wallet = await UserWallet.findOne({ userId: oid });
 
     // Also read from new Transaction collection
     const newTxns = await getTransactionsByEntity('user', id, { page: 1, limit: 50 });

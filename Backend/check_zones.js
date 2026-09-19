@@ -8,23 +8,23 @@ const sellerSchema = new mongoose.Schema({
     sellerName: String,
     zoneId: mongoose.Schema.Types.ObjectId,
     status: String
-}, { collection: 'food_sellers' });
+}, { collection: 'sellers' });
 
-const FoodSeller = mongoose.model('FoodSeller', sellerSchema);
+const Seller = mongoose.model('Seller', sellerSchema);
 
 async function checkSellers() {
     try {
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('Connected to MongoDB');
 
-        const sellers = await FoodSeller.find({ status: 'approved' }).limit(5).lean();
+        const sellers = await Seller.find({ status: 'approved' }).limit(5).lean();
         console.log('Approved sellers sample:');
         sellers.forEach(r => {
             console.log(`Name: ${r.sellerName}, ZoneId: ${r.zoneId}`);
         });
 
-        const withZone = await FoodSeller.countDocuments({ zoneId: { $exists: true, $ne: null } });
-        const total = await FoodSeller.countDocuments({});
+        const withZone = await Seller.countDocuments({ zoneId: { $exists: true, $ne: null } });
+        const total = await Seller.countDocuments({});
         console.log(`Total sellers: ${total}`);
         console.log(`Sellers with zoneId: ${withZone}`);
 

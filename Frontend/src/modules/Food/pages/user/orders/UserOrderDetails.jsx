@@ -18,8 +18,8 @@ import { orderAPI, sellerAPI } from "@food/api"
 import { useCart } from "@food/context/CartContext"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@food/utils/businessSettings"
-import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@food/utils/foodVariants"
-import { DualMoney } from "@food/components/user/FoodPriceDisplay"
+import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@food/utils/productVariants"
+import { DualMoney } from "@food/components/user/ProductPriceDisplay"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -356,7 +356,7 @@ export default function UserOrderDetails() {
 
         return {
           id: itemId,
-          name: item.name || item.foodName || "Item",
+          name: item.name || item.productName || "Item",
           price: Number(item.price) || 0,
           image: item.image || "",
           seller: sellerName,

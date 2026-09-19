@@ -16,8 +16,8 @@ import { toast } from "sonner"
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
 import { resolveDeliveryFeeGst, formatDeliveryFeeBreakdownSubtext, getDeliveryFeeTotal } from "@food/utils/deliveryFeeDisplay"
-import { getCartCompareItemTotal } from "@food/utils/foodVariants"
-import { DualMoney } from "@food/components/user/FoodPriceDisplay"
+import { getCartCompareItemTotal } from "@food/utils/productVariants"
+import { DualMoney } from "@food/components/user/ProductPriceDisplay"
 
 const PAGE_SIZE = 20
 const RUPEE = "\u20B9"

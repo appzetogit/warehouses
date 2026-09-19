@@ -2,12 +2,12 @@ import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
 import { startDb, stopDb, clearDb } from './helpers/db.js';
-import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
-import { FoodOrder } from '../src/modules/food/orders/models/order.model.js';
+import { Product } from '../src/modules/commerce/admin/models/product.model.js';
+import { Order } from '../src/modules/commerce/orders/models/order.model.js';
 import {
     reserveStockForItems,
     restoreOrderStock
-} from '../src/modules/food/orders/services/inventory.service.js';
+} from '../src/modules/commerce/orders/services/inventory.service.js';
 
 // These are the operations QUICK_COMMERCE_CHANGES.md lists as never having run
 // against a database: the conditional decrement, the partial rollback and the
@@ -21,10 +21,10 @@ beforeEach(clearDb);
 // required-field validation.
 const product = async (fields) => {
     const _id = new mongoose.Types.ObjectId();
-    await FoodItem.collection.insertOne({ _id, name: `item-${_id}`, isAvailable: true, stockOffMode: null, ...fields });
+    await Product.collection.insertOne({ _id, name: `item-${_id}`, isAvailable: true, stockOffMode: null, ...fields });
     return _id;
 };
-const stockOf = async (id) => FoodItem.findById(id).select('stockQty isAvailable').lean();
+const stockOf = async (id) => Product.findById(id).select('stockQty isAvailable').lean();
 const line = (itemId, quantity) => ({ itemId: String(itemId), quantity });
 
 test('two buyers racing for the last unit: exactly one gets it', async () => {
@@ -82,12 +82,12 @@ test('restocking a sold-out product brings it back, unless the seller switched i
     const orderFor = async (itemId) => {
         await reserveStockForItems([line(itemId, 1)]);
         const _id = new mongoose.Types.ObjectId();
-        await FoodOrder.collection.insertOne({ _id, items: [line(itemId, 1)], stockReservedAt: new Date(), stockRestoredAt: null });
+        await Order.collection.insertOne({ _id, items: [line(itemId, 1)], stockReservedAt: new Date(), stockRestoredAt: null });
         return { _id, stockReservedAt: new Date() };
     };
     const a = await orderFor(soldOut);
     const b = await orderFor(switchedOff);
-    await FoodItem.updateOne({ _id: switchedOff }, { $set: { stockOffMode: 'manual' } });
+    await Product.updateOne({ _id: switchedOff }, { $set: { stockOffMode: 'manual' } });
 
     await restoreOrderStock(a);
     await restoreOrderStock(b);
@@ -100,7 +100,7 @@ test('an order dying on several paths at once is restocked once', async () => {
     const id = await product({ stockQty: 4 });
     await reserveStockForItems([line(id, 4)]);
     const _id = new mongoose.Types.ObjectId();
-    await FoodOrder.collection.insertOne({ _id, items: [line(id, 4)], stockReservedAt: new Date(), stockRestoredAt: null });
+    await Order.collection.insertOne({ _id, items: [line(id, 4)], stockReservedAt: new Date(), stockRestoredAt: null });
 
     const claims = await Promise.all(
         Array.from({ length: 6 }, () => restoreOrderStock({ _id, stockReservedAt: new Date() }))

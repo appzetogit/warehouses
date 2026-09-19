@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { ValidationError, NotFoundError } from '../auth/errors.js';
-import { FoodNotification } from './models/notification.model.js';
+import { Notification } from './models/notification.model.js';
 
 const normalizePagination = ({ page = 1, limit = 20 } = {}) => {
     const nextPage = Math.max(1, Number(page) || 1);
@@ -94,7 +94,7 @@ export const createInboxNotifications = async ({ notifications = [] } = {}) => {
         };
     });
 
-    await FoodNotification.bulkWrite(operations, { ordered: false });
+    await Notification.bulkWrite(operations, { ordered: false });
 
     const ids = rows
         .map((item) => item.broadcastId)
@@ -102,7 +102,7 @@ export const createInboxNotifications = async ({ notifications = [] } = {}) => {
         .map((value) => new mongoose.Types.ObjectId(String(value)));
 
     if (ids.length > 0) {
-        return FoodNotification.find({ broadcastId: { $in: ids } }).sort({ createdAt: -1 }).lean();
+        return Notification.find({ broadcastId: { $in: ids } }).sort({ createdAt: -1 }).lean();
     }
 
     return [];
@@ -120,13 +120,13 @@ export const getInboxNotifications = async ({ ownerType, ownerId, page = 1, limi
     };
 
     const [items, total, unreadCount] = await Promise.all([
-        FoodNotification.find(filter)
+        Notification.find(filter)
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(meta.limit)
             .lean(),
-        FoodNotification.countDocuments(filter),
-        FoodNotification.countDocuments({
+        Notification.countDocuments(filter),
+        Notification.countDocuments({
             ...filter,
             isRead: false
         })
@@ -145,7 +145,7 @@ export const getInboxNotifications = async ({ ownerType, ownerId, page = 1, limi
 };
 
 export const markNotificationAsRead = async ({ notificationId, ownerType, ownerId } = {}) => {
-    const notification = await FoodNotification.findOneAndUpdate(
+    const notification = await Notification.findOneAndUpdate(
         {
             _id: ensureObjectId(notificationId, 'notificationId'),
             ownerType: normalizeOwnerType(ownerType),
@@ -169,7 +169,7 @@ export const markNotificationAsRead = async ({ notificationId, ownerType, ownerI
 };
 
 export const dismissNotification = async ({ notificationId, ownerType, ownerId } = {}) => {
-    const notification = await FoodNotification.findOneAndUpdate(
+    const notification = await Notification.findOneAndUpdate(
         {
             _id: ensureObjectId(notificationId, 'notificationId'),
             ownerType: normalizeOwnerType(ownerType),
@@ -201,7 +201,7 @@ export const dismissNotification = async ({ notificationId, ownerType, ownerId }
  * two different intentions, and only the second one had an implementation.
  */
 export const markAllNotificationsAsRead = async ({ ownerType, ownerId } = {}) => {
-    const result = await FoodNotification.updateMany(
+    const result = await Notification.updateMany(
         {
             ownerType: normalizeOwnerType(ownerType),
             ownerId: ensureObjectId(ownerId, 'ownerId'),
@@ -222,7 +222,7 @@ export const markAllNotificationsAsRead = async ({ ownerType, ownerId } = {}) =>
 };
 
 export const dismissAllNotifications = async ({ ownerType, ownerId } = {}) => {
-    const result = await FoodNotification.updateMany(
+    const result = await Notification.updateMany(
         {
             ownerType: normalizeOwnerType(ownerType),
             ownerId: ensureObjectId(ownerId, 'ownerId'),

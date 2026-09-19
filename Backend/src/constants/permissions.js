@@ -3,7 +3,7 @@ export const ADMIN_ACTIONS = ['view', 'create', 'edit', 'delete', 'export'];
 export const ADMIN_PERMISSION_SECTIONS = [
     'dashboard',
     'point_of_sale',
-    'food_management',
+    'product_management',
     'seller_management',
     'order_management',
     'promotions_management',

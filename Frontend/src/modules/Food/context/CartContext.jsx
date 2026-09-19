@@ -1,6 +1,6 @@
 // src/context/cart-context.jsx
 import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { buildCartLineId } from "@food/utils/foodVariants"
+import { buildCartLineId } from "@food/utils/productVariants"
 import { userAPI } from "@/services/api"
 import CartReplaceDialog from "@food/components/user/CartReplaceDialog"
 const debugLog = (...args) => {}
@@ -81,7 +81,6 @@ const normalizeCartData = (rawCart) => {
       const baseItemId =
         item.itemId ||
         item.productId ||
-        item.foodId ||
         item.baseItemId ||
         item.menuItemId ||
         item.id ||
@@ -212,7 +211,7 @@ export function CartProvider({ children }) {
       const items = normalizeCartData(cart)
       let pricing = null
       try {
-        const rawPricing = sessionStorage.getItem("food_cart_pricing_snapshot")
+        const rawPricing = sessionStorage.getItem("store_cart_pricing_snapshot")
         if (rawPricing) pricing = JSON.parse(rawPricing)
       } catch {
         pricing = null
@@ -229,10 +228,10 @@ export function CartProvider({ children }) {
       scheduleCartSync()
     }
 
-    window.addEventListener("food_cart_pricing_updated", handlePricingUpdated)
+    window.addEventListener("store_cart_pricing_updated", handlePricingUpdated)
 
     return () => {
-      window.removeEventListener("food_cart_pricing_updated", handlePricingUpdated)
+      window.removeEventListener("store_cart_pricing_updated", handlePricingUpdated)
       if (cartSyncTimerRef.current) {
         clearTimeout(cartSyncTimerRef.current)
       }

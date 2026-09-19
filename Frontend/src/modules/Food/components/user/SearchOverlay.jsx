@@ -10,10 +10,10 @@ const SEARCH_HISTORY_KEY = "user_recent_searches_v1"
 export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchChange, isListening, startVoiceSearch }) {
   const navigate = useNavigate()
   const inputRef = useRef(null)
-  const [allFoods, setAllFoods] = useState([])
-  const [filteredFoods, setFilteredFoods] = useState([])
+  const [allProducts, setAllProducts] = useState([])
+  const [filteredProducts, setFilteredProducts] = useState([])
   const [recentSuggestions, setRecentSuggestions] = useState([])
-  const [loadingFoods, setLoadingFoods] = useState(false)
+  const [loadingProducts, setLoadingProducts] = useState(false)
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -55,7 +55,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
     }
 
     const fetchDishesFromDB = async () => {
-      setLoadingFoods(true)
+      setLoadingProducts(true)
       try {
         const dishesRes = await sellerAPI.getPublicDishes({ limit: 800 })
         const dishes =
@@ -71,11 +71,11 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
             image: getImageUrl(dish?.image),
           }))
 
-        setAllFoods(normalized)
+        setAllProducts(normalized)
       } catch {
-        setAllFoods([])
+        setAllProducts([])
       } finally {
-        setLoadingFoods(false)
+        setLoadingProducts(false)
       }
     }
 
@@ -103,14 +103,14 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
 
   useEffect(() => {
     if (searchValue.trim() === "") {
-      setFilteredFoods(allFoods)
+      setFilteredProducts(allProducts)
     } else {
-      const filtered = allFoods.filter((food) =>
+      const filtered = allProducts.filter((food) =>
         food.name.toLowerCase().includes(searchValue.toLowerCase())
       )
-      setFilteredFoods(filtered)
+      setFilteredProducts(filtered)
     }
-  }, [searchValue, allFoods])
+  }, [searchValue, allProducts])
 
   const saveRecentSearch = (term) => {
     const value = String(term || "").trim()
@@ -138,7 +138,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
     }
   }
 
-  const handleFoodClick = (food) => {
+  const handleProductClick = (food) => {
     saveRecentSearch(food.name)
     navigate(`/user/search?q=${encodeURIComponent(food.name)}`)
     onClose()
@@ -224,18 +224,18 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
           }}
         >
           <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
-            {searchValue.trim() === "" ? "All Dishes" : `Search Results (${filteredFoods.length})`}
+            {searchValue.trim() === "" ? "All Dishes" : `Search Results (${filteredProducts.length})`}
           </h3>
-          {filteredFoods.length > 0 ? (
+          {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-              {filteredFoods.map((food, index) => (
+              {filteredProducts.map((food, index) => (
                 <div
                   key={food.id}
                   className="flex flex-col items-center gap-2 sm:gap-3 cursor-pointer group"
                   style={{
                     animation: `slideUp 0.3s ease-out ${0.25 + 0.05 * (index % 12)}s both`
                   }}
-                  onClick={() => handleFoodClick(food)}
+                  onClick={() => handleProductClick(food)}
                 >
                   <div className="relative w-full aspect-square rounded-full overflow-hidden transition-all duration-200 shadow-md group-hover:shadow-lg bg-white dark:bg-[#1a1a1a] p-1 sm:p-1.5">
                     {food.image ? (
@@ -261,7 +261,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
             </div>
           ) : (
             <div className="text-center py-12 sm:py-16">
-              {loadingFoods ? (
+              {loadingProducts ? (
                 <>
                   <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4 animate-spin" />
                   <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-semibold">Loading dishes from database...</p>

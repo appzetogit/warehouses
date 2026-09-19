@@ -64,12 +64,12 @@ const adminSchema = new mongoose.Schema(
         },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'FoodAdmin',
+            ref: 'Admin',
             default: null
         },
         updatedBy: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'FoodAdmin',
+            ref: 'Admin',
             default: null
         },
         servicesAccess: {
@@ -79,7 +79,7 @@ const adminSchema = new mongoose.Schema(
         }
     },
     {
-        collection: 'food_admins',
+        collection: 'admins',
         timestamps: true
     }
 );
@@ -101,5 +101,5 @@ adminSchema.methods.comparePassword = function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 
-export const FoodAdmin = mongoose.model('FoodAdmin', adminSchema);
+export const Admin = mongoose.model('Admin', adminSchema);
 

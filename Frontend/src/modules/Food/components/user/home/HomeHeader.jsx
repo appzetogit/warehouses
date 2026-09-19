@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, ChevronDown, Search, Mic, Bell, CheckCircle2, Tag, Gift, AlertCircle, Clock, BellOff, X, ChevronRight, ShoppingBag } from 'lucide-react';
 import { Badge } from "@food/components/ui/badge";
 import { Avatar, AvatarFallback } from "@food/components/ui/avatar";
-import foodIcon from "@food/assets/category-icons/food.png";
+import productIcon from "@food/assets/category-icons/food.png";
 import quickIcon from "@food/assets/category-icons/quick.png";
 import taxiIcon from "@food/assets/category-icons/taxi.png";
 import hotelIcon from "@food/assets/category-icons/hotel.png";
@@ -39,7 +39,7 @@ export default function HomeHeader({
   const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState(() => {
-    const saved = localStorage.getItem('food_user_notifications');
+    const saved = localStorage.getItem('store_user_notifications');
     return saved ? JSON.parse(saved) : [];
   });
   const {
@@ -50,7 +50,7 @@ export default function HomeHeader({
 
   useEffect(() => {
     const syncNotifications = () => {
-      const saved = localStorage.getItem('food_user_notifications');
+      const saved = localStorage.getItem('store_user_notifications');
       setNotifications(saved ? JSON.parse(saved) : []);
     };
 
@@ -64,7 +64,7 @@ export default function HomeHeader({
   }, []);
 
   const festCategories = [
-    { id: "food", name: "Food", icon: foodIcon, bgColor: "bg-white dark:bg-[#1a1a1a]" },
+    { id: "food", name: "Food", icon: productIcon, bgColor: "bg-white dark:bg-[#1a1a1a]" },
     { id: "quick", name: "Quick", icon: quickIcon, bgColor: "bg-white dark:bg-[#1a1a1a]" },
     { id: "taxi", name: "Taxi", icon: taxiIcon, bgColor: "bg-white dark:bg-[#1a1a1a]" },
     { id: "hotel", name: "Hotel", icon: hotelIcon, bgColor: "bg-white dark:bg-[#1a1a1a]" },
@@ -107,7 +107,7 @@ export default function HomeHeader({
     }
     setNotifications((prev) => {
       const next = prev.filter((notification) => notification.id !== id);
-      localStorage.setItem('food_user_notifications', JSON.stringify(next));
+      localStorage.setItem('store_user_notifications', JSON.stringify(next));
       window.dispatchEvent(new CustomEvent('notificationsUpdated', { detail: { count: next.filter((n) => !n.read).length } }));
       return next;
     });

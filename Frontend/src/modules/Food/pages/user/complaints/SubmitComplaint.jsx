@@ -10,7 +10,7 @@ const debugError = (...args) => {}
 
 
 const COMPLAINT_TYPES = [
-  { value: 'food_quality', label: 'Food Quality Issue' },
+  { value: 'product_quality', label: 'Food Quality Issue' },
   { value: 'wrong_item', label: 'Wrong Item Received' },
   { value: 'missing_item', label: 'Missing Item' },
   { value: 'delivery_issue', label: 'Delivery Issue' },

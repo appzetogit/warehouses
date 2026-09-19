@@ -28,7 +28,7 @@ const refreshTokenSchema = new mongoose.Schema(
         }
     },
     {
-        collection: 'food_refresh_tokens',
+        collection: 'refresh_tokens',
         timestamps: true
     }
 );
@@ -36,5 +36,5 @@ const refreshTokenSchema = new mongoose.Schema(
 // TTL index for automatic expiration
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-export const FoodRefreshToken = mongoose.model('FoodRefreshToken', refreshTokenSchema);
+export const RefreshToken = mongoose.model('RefreshToken', refreshTokenSchema);
 

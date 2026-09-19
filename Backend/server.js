@@ -10,8 +10,8 @@ import { connectDB, disconnectDB } from './src/config/db.js';
 import { connectRedis, closeRedis } from './src/config/redis.js';
 import { initSocket } from './src/config/socket.js';
 import { initializeQueues, closeBullMQConnection } from './src/queues/index.js';
-import { expireExpiredOffers } from './src/modules/food/admin/services/admin.service.js';
-import { syncExpiredFssaiNotifications } from './src/modules/food/seller/services/fssaiExpiry.service.js';
+import { expireExpiredOffers } from './src/modules/commerce/admin/services/admin.service.js';
+import { syncExpiredFssaiNotifications } from './src/modules/commerce/seller/services/fssaiExpiry.service.js';
 
 import { logger } from './src/utils/logger.js';
 import { initializeFirebaseRealtime } from './src/config/firebase.js';
@@ -57,7 +57,7 @@ const startBackgroundJobs = async () => {
     }
 
     try {
-        const { recoverStuckOrders } = await import('./src/modules/food/orders/services/order.service.js');
+        const { recoverStuckOrders } = await import('./src/modules/commerce/orders/services/order.service.js');
         await recoverStuckOrders();
     } catch (err) {
         logger.error(`Watchdog startup error: ${err.message}`);
@@ -77,7 +77,7 @@ const startBackgroundJobs = async () => {
     // completed are closed after a few hours. Hourly is plenty for a 4h threshold.
     const runAutoDeliver = async () => {
         try {
-            const { autoDeliverStaleOrders } = await import('./src/modules/food/orders/services/order.service.js');
+            const { autoDeliverStaleOrders } = await import('./src/modules/commerce/orders/services/order.service.js');
             await autoDeliverStaleOrders();
         } catch (err) {
             logger.error(`Auto-deliver sweep error: ${err.message}`);

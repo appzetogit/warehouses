@@ -10,10 +10,10 @@
  */
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { FoodZone } from '../src/modules/food/admin/models/zone.model.js';
-import { FoodCategory } from '../src/modules/food/admin/models/category.model.js';
-import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
-import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
+import { Zone } from '../src/modules/commerce/admin/models/zone.model.js';
+import { Category } from '../src/modules/commerce/admin/models/category.model.js';
+import { Product } from '../src/modules/commerce/admin/models/product.model.js';
+import { Seller } from '../src/modules/commerce/seller/models/seller.model.js';
 
 const SEED_TAG = 'seed:quick-commerce';
 
@@ -100,13 +100,13 @@ async function main() {
     console.log(`connected -> ${mongoose.connection.name}`);
 
     if (wipe) {
-        const sellerIds = (await FoodSeller.find({ website: SEED_TAG }).select('_id').lean())
+        const sellerIds = (await Seller.find({ website: SEED_TAG }).select('_id').lean())
             .map((s) => s._id);
         const removed = await Promise.all([
-            FoodItem.deleteMany({ sellerId: { $in: sellerIds } }),
-            FoodSeller.deleteMany({ website: SEED_TAG }),
-            FoodCategory.deleteMany({ type: SEED_TAG }),
-            FoodZone.deleteMany({ serviceLocation: SEED_TAG }),
+            Product.deleteMany({ sellerId: { $in: sellerIds } }),
+            Seller.deleteMany({ website: SEED_TAG }),
+            Category.deleteMany({ type: SEED_TAG }),
+            Zone.deleteMany({ serviceLocation: SEED_TAG }),
         ]);
         console.log('wiped:', removed.map((r) => r.deletedCount).join(', '));
         await mongoose.disconnect();
@@ -114,7 +114,7 @@ async function main() {
     }
 
     // --- zone ---
-    const zone = await FoodZone.findOneAndUpdate(
+    const zone = await Zone.findOneAndUpdate(
         { name: 'Bengaluru Central' },
         {
             $set: {
@@ -134,7 +134,7 @@ async function main() {
     // --- sellers ---
     const sellers = [];
     for (const s of SELLERS) {
-        const doc = await FoodSeller.findOneAndUpdate(
+        const doc = await Seller.findOneAndUpdate(
             { ownerPhone: s.ownerPhone },
             {
                 $set: {
@@ -170,7 +170,7 @@ async function main() {
     const subByName = new Map();
     let order = 0;
     for (const [parentName, children] of Object.entries(CATEGORIES)) {
-        const parent = await FoodCategory.findOneAndUpdate(
+        const parent = await Category.findOneAndUpdate(
             { name: parentName, sellerId: { $exists: false } },
             {
                 $set: {
@@ -187,7 +187,7 @@ async function main() {
         );
 
         for (const childName of children) {
-            const child = await FoodCategory.findOneAndUpdate(
+            const child = await Category.findOneAndUpdate(
                 { name: childName, sellerId: { $exists: false } },
                 {
                     $set: {
@@ -219,7 +219,7 @@ async function main() {
             if (index === 1 && created % 3 === 0) continue;
             const sellerPrice = index === 1 ? Math.min(Math.round(price * 1.05), mrp || Infinity) : price;
 
-            await FoodItem.findOneAndUpdate(
+            await Product.findOneAndUpdate(
                 { sellerId: seller._id, name },
                 {
                     $set: {
@@ -252,7 +252,7 @@ async function main() {
     }
     console.log(`products: ${created} listings across ${sellers.length} sellers`);
 
-    const outOfStock = await FoodItem.countDocuments({
+    const outOfStock = await Product.countDocuments({
         sellerId: { $in: sellers.map((s) => s._id) },
         stockQty: 0,
     });

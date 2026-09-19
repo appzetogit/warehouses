@@ -143,7 +143,7 @@ export default function AdminHome() {
   const pendingSellerRequests = dashboardData?.sellers?.pendingRequests || 0
   const totalDeliveryBoys = dashboardData?.deliveryBoys?.total || 0
   const pendingDeliveryBoyRequests = dashboardData?.deliveryBoys?.pendingRequests || 0
-  const totalFoods = dashboardData?.foods?.total || 0
+  const totalProducts = dashboardData?.products?.total || 0
   const totalCustomers = dashboardData?.customers?.total || 0
   const pendingOrders = dashboardData?.orderStats?.pending || 0
   const completedOrders = dashboardData?.orderStats?.completed || 0
@@ -309,7 +309,7 @@ export default function AdminHome() {
             />
             <MetricCard
               title="Total products"
-              value={totalFoods.toLocaleString("en-IN")}
+              value={totalProducts.toLocaleString("en-IN")}
               helper="Approved products"
               icon={<Package className="h-5 w-5 text-purple-600" />}
               accent="bg-purple-200/40"

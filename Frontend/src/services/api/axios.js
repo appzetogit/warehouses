@@ -30,8 +30,8 @@ const ADMIN_PERMISSION_PATH_MAP = [
   { prefix: "/admin/seller-subscription-settings", section: "seller_management" },
   { prefix: "/admin/seller-subscriptions", section: "seller_management" },
   { prefix: "/admin/zones", section: "seller_management" },
-  { prefix: "/admin/categories", section: "food_management" },
-  { prefix: "/admin/foods", section: "food_management" },
+  { prefix: "/admin/categories", section: "product_management" },
+  { prefix: "/admin/products", section: "product_management" },
   { prefix: "/admin/offers", section: "promotions_management" },
   { prefix: "/admin/orders", section: "order_management" },
   { prefix: "/admin/order-detect-delivery", section: "order_management" },
@@ -263,7 +263,7 @@ apiClient.interceptors.request.use(
             hasAdminAction(adminUser, "dashboard", "view") ||
             hasAdminAction(adminUser, "seller_management", "view") ||
             hasAdminAction(adminUser, "point_of_sale", "view") ||
-            hasAdminAction(adminUser, "food_management", "view") ||
+            hasAdminAction(adminUser, "product_management", "view") ||
             hasAdminAction(adminUser, "delivery_management", "view") ||
             hasAdminAction(adminUser, "report_management", "view");
           if (!isAllowed) {

@@ -1,10 +1,10 @@
 import crypto from 'crypto';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
-import { FoodUser } from '../users/user.model.js';
-import { FoodSeller } from '../../modules/food/seller/models/seller.model.js';
-import { FoodDeliveryPartner } from '../../modules/food/delivery/models/deliveryPartner.model.js';
-import { FoodAdmin } from '../admin/admin.model.js';
+import { User } from '../users/user.model.js';
+import { Seller } from '../../modules/commerce/seller/models/seller.model.js';
+import { DeliveryPartner } from '../../modules/commerce/delivery/models/deliveryPartner.model.js';
+import { Admin } from '../admin/admin.model.js';
 import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 import { isMobilePlatform, normalizePlatform } from '../../utils/platform.js';
@@ -14,10 +14,10 @@ const OAUTH_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const FCM_SEND_URL = (projectId) =>
     `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/messages:send`;
 const OWNER_MODELS = {
-    USER: FoodUser,
-    SELLER: FoodSeller,
-    DELIVERY_PARTNER: FoodDeliveryPartner,
-    ADMIN: FoodAdmin
+    USER: User,
+    SELLER: Seller,
+    DELIVERY_PARTNER: DeliveryPartner,
+    ADMIN: Admin
 };
 const OWNER_TOKEN_FIELDS = {
     web: 'fcmTokens',
@@ -121,8 +121,8 @@ const normalizePrivateKey = (key) => String(key || '').replace(/\\n/g, '\n').tri
 export async function reloadServiceAccountFromSettings() {
     cachedServiceAccount = null;
     try {
-        const { FoodBusinessSettings } = await import('../../modules/food/admin/models/businessSettings.model.js');
-        const doc = await FoodBusinessSettings.findOne().select('+firebaseServiceAccount').lean();
+        const { BusinessSettings } = await import('../../modules/commerce/admin/models/businessSettings.model.js');
+        const doc = await BusinessSettings.findOne().select('+firebaseServiceAccount').lean();
         const raw = sanitizeString(doc?.firebaseServiceAccount);
         if (!raw) return false;
 
@@ -673,7 +673,7 @@ export const sendNotificationToOwners = async (targets = [], payload = {}) => {
 
 export const notifyAdminsSafely = async (payload = {}) => {
     try {
-        const admins = await FoodAdmin.find({ isActive: true }).select('_id').lean();
+        const admins = await Admin.find({ isActive: true }).select('_id').lean();
         if (!admins.length) return [];
         
         const targets = admins.map(a => ({

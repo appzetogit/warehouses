@@ -32,8 +32,8 @@ import {
   formatDistanceLabel,
 } from "@food/utils/roadDistance"
 import { computeDeliveryFeeGst, formatDeliveryFeeBreakdownSubtext, getDeliveryFeeTotal, resolveDeliveryFeeGst } from "@food/utils/deliveryFeeDisplay"
-import { getCartCompareItemTotal } from "@food/utils/foodVariants"
-import { DualMoney } from "@food/components/user/FoodPriceDisplay"
+import { getCartCompareItemTotal } from "@food/utils/productVariants"
+import { DualMoney } from "@food/components/user/ProductPriceDisplay"
 import {
   AUTO_COUPON_STATE_EVENT,
   getCartSignature,
@@ -1171,7 +1171,7 @@ export default function Cart() {
   useEffect(() => {
     if (typeof window === "undefined") return
     if (!Array.isArray(cart) || cart.length === 0) {
-      sessionStorage.removeItem("food_cart_pricing_snapshot")
+      sessionStorage.removeItem("store_cart_pricing_snapshot")
       return
     }
 
@@ -1191,8 +1191,8 @@ export default function Cart() {
               ? Number(pricing.roadDistanceKm)
               : roadDistanceKm,
       })
-      sessionStorage.setItem("food_cart_pricing_snapshot", JSON.stringify(snapshot))
-      window.dispatchEvent(new CustomEvent("food_cart_pricing_updated"))
+      sessionStorage.setItem("store_cart_pricing_snapshot", JSON.stringify(snapshot))
+      window.dispatchEvent(new CustomEvent("store_cart_pricing_updated"))
     } catch {
       // ignore storage errors
     }

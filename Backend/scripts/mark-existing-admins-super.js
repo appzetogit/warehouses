@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { FoodAdmin } from '../src/core/admin/admin.model.js';
+import { Admin } from '../src/core/admin/admin.model.js';
 
 dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
 
@@ -13,7 +13,7 @@ if (!MONGO_URI) {
 const run = async () => {
     await mongoose.connect(MONGO_URI);
 
-    const result = await FoodAdmin.updateMany(
+    const result = await Admin.updateMany(
         {},
         {
             $set: {

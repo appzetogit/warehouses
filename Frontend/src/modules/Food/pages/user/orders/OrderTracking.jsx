@@ -406,7 +406,7 @@ function mapOrderToTrackingUiStatus(orderLike) {
   const phase = orderLike.deliveryState?.currentPhase
 
   // Terminal states handled first
-  if (isFoodOrderCancelledStatus(statusRaw)) return "cancelled"
+  if (isOrderCancelledStatus(statusRaw)) return "cancelled"
   if (statusRaw === "delivered" || statusRaw === "completed") return "delivered"
 
   // Live Ride / Phase-based mapping (Highest priority for precision)
@@ -422,7 +422,7 @@ function mapOrderToTrackingUiStatus(orderLike) {
 }
 
 /** Prefer live delivery phase when present (socket / polling include deliveryState). */
-function isFoodOrderCancelledStatus(statusRaw) {
+function isOrderCancelledStatus(statusRaw) {
   const s = String(statusRaw || "").toLowerCase()
   return s === "cancelled" || s.includes("cancelled")
 }
@@ -1284,7 +1284,7 @@ export default function OrderTracking() {
 
   const isCancelledOrder =
     orderStatus === "cancelled" ||
-    isFoodOrderCancelledStatus(order?.status)
+    isOrderCancelledStatus(order?.status)
 
   const sellerNameCandidates = [
     order?.sellerName,

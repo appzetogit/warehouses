@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import ms from 'ms';
-import { FoodOtp } from './otp.model.js';
+import { Otp } from './otp.model.js';
 import { config } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 import { ValidationError } from '../auth/errors.js';
@@ -69,7 +69,7 @@ const sendSmsViaIndiaHub = async (phone, otp) => {
 };
 
 export const createOrUpdateOtp = async (phone) => {
-    const existing = await FoodOtp.findOne({ phone });
+    const existing = await Otp.findOne({ phone });
     const now = new Date();
 
     // Rate Limiting Logic
@@ -115,7 +115,7 @@ export const createOrUpdateOtp = async (phone) => {
         existing.lastRequestAt = now;
         await existing.save();
     } else {
-        await FoodOtp.create({ 
+        await Otp.create({ 
             phone, 
             otp, 
             expiresAt,
@@ -133,7 +133,7 @@ export const createOrUpdateOtp = async (phone) => {
 };
 
 export const verifyOtp = async (phone, otp) => {
-    const record = await FoodOtp.findOne({ phone });
+    const record = await Otp.findOne({ phone });
     if (!record) {
         return { valid: false, reason: 'OTP not found' };
     }

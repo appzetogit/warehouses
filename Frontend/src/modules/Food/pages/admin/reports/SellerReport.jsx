@@ -108,7 +108,7 @@ export default function SellerReport() {
     const headers = [
       { key: "sl", label: "SL" },
       { key: "sellerName", label: "Seller Name" },
-      { key: "totalFood", label: "Total Food" },
+      { key: "totalProduct", label: "Total Food" },
       { key: "totalOrder", label: "Total Order" },
       { key: "totalOrderAmount", label: "Total Order Amount" },
       { key: "totalDiscountGiven", label: "Total Discount Given" },
@@ -462,7 +462,7 @@ export default function SellerReport() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-slate-700">{seller.totalFood}</span>
+                        <span className="text-sm text-slate-700">{seller.totalProduct}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-slate-700">{seller.totalOrder}</span>

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
-import { FoodOrder } from '../../../modules/food/orders/models/order.model.js';
-import * as foodTransactionService from '../../../modules/food/orders/services/foodTransaction.service.js';
+import { Order } from '../../../modules/commerce/orders/models/order.model.js';
+import * as orderTransactionService from '../../../modules/commerce/orders/services/orderTransaction.service.js';
 import { config } from '../../../config/env.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -40,7 +40,7 @@ export const handleRazorpayWebhook = async (req, res) => {
             const rzPaymentId = paymentObj.id;
 
             // Cross-check the captured amount against the order total before marking paid.
-            const existingOrder = await FoodOrder.findOne({ "payment.razorpay.orderId": rzOrderId })
+            const existingOrder = await Order.findOne({ "payment.razorpay.orderId": rzOrderId })
                 .select('pricing payment orderStatus')
                 .lean();
             if (existingOrder) {
@@ -51,7 +51,7 @@ export const handleRazorpayWebhook = async (req, res) => {
                         `Webhook [payment.captured]: AMOUNT MISMATCH for RZ-Order ${rzOrderId} — paid ${paidPaise} paise, expected ${expectedPaise} paise. Order NOT marked paid.`,
                     );
                     if (String(existingOrder.payment?.status || '').toLowerCase() !== 'paid') {
-                        await FoodOrder.updateOne(
+                        await Order.updateOne(
                             { _id: existingOrder._id, "payment.status": { $ne: 'paid' } },
                             { $set: { "payment.status": 'failed', "payment.razorpay.paymentId": rzPaymentId } },
                         );
@@ -61,7 +61,7 @@ export const handleRazorpayWebhook = async (req, res) => {
             }
 
             // Atomic update to mark as paid if not already
-            const order = await FoodOrder.findOneAndUpdate(
+            const order = await Order.findOneAndUpdate(
                 { 
                     "payment.razorpay.orderId": rzOrderId, 
                     "payment.status": { $ne: 'paid' } 
@@ -78,7 +78,7 @@ export const handleRazorpayWebhook = async (req, res) => {
             if (order) {
                 // ✅ UPDATED: Wrapped in try-catch to prevent secondary failures from breaking the webhook response
                 try {
-                    await foodTransactionService.updateTransactionStatus(order._id, 'captured', {
+                    await orderTransactionService.updateTransactionStatus(order._id, 'captured', {
                         status: 'captured',
                         razorpayPaymentId: rzPaymentId,
                         note: 'Payment status synced via Webhook (payment.captured)'
@@ -101,7 +101,7 @@ export const handleRazorpayWebhook = async (req, res) => {
             const refundAmount = refundObj.amount / 100; // to major unit
 
             // Sync refund fields in the order
-            const order = await FoodOrder.findOneAndUpdate(
+            const order = await Order.findOneAndUpdate(
                 { 
                     "payment.razorpay.paymentId": rzPaymentId,
                     "payment.refund.status": { $ne: 'processed' }

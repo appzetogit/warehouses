@@ -59,7 +59,7 @@ function hasModuleSession(moduleName = normalizeModuleFromPath()) {
   return Boolean(localStorage.getItem(`${moduleName}_accessToken`));
 }
 
-function hasAnyFoodModuleSession() {
+function hasAnyStoreModuleSession() {
   if (typeof window === "undefined") return false;
   return ["user", "seller", "delivery", "admin"].some((moduleName) =>
     Boolean(localStorage.getItem(`${moduleName}_accessToken`)),
@@ -68,7 +68,7 @@ function hasAnyFoodModuleSession() {
 
 async function disablePushWhenLoggedOut() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-  if (hasAnyFoodModuleSession()) return;
+  if (hasAnyStoreModuleSession()) return;
 
   // IMPORTANT: do NOT unsubscribe the browser PushSubscription on logout.
   // Unsubscribing destroys the device endpoint; the next login often cannot

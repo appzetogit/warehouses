@@ -91,7 +91,7 @@ const mapDeliveryJoinRequests = (response) => {
   }));
 };
 
-const mapFoodApprovals = (response) => {
+const mapProductApprovals = (response) => {
   const payload = response?.data?.data;
   const rows =
     payload?.requests ||
@@ -105,7 +105,7 @@ const mapFoodApprovals = (response) => {
     title: "Food Approval Pending",
     message: `${item?.itemName || "Food item"} from ${item?.sellerName || "Seller"} is waiting for review. Category: ${item?.category || item?.type || "N/A"}.`,
     type: "approval",
-    category: "food_approval",
+    category: "product_approval",
     path: "/admin/store/food-approval",
     createdAt: item?.requestedAt || item?.createdAt || item?.updatedAt,
     timeLabel: toDateLabel(item?.requestedAt || item?.createdAt || item?.updatedAt),
@@ -204,14 +204,14 @@ export default function useAdminNotifications(options = {}) {
       const [
         sellersRes,
         deliveryJoinRes,
-        foodApprovalRes,
+        productApprovalRes,
         supportRes,
         deliverySupportRes,
         fssaiExpiredRes,
       ] = await Promise.all([
         adminAPI.getPendingSellers(),
         adminAPI.getDeliveryPartnerJoinRequests({ page: 1, limit: 50 }),
-        adminAPI.getPendingFoodApprovals({ page: 1, limit: 50 }),
+        adminAPI.getPendingProductApprovals({ page: 1, limit: 50 }),
         adminAPI.getSupportTicketsAdmin({ page: 1, limit: 50, source: "all" }),
         adminAPI.getDeliverySupportTickets({ page: 1, limit: 50 }),
         adminAPI.getExpiredFssaiNotifications(),
@@ -225,7 +225,7 @@ export default function useAdminNotifications(options = {}) {
       const aggregated = uniqueById([
         ...mapPendingSellers(sellerRows),
         ...mapDeliveryJoinRequests(deliveryJoinRes),
-        ...mapFoodApprovals(foodApprovalRes),
+        ...mapProductApprovals(productApprovalRes),
         ...mapUserSellerSupport(supportRes),
         ...mapDeliverySupport(deliverySupportRes),
         ...mapExpiredFssai(fssaiExpiredRes),

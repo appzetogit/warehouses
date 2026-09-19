@@ -23,7 +23,7 @@ const adminResetOtpSchema = new mongoose.Schema(
         }
     },
     {
-        collection: 'food_admin_reset_otps',
+        collection: 'admin_reset_otps',
         timestamps: true
     }
 );

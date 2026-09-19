@@ -10,8 +10,8 @@ import {
 import { adminAPI } from "@/services/api"
 import { getTimelineStatusLabel, getTimelineRoleLabel } from "@food/utils/orderStatus"
 import { computeDeliveryFeeGst, formatDeliveryFeeBreakdownSubtext, getDeliveryFeeTotal, resolveDeliveryFeeGst } from "@food/utils/deliveryFeeDisplay"
-import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@food/utils/foodVariants"
-import { DualMoney } from "@food/components/user/FoodPriceDisplay"
+import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@food/utils/productVariants"
+import { DualMoney } from "@food/components/user/ProductPriceDisplay"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -563,7 +563,7 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
             </div>
           </div>
 
-          {/* Money Split (from FoodTransaction) */}
+          {/* Money Split (from OrderTransaction) */}
           {transaction?.amounts && (
             <div className="border-t border-slate-200 pt-4">
               <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">

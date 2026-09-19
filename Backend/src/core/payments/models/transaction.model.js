@@ -20,7 +20,7 @@ const transactionSchema = new mongoose.Schema(
         /** Link to the order (optional — wallet top-ups / adjustments may not have an order) */
         orderId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'FoodOrder',
+            ref: 'Order',
             default: null,
             index: true
         },

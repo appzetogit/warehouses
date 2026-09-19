@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-const foodSrc = path.resolve(__dirname, './src/modules/Food')
+const productSrc = path.resolve(__dirname, './src/modules/Food')
 const servicesApi = path.resolve(__dirname, './src/services/api')
 
 export default defineConfig({
@@ -17,7 +17,7 @@ export default defineConfig({
       '@food/api/axios': path.resolve(servicesApi, 'axios.js'),
       '@food/api/config': path.resolve(servicesApi, 'config.js'),
       '@food/api': servicesApi,
-      '@food': foodSrc,
+      '@food': productSrc,
       '@delivery': path.resolve(__dirname, './src/modules/DeliveryV2'),
       '@': path.resolve(__dirname, './src'),
     },

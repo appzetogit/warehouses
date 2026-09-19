@@ -43,7 +43,7 @@ const ICON_MAP = {
 
 export default function Notifications() {
   const [notificationsList, setNotificationsList] = useState(() => {
-    const saved = localStorage.getItem('food_user_notifications')
+    const saved = localStorage.getItem('store_user_notifications')
     return saved ? JSON.parse(saved) : DEFAULT_NOTIFICATIONS
   })
   const {
@@ -56,7 +56,7 @@ export default function Notifications() {
 
   // Persistence: Save to localStorage whenever list updates
   useEffect(() => {
-    localStorage.setItem('food_user_notifications', JSON.stringify(notificationsList))
+    localStorage.setItem('store_user_notifications', JSON.stringify(notificationsList))
     // Also dispatch an event to update other components (like navbar badge)
     window.dispatchEvent(new CustomEvent('notificationsUpdated', { detail: { count: notificationsList.filter(n => !n.read).length } }))
   }, [notificationsList])

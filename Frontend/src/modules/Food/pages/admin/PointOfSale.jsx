@@ -836,7 +836,7 @@ export default function PointOfSale() {
               </div>
             </div>
 
-            {/* Seller Payments (from FoodTransaction ledger) */}
+            {/* Seller Payments (from OrderTransaction ledger) */}
             <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-6">
               <h3 className="text-lg font-semibold text-[#334257] mb-1">Seller Payments (Completed Orders)</h3>
               <p className="text-xs text-[#8a94aa] mb-4">

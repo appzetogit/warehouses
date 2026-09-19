@@ -6,7 +6,7 @@ import {
     sendTestNotification,
     upsertFirebaseDeviceToken
 } from './firebase.service.js';
-import { FoodSeller } from '../../modules/food/seller/models/seller.model.js';
+import { Seller } from '../../modules/commerce/seller/models/seller.model.js';
 import { normalizePlatform } from '../../utils/platform.js';
 
 const router = express.Router();

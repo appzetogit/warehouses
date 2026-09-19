@@ -14,8 +14,8 @@
  */
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
-import { FoodCategory } from '../src/modules/food/admin/models/category.model.js';
+import { Product } from '../src/modules/commerce/admin/models/product.model.js';
+import { Category } from '../src/modules/commerce/admin/models/category.model.js';
 
 const APPLY = process.argv.includes('--apply');
 
@@ -71,10 +71,10 @@ async function main() {
   }
   console.log(`connected -> ${mongoose.connection.name}${APPLY ? '' : '  (dry run)'}\n`);
 
-  const categories = await FoodCategory.find({}).select('_id name').lean();
+  const categories = await Category.find({}).select('_id name').lean();
   const byName = new Map(categories.map((c) => [c.name.toLowerCase(), c]));
 
-  const orphans = await FoodItem.find({
+  const orphans = await Product.find({
     $or: [{ categoryId: { $exists: false } }, { categoryId: null }],
   })
     .select('_id name categoryName sellerId')
@@ -104,7 +104,7 @@ async function main() {
     if (!category && wantedName && PARENT_OF[wantedName]) {
       const parent = byName.get(PARENT_OF[wantedName].toLowerCase());
       if (APPLY) {
-        category = await FoodCategory.findOneAndUpdate(
+        category = await Category.findOneAndUpdate(
           { name: wantedName, sellerId: { $exists: false } },
           {
             $set: {
@@ -137,7 +137,7 @@ async function main() {
     matched++;
 
     if (APPLY) {
-      await FoodItem.updateOne(
+      await Product.updateOne(
         { _id: item._id },
         { $set: { categoryId: category._id, categoryName: category.name } },
       );
@@ -148,7 +148,7 @@ async function main() {
   if (!APPLY && matched > 0) console.log('re-run with --apply to write these.');
 
   if (APPLY) {
-    const left = await FoodItem.countDocuments({
+    const left = await Product.countDocuments({
       $or: [{ categoryId: { $exists: false } }, { categoryId: null }],
     });
     console.log(`products still without a category: ${left}`);

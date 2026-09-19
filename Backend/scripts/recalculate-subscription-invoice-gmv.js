@@ -13,13 +13,13 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { connectDB, disconnectDB } from '../src/config/db.js';
-import { FoodSubscriptionInvoice } from '../src/modules/food/seller/models/subscriptionInvoice.model.js';
-import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
+import { SubscriptionInvoice } from '../src/modules/commerce/seller/models/subscriptionInvoice.model.js';
+import { Seller } from '../src/modules/commerce/seller/models/seller.model.js';
 import {
     computeMonthlyGmv,
     getMonthWindow,
     billingMonthLabel,
-} from '../src/modules/food/seller/services/subscriptionBilling.service.js';
+} from '../src/modules/commerce/seller/services/subscriptionBilling.service.js';
 
 const isLive = process.argv.includes('--live');
 const monthArg = process.argv.find((arg) => arg.startsWith('--month='));
@@ -33,7 +33,7 @@ const main = async () => {
         ...(filterMonth ? { billingMonth: filterMonth } : {}),
     };
 
-    const invoices = await FoodSubscriptionInvoice.find(query)
+    const invoices = await SubscriptionInvoice.find(query)
         .select('sellerId billingMonth gmv orderCount planName totalAmount outstandingAmount status')
         .sort({ billingMonth: 1, sellerId: 1 })
         .lean();
@@ -64,7 +64,7 @@ const main = async () => {
                 continue;
             }
 
-            const seller = await FoodSeller.findById(invoice.sellerId)
+            const seller = await Seller.findById(invoice.sellerId)
                 .select('sellerName')
                 .lean();
 
@@ -73,7 +73,7 @@ const main = async () => {
             );
 
             if (isLive) {
-                await FoodSubscriptionInvoice.updateOne(
+                await SubscriptionInvoice.updateOne(
                     { _id: invoice._id },
                     { $set: { gmv: newGmv, orderCount: newOrderCount } },
                 );

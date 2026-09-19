@@ -188,7 +188,7 @@ export const supportAPI = {
       params,
       contextModule: "admin",
     }),
-  getFoodSupportTicketStats: (params = {}) =>
+  getUserSupportTicketStats: (params = {}) =>
     apiClient.get("/admin/support-tickets/stats", {
       params,
       contextModule: "admin",
@@ -646,57 +646,57 @@ export const adminAPI = {
       body ?? {},
       { contextModule: "admin" },
     ),
-  /** Foods (admin) - separate collection */
-  getFoods: (params = {}) =>
-    apiClient.get("/admin/foods", { params, contextModule: "admin" }),
-  createFood: (body) =>
-    apiClient.post("/admin/foods", body ?? {}, { contextModule: "admin" }),
-  updateFood: (id, body) =>
-    apiClient.patch(`/admin/foods/${id}`, body ?? {}, {
+  /** Products (admin) - separate collection */
+  getProducts: (params = {}) =>
+    apiClient.get("/admin/products", { params, contextModule: "admin" }),
+  createProduct: (body) =>
+    apiClient.post("/admin/products", body ?? {}, { contextModule: "admin" }),
+  updateProduct: (id, body) =>
+    apiClient.patch(`/admin/products/${id}`, body ?? {}, {
       contextModule: "admin",
     }),
-  deleteFood: (id) =>
-    apiClient.delete(`/admin/foods/${id}`, { contextModule: "admin" }),
+  deleteProduct: (id) =>
+    apiClient.delete(`/admin/products/${id}`, { contextModule: "admin" }),
   /** Food approvals (admin) - pending items created by sellers */
-  getPendingFoodApprovals: (params = {}) =>
-    apiClient.get("/admin/foods/pending-approvals", {
+  getPendingProductApprovals: (params = {}) =>
+    apiClient.get("/admin/products/pending-approvals", {
       params,
       contextModule: "admin",
     }),
-  approveFoodItem: (id) =>
+  approveProduct: (id) =>
     apiClient.patch(
-      `/admin/foods/${String(id)}/approve`,
+      `/admin/products/${String(id)}/approve`,
       {},
       { contextModule: "admin" },
     ),
-  rejectFoodItem: (id, reason) =>
+  rejectProduct: (id, reason) =>
     apiClient.patch(
-      `/admin/foods/${String(id)}/reject`,
+      `/admin/products/${String(id)}/reject`,
       { reason: String(reason || "").trim() },
       { contextModule: "admin" },
     ),
-  bulkApproveFoodItems: (sellerId) =>
+  bulkApproveProducts: (sellerId) =>
     apiClient.post(
-      "/admin/foods/bulk-approve",
+      "/admin/products/bulk-approve",
       { sellerId },
       { contextModule: "admin" },
     ),
   bulkUploadTemplate: () =>
-    apiClient.get("/admin/foods/bulk-upload/template", {
+    apiClient.get("/admin/products/bulk-upload/template", {
       responseType: "blob",
       contextModule: "admin",
     }),
-  bulkUploadFoods: (sellerId, file) => {
+  bulkUploadProducts: (sellerId, file) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("sellerId", String(sellerId));
-    return apiClient.post("/admin/foods/bulk-upload", formData, {
+    return apiClient.post("/admin/products/bulk-upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
       contextModule: "admin",
     });
   },
-  bulkDeleteFoods: (body) =>
-    apiClient.post("/admin/foods/bulk-delete", body ?? {}, {
+  bulkDeleteProducts: (body) =>
+    apiClient.post("/admin/products/bulk-delete", body ?? {}, {
       contextModule: "admin",
     }),
   /** Customers (admin) */
@@ -1432,13 +1432,13 @@ export const sellerAPI = {
       { outletTimings: outletTimings || {} },
       { contextModule: "seller" },
     ),
-  /** Foods (seller) - stored in food_items collection */
-  createFood: (body) =>
-    apiClient.post("/seller/foods", body ?? {}, {
+  /** Products (seller) - stored in products collection */
+  createProduct: (body) =>
+    apiClient.post("/seller/products", body ?? {}, {
       contextModule: "seller",
     }),
-  updateFood: (id, body) =>
-    apiClient.patch(`/seller/foods/${String(id)}`, body ?? {}, {
+  updateProduct: (id, body) =>
+    apiClient.patch(`/seller/products/${String(id)}`, body ?? {}, {
       contextModule: "seller",
     }),
   bulkUploadTemplate: () =>
@@ -1636,9 +1636,9 @@ export const sellerAPI = {
   /** Public: get outlet timings by seller id */
   getOutletTimingsBySellerId: (id, config = {}) =>
     getPublicSellerOutletTimingsOnce(id, config),
-  /** Public: approved foods for user category/search pages (zone + optional category slug) */
-  getPublicFoods: (params = {}, config = {}) =>
-    getPublicFoodsOnce(params, config),
+  /** Public: approved products for user category/search pages (zone + optional category slug) */
+  getPublicProducts: (params = {}, config = {}) =>
+    getPublicProductsOnce(params, config),
   getPublicOffers: (params = {}, config = {}) =>
     apiClient.get("/catalog/offers", { params, ...config }),
   /** Resend delivery notification (seller dashboard) */
@@ -1745,7 +1745,7 @@ export const publicConfigGetOnce = (url, config = {}) => {
 const publicSellersCache = createInFlightCache({ ttlMs: 3000 });
 const publicSellerMenuCache = createInFlightCache({ ttlMs: 5 * 60 * 1000 });
 const publicSellerOutletTimingsCache = createInFlightCache({ ttlMs: 5 * 60 * 1000 });
-const publicFoodsCache = createInFlightCache({ ttlMs: 3 * 60 * 1000 });
+const publicProductsCache = createInFlightCache({ ttlMs: 3 * 60 * 1000 });
 const publicGenericGetCache = createInFlightCache({ ttlMs: 3000 });
 
 export const publicGetOnce = (url, config = {}) => {
@@ -1843,7 +1843,7 @@ const getPublicSellerOutletTimingsOnce = (id, config = {}) => {
   );
 };
 
-const getPublicFoodsOnce = (params = {}, config = {}) => {
+const getPublicProductsOnce = (params = {}, config = {}) => {
   const { noCache, ...axiosConfig } = config || {};
   const keyParams = { ...(params || {}) };
   if (keyParams && typeof keyParams === "object") {
@@ -1855,8 +1855,8 @@ const getPublicFoodsOnce = (params = {}, config = {}) => {
       ...axiosConfig,
     });
   }
-  const key = `publicFoods:${stableStringify(keyParams)}`;
-  return publicFoodsCache.getOrCreate(key, () =>
+  const key = `publicProducts:${stableStringify(keyParams)}`;
+  return publicProductsCache.getOrCreate(key, () =>
     apiClient.get("/catalog/products", {
       params: keyParams,
       ...axiosConfig,

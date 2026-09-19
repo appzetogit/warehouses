@@ -13,16 +13,16 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { connectDB, disconnectDB } from '../src/config/db.js';
-import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
-import { FoodSubscriptionInvoice } from '../src/modules/food/seller/models/subscriptionInvoice.model.js';
-import { FoodSubscriptionTransaction } from '../src/modules/food/seller/models/subscriptionTransaction.model.js';
+import { Seller } from '../src/modules/commerce/seller/models/seller.model.js';
+import { SubscriptionInvoice } from '../src/modules/commerce/seller/models/subscriptionInvoice.model.js';
+import { SubscriptionTransaction } from '../src/modules/commerce/seller/models/subscriptionTransaction.model.js';
 
 const isLive = process.argv.includes('--live');
 
 const main = async () => {
     await connectDB();
     try {
-        const sellers = await FoodSeller.find({ subscriptionDueAmount: { $gt: 0 } })
+        const sellers = await Seller.find({ subscriptionDueAmount: { $gt: 0 } })
             .select('sellerName subscriptionPlan subscriptionAmount subscriptionPaidAmount subscriptionDueAmount subscriptionStatus subscriptionValidTill subscriptionAutoDeductedAmount onboardingFeePaid')
             .lean();
 
@@ -36,7 +36,7 @@ const main = async () => {
             const due = Math.round((Number(seller.subscriptionDueAmount) || 0) * 100) / 100;
             if (due <= 0) continue;
 
-            const existing = await FoodSubscriptionInvoice.findOne({
+            const existing = await SubscriptionInvoice.findOne({
                 sellerId: seller._id,
                 billingMonth: 'legacy',
             }).select('_id').lean();
@@ -51,7 +51,7 @@ const main = async () => {
 
             if (!isLive) continue;
 
-            const invoice = await FoodSubscriptionInvoice.create({
+            const invoice = await SubscriptionInvoice.create({
                 sellerId: seller._id,
                 billingMonth: 'legacy',
                 periodStart: null,
@@ -70,7 +70,7 @@ const main = async () => {
                 settingsSnapshot: {},
             });
 
-            await FoodSubscriptionTransaction.create({
+            await SubscriptionTransaction.create({
                 sellerId: seller._id,
                 invoiceId: invoice._id,
                 billingMonth: 'legacy',

@@ -6,7 +6,7 @@ import morgan from 'morgan';
 import mongoSanitize from 'mongo-sanitize';
 import xssClean from 'xss-clean';
 import routes from './routes/index.js';
-import shareLinksRoutes from './modules/food/public/shareLinks.routes.js';
+import shareLinksRoutes from './modules/commerce/public/shareLinks.routes.js';
 import errorHandler from './middleware/errorHandler.js';
 import { apiRateLimiter } from './middleware/rateLimit.js';
 import { responseTimeLogger } from './middleware/responseTimeLogger.js';

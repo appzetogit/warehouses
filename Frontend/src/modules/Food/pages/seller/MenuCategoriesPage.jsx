@@ -199,7 +199,7 @@ export default function MenuCategoriesPage() {
 
   const handleDeleteCategory = async (category) => {
     if (!category?.canDelete) {
-      toast.error(category?.canEdit ? "Remove foods from this category before deleting it" : "Admin controls this category now")
+      toast.error(category?.canEdit ? "Remove products from this category before deleting it" : "Admin controls this category now")
       return
     }
     if (!window.confirm(`Delete "${category.name}"?`)) return
@@ -475,7 +475,7 @@ export default function MenuCategoriesPage() {
                           ) : status === "approved" ? (
                             <p>Editing this category will send it back for admin approval.</p>
                           ) : (
-                            <p>Foods can be added only after approval.</p>
+                            <p>Products can be added only after approval.</p>
                           )}
                           {status === "rejected" && category?.rejectionReason && (
                             <p className="text-rose-600">Reason: {category.rejectionReason}</p>

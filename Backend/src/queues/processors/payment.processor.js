@@ -90,9 +90,9 @@ async function handleDeliveryCompleted(data) {
             });
 
             // Increment delivery count
-            const { FoodDeliveryWallet } = await import('../../modules/food/delivery/models/deliveryWallet.model.js');
+            const { DeliveryWallet } = await import('../../modules/commerce/delivery/models/deliveryWallet.model.js');
             const mongoose = await import('mongoose');
-            await FoodDeliveryWallet.updateOne(
+            await DeliveryWallet.updateOne(
                 { deliveryPartnerId: new mongoose.default.Types.ObjectId(deliveryPartnerId) },
                 { $inc: { totalDeliveries: 1 } }
             );

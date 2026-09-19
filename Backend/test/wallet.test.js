@@ -2,21 +2,21 @@ import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
 import { startDb, stopDb, clearDb } from './helpers/db.js';
-import { FoodUserWallet } from '../src/modules/food/user/models/userWallet.model.js';
+import { UserWallet } from '../src/modules/commerce/user/models/userWallet.model.js';
 import {
     deductWalletBalance,
     refundWalletBalance,
     creditCashback,
     creditReferralReward,
     getUserWallet
-} from '../src/modules/food/user/services/userWallet.service.js';
+} from '../src/modules/commerce/user/services/userWallet.service.js';
 
 before(startDb);
 after(stopDb);
 beforeEach(clearDb);
 
 const newUser = () => new mongoose.Types.ObjectId();
-const fund = (userId, balance) => FoodUserWallet.create({ userId, balance, transactions: [] });
+const fund = (userId, balance) => UserWallet.create({ userId, balance, transactions: [] });
 
 test('concurrent deductions cannot overdraw the wallet', async () => {
     const userId = newUser();
@@ -49,7 +49,7 @@ test('concurrent credits all land', async () => {
 test('the first credit for a new user creates the wallet once, even when raced', async () => {
     const userId = newUser();
     await Promise.all(Array.from({ length: 5 }, () => creditReferralReward(userId, 10)));
-    assert.equal(await FoodUserWallet.countDocuments({ userId }), 1);
+    assert.equal(await UserWallet.countDocuments({ userId }), 1);
     const wallet = await getUserWallet(userId);
     assert.equal(wallet.balance, 50);
     assert.equal(wallet.referralEarnings, 50);

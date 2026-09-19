@@ -13,10 +13,10 @@
  */
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
-import { FoodCategory } from '../src/modules/food/admin/models/category.model.js';
-import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
-import { uploadSellerAttachment } from '../src/modules/food/seller/services/seller.service.js';
+import { Product } from '../src/modules/commerce/admin/models/product.model.js';
+import { Category } from '../src/modules/commerce/admin/models/category.model.js';
+import { Seller } from '../src/modules/commerce/seller/models/seller.model.js';
+import { uploadSellerAttachment } from '../src/modules/commerce/seller/services/seller.service.js';
 
 /**
  * name, brand, packSize, price, mrp, gstRate, stock, category, image search
@@ -205,7 +205,7 @@ async function main() {
   }
   console.log(`connected -> ${mongoose.connection.name}\n`);
 
-  const sellers = await FoodSeller.find({ status: 'approved' })
+  const sellers = await Seller.find({ status: 'approved' })
     .select('_id sellerName')
     .lean();
   if (!sellers.length) {
@@ -213,7 +213,7 @@ async function main() {
     process.exit(1);
   }
 
-  const categories = await FoodCategory.find({}).select('_id name').lean();
+  const categories = await Category.find({}).select('_id name').lean();
   const categoryByName = new Map(categories.map((c) => [c.name, c]));
 
   let created = 0;
@@ -238,7 +238,7 @@ async function main() {
       if (index > 0 && catalogueIndex % 3 === 2) continue;
       const sellerPrice = index > 0 ? Math.min(Math.round(price * 1.05), mrp || price) : price;
 
-      const existing = await FoodItem.findOne({ sellerId: seller._id, name })
+      const existing = await Product.findOne({ sellerId: seller._id, name })
         .select('_id image')
         .lean();
 
@@ -246,7 +246,7 @@ async function main() {
       if (!image || FORCE) {
         // Only the first seller fetches; the rest reuse the same photo rather
         // than hitting Commons once per seller for an identical product.
-        const shared = await FoodItem.findOne({ name, image: { $nin: ['', null] } })
+        const shared = await Product.findOne({ name, image: { $nin: ['', null] } })
           .select('image')
           .lean();
 
@@ -267,7 +267,7 @@ async function main() {
         }
       }
 
-      await FoodItem.findOneAndUpdate(
+      await Product.findOneAndUpdate(
         { sellerId: seller._id, name },
         {
           $set: {

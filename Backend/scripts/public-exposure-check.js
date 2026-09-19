@@ -97,7 +97,7 @@ async function main() {
   await check('seller/sellers/:id', `${BASE}/food/seller/sellers/${sellerId}`);
   await check('sellers/:id/menu', `${BASE}/food/seller/sellers/${sellerId}/menu`);
   await check('search/unified', `${BASE}/food/search/unified?q=milk`);
-  await check('public/foods', `${BASE}/food/seller/public/foods?limit=5`);
+  await check('public/products', `${BASE}/food/seller/public/products?limit=5`);
   await check('business-settings/public', `${BASE}/food/admin/business-settings/public`);
 
   console.log(`\n${failures === 0 ? 'PASS — no private field exposed' : `FAIL — ${failures} leaked field(s)`}`);

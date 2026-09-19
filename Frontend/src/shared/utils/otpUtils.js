@@ -1,2 +1,2 @@
-export * from '../modules/food/lib/utils/otpUtils.js'
+export * from '../modules/commerce/lib/utils/otpUtils.js'
 

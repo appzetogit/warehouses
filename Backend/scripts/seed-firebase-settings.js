@@ -14,7 +14,7 @@ import 'dotenv/config';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import mongoose from 'mongoose';
-import { FoodBusinessSettings } from '../src/modules/food/admin/models/businessSettings.model.js';
+import { BusinessSettings } from '../src/modules/commerce/admin/models/businessSettings.model.js';
 
 const APPLY = process.argv.includes('--apply');
 
@@ -42,8 +42,8 @@ async function main() {
     console.log(`connected -> ${mongoose.connection.name}${APPLY ? '' : '  (dry run)'}\n`);
 
     const settings =
-        (await FoodBusinessSettings.findOne().select('+firebaseServiceAccount')) ||
-        new FoodBusinessSettings({});
+        (await BusinessSettings.findOne().select('+firebaseServiceAccount')) ||
+        new BusinessSettings({});
 
     console.log('web config:');
     let webChanges = 0;

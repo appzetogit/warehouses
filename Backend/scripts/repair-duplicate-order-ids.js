@@ -17,14 +17,14 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { connectDB, disconnectDB } from '../src/config/db.js';
-import { FoodOrder } from '../src/modules/food/orders/models/order.model.js';
+import { Order } from '../src/modules/commerce/orders/models/order.model.js';
 
 const isLive = process.argv.includes('--live');
 
 const uniqueIdFromDoc = async (doc) => {
     const hex = doc._id.toString();
     let candidate = `FOD-${hex.slice(-10).toUpperCase()}`;
-    const clash = await FoodOrder.exists({
+    const clash = await Order.exists({
         _id: { $ne: doc._id },
         $or: [{ order_id: candidate }, { orderId: candidate }],
     });
@@ -33,7 +33,7 @@ const uniqueIdFromDoc = async (doc) => {
 };
 
 const findDuplicateGroups = async (field) =>
-    FoodOrder.aggregate([
+    Order.aggregate([
         { $match: { [field]: { $type: 'string', $ne: '' } } },
         { $group: { _id: `$${field}`, count: { $sum: 1 }, ids: { $push: '$_id' } } },
         { $match: { count: { $gt: 1 } } },
@@ -41,7 +41,7 @@ const findDuplicateGroups = async (field) =>
 
 const ensureUniqueIndex = async (field) => {
     try {
-        await FoodOrder.collection.createIndex(
+        await Order.collection.createIndex(
             { [field]: 1 },
             { unique: true, sparse: true, name: `${field}_unique_sparse` },
         );
@@ -56,7 +56,7 @@ const main = async () => {
     try {
         console.log(`[repair-duplicate-order-ids] ${isLive ? 'LIVE' : 'DRY RUN'}`);
 
-        const indexes = await FoodOrder.collection.indexes();
+        const indexes = await Order.collection.indexes();
         const hasUnique = (field) =>
             indexes.some((ix) => ix.key?.[field] === 1 && ix.unique === true);
         console.log(`  existing unique index — order_id: ${hasUnique('order_id')}, orderId: ${hasUnique('orderId')}`);
@@ -69,7 +69,7 @@ const main = async () => {
             console.log(`  duplicate groups by ${field}: ${groups.length}`);
 
             for (const group of groups) {
-                const docs = await FoodOrder.find({ _id: { $in: group.ids } })
+                const docs = await Order.find({ _id: { $in: group.ids } })
                     .select('_id order_id orderId orderStatus createdAt')
                     .sort({ createdAt: 1 })
                     .lean();
@@ -85,7 +85,7 @@ const main = async () => {
                     console.log(`      ${dupe._id} (${dupe.orderStatus}) → ${newId}`);
                     if (!isLive) continue;
 
-                    await FoodOrder.collection.updateOne(
+                    await Order.collection.updateOne(
                         { _id: dupe._id },
                         { $set: { order_id: newId, orderId: newId } },
                     );

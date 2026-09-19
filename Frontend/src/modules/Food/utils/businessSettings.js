@@ -11,7 +11,7 @@ import {
   invalidatePublicAppConfig,
 } from "@food/services/publicAppConfig";
 
-const SETTINGS_KEY = 'food_business_settings';
+const SETTINGS_KEY = 'store_business_settings';
 const DEFAULT_MODULE_POWER_SCANNING = {
   user: { themeColor: "#FA0272", fontFamily: "Poppins" },
   seller: { themeColor: "#2563EB", fontFamily: "Poppins" },

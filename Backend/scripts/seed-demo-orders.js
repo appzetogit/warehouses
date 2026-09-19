@@ -16,10 +16,10 @@
  */
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
-import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
-import { FoodOrder } from '../src/modules/food/orders/models/order.model.js';
-import { FoodUser } from '../src/core/users/user.model.js';
+import { Product } from '../src/modules/commerce/admin/models/product.model.js';
+import { Seller } from '../src/modules/commerce/seller/models/seller.model.js';
+import { Order } from '../src/modules/commerce/orders/models/order.model.js';
+import { User } from '../src/core/users/user.model.js';
 
 const APPLY = process.argv.includes('--apply');
 const WIPE = process.argv.includes('--wipe');
@@ -86,13 +86,13 @@ async function main() {
     console.log(`connected -> ${mongoose.connection.name}${APPLY || WIPE ? '' : '  (dry run)'}\n`);
 
     if (WIPE) {
-        const res = await FoodOrder.deleteMany({ note: SEED_NOTE });
+        const res = await Order.deleteMany({ note: SEED_NOTE });
         console.log(`removed ${res.deletedCount} demo order(s)`);
         await mongoose.disconnect();
         return;
     }
 
-    const sellers = await FoodSeller.find({ ownerPhone: { $in: SEED_SELLER_PHONES } })
+    const sellers = await Seller.find({ ownerPhone: { $in: SEED_SELLER_PHONES } })
         .select('_id sellerName zoneId')
         .lean();
 
@@ -102,7 +102,7 @@ async function main() {
     }
     console.log(`sellers: ${sellers.map((s) => s.sellerName).join(', ')}`);
 
-    const existing = await FoodOrder.countDocuments({ note: SEED_NOTE });
+    const existing = await Order.countDocuments({ note: SEED_NOTE });
     if (existing > 0) {
         console.log(`${existing} demo order(s) already present -- nothing to do.`);
         console.log('re-run with --wipe first if you want them regenerated.');
@@ -112,14 +112,14 @@ async function main() {
 
     const users = [];
     for (const seed of CUSTOMERS) {
-        let user = await FoodUser.findOne({ phone: seed.phone }).select('_id').lean();
+        let user = await User.findOne({ phone: seed.phone }).select('_id').lean();
         if (!user) {
             if (!APPLY) {
                 console.log(`  +  would create customer ${seed.phone}`);
                 users.push({ _id: new mongoose.Types.ObjectId(), ...seed });
                 continue;
             }
-            user = (await FoodUser.create({ ...seed, isVerified: true })).toObject();
+            user = (await User.create({ ...seed, isVerified: true })).toObject();
             console.log(`  +  created customer ${seed.phone}`);
         }
         users.push({ ...user, ...seed });
@@ -130,7 +130,7 @@ async function main() {
     let totalValue = 0;
 
     for (const seller of sellers) {
-        const products = await FoodItem.find({
+        const products = await Product.find({
             sellerId: seller._id,
             approvalStatus: 'approved',
         })
@@ -190,7 +190,7 @@ async function main() {
 
                 if (!APPLY) continue;
 
-                const order = new FoodOrder({
+                const order = new Order({
                     userId: customer._id,
                     sellerId: seller._id,
                     zoneId: seller.zoneId,

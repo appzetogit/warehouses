@@ -319,7 +319,7 @@ export default function Orders() {
               address: order.address || order.deliveryAddress || {},
               items: (order.items || []).map(item => ({
                 itemId: item.itemId || item._id || item.id,
-                name: item.name || item.foodName || 'Item',
+                name: item.name || item.productName || 'Item',
                 variantName: item.variantName || '',
                 quantity: item.quantity || 1,
                 price: item.price || 0,
@@ -446,7 +446,7 @@ export default function Orders() {
     const query = searchQuery.toLowerCase()
     const sellerMatch = order.seller?.toLowerCase().includes(query)
     const itemsMatch = order.items.some(item =>
-      (item.name || item.foodName || '').toLowerCase().includes(query)
+      (item.name || item.productName || '').toLowerCase().includes(query)
     )
 
     return sellerMatch || itemsMatch
@@ -473,7 +473,7 @@ export default function Orders() {
 
         return {
           id: itemId,
-          name: item.name || item.foodName || "Item",
+          name: item.name || item.productName || "Item",
           price: Number(item.price) || 0,
           image: item.image || "",
           seller: order.seller || "Seller",
@@ -864,7 +864,7 @@ Order again from this seller in the ${companyName} app.`
                   {order.items && order.items.length > 0 ? (
                     order.items.map((item, idx) => {
                       const isVeg = typeof item.isVeg === "boolean" ? item.isVeg : null
-                      const itemName = item.name || item.foodName || 'Item'
+                      const itemName = item.name || item.productName || 'Item'
                       const itemQuantity = item.quantity || 1
                       const itemPrice = item.price || 0
                       const itemTotal = itemQuantity * itemPrice

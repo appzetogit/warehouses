@@ -217,7 +217,7 @@ export default function OrdersTable({
                   </div>
                 </th>
               )}
-              {visibleColumns.foodItems && (
+              {visibleColumns.products && (
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider min-w-[200px]">
                   <div className="flex items-center gap-2">
                     <span>Food Items / Item Price</span>
@@ -318,7 +318,7 @@ export default function OrdersTable({
                     <span className="text-sm font-medium text-slate-700">{formatSellerName(order.seller)}</span>
                   </td>
                 )}
-                {visibleColumns.foodItems && (
+                {visibleColumns.products && (
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-2 min-w-[200px] max-w-md">
                       {order.items && Array.isArray(order.items) && order.items.length > 0 ? (

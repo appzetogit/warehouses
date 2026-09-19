@@ -13,7 +13,7 @@ import {
 } from "@food/components/ui/loading-skeletons"
 
 // Import shared food images - prevents duplication
-import { foodImages } from "@food/constants/images"
+import { productImages } from "@food/constants/images"
 import api from "@food/api"
 import { sellerAPI, adminAPI } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
@@ -61,8 +61,8 @@ export default function CategoryPage() {
 
   const [sellersData, setSellersData] = useState([])
   const [loadingSellers, setLoadingSellers] = useState(true)
-  const [loadingCategoryFoods, setLoadingCategoryFoods] = useState(false)
-  const [categoryFoodsData, setCategoryFoodsData] = useState([])
+  const [loadingCategoryProducts, setLoadingCategoryProducts] = useState(false)
+  const [categoryProductsData, setCategoryProductsData] = useState([])
   const [categoryKeywords, setCategoryKeywords] = useState({})
   const [availabilityTick, setAvailabilityTick] = useState(Date.now())
 
@@ -126,29 +126,29 @@ export default function CategoryPage() {
     const categorySlug = String(selectedCategory || category || "all").toLowerCase()
 
     if (!zoneId || categorySlug === "all") {
-      setCategoryFoodsData([])
-      setLoadingCategoryFoods(false)
+      setCategoryProductsData([])
+      setLoadingCategoryProducts(false)
       return () => {
         cancelled = true
       }
     }
 
-    setLoadingCategoryFoods(true)
+    setLoadingCategoryProducts(true)
     void (async () => {
       try {
-        const response = await sellerAPI.getPublicFoods({
+        const response = await sellerAPI.getPublicProducts({
           zoneId,
           categorySlug,
           limit: 1000,
         })
-        const foods = response?.data?.data?.foods || []
+        const products = response?.data?.data?.products || []
         if (!cancelled) {
-          setCategoryFoodsData(Array.isArray(foods) ? foods : [])
+          setCategoryProductsData(Array.isArray(products) ? products : [])
         }
       } catch {
-        if (!cancelled) setCategoryFoodsData([])
+        if (!cancelled) setCategoryProductsData([])
       } finally {
-        if (!cancelled) setLoadingCategoryFoods(false)
+        if (!cancelled) setLoadingCategoryProducts(false)
       }
     })()
 
@@ -157,9 +157,9 @@ export default function CategoryPage() {
     }
   }, [zoneId, selectedCategory, category])
 
-  const getCategoryFallbackDishesFromApprovedFoods = (categoryId, sellers, foods = categoryFoodsData) => {
+  const getCategoryFallbackDishesFromApprovedProducts = (categoryId, sellers, products = categoryProductsData) => {
     const keywords = getCategoryKeywords(categoryId)
-    if (keywords.length === 0 || !Array.isArray(foods) || foods.length === 0) {
+    if (keywords.length === 0 || !Array.isArray(products) || products.length === 0) {
       return []
     }
 
@@ -186,16 +186,16 @@ export default function CategoryPage() {
         }
       })
 
-    return foods
+    return products
       .filter((food) => {
         if (food?.isAvailable === false) return false
         if (String(food?.approvalStatus || "").toLowerCase() !== "approved") return false
 
         const categoryName = String(food?.categoryName || food?.category || "").toLowerCase()
-        const foodName = String(food?.name || "").toLowerCase()
+        const productName = String(food?.name || "").toLowerCase()
         return (
           matchesCategoryText(categoryName, keywords) ||
-          matchesCategoryText(foodName, keywords)
+          matchesCategoryText(productName, keywords)
         )
       })
       .map((food, index) => {
@@ -486,7 +486,7 @@ export default function CategoryPage() {
             ...categoriesArray.map((cat) => ({
               id: cat.slug || cat.id,
               name: cat.name,
-              image: cat.image || foodImages[0],
+              image: cat.image || productImages[0],
               slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
               type: cat.type,
             }))
@@ -803,9 +803,9 @@ export default function CategoryPage() {
     const sourceData = sellersData.length > 0 ? sellersData : []
     let filtered = [...sourceData]
 
-    // Filter by category — expand sellers into dish cards from public foods API
+    // Filter by category — expand sellers into dish cards from public products API
     if (selectedCategory && selectedCategory !== 'all') {
-      const categoryDishes = getCategoryFallbackDishesFromApprovedFoods(selectedCategory, sourceData)
+      const categoryDishes = getCategoryFallbackDishesFromApprovedProducts(selectedCategory, sourceData)
       filtered = vegMode
         ? categoryDishes.filter((dish) => dish.categoryDishFoodType === "Veg")
         : categoryDishes
@@ -827,15 +827,15 @@ export default function CategoryPage() {
     })
 
     return applyFiltersAndSorting(filtered)
-  }, [selectedCategory, activeFilters, deferredSearchQuery, sellersData, categoryKeywords, vegMode, categoryFoodsData, sortBy, availabilityTick, zoneId])
+  }, [selectedCategory, activeFilters, deferredSearchQuery, sellersData, categoryKeywords, vegMode, categoryProductsData, sortBy, availabilityTick, zoneId])
 
   const filteredAllSellers = useMemo(() => {
     const sourceData = sellersData.length > 0 ? sellersData : []
     let filtered = [...sourceData]
 
-    // Filter by category — expand sellers into dish cards from public foods API
+    // Filter by category — expand sellers into dish cards from public products API
     if (selectedCategory && selectedCategory !== 'all') {
-      const categoryDishes = getCategoryFallbackDishesFromApprovedFoods(selectedCategory, sourceData)
+      const categoryDishes = getCategoryFallbackDishesFromApprovedProducts(selectedCategory, sourceData)
       filtered = vegMode
         ? categoryDishes.filter((dish) => dish.categoryDishFoodType === "Veg")
         : categoryDishes
@@ -857,10 +857,10 @@ export default function CategoryPage() {
     })
 
     return applyFiltersAndSorting(filtered)
-  }, [selectedCategory, activeFilters, deferredSearchQuery, sellersData, categoryKeywords, vegMode, categoryFoodsData, sortBy, availabilityTick, zoneId])
+  }, [selectedCategory, activeFilters, deferredSearchQuery, sellersData, categoryKeywords, vegMode, categoryProductsData, sortBy, availabilityTick, zoneId])
 
   const showSellerSkeleton = useDelayedLoading(
-    isLoadingFilterResults || loadingSellers || (loadingCategoryFoods && selectedCategory !== 'all' && filteredRecommended.length === 0),
+    isLoadingFilterResults || loadingSellers || (loadingCategoryProducts && selectedCategory !== 'all' && filteredRecommended.length === 0),
     { delay: 140, minDuration: 360 }
   )
 

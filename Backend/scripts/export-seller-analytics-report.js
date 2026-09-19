@@ -14,10 +14,10 @@ import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import ExcelJS from 'exceljs';
 
-import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
-import { FoodOrder } from '../src/modules/food/orders/models/order.model.js';
-import '../src/modules/food/orders/models/foodTransaction.model.js';
-import { isCancelledOrder, CANCELLED_ORDER_STATUSES } from '../src/modules/food/orders/services/order.helpers.js';
+import { Seller } from '../src/modules/commerce/seller/models/seller.model.js';
+import { Order } from '../src/modules/commerce/orders/models/order.model.js';
+import '../src/modules/commerce/orders/models/orderTransaction.model.js';
+import { isCancelledOrder, CANCELLED_ORDER_STATUSES } from '../src/modules/commerce/orders/services/order.helpers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '../.env') });
@@ -166,7 +166,7 @@ const fetchSellers = async (statusFilter) => {
   if (statusFilter && statusFilter !== 'all') {
     query.status = statusFilter;
   }
-  return FoodSeller.find(query)
+  return Seller.find(query)
     .select(
       'sellerName ownerName ownerPhone ownerEmail status createdAt approvedAt city state subscriptionPlan subscriptionStatus subscriptionDueAmount subscriptionPaidAmount subscriptionAutoDeductedAmount subscriptionValidTill subscriptionAmount'
     )
@@ -175,14 +175,14 @@ const fetchSellers = async (statusFilter) => {
 };
 
 const fetchAllOrders = async () => {
-  return FoodOrder.find({ orderStatus: { $nin: ['pending_payment'] } })
+  return Order.find({ orderStatus: { $nin: ['pending_payment'] } })
     .populate('transactionId')
     .select('sellerId orderStatus status deliveryState pricing createdAt transactionId')
     .lean();
 };
 
 const fetchWithdrawalStats = async () => {
-  const rows = await mongoose.connection.db.collection('food_seller_withdrawals').aggregate([
+  const rows = await mongoose.connection.db.collection('seller_withdrawals').aggregate([
     {
       $group: {
         _id: '$sellerId',
@@ -266,7 +266,7 @@ const buildFinanceFromOrders = (orders) => {
 
 const fetchSubscriptionCycles = async () => {
   return mongoose.connection.db
-    .collection('food_seller_subscription_cycles')
+    .collection('seller_subscription_cycles')
     .find({})
     .sort({ sellerId: 1, cycleKey: 1 })
     .toArray();
@@ -276,7 +276,7 @@ const PAYMENT_EVENT_TYPES = ['subscription_payment', 'subscription_auto_deduct']
 
 const fetchSubscriptionPaymentHistory = async () => {
   return mongoose.connection.db
-    .collection('food_seller_subscription_history')
+    .collection('seller_subscription_history')
     .find({ eventType: { $in: PAYMENT_EVENT_TYPES } })
     .sort({ sellerId: 1, createdAt: 1 })
     .toArray();

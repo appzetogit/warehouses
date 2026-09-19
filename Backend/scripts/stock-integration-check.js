@@ -13,13 +13,13 @@
  */
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
-import { FoodOrder } from '../src/modules/food/orders/models/order.model.js';
-import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
+import { Product } from '../src/modules/commerce/admin/models/product.model.js';
+import { Order } from '../src/modules/commerce/orders/models/order.model.js';
+import { Seller } from '../src/modules/commerce/seller/models/seller.model.js';
 import {
     reserveStockForItems,
     restoreOrderStock,
-} from '../src/modules/food/orders/services/inventory.service.js';
+} from '../src/modules/commerce/orders/services/inventory.service.js';
 
 const TAG = 'stockcheck:temp';
 let pass = 0;
@@ -30,7 +30,7 @@ const check = (name, ok, detail = '') => {
     ok ? pass++ : fail++;
 };
 
-const qtyOf = async (id) => (await FoodItem.findById(id).select('stockQty isAvailable').lean());
+const qtyOf = async (id) => (await Product.findById(id).select('stockQty isAvailable').lean());
 
 async function main() {
     await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
@@ -40,11 +40,11 @@ async function main() {
     }
     console.log(`connected -> ${mongoose.connection.name}\n`);
 
-    const seller = await FoodSeller.findOne({ status: 'approved' }).select('_id').lean();
+    const seller = await Seller.findOne({ status: 'approved' }).select('_id').lean();
     if (!seller) { console.error('no seller found; run the seeder first'); process.exit(1); }
 
     const mk = async (name, stockQty) =>
-        FoodItem.create({
+        Product.create({
             sellerId: seller._id, name: `${TAG} ${name}`, description: TAG,
             price: 100, stockQty, isAvailable: true, approvalStatus: 'approved', foodType: 'Veg',
         });
@@ -97,7 +97,7 @@ async function main() {
         console.log('\n4. restock runs once however many times it is called');
         const d = await mk('restock', 10);
         await reserveStockForItems([{ itemId: String(d._id), quantity: 4 }]);
-        const order = await FoodOrder.create({
+        const order = await Order.create({
             userId: new mongoose.Types.ObjectId(), sellerId: seller._id,
             items: [{ itemId: String(d._id), name: `${TAG} restock`, price: 100, quantity: 4 }],
             // Required by the schema, and coordinates are required by the 2dsphere
@@ -112,7 +112,7 @@ async function main() {
         });
         const first = await restoreOrderStock(order.toObject());
         const afterFirst = await qtyOf(d._id);
-        const reloaded = await FoodOrder.findById(order._id).lean();
+        const reloaded = await Order.findById(order._id).lean();
         const second = await restoreOrderStock(reloaded);
         const third = await restoreOrderStock(reloaded);
         const afterAll = await qtyOf(d._id);
@@ -124,14 +124,14 @@ async function main() {
         // ---- 5. untracked products still sell ---------------------------------
         console.log('\n5. products with no count behave as before');
         const e = await mk('untracked', null);
-        await FoodItem.updateOne({ _id: e._id }, { $set: { stockQty: null } });
+        await Product.updateOne({ _id: e._id }, { $set: { stockQty: null } });
         const taken = await reserveStockForItems([{ itemId: String(e._id), quantity: 999 }]);
         const eAfter = await qtyOf(e._id);
         check('unlimited quantity allowed', eAfter.stockQty === null, `stockQty=${eAfter.stockQty}`);
         check('nothing reserved for it', taken.length === 0);
     } finally {
-        const del = await FoodItem.deleteMany({ description: TAG });
-        const delOrders = await FoodOrder.deleteMany({ note: TAG });
+        const del = await Product.deleteMany({ description: TAG });
+        const delOrders = await Order.deleteMany({ note: TAG });
         console.log(`\ncleanup: removed ${del.deletedCount} products, ${delOrders.deletedCount} orders`);
         await mongoose.disconnect();
     }

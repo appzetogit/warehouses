@@ -58,7 +58,7 @@ const notificationBroadcastSchema = new mongoose.Schema(
         },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'FoodAdmin',
+            ref: 'Admin',
             required: true,
             index: true
         },
@@ -68,7 +68,7 @@ const notificationBroadcastSchema = new mongoose.Schema(
         }
     },
     {
-        collection: 'food_notification_broadcasts',
+        collection: 'notification_broadcasts',
         timestamps: { createdAt: true, updatedAt: false }
     }
 );

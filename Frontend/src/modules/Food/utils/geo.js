@@ -1,6 +1,6 @@
 /**
  * Shared geo parsing for food user flows (cart fees, distance display).
- * Mirrors Backend/src/modules/food/shared/geo.utils.js
+ * Mirrors Backend/src/modules/commerce/shared/geo.utils.js
  */
 
 export function toFiniteCoord(value) {

@@ -46,20 +46,20 @@ import { useCart } from "@food/context/CartContext"
 import { useProfile } from "@food/context/ProfileContext"
 import AddToCartAnimation from "@food/components/user/AddToCartAnimation"
 import VariantSelector from "@food/components/user/VariantSelector"
-import FoodPriceDisplay from "@food/components/user/FoodPriceDisplay"
+import ProductPriceDisplay from "@food/components/user/ProductPriceDisplay"
 import { getCompanyNameAsync } from "@food/utils/businessSettings"
 import { isModuleAuthenticated } from "@food/utils/auth"
 import { getSellerAvailabilityStatus } from "@food/utils/sellerAvailability"
 import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
 import {
   buildCartLineId,
-  getDefaultFoodVariant,
-  getFoodDiscountPercent,
-  getFoodDisplayOtherPrice,
-  getFoodDisplayPrice,
-  getFoodVariants,
-  hasFoodVariants,
-} from "@food/utils/foodVariants"
+  getDefaultProductVariant,
+  getProductDiscountPercent,
+  getProductDisplayOtherPrice,
+  getProductDisplayPrice,
+  getProductVariants,
+  hasProductVariants,
+} from "@food/utils/productVariants"
 import fssaiLogo from "@food/assets/fssai.png"
 import { SellerDetailSkeleton } from "@food/components/ui/loading-skeletons"
 
@@ -69,7 +69,7 @@ const debugError = (...args) => {}
 
 
 
-const FOOD_IMAGE_FALLBACK = "https://picsum.photos/seed/food-fallback/800/600"
+const PRODUCT_IMAGE_FALLBACK = "https://picsum.photos/seed/food-fallback/800/600"
 const RUPEE_SYMBOL = "\u20B9"
 const SELLER_DETAILS_FILTERS_STORAGE_KEY = "food-seller-details-filters"
 
@@ -83,7 +83,7 @@ const resolveSellerImageUrl = (image) => {
 }
 
 const buildHeroImages = (seller) => {
-  if (!seller) return [FOOD_IMAGE_FALLBACK]
+  if (!seller) return [PRODUCT_IMAGE_FALLBACK]
   const images = []
   const pushUnique = (value) => {
     const url = resolveSellerImageUrl(value)
@@ -93,7 +93,7 @@ const buildHeroImages = (seller) => {
   pushUnique(seller.profileImage)
   const mainImage = resolveSellerImageUrl(seller.image)
   if (mainImage && !images.includes(mainImage)) pushUnique(mainImage)
-  return images.length > 0 ? images : [FOOD_IMAGE_FALLBACK]
+  return images.length > 0 ? images : [PRODUCT_IMAGE_FALLBACK]
 }
 
 function SellerDetailsContent() {
@@ -103,7 +103,7 @@ function SellerDetailsContent() {
   // Drop sticky listing distance once — old 6.9 cache was locking details.
   useEffect(() => {
     try {
-      sessionStorage.removeItem("food_last_opened_seller_distance")
+      sessionStorage.removeItem("store_last_opened_seller_distance")
     } catch (_) {}
   }, [])
   const [searchParams] = useSearchParams()
@@ -149,7 +149,7 @@ function SellerDetailsContent() {
     buildCartLineId(item?.id || item?._id || "", variant?.id || variant?._id || "")
 
   const getVariantForDish = (item, preferredVariantId = "") => {
-    const variants = getFoodVariants(item)
+    const variants = getProductVariants(item)
     if (variants.length === 0) return null
     return variants.find((variant) => String(variant.id) === String(preferredVariantId || "")) || variants[0]
   }
@@ -760,9 +760,9 @@ function SellerDetailsContent() {
                       id: String(item.id || item._id || `${Date.now()}-${Math.random()}`),
                       name: item.name || "Unnamed Item",
                       foodType,
-                      price: getFoodDisplayPrice(item),
-                      variants: getFoodVariants(item),
-                      variations: getFoodVariants(item),
+                      price: getProductDisplayPrice(item),
+                      variants: getProductVariants(item),
+                      variations: getProductVariants(item),
                       isAvailable: item.isAvailable !== false,
                       isRecommended,
                       isSpicy,
@@ -1087,7 +1087,7 @@ function SellerDetailsContent() {
       setSelectedVariantId("")
       return
     }
-    const defaultVariant = getDefaultFoodVariant(selectedItem)
+    const defaultVariant = getDefaultProductVariant(selectedItem)
     setSelectedVariantId(defaultVariant?.id || "")
   }, [selectedItem])
 
@@ -1112,7 +1112,7 @@ function SellerDetailsContent() {
       return
     }
 
-    const resolvedVariant = preferredVariant || getDefaultFoodVariant(item)
+    const resolvedVariant = preferredVariant || getDefaultProductVariant(item)
     const lineItemId = getLineItemIdForDish(item, resolvedVariant)
 
     // Update local state
@@ -1160,7 +1160,7 @@ function SellerDetailsContent() {
       otherPrice:
         Number(resolvedVariant?.otherPrice) > 0
           ? Number(resolvedVariant.otherPrice)
-          : getFoodDisplayOtherPrice(item),
+          : getProductDisplayOtherPrice(item),
       variantId: resolvedVariant?.id || "",
       variantName: resolvedVariant?.name || "",
       variantPrice: resolvedVariant?.price ?? item.price,
@@ -1615,7 +1615,7 @@ function SellerDetailsContent() {
   }
 
   const handleAddButtonClick = (item, event) => {
-    if (hasFoodVariants(item) && getDishQuantity(item) === 0) {
+    if (hasProductVariants(item) && getDishQuantity(item) === 0) {
       handleItemClick(item)
       return
     }
@@ -1967,7 +1967,7 @@ function SellerDetailsContent() {
   const availabilityStatus = getSellerAvailabilityStatus(seller, new Date(availabilityTick))
   const isSellerOffline = !availabilityStatus.isOpen
   const shouldShowGrayscale = isOutOfService || isSellerOffline
-  const displayHeroImages = heroImages.length > 0 ? heroImages : [FOOD_IMAGE_FALLBACK]
+  const displayHeroImages = heroImages.length > 0 ? heroImages : [PRODUCT_IMAGE_FALLBACK]
   const safeHighlightIndex = highlightOffers.length > 0 ? highlightIndex % highlightOffers.length : 0
   const hasCartItems = itemCount > 0
   const menuButtonBottomClass = hasCartItems ? "bottom-[5.25rem]" : "bottom-4"
@@ -2055,7 +2055,7 @@ function SellerDetailsContent() {
               exit={{ opacity: 0.85 }}
               transition={{ duration: 0.35, ease: "easeOut" }}
               onError={(event) => {
-                event.currentTarget.src = FOOD_IMAGE_FALLBACK
+                event.currentTarget.src = PRODUCT_IMAGE_FALLBACK
               }}
             />
           </AnimatePresence>
@@ -2500,7 +2500,7 @@ function SellerDetailsContent() {
                               )}
 
                               <div className="flex items-center gap-3 mt-1">
-                                <FoodPriceDisplay item={item} />
+                                <ProductPriceDisplay item={item} />
                                 {/* Preparation Time - Show if available */}
                                 {item.preparationTime && String(item.preparationTime).trim() && (
                                   <div className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
@@ -2556,8 +2556,8 @@ function SellerDetailsContent() {
                                   alt={item.name}
                                   className="w-full h-full object-cover rounded-2xl shadow-sm"
                                   onError={(e) => {
-                                    if (e.currentTarget.src !== FOOD_IMAGE_FALLBACK) {
-                                      e.currentTarget.src = FOOD_IMAGE_FALLBACK
+                                    if (e.currentTarget.src !== PRODUCT_IMAGE_FALLBACK) {
+                                      e.currentTarget.src = PRODUCT_IMAGE_FALLBACK
                                     }
                                   }}
                                 />
@@ -2728,7 +2728,7 @@ function SellerDetailsContent() {
                                         )}
 
                                         <div className="flex items-center gap-3 mt-1">
-                                          <FoodPriceDisplay item={item} />
+                                          <ProductPriceDisplay item={item} />
                                           {/* Preparation Time - Show if available */}
                                           {item.preparationTime && String(item.preparationTime).trim() && (
                                             <div className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
@@ -2784,8 +2784,8 @@ function SellerDetailsContent() {
                                             alt={item.name}
                                             className="w-full h-full object-cover rounded-2xl shadow-sm"
                                             onError={(e) => {
-                                              if (e.currentTarget.src !== FOOD_IMAGE_FALLBACK) {
-                                                e.currentTarget.src = FOOD_IMAGE_FALLBACK
+                                              if (e.currentTarget.src !== PRODUCT_IMAGE_FALLBACK) {
+                                                e.currentTarget.src = PRODUCT_IMAGE_FALLBACK
                                               }
                                             }}
                                           />
@@ -3527,9 +3527,9 @@ function SellerDetailsContent() {
                       </p>
                     )}
 
-                    {hasFoodVariants(selectedItem) && (
+                    {hasProductVariants(selectedItem) && (
                       <VariantSelector
-                        variants={getFoodVariants(selectedItem)}
+                        variants={getProductVariants(selectedItem)}
                         selectedVariantId={selectedVariantId}
                         onSelectVariant={setSelectedVariantId}
                         getVariantQuantity={(variantId) => getDishQuantity(selectedItem, variantId)}
@@ -3538,8 +3538,8 @@ function SellerDetailsContent() {
                   </div>
 
                   {/* Bottom Action Bar */}
-                  <div className={`border-t px-4 py-4 bg-white dark:bg-[#1a1a1a] ${hasFoodVariants(selectedItem) ? "border-[#EB590E]/10 dark:border-[#EB590E]/20" : "border-gray-200 dark:border-gray-800"}`}>
-                    {hasFoodVariants(selectedItem) && (
+                  <div className={`border-t px-4 py-4 bg-white dark:bg-[#1a1a1a] ${hasProductVariants(selectedItem) ? "border-[#EB590E]/10 dark:border-[#EB590E]/20" : "border-gray-200 dark:border-gray-800"}`}>
+                    {hasProductVariants(selectedItem) && (
                       <div className="mb-3 flex items-center justify-between rounded-xl bg-gray-50 dark:bg-[#222222] px-3 py-2">
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                           Adding to cart
@@ -3551,7 +3551,7 @@ function SellerDetailsContent() {
                     )}
                     <div className="flex items-center gap-4">
                       {/* Quantity Selector */}
-                      <div className={`flex items-center gap-3 rounded-xl px-3 h-[44px] ${hasFoodVariants(selectedItem)
+                      <div className={`flex items-center gap-3 rounded-xl px-3 h-[44px] ${hasProductVariants(selectedItem)
                         ? "border-2 border-[#EB590E]/25 bg-[#FFF7F2] dark:bg-[#EB590E]/5"
                         : "border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-[#2a2a2a]"
                         } ${shouldShowGrayscale ? "opacity-50" : ""}`}>
@@ -3605,7 +3605,7 @@ function SellerDetailsContent() {
                       <Button
                         className={`flex-1 h-[44px] rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg border-0 ${shouldShowGrayscale
                           ? '!bg-gray-300 dark:!bg-gray-700 !text-gray-500 dark:!text-gray-600 cursor-not-allowed opacity-50 shadow-none'
-                          : hasFoodVariants(selectedItem)
+                          : hasProductVariants(selectedItem)
                             ? '!bg-[#EB590E] hover:!bg-[#D94F0C] !text-white shadow-[0_8px_20px_-8px_rgba(235,89,14,0.65)]'
                             : '!bg-red-500 hover:!bg-red-600 !text-white shadow-red-500/25'
                           }`}
@@ -3622,22 +3622,22 @@ function SellerDetailsContent() {
                         }}
                         disabled={shouldShowGrayscale}
                       >
-                        <span>{hasFoodVariants(selectedItem) ? "Add to cart" : "Add item"}</span>
+                        <span>{hasProductVariants(selectedItem) ? "Add to cart" : "Add item"}</span>
                         <div className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2 py-0.5">
                           {(() => {
-                            const sellPrice = hasFoodVariants(selectedItem)
+                            const sellPrice = hasProductVariants(selectedItem)
                               ? Number(getVariantForDish(selectedItem, selectedVariantId)?.price || selectedItem.price) || 0
                               : Number(selectedItem.price) || 0
-                            const comparePrice = hasFoodVariants(selectedItem)
+                            const comparePrice = hasProductVariants(selectedItem)
                               ? Number(getVariantForDish(selectedItem, selectedVariantId)?.otherPrice) ||
-                                getFoodDisplayOtherPrice(selectedItem)
+                                getProductDisplayOtherPrice(selectedItem)
                               : Number(selectedItem.otherPrice) ||
                                 Number(selectedItem.originalPrice) ||
-                                getFoodDisplayOtherPrice(selectedItem)
+                                getProductDisplayOtherPrice(selectedItem)
                             const showStrike =
                               comparePrice > 0 && comparePrice > sellPrice
                             const discountPercent = showStrike
-                              ? getFoodDiscountPercent(null, sellPrice, comparePrice)
+                              ? getProductDiscountPercent(null, sellPrice, comparePrice)
                               : 0
                             return (
                               <>

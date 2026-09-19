@@ -10,7 +10,7 @@
  *   node scripts/riderpay.selfcheck.mjs
  */
 import assert from 'node:assert/strict';
-import { calculateRiderEarning, resolveUserDeliveryFee } from '../src/modules/food/orders/services/order-pricing.service.js';
+import { calculateRiderEarning, resolveUserDeliveryFee } from '../src/modules/commerce/orders/services/order-pricing.service.js';
 
 // The live quick-commerce shape: flat base pay close in, per-km beyond.
 const fees = {

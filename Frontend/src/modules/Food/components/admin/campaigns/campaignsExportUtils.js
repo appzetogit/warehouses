@@ -1,8 +1,8 @@
 // Export utility functions for campaigns
-export const exportCampaignsToCSV = (campaigns, filename = "campaigns", isFoodCampaign = false) => {
+export const exportCampaignsToCSV = (campaigns, filename = "campaigns", isProductCampaign = false) => {
   let headers, rows
   
-  if (isFoodCampaign) {
+  if (isProductCampaign) {
     headers = ["SI", "Title", "Date Start", "Date End", "Time Start", "Time End", "Price", "Status"]
     rows = campaigns.map((campaign, index) => [
       index + 1,
@@ -43,10 +43,10 @@ export const exportCampaignsToCSV = (campaigns, filename = "campaigns", isFoodCa
   document.body.removeChild(link)
 }
 
-export const exportCampaignsToExcel = (campaigns, filename = "campaigns", isFoodCampaign = false) => {
+export const exportCampaignsToExcel = (campaigns, filename = "campaigns", isProductCampaign = false) => {
   let headers, rows
   
-  if (isFoodCampaign) {
+  if (isProductCampaign) {
     headers = ["SI", "Title", "Date Start", "Date End", "Time Start", "Time End", "Price", "Status"]
     rows = campaigns.map((campaign, index) => [
       index + 1,
@@ -87,10 +87,10 @@ export const exportCampaignsToExcel = (campaigns, filename = "campaigns", isFood
   document.body.removeChild(link)
 }
 
-export const exportCampaignsToPDF = (campaigns, filename = "campaigns", isFoodCampaign = false) => {
+export const exportCampaignsToPDF = (campaigns, filename = "campaigns", isProductCampaign = false) => {
   let headers, rows
   
-  if (isFoodCampaign) {
+  if (isProductCampaign) {
     headers = ["SI", "Title", "Date Start", "Date End", "Time Start", "Time End", "Price", "Status"]
     rows = campaigns.map((campaign, index) => [
       index + 1,

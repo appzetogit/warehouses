@@ -1,5 +1,5 @@
 import { sendError } from '../../utils/response.js';
-import { FoodAdmin } from '../admin/admin.model.js';
+import { Admin } from '../admin/admin.model.js';
 
 const isSuperAdmin = (admin) =>
     !admin?.adminType || admin?.adminType === 'super_admin' || admin?.isSuperAdmin === true;
@@ -11,7 +11,7 @@ const hasAction = (permissions, section, action) => {
 
 const hydrateAdmin = async (req) => {
     if (req.adminAccess) return req.adminAccess;
-    const admin = await FoodAdmin.findById(req.user?.userId)
+    const admin = await Admin.findById(req.user?.userId)
         .select('adminType permissions isActive isDeleted')
         .lean();
     req.adminAccess = admin;

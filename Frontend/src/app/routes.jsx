@@ -7,29 +7,29 @@ import { isFeatureEnabled, loadCorePublicAppConfig } from '@food/services/public
 const NATIVE_LAST_ROUTE_KEY = 'native_last_route'
 
 // Lazy load the Food service module (Quick-spicy app)
-const FoodApp = lazy(() => import('../modules/Food/routes'))
+const StoreApp = lazy(() => import('../modules/Food/routes'))
 const AuthApp = lazy(() => import('../modules/auth/routes'))
 import ProtectedRoute from '@food/components/ProtectedRoute'
 
 const PageLoader = () => <AppShellSkeleton />
 
 /**
- * FoodAppWrapper — Quick-spicy App. को /food prefix के साथ render करता है.
+ * StoreAppWrapper — Quick-spicy App. को /food prefix के साथ render करता है.
  * 
  * Quick-spicy की App.jsx में routes /seller, /usermain, /admin, /delivery
  * जैसे hain (bina /food prefix ke). Yahan hum useLocation se /food ke baad wala
- * path nikalne ke baad FoodApp render karte hain. FoodApp internally BrowserRouter
+ * path nikalne ke baad StoreApp render karte hain. StoreApp internally BrowserRouter
  * nahi use karta (sirf Routes use karta hai), isliye ye directly kaam karta hai.
  */
-const FoodAppWrapper = () => {
+const StoreAppWrapper = () => {
   return (
     <Suspense fallback={<PageLoader />}>
-      <FoodApp />
+      <StoreApp />
     </Suspense>
   )
 }
 
-const RedirectToFood = () => {
+const RedirectToStore = () => {
   const location = useLocation();
   // We safely replace the exact current pathname with a /food prefixed pathname
   // This effectively catches programmatic navigation to absolute paths like '/seller/login'
@@ -115,7 +115,7 @@ const AppRoutes = () => {
 
 
       {/* Food Module */}
-      <Route path="/food/*" element={<FoodAppWrapper />} />
+      <Route path="/food/*" element={<StoreAppWrapper />} />
 
       {/* Seller Portal. Canonical home of the partner panel. */}
       <Route
@@ -144,13 +144,13 @@ const AppRoutes = () => {
       />
       
       {/* Dynamic intercept redirects for bare paths (accessed programmatically) */}
-      <Route path="/user/*" element={<RedirectToFood />} />
+      <Route path="/user/*" element={<RedirectToStore />} />
       <Route path="/seller/*" element={<RedirectToSeller />} />
-      <Route path="/delivery/*" element={<RedirectToFood />} />
-      <Route path="/usermain/*" element={<RedirectToFood />} />
-      <Route path="/profile/*" element={<RedirectToFood />} />
+      <Route path="/delivery/*" element={<RedirectToStore />} />
+      <Route path="/usermain/*" element={<RedirectToStore />} />
+      <Route path="/profile/*" element={<RedirectToStore />} />
       <Route path="/cart/*" element={<Navigate to="/food/user/cart" replace />} />
-      <Route path="/orders/*" element={<RedirectToFood />} />
+      <Route path="/orders/*" element={<RedirectToStore />} />
 
       {/* Fallback 404 */}
       <Route path="*" element={<Navigate to="/" replace />} />

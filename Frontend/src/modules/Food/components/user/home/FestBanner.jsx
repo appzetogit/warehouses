@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRightCircle, Sparkles } from 'lucide-react';
-import bannerFood1 from "@food/assets/category-icons/food.png"; // Burger
+import bannerProduct1 from "@food/assets/category-icons/food.png"; // Burger
 const tacoImg = "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=200&h=200&fit=crop";
 const platterImg = "https://images.unsplash.com/photo-1544025162-d76694265947?w=200&h=200&fit=crop";
 
@@ -129,7 +129,7 @@ export default function FestBanner() {
             <div className="absolute inset-0 bg-black/40 blur-2xl translate-y-8 scale-90 rounded-full" />
             <div className="relative w-full h-full rounded-3xl border-4 border-white/60 bg-white shadow-2xl overflow-hidden p-2">
                 <img 
-                    src={bannerFood1} 
+                    src={bannerProduct1} 
                     alt="burger" 
                     className="w-full h-full object-contain" 
                 />

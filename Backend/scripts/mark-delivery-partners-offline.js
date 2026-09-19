@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
-import { FoodDeliveryPartner } from '../src/modules/food/delivery/models/deliveryPartner.model.js';
+import { DeliveryPartner } from '../src/modules/commerce/delivery/models/deliveryPartner.model.js';
 
 dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
 
@@ -18,7 +18,7 @@ const main = async () => {
 
   try {
     const filter = { availabilityStatus: 'online' };
-    const onlineCount = await FoodDeliveryPartner.countDocuments(filter);
+    const onlineCount = await DeliveryPartner.countDocuments(filter);
 
     console.log(`[DeliveryOffline] Online delivery partners found: ${onlineCount}`);
 
@@ -32,7 +32,7 @@ const main = async () => {
       return;
     }
 
-    const result = await FoodDeliveryPartner.updateMany(filter, {
+    const result = await DeliveryPartner.updateMany(filter, {
       $set: { availabilityStatus: 'offline' },
     });
 

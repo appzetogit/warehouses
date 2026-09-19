@@ -5,7 +5,7 @@ export const ADMIN_ACTIONS = ["view", "create", "edit", "delete", "export"];
 export const ADMIN_PERMISSION_SECTIONS = [
   "dashboard",
   "point_of_sale",
-  "food_management",
+  "product_management",
   "seller_management",
   "order_management",
   "promotions_management",
@@ -29,13 +29,13 @@ const PATH_PREFIX_TO_SECTION = [
   { prefix: "/admin/store/delivery-emergency-help", section: "delivery_management" },
   { prefix: "/admin/store/delivery-support-tickets", section: "delivery_management" },
   { prefix: "/admin/store/delivery-order-reassignment-requests", section: "delivery_management" },
-  { prefix: "/admin/store/food-approval", section: "food_management" },
-  { prefix: "/admin/store/products", section: "food_management" },
+  { prefix: "/admin/store/food-approval", section: "product_management" },
+  { prefix: "/admin/store/products", section: "product_management" },
   // Legacy twins of the routes above. The router still serves them so old
   // bookmarks resolve, and without a prefix here those visits would match no
   // section and be refused for someone who is allowed in.
-  { prefix: "/admin/store/foods", section: "food_management" },
-  { prefix: "/admin/store/categories", section: "food_management" },
+  { prefix: "/admin/store/products", section: "product_management" },
+  { prefix: "/admin/store/categories", section: "product_management" },
   { prefix: "/admin/store/zone-setup", section: "seller_management" },
   { prefix: "/admin/store/sellers", section: "seller_management" },
   { prefix: "/admin/store/sellers", section: "seller_management" },
@@ -120,7 +120,7 @@ export function findFirstAllowedAdminPath(adminUser) {
   const sectionHomePath = {
     dashboard: "/admin/store",
     point_of_sale: "/admin/store/point-of-sale",
-    food_management: "/admin/store/food-approval",
+    product_management: "/admin/store/food-approval",
     seller_management: "/admin/store/sellers",
     order_management: "/admin/store/orders/all",
     promotions_management: "/admin/store/coupons",
