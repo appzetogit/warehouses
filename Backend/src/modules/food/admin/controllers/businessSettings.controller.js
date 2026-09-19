@@ -99,10 +99,7 @@ export async function getBusinessSettings(req, res, next) {
         let settings = await FoodBusinessSettings.findOne();
         if (!settings) {
             // Create default settings if none exist
-            settings = await FoodBusinessSettings.create({
-                companyName: 'Switcheats',
-                email: 'admin@switcheats.com'
-            });
+            settings = await FoodBusinessSettings.create({});
         }
 
         // Backend-side safety: always expose normalized powerScanning in public payload.
@@ -151,10 +148,7 @@ export async function getPowerScanningSettings(req, res, next) {
     try {
         let settings = await FoodBusinessSettings.findOne().lean();
         if (!settings) {
-            settings = await FoodBusinessSettings.create({
-                companyName: 'Switcheats',
-                email: 'admin@switcheats.com'
-            });
+            settings = await FoodBusinessSettings.create({});
         }
         const payload = buildPowerScanningPayload(settings?.powerScanning || {}, settings?.powerScanning || POWER_SCANNING_DEFAULT);
         return sendResponse(res, 200, 'Power scanning settings fetched successfully', payload);
@@ -168,10 +162,7 @@ export async function updatePowerScanningSettings(req, res, next) {
         const payload = req.body || {};
         let settings = await FoodBusinessSettings.findOne();
         if (!settings) {
-            settings = new FoodBusinessSettings({
-                companyName: 'Switcheats',
-                email: 'admin@switcheats.com'
-            });
+            settings = new FoodBusinessSettings({});
         }
 
         settings.powerScanning = buildPowerScanningPayload(payload, settings.powerScanning || POWER_SCANNING_DEFAULT);
@@ -187,10 +178,7 @@ export async function getOrderAcceptanceSettings(req, res, next) {
     try {
         let settings = await FoodBusinessSettings.findOne();
         if (!settings) {
-            settings = await FoodBusinessSettings.create({
-                companyName: 'Switcheats',
-                email: 'admin@switcheats.com'
-            });
+            settings = await FoodBusinessSettings.create({});
         }
 
         const minutes = normalizeOrderAcceptanceMinutes(settings.orderAcceptanceTimeMinutes);

@@ -43,7 +43,7 @@ async function main() {
 
     const settings =
         (await FoodBusinessSettings.findOne().select('+firebaseServiceAccount')) ||
-        new FoodBusinessSettings({ companyName: 'Suvio', email: 'admin@suvio.com' });
+        new FoodBusinessSettings({});
 
     console.log('web config:');
     let webChanges = 0;

@@ -63,6 +63,7 @@ import {
     isSellerEarnedOrder,
     computeSellerOrderShare,
 } from '../../shared/sellerPayout.util.js';
+import { config } from '../../../../config/env.js';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -4018,7 +4019,7 @@ export async function approveSeller(id) {
                 {
                     title: 'Congratulations! ',
                     body: `Your seller "${updated.sellerName}" has been approved.`,
-                    image: updated.profileImage || 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
+                    image: updated.profileImage || config.brand.notificationImage,
                     data: {
                         type: 'seller_approved',
                         sellerId: String(updated._id)
@@ -4079,7 +4080,7 @@ export async function rejectSeller(id, reason) {
                 {
                     title: 'Update on Registration ðŸ“‹',
                     body: `Your seller registration for "${updated.sellerName}" has been rejected. Reason: ${reason || 'Incomplete documents'}.`,
-                    image: 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
+                    image: config.brand.notificationImage,
                     data: {
                         type: 'seller_rejected',
                         sellerId: String(updated._id),
@@ -4187,7 +4188,7 @@ export async function createAdminOffer(body) {
                 {
                     title: 'New Campaign Invitation! ðŸ“¢',
                     body: `You have been invited to join a new campaign: "${doc.couponCode}". Check it out now!`,
-                    image: 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
+                    image: config.brand.notificationImage,
                     data: {
                         type: 'campaign_invitation',
                         offerId: String(doc._id),
@@ -4799,7 +4800,7 @@ export async function addDeliveryPartnerBonus(body, adminUser) {
             {
                 title: 'Bonus Credited!',
                 body: `You have received a bonus of \u20B9${amountToCredit}. ${body.reference || 'Great job!'}`,
-                image: 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
+                image: config.brand.notificationImage,
                 data: {
                     type: 'bonus_credited',
                     amount: String(amountToCredit),
@@ -5156,7 +5157,7 @@ export async function creditEarningAddonHistory(historyId, notes) {
             {
                 title: 'Incentive Credited! ðŸŽ¯',
                 body: `Your incentive for "${doc.offerId?.title || 'Earning Addon'}" has been approved and moved to your pocket.`,
-                image: 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
+                image: config.brand.notificationImage,
                 data: {
                     type: 'incentive_credited',
                     historyId: String(doc._id),
@@ -5188,7 +5189,7 @@ export async function cancelEarningAddonHistory(historyId, reason) {
             {
                 title: 'Incentive Update ðŸ“‹',
                 body: `Your incentive request for "${doc.offerId?.title || 'Earning Addon'}" was not approved. Reason: ${doc.cancelReason || 'Ineligible'}`,
-                image: 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
+                image: config.brand.notificationImage,
                 data: {
                     type: 'incentive_rejected',
                     historyId: String(doc._id),
@@ -5394,7 +5395,7 @@ export async function approveDeliveryPartner(id) {
             {
                 title: 'Welcome Aboard!',
                 body: `Your delivery partner application has been approved. You can now go online and start earning!`,
-                image: 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
+                image: config.brand.notificationImage,
                 data: {
                     type: 'delivery_partner_approved',
                     eventType: 'delivery_partner_approved',
@@ -5437,7 +5438,7 @@ export async function rejectDeliveryPartner(id, reason) {
                 {
                     title: 'Onboarding Update ðŸ“‹',
                     body: `Your application to join as a delivery partner was rejected. Reason: ${reason || 'Incomplete documents'}.`,
-                    image: 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
+                    image: config.brand.notificationImage,
                     data: {
                         type: 'onboarding_rejected',
                         partnerId: String(updated._id),

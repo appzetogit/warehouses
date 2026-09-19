@@ -17,6 +17,31 @@ export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
 
     /**
+     * The product's name and public identity, in one place so a rebrand is a
+     * configuration change. Every customer-facing mention of the name reads
+     * from here: share pages, emails, default business settings.
+     */
+    brand: {
+        name: String(process.env.BRAND_NAME || 'Warehouses').trim(),
+        supportEmail: String(process.env.BRAND_SUPPORT_EMAIL || '').trim(),
+        // Shown as the picture on push notifications; unset sends none.
+        notificationImage: String(process.env.BRAND_NOTIFICATION_IMAGE || '').trim(),
+        // Custom URL scheme the mobile apps register, used by share-link pages.
+        appScheme: String(process.env.APP_URL_SCHEME || 'warehouses').trim(),
+    },
+
+    /**
+     * The OTP SMS text. In India it must match a DLT-registered template word for
+     * word or the operator drops it, so it is configured, not written in code.
+     * {otp} is replaced with the code. Change it only together with the template
+     * registered for SMS_DLT_TEMPLATE_ID.
+     */
+    otpSmsTemplate: String(
+        process.env.OTP_SMS_TEMPLATE
+        || 'Welcome to the Switcheats powered by Appzeto.Your OTP for registration is {otp}.BGADEC.'
+    ),
+
+    /**
      * Public web app origin, used to build shareable links (e.g. rider referral invites).
      * REFERRAL_LINK_BASE_URL wins so links can point at a marketing/deep-link host that
      * differs from the app origin. Trailing slashes are stripped.

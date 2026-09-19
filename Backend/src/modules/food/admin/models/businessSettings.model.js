@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
+import { config } from '../../../../config/env.js';
 
 const businessSettingsSchema = new mongoose.Schema(
     {
-        companyName: { type: String, required: true, default: 'Switcheats' },
-        email: { type: String, required: true, default: 'admin@switcheats.com' },
+        companyName: { type: String, required: true, default: () => config.brand.name },
+        // A placeholder until the admin sets a real address in business settings.
+        email: { type: String, required: true, default: () => config.brand.supportEmail || 'admin@example.com' },
         phone: {
             countryCode: { type: String, default: '+91' },
             number: { type: String, default: '' }

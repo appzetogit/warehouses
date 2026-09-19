@@ -38,7 +38,7 @@ const firstOf = (...values) =>
  * Its real job is the Open Graph tags. WhatsApp, Instagram and the rest fetch the
  * URL and render a preview card from them, which is what makes a shared link look
  * like a shared seller rather than a bare string — and they only do that for
- * http(s) URLs, which is why the app no longer shares suvio:// links.
+ * http(s) URLs, which is why the app no longer shares custom-scheme links.
  *
  * Anyone with the app installed never sees this page: Android App Links hands the
  * URL straight to the app. This is the fallback for everyone else, so it leads with
@@ -49,11 +49,11 @@ const renderPage = ({ title, description, image, canonical, appUrl }) => `<!doct
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${escapeHtml(title)} · Suvio</title>
+<title>${escapeHtml(title)} · ${escapeHtml(config.brand.name)}</title>
 <meta name="description" content="${escapeHtml(description)}" />
 <link rel="canonical" href="${escapeHtml(canonical)}" />
 <meta property="og:type" content="website" />
-<meta property="og:site_name" content="Suvio" />
+<meta property="og:site_name" content="${escapeHtml(config.brand.name)}" />
 <meta property="og:title" content="${escapeHtml(title)}" />
 <meta property="og:description" content="${escapeHtml(description)}" />
 <meta property="og:url" content="${escapeHtml(canonical)}" />
@@ -88,8 +88,8 @@ a.btn { display:block; padding:14px 20px; border-radius:999px; text-decoration:n
   ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" />` : ''}
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
-  <a class="btn primary" href="${escapeHtml(PLAY_STORE_URL)}">Get Suvio on Android</a>
-  ${APP_STORE_URL ? `<a class="btn secondary" href="${escapeHtml(APP_STORE_URL)}">Get Suvio on iPhone</a>` : ''}
+  <a class="btn primary" href="${escapeHtml(PLAY_STORE_URL)}">Get ${escapeHtml(config.brand.name)} on Android</a>
+  ${APP_STORE_URL ? `<a class="btn secondary" href="${escapeHtml(APP_STORE_URL)}">Get ${escapeHtml(config.brand.name)} on iPhone</a>` : ''}
   <a class="btn secondary" href="${escapeHtml(appUrl)}">Already have the app? Open it</a>
 </div>
 </body>
@@ -114,7 +114,7 @@ const notFoundPage = (req, res, what) =>
         renderPage({
             title: `This ${what} is unavailable`,
             description:
-                'The link may have expired, or the item is no longer being served. Browse everything else on Suvio.',
+                `The link may have expired, or the item is no longer being sold. Browse everything else on ${config.brand.name}.`,
             image: '',
             canonical: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
             appUrl: PLAY_STORE_URL,
@@ -184,7 +184,7 @@ router.get('/seller-detail/:id', async (req, res, next) => {
             renderPage({
                 title: seller.sellerName || 'Seller',
                 description: place ||
-                    'Order food on Suvio.',
+                    `Shop on ${config.brand.name}.`,
                 image: absoluteUrl(
                     req,
                     firstOf(
@@ -194,7 +194,7 @@ router.get('/seller-detail/:id', async (req, res, next) => {
                     ),
                 ),
                 canonical: `${req.protocol}://${req.get('host')}/seller-detail/${id}`,
-                appUrl: `suvio://seller-detail/${id}`,
+                appUrl: `${config.brand.appScheme}://seller-detail/${id}`,
             }),
         );
     } catch (err) {
@@ -233,10 +233,10 @@ router.get('/food-detail', async (req, res, next) => {
             res,
             renderPage({
                 title: food.name || 'Dish',
-                description: description || 'Order it on Suvio.',
+                description: description || `Order it on ${config.brand.name}.`,
                 image: absoluteUrl(req, firstOf(food.image, food.images || [])),
                 canonical: `${req.protocol}://${req.get('host')}/food-detail?${query}`,
-                appUrl: `suvio://food-detail?${query}`,
+                appUrl: `${config.brand.appScheme}://food-detail?${query}`,
             }),
         );
     } catch (err) {

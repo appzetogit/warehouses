@@ -771,7 +771,7 @@ export async function createOrder(userId, dto) {
         await notifyOwnersSafely([{ ownerType: "USER", ownerId: userId }], {
           title: "Order Confirmed! 🍔",
           body: `Your order #${order.order_id || order._id} from ${seller.sellerName || "the seller"} has been placed successfully.`,
-          image: "https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png",
+          image: config.brand.notificationImage,
           data: {
             type: "order_created",
             orderId: String(order._id),
@@ -1455,7 +1455,7 @@ export async function cancelOrder(orderId, userId, reason) {
     {
       title: "Order Cancelled ❌",
       body: `Order #${order.order_id || order._id} has been cancelled successfully.${refundDetail}`,
-      image: "https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png",
+      image: config.brand.notificationImage,
       data: {
         type: "order_cancelled",
         orderId: String(order._id.toString()),
@@ -1955,7 +1955,7 @@ export async function updateOrderStatusSeller(
       {
         title: title,
         body: body,
-        image: "https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png",
+        image: config.brand.notificationImage,
         data: {
           type: "order_status_update",
           orderId: order._id.toString(),

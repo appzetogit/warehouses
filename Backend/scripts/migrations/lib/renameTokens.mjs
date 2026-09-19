@@ -23,9 +23,11 @@ const TOKEN_VALUE = /^[A-Za-z0-9_]+$/;
 /**
  * @param {import('mongodb').Db} db
  * @param {(s: string) => string} rename  maps a name/key/token to its new form
- * @param {{ apply?: boolean, log?: (msg: string) => void }} [opts]
+ * @param {{ apply?: boolean, log?: (msg: string) => void, renameCollection?: (s: string) => string }} [opts]
+ *   renameCollection: for collection names, when they follow a different rule
+ *   than keys and values (food_orders -> orders, but food_approved -> product_approved).
  */
-export async function renameTokensInDb(db, rename, { apply = false, log = console.log } = {}) {
+export async function renameTokensInDb(db, rename, { apply = false, log = console.log, renameCollection = rename } = {}) {
     const summary = { collections: [], documents: 0, indexes: 0 };
 
     const renameKeysAndValues = (value) => {
@@ -63,7 +65,7 @@ export async function renameTokensInDb(db, rename, { apply = false, log = consol
 
     for (const name of [...existing].sort()) {
         if (name.startsWith('system.')) continue;
-        const newName = rename(name);
+        const newName = renameCollection(name);
         if (newName !== name && existing.has(newName)) {
             throw new Error(`Cannot rename ${name}: ${newName} already exists`);
         }

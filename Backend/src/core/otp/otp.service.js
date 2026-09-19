@@ -21,9 +21,8 @@ const sendSmsViaIndiaHub = async (phone, otp) => {
         const digits = String(phone || '').replace(/\D/g, '');
         const msisdn = digits.startsWith('91') ? digits : `91${digits}`;
 
-        // EXACT DLT TEMPLATE provided by user:
-        // "Welcome to the ##var## powered by SMSINDIAHUB. Your OTP for registration is ##var##"
-        const message = `Welcome to the Switcheats powered by Appzeto.Your OTP for registration is ${otp}.BGADEC.`;
+        // Must match the DLT-registered template exactly; see config.otpSmsTemplate.
+        const message = config.otpSmsTemplate.replace('{otp}', otp);
 
         // SMS India Hub HTTP GET API — query param names are case-sensitive per SOP
         const url = new URL('http://cloud.smsindiahub.in/vendorsms/pushsms.aspx');
