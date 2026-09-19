@@ -6,15 +6,6 @@ const phoneSchema = z
     .regex(/^[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian phone number');
 
 const emailSchema = z.string().email('Invalid email').optional().or(z.literal(''));
-const requiredBooleanSchema = z.preprocess((value) => {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase();
-        if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
-        if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
-    }
-    return value;
-}, z.boolean({ required_error: 'Please select whether the seller is pure veg' }));
 
 const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 
@@ -58,7 +49,6 @@ const sellerRegisterSchema = z.object({
     ownerEmail: emailSchema,
     ownerPhone: phoneSchema.optional(),
     primaryContactNumber: phoneSchema.optional(),
-    pureVegSeller: requiredBooleanSchema,
     addressLine1: z.string().optional(),
     addressLine2: z.string().optional(),
     area: z.string().optional(),
@@ -70,10 +60,6 @@ const sellerRegisterSchema = z.object({
     latitude: z.string().optional(),
     longitude: z.string().optional(),
     zoneId: z.string().optional(),
-    cuisines: z
-        .string()
-        .optional()
-        .transform((val) => (val ? val.split(',').map((c) => c.trim()).filter(Boolean) : [])),
     openingTime: z.string().optional(),
     closingTime: z.string().optional(),
     estimatedDeliveryTime: z.string().optional(),

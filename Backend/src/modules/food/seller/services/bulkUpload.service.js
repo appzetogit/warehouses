@@ -4,7 +4,7 @@ import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodCategory } from '../../admin/models/category.model.js';
 import { FoodSeller } from '../models/seller.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
-import { categoryAllowsFoodType, normalizeFoodTypeForCategory } from '../../shared/categoryWorkflow.js';
+import { normalizeFoodType } from '../../shared/foodType.js';
 import { isHostedUploadUrl, saveImageFromUrl } from '../../../../services/storage.service.js';
 
 const PREP_TIME_OPTIONS = [
@@ -71,7 +71,7 @@ export async function generateBulkMenuTemplate() {
         { header: 'Item Name*', key: 'name', width: 30 },
         { header: 'Description', key: 'description', width: 40 },
         { header: 'Base Price*', key: 'price', width: 15 },
-        { header: 'Food Type (Veg/Non-Veg)*', key: 'foodType', width: 25 },
+        { header: 'Veg/Non-Veg (optional)', key: 'foodType', width: 25 },
         { header: 'Recommended (Yes/No)', key: 'isRecommended', width: 25 },
         { header: 'Preparation Time*', key: 'prepTime', width: 25 },
         { header: 'Image URL', key: 'imageUrl', width: 40 },
@@ -153,7 +153,7 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
         'Item Name*',
         'Description',
         'Base Price*',
-        'Food Type (Veg/Non-Veg)*',
+        'Veg/Non-Veg (optional)',
         'Recommended (Yes/No)',
         'Preparation Time*',
         'Image URL',
@@ -352,13 +352,7 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
                 }
 
                 // 3. Prepare Bulk Operation
-                const normalizedFoodType = normalizeFoodTypeForCategory(data.foodType);
-                const categoryScope = String(category?.foodTypeScope || 'Both').trim();
-                if (!categoryAllowsFoodType(categoryScope, normalizedFoodType)) {
-                    throw new Error(
-                        `Category "${category.name}" allows only ${categoryScope} items, but row has ${normalizedFoodType}`
-                    );
-                }
+                const normalizedFoodType = normalizeFoodType(data.foodType);
 
                 bulkOps.push({
                     updateOne: {

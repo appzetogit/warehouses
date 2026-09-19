@@ -3,6 +3,7 @@ import { FoodUser } from '../../../../core/users/user.model.js';
 import { FoodUserCart } from '../models/userCart.model.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 import { calculateOrderPricing } from '../../orders/services/order-pricing.service.js';
+import { normalizeFoodType } from '../../shared/foodType.js';
 
 const toPositiveInt = (value, fallback = 1) => {
     const parsed = Number(value);
@@ -49,7 +50,9 @@ const normalizeCartItems = (items = []) => {
                 variantPrice,
                 image: String(item.image || item.imageUrl || ''),
                 foodType: String(item.foodType || ''),
-                isVeg: item.isVeg === true || String(item.foodType || '').toLowerCase() === 'veg',
+                isVeg: typeof item.isVeg === 'boolean'
+                    ? item.isVeg
+                    : (normalizeFoodType(item.foodType) ? normalizeFoodType(item.foodType) === 'Veg' : null),
             };
         })
         .filter((item) => item.name && item.quantity > 0);

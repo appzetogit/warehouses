@@ -78,11 +78,6 @@ const sellerSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    pureVegSeller: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
     addressLine1: {
       type: String,
     },
@@ -103,10 +98,6 @@ const sellerSchema = new mongoose.Schema(
     },
     landmark: {
       type: String,
-    },
-    cuisines: {
-      type: [String],
-      default: [],
     },
     openingTime: {
       type: String,
@@ -292,14 +283,6 @@ const sellerSchema = new mongoose.Schema(
       set: normalizeRatingValue,
     },
     totalRatings: { type: Number, default: 0, min: 0 },
-    diningSettings: {
-      isEnabled: { type: Boolean, default: false },
-      maxGuests: { type: Number, default: 6 },
-      diningType: { type: String, default: "family-dining" },
-    },
-    menu: {
-      sections: { type: Array, default: [] },
-    },
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],

@@ -9,7 +9,6 @@ import {
     getCurrentSellerController,
     updateSellerProfileController,
     updateSellerAcceptingOrdersController,
-    updateCurrentSellerDiningSettingsController,
     uploadSellerProfileImageController,
     uploadSellerMenuImageController,
     uploadSellerCoverImagesController,
@@ -46,9 +45,8 @@ import {
     updateCategoryController,
     deleteCategoryController
 } from '../controllers/sellerCategory.controller.js';
-import { getMenuController, updateMenuController, getPublicSellerMenuController } from '../controllers/sellerMenu.controller.js';
+import { getMenuController, getPublicSellerMenuController } from '../controllers/sellerMenu.controller.js';
 import { listPublicFoodsController } from '../controllers/publicFoods.controller.js';
-import { getPublicSellerAddonsController } from '../controllers/publicAddons.controller.js';
 import * as feedbackExperienceController from '../../admin/controllers/feedbackExperience.controller.js';
 import {
     getOutletTimingsBySellerIdController,
@@ -63,12 +61,6 @@ import {
     listLowStockFoodsController,
     getAnalyticsController
 } from '../controllers/sellerFood.controller.js';
-import {
-    listAddonsController,
-    createAddonController,
-    updateAddonController,
-    deleteAddonController
-} from '../controllers/sellerAddon.controller.js';
 import {
     downloadBulkMenuTemplateController,
     uploadBulkMenuController
@@ -149,10 +141,6 @@ router.patch('/availability', authMiddleware, requireSeller, async (req, res, ne
     await invalidateCache('seller_detail:*');
     next();
 }, updateSellerAcceptingOrdersController);
-router.patch('/dining-settings', authMiddleware, requireSeller, async (req, res, next) => {
-    await invalidateCache('sellers:*');
-    next();
-}, updateCurrentSellerDiningSettingsController);
 
 router.get('/outlet-timings', authMiddleware, requireSeller, getCurrentSellerOutletTimingsController);
 router.put('/outlet-timings', authMiddleware, requireSeller, upsertCurrentSellerOutletTimingsController);
@@ -244,16 +232,9 @@ router.delete('/categories/:id', authMiddleware, requireSeller, deleteCategoryCo
 
 // Menu (seller dashboard) - only fields needed by UI
 router.get('/menu', authMiddleware, requireSeller, getMenuController);
-router.patch('/menu', authMiddleware, requireSeller, async (req, res, next) => {
-    await invalidateCache('seller_menu:*');
-    next();
-}, updateMenuController);
 
 // Feedback (seller dashboard)
 router.post('/feedback-experience', authMiddleware, requireSeller, feedbackExperienceController.createFeedbackExperience);
-
-// Public: seller add-ons (user app)
-router.get('/sellers/:id/addons', cacheResponse(600, 'seller_addons'), getPublicSellerAddonsController);
 
 // Foods (seller creates/updates items -> stored in food_items collection)
 router.post('/foods', authMiddleware, requireSeller, async (req, res, next) => {
@@ -284,12 +265,6 @@ router.patch('/foods/:id', authMiddleware, requireSeller, async (req, res, next)
 // Bulk Menu Upload
 router.get('/bulk-upload/template', authMiddleware, requireSeller, downloadBulkMenuTemplateController);
 router.post('/bulk-upload', authMiddleware, requireSeller, upload.single('file'), uploadBulkMenuController);
-
-// Add-ons (seller dashboard) - approval handled by admin
-router.get('/addons', authMiddleware, requireSeller, listAddonsController);
-router.post('/addons', authMiddleware, requireSeller, createAddonController);
-router.patch('/addons/:id', authMiddleware, requireSeller, updateAddonController);
-router.delete('/addons/:id', authMiddleware, requireSeller, deleteAddonController);
 
 // Orders (seller dashboard)
 router.get('/orders', authMiddleware, requireSeller, orderController.listOrdersSellerController);

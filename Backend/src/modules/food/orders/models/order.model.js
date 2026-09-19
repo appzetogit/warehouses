@@ -11,7 +11,8 @@ const orderItemSchema = new mongoose.Schema(
         /** Compare-at / other-platform unit price snapshot at order time. */
         otherPrice: { type: Number, min: 0, default: 0 },
         quantity: { type: Number, required: true, min: 1 },
-        isVeg: { type: Boolean, default: true },
+        /** Veg / non-veg mark, or null for products that carry none. */
+        isVeg: { type: Boolean, default: null },
         /**
          * Rate this line was taxed at, snapshotted like the price is: a
          * product's GST slab can be reclassified, and the invoice has to keep
@@ -33,30 +34,7 @@ const orderItemSchema = new mongoose.Schema(
         categoryId: { type: mongoose.Schema.Types.ObjectId, default: null },
         categoryName: { type: String, trim: true, default: '' },
         image: { type: String, default: '' },
-        notes: { type: String, default: '' },
-        /**
-         * Add-ons chosen for this line, priced and named as at order time.
-         *
-         * Recorded rather than derived: an add-on's price can change, and the
-         * order must keep what the customer was actually charged. `price` here
-         * is per unit of the line, already folded into `price` above.
-         *
-         * The field did not exist before, so add-ons the customer selected were
-         * dropped entirely — not billed, not shown, not recoverable afterwards.
-         */
-        addons: {
-            type: [
-                new mongoose.Schema(
-                    {
-                        addonId: { type: String, trim: true, default: '' },
-                        name: { type: String, trim: true, default: '' },
-                        price: { type: Number, min: 0, default: 0 }
-                    },
-                    { _id: false }
-                )
-            ],
-            default: []
-        }
+        notes: { type: String, default: '' }
     },
     { _id: false }
 );
@@ -361,7 +339,6 @@ const orderSchema = new mongoose.Schema(
          * twice silently inflates inventory, and nothing downstream would notice.
          */
         stockRestoredAt: { type: Date, default: null },
-        sendCutlery: { type: Boolean, default: true },
         deliveryFleet: { type: String, default: 'standard', trim: true },
         scheduledAt: { type: Date, default: null },
         riderEarning: { type: Number, default: 0, min: 0 },

@@ -13,24 +13,15 @@ import {
 } from '../../admin/services/foodVariant.service.js';
 import {
     backfillLegacyCategoryWorkflow,
-    categoryAllowsFoodType,
     GLOBAL_CATEGORY_FILTER
 } from '../../shared/categoryWorkflow.js';
+import { normalizeFoodType } from '../../shared/foodType.js';
 
 const toStr = (v) => (v != null ? String(v).trim() : '');
 const APPROVED_CATEGORY_FILTER = [
     { approvalStatus: 'approved' },
     { approvalStatus: { $exists: false }, isApproved: { $ne: false } }
 ];
-
-const normalizeFoodType = (v) => {
-    const t = String(v || '').trim();
-    if (!t) return 'Non-Veg';
-    if (t === 'Veg') return 'Veg';
-    if (t === 'Non-Veg') return 'Non-Veg';
-    if (t === 'Egg') return 'Non-Veg';
-    return 'Non-Veg';
-};
 
 const getCreateFoodPricing = (body = {}) => {
     const variants = normalizeFoodVariantsInput(extractRawFoodVariants(body));
@@ -250,15 +241,14 @@ const getSellerContext = async (sellerId) => {
     }
 
     const seller = await FoodSeller.findById(sellerId)
-        .select('pureVegSeller')
+        .select('_id')
         .lean();
     if (!seller?._id) {
         throw new ValidationError('Store not found');
     }
 
     return {
-        sellerId: new mongoose.Types.ObjectId(String(sellerId)),
-        pureVegSeller: seller.pureVegSeller === true
+        sellerId: new mongoose.Types.ObjectId(String(sellerId))
     };
 };
 
@@ -277,7 +267,6 @@ const getAccessibleCategoryFilter = (context) => ({
 const resolveCategoryForSeller = async (context, body = {}) => {
     const categoryIdRaw = toStr(body.categoryId);
     const categoryNameRaw = toStr(body.categoryName);
-    const foodType = normalizeFoodType(body.foodType);
 
     if (!categoryIdRaw && !categoryNameRaw) {
         return { categoryObjectId: undefined, categoryName: '' };
@@ -287,9 +276,6 @@ const resolveCategoryForSeller = async (context, body = {}) => {
         ...getAccessibleCategoryFilter(context),
         isActive: { $ne: false }
     };
-    if (context.pureVegSeller) {
-        baseFilter.foodTypeScope = 'Veg';
-    }
 
     let category = null;
     if (categoryIdRaw) {
@@ -324,12 +310,6 @@ const resolveCategoryForSeller = async (context, body = {}) => {
 
     if (String(category.approvalStatus || '') !== 'approved') {
         throw new ValidationError('This category is awaiting admin approval');
-    }
-    if (context.pureVegSeller && String(category.foodTypeScope || '') !== 'Veg') {
-        throw new ValidationError('Pure veg stores can only use veg categories');
-    }
-    if (!categoryAllowsFoodType(category.foodTypeScope, foodType)) {
-        throw new ValidationError(`This ${category.foodTypeScope} category cannot accept ${foodType} food`);
     }
 
     return {
@@ -446,7 +426,7 @@ export async function createSellerFood(sellerId, body = {}) {
     const isAvailable = body.isAvailable !== false;
     const foodType = normalizeFoodType(body.foodType);
     const preparationTime = toStr(body.preparationTime);
-    const { categoryObjectId, categoryName } = await resolveCategoryForSeller(context, { ...body, foodType });
+    const { categoryObjectId, categoryName } = await resolveCategoryForSeller(context, body);
 
     const doc = await FoodItem.create({
         sellerId,
@@ -531,18 +511,12 @@ export async function updateSellerFood(sellerId, foodId, body = {}) {
     if (body.preparationTime !== undefined) update.preparationTime = toStr(body.preparationTime);
     if (body.isRecommended !== undefined) update.isRecommended = body.isRecommended === true;
 
-    const targetFoodType = body.foodType !== undefined ? normalizeFoodType(body.foodType) : normalizeFoodType(existing.foodType);
-    if (body.foodType !== undefined) update.foodType = targetFoodType;
+    if (body.foodType !== undefined) update.foodType = normalizeFoodType(body.foodType);
 
-    if (
-        body.categoryId !== undefined ||
-        body.categoryName !== undefined ||
-        body.foodType !== undefined
-    ) {
+    if (body.categoryId !== undefined || body.categoryName !== undefined) {
         const { categoryObjectId, categoryName } = await resolveCategoryForSeller(context, {
             categoryId: body.categoryId !== undefined ? body.categoryId : existing.categoryId,
-            categoryName: body.categoryName !== undefined ? body.categoryName : existing.categoryName,
-            foodType: targetFoodType
+            categoryName: body.categoryName !== undefined ? body.categoryName : existing.categoryName
         });
         update.categoryId = categoryObjectId;
         update.categoryName = categoryName || '';

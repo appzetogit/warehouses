@@ -15,23 +15,11 @@ const foodLandingSettingsSchema = new mongoose.Schema(
             type: Boolean,
             default: true
         },
-        showUnder250: {
-            type: Boolean,
-            default: true
-        },
-        showDining: {
-            type: Boolean,
-            default: true
-        },
         showExploreIcons: {
             type: Boolean,
             default: true
         },
         showTop10: {
-            type: Boolean,
-            default: true
-        },
-        showGourmet: {
             type: Boolean,
             default: true
         }

@@ -172,21 +172,18 @@ router.get('/seller-detail/:id', async (req, res, next) => {
             _id: id,
             status: 'approved',
         })
-            .select('sellerName profileImage coverImage coverImages cuisines area city')
+            .select('sellerName profileImage coverImage coverImages area city')
             .lean();
 
         if (!seller) return notFoundPage(req, res, 'seller');
 
-        const cuisines = Array.isArray(seller.cuisines)
-            ? seller.cuisines.filter(Boolean).join(', ')
-            : '';
         const place = [seller.area, seller.city].filter(Boolean).join(', ');
 
         sendPage(
             res,
             renderPage({
                 title: seller.sellerName || 'Seller',
-                description: [cuisines, place].filter(Boolean).join(' · ') ||
+                description: place ||
                     'Order food on Suvio.',
                 image: absoluteUrl(
                     req,

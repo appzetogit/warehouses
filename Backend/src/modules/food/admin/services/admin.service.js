@@ -31,7 +31,6 @@ import { FoodDeliveryEmergencyHelp } from '../models/deliveryEmergencyHelp.model
 import { FoodReferralSettings } from '../models/referralSettings.model.js';
 import { FoodReferralLog } from '../models/referralLog.model.js';
 import { FoodSafetyEmergencyReport } from '../models/safetyEmergencyReport.model.js';
-import { FoodAddon } from '../../seller/models/foodAddon.model.js';
 import { FoodSupportTicket } from '../../user/models/supportTicket.model.js';
 import { FoodSellerSupportTicket } from '../../seller/models/supportTicket.model.js';
 import { FoodOrder } from '../../orders/models/order.model.js';
@@ -48,10 +47,9 @@ import { FoodSellerSubscriptionHistory } from '../../seller/models/subscriptionH
 import { ADMIN_FULL_PERMISSIONS, isValidPermissionPayload, sanitizeAdminPermissions } from '../../../../constants/permissions.js';
 import {
     backfillLegacyCategoryWorkflow,
-    categoryAllowsFoodType,
-    normalizeCategoryFoodTypeScope,
     serializeCategoryForResponse
 } from '../../shared/categoryWorkflow.js';
+import { normalizeFoodType } from '../../shared/foodType.js';
 import {
     extractRawFoodVariants,
     getFoodDisplayOtherPrice,
@@ -247,7 +245,7 @@ export async function globalSearch(query = '') {
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = { $regex: escaped, $options: 'i' };
 
-    const [orders, users, sellers, items, categories, addons] = await Promise.all([
+    const [orders, users, sellers, items, categories] = await Promise.all([
         FoodOrder.find({
             $or: [{ orderId: regex }, { orderStatus: regex }]
         })
@@ -276,10 +274,6 @@ export async function globalSearch(query = '') {
         FoodCategory.find({ name: regex })
             .limit(3)
             .select('name image')
-            .lean(),
-        FoodAddon.find({ name: regex })
-            .limit(3)
-            .select('name price')
             .lean()
     ]);
 
@@ -323,14 +317,6 @@ export async function globalSearch(query = '') {
         title: c.name,
         description: 'Menu Category',
         path: `/admin/food/categories`
-    }));
-
-    addons.forEach(a => results.push({
-        id: a._id,
-        type: 'Addon',
-        title: a.name,
-        description: `Price: ₹${a.price}`,
-        path: `/admin/food/addons`
     }));
 
     return results;
@@ -532,7 +518,6 @@ export async function getDashboardStats(query = {}) {
         deliveryTotal,
         deliveryPending,
         foodsTotal,
-        addonsTotal,
         customersTotal,
         recentPendingSellers,
         recentPendingDelivery,
@@ -631,7 +616,6 @@ export async function getDashboardStats(query = {}) {
         FoodDeliveryPartner.countDocuments({ status: 'approved' }),
         FoodDeliveryPartner.countDocuments({ status: 'pending' }),
         FoodItem.countDocuments({ approvalStatus: 'approved', ...zoneScopedSellerMatch }),
-        FoodAddon.countDocuments({ approvalStatus: 'approved', isDeleted: { $ne: true }, ...zoneScopedSellerMatch }),
         zoneId
             ? FoodOrder.distinct('userId', { ...orderMatch, userId: { $ne: null } }).then((ids) => ids.length)
             : FoodUser.countDocuments({}),
@@ -794,7 +778,6 @@ export async function getDashboardStats(query = {}) {
             pendingRequests: Number(deliveryPending || 0)
         },
         foods: { total: Number(foodsTotal || 0) },
-        addons: { total: Number(addonsTotal || 0) },
         customers: { total: Number(customersTotal || 0) },
         orderStats: {
             pending: Number(totals.pending || 0),
@@ -2975,23 +2958,6 @@ export async function getSellerAnalytics(sellerId) {
     return { seller, analytics, paymentSummary, subscriptionSummary };
 }
 
-export async function getSellerMenuById(id) {
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await FoodSeller.findById(id).select('menu').lean();
-    if (!doc) return null;
-    return doc.menu || { sections: [] };
-}
-
-export async function updateSellerMenuById(id, menu) {
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await FoodSeller.findById(id);
-    if (!doc) return null;
-    const sections = Array.isArray(menu?.sections) ? menu.sections : [];
-    doc.menu = { sections };
-    await doc.save();
-    return doc.menu || { sections: [] };
-}
-
 export async function getPendingSellers() {
     const sellers = await FoodSeller.find({
         $or: [
@@ -3049,10 +3015,6 @@ export async function updateSellerById(id, body = {}) {
     if (body.ownerPhone !== undefined) doc.ownerPhone = toStr(body.ownerPhone);
     if (body.primaryContactNumber !== undefined) doc.primaryContactNumber = toStr(body.primaryContactNumber);
 
-    if (body.pureVegSeller !== undefined) {
-        doc.pureVegSeller = parseBooleanLike(body.pureVegSeller, 'pureVegSeller');
-    }
-
     // Admin-only on purpose: a seller cannot grant themselves auto-accept.
     if (body.autoAcceptOrders !== undefined) {
         doc.autoAcceptOrders = parseBooleanLike(body.autoAcceptOrders, 'autoAcceptOrders');
@@ -3066,23 +3028,6 @@ export async function updateSellerById(id, body = {}) {
     if (body.isAcceptingOrders !== undefined) {
         doc.isAcceptingOrders = parseBooleanLike(body.isAcceptingOrders, 'isAcceptingOrders');
         doc.outsideHoursOverride = false;
-    }
-
-    if (body.cuisines !== undefined) {
-        if (Array.isArray(body.cuisines)) {
-            doc.cuisines = body.cuisines
-                .map((c) => toStr(c))
-                .filter(Boolean)
-                .slice(0, 50);
-        } else if (typeof body.cuisines === 'string') {
-            doc.cuisines = body.cuisines
-                .split(',')
-                .map((c) => toStr(c))
-                .filter(Boolean)
-                .slice(0, 50);
-        } else {
-            throw new ValidationError('cuisines must be an array or comma-separated string');
-        }
     }
 
     if (body.openingTime !== undefined) doc.openingTime = normalizeSellerTime(body.openingTime) || '';
@@ -3158,7 +3103,7 @@ export async function updateSellerById(id, body = {}) {
         await syncAdminSellerOutletTimings(doc);
     }
 
-    // Always invalidate, not only on a timings change. Name, cuisines and every
+    // Always invalidate, not only on a timings change. The name and every
     // image field above are part of the cached public payload, so editing an image
     // and seeing the old one for the rest of the TTL was indistinguishable from the
     // upload silently failing.
@@ -3399,7 +3344,6 @@ export async function createCategory(body) {
         name,
         image: typeof body.image === 'string' ? body.image.trim() : '',
         type: typeof body.type === 'string' ? body.type.trim() : '',
-        foodTypeScope: normalizeCategoryFoodTypeScope(body.foodTypeScope, 'Both'),
         zoneId:
             body.zoneId && String(body.zoneId).trim()
                 ? (() => {
@@ -3490,24 +3434,9 @@ export async function updateCategory(id, body) {
     const doc = await FoodCategory.findById(id);
     if (!doc) return null;
 
-    const nextFoodTypeScope = body.foodTypeScope !== undefined
-        ? normalizeCategoryFoodTypeScope(body.foodTypeScope, doc.foodTypeScope || 'Both')
-        : normalizeCategoryFoodTypeScope(doc.foodTypeScope, 'Both');
-
-    if (body.foodTypeScope !== undefined && nextFoodTypeScope !== 'Both') {
-        const incompatibleFoods = await FoodItem.countDocuments({
-            categoryId: doc._id,
-            foodType: nextFoodTypeScope === 'Veg' ? 'Non-Veg' : 'Veg'
-        });
-        if (incompatibleFoods > 0) {
-            throw new ValidationError(`This category already has ${incompatibleFoods} food item(s) outside the selected diet scope`);
-        }
-    }
-
     if (body.name !== undefined) doc.name = String(body.name || '').trim();
     if (body.image !== undefined) doc.image = String(body.image || '').trim();
     if (body.type !== undefined) doc.type = String(body.type || '').trim();
-    if (body.foodTypeScope !== undefined) doc.foodTypeScope = nextFoodTypeScope;
     if (!doc.sellerId && doc.createdBySellerId) {
         doc.zoneId = undefined;
     } else if (body.zoneId !== undefined) {
@@ -3555,232 +3484,6 @@ export async function toggleCategoryStatus(id) {
     }
     await doc.save();
     return doc.toObject();
-}
-
-// ----- Seller Add-ons approval (admin) -----
-export async function getSellerAddonsAdmin(query = {}) {
-    const limit = Math.min(Math.max(parseInt(query.limit, 10) || 50, 1), 200);
-    const page = Math.max(parseInt(query.page, 10) || 1, 1);
-    const skip = (page - 1) * limit;
-
-    const filter = { isDeleted: { $ne: true } };
-
-    const approvalStatus = String(query.approvalStatus || '').trim();
-    if (approvalStatus && ['pending', 'approved', 'rejected'].includes(approvalStatus)) {
-        filter.approvalStatus = approvalStatus;
-    }
-
-    if (query.sellerId && mongoose.Types.ObjectId.isValid(String(query.sellerId))) {
-        filter.sellerId = new mongoose.Types.ObjectId(String(query.sellerId));
-    }
-
-    if (query.search && String(query.search).trim()) {
-        const raw = String(query.search).trim().slice(0, 80);
-        const term = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const matchingSellerIds = await FoodSeller.find({
-            sellerName: { $regex: term, $options: 'i' }
-        })
-            .select('_id')
-            .lean();
-
-        filter.$or = [
-            { 'draft.name': { $regex: term, $options: 'i' } },
-            { sellerId: { $in: matchingSellerIds.map((seller) => seller._id) } }
-        ];
-    }
-
-    const [list, total] = await Promise.all([
-        FoodAddon.find(filter)
-            .sort({ requestedAt: -1, createdAt: -1 })
-            .skip(skip)
-            .limit(limit)
-            .populate('sellerId', 'sellerName ownerName ownerPhone')
-            .lean(),
-        FoodAddon.countDocuments(filter)
-    ]);
-
-    const addons = list.map((a) => ({
-        id: a._id,
-        _id: a._id,
-        sellerId: a.sellerId?._id ? String(a.sellerId._id) : String(a.sellerId),
-        seller: a.sellerId?._id
-            ? {
-                _id: a.sellerId._id,
-                name: a.sellerId.sellerName || '',
-                ownerName: a.sellerId.ownerName || '',
-                ownerPhone: a.sellerId.ownerPhone || ''
-            }
-            : null,
-        approvalStatus: a.approvalStatus || 'pending',
-        rejectionReason: a.rejectionReason || '',
-        requestedAt: a.requestedAt,
-        approvedAt: a.approvedAt,
-        rejectedAt: a.rejectedAt,
-        isAvailable: a.isAvailable !== false,
-        draft: a.draft || null,
-        published: a.published || null,
-        createdAt: a.createdAt,
-        updatedAt: a.updatedAt
-    }));
-
-    return { addons, total, page, limit };
-}
-
-export async function updateSellerAddonAdmin(addonId, body) {
-    if (!addonId || !mongoose.Types.ObjectId.isValid(String(addonId))) return null;
-    const _id = new mongoose.Types.ObjectId(String(addonId));
-    
-    const addon = await FoodAddon.findOne({ _id, isDeleted: { $ne: true } });
-    if (!addon) return null;
-
-    const updatePayload = {};
-    if (body.name !== undefined) updatePayload.name = String(body.name || '').trim();
-    if (body.description !== undefined) updatePayload.description = String(body.description || '').trim();
-    if (body.foodType !== undefined) {
-        const foodType = String(body.foodType || '').trim().toLowerCase();
-        if (!['veg', 'non-veg'].includes(foodType)) {
-            throw new ValidationError('Food type must be veg or non-veg');
-        }
-        updatePayload.foodType = foodType;
-    }
-    if (body.price !== undefined) {
-        const p = Number(body.price);
-        if (!Number.isFinite(p) || p < 0) throw new ValidationError('Price must be a valid positive number');
-        updatePayload.price = p;
-    }
-    if (body.image !== undefined) updatePayload.image = String(body.image || '').trim();
-    if (body.images !== undefined && Array.isArray(body.images)) {
-        updatePayload.images = body.images.map(img => typeof img === 'string' ? img : img?.url).filter(Boolean);
-    } else if (updatePayload.image) {
-        updatePayload.images = [updatePayload.image];
-    }
-
-    // Update draft fields
-    if (addon.draft) {
-        Object.assign(addon.draft, updatePayload);
-    } else {
-        addon.draft = updatePayload;
-    }
-
-    // If already approved, update published state as well
-    if (addon.approvalStatus === 'approved') {
-        if (addon.published) {
-            Object.assign(addon.published, updatePayload);
-        } else {
-            addon.published = updatePayload;
-        }
-    }
-
-    if (body.isAvailable !== undefined) {
-        addon.isAvailable = body.isAvailable === true;
-    }
-
-    await addon.save();
-    {
-        const { invalidatePublicAddonCache } = await import(
-            '../../seller/services/sellerAddon.service.js'
-        );
-        await invalidatePublicAddonCache();
-    }
-    return addon.toObject();
-}
-
-export async function approveSellerAddon(addonId) {
-    if (!addonId || !mongoose.Types.ObjectId.isValid(String(addonId))) return null;
-    const _id = new mongoose.Types.ObjectId(String(addonId));
-
-    // Use update pipeline to copy draft -> published atomically.
-    const updated = await FoodAddon.findOneAndUpdate(
-        { _id, isDeleted: { $ne: true } },
-        [
-            {
-                $set: {
-                    published: '$draft',
-                    approvalStatus: 'approved',
-                    approvedAt: '$$NOW',
-                    rejectedAt: null,
-                    rejectionReason: ''
-                }
-            }
-        ],
-        { new: true }
-    ).lean();
-
-    if (updated) {
-        // Approval flips draft -> published, which is what the public endpoint
-        // serves. Without this the add-on stayed invisible for up to 600s.
-        const { invalidatePublicAddonCache } = await import(
-            '../../seller/services/sellerAddon.service.js'
-        );
-        await invalidatePublicAddonCache();
-    }
-
-    if (updated?.sellerId) {
-        try {
-            const { notifyOwnersSafely } = await import('../../../../core/notifications/firebase.service.js');
-            await notifyOwnersSafely(
-                [{ ownerType: 'SELLER', ownerId: updated.sellerId }],
-                {
-                    title: 'Addon Approved! âœ…',
-                    body: `Your addon "${updated.published?.name || 'New Addon'}" has been approved and is now live.`,
-                    image: 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
-                    data: {
-                        type: 'addon_approved',
-                        addonId: String(updated._id),
-                        sellerId: String(updated.sellerId)
-                    }
-                }
-            );
-        } catch (e) {
-            console.error('Failed to send addon approval notification:', e);
-        }
-    }
-
-    return updated || null;
-}
-
-export async function rejectSellerAddon(addonId, reason) {
-    if (!addonId || !mongoose.Types.ObjectId.isValid(String(addonId))) return null;
-    const _id = new mongoose.Types.ObjectId(String(addonId));
-    const rejectionReason = String(reason || '').trim();
-    if (!rejectionReason) {
-        throw new ValidationError('Rejection reason is required');
-    }
-    const updated = await FoodAddon.findOneAndUpdate(
-        { _id, isDeleted: { $ne: true } },
-        {
-            $set: {
-                approvalStatus: 'rejected',
-                rejectionReason,
-                rejectedAt: new Date()
-            }
-        },
-        { new: true }
-    ).lean();
-
-    if (updated?.sellerId) {
-        try {
-            const { notifyOwnersSafely } = await import('../../../../core/notifications/firebase.service.js');
-            await notifyOwnersSafely(
-                [{ ownerType: 'SELLER', ownerId: updated.sellerId }],
-                {
-                    title: 'Addon Rejected âŒ',
-                    body: `Your addon request for "${updated.draft?.name || 'New Addon'}" was rejected. Reason: ${rejectionReason}`,
-                    image: 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
-                    data: {
-                        type: 'addon_rejected',
-                        addonId: String(updated._id),
-                        sellerId: String(updated.sellerId),
-                        reason: rejectionReason
-                    }
-                }
-            );
-        } catch (e) {
-            console.error('Failed to send addon rejection notification:', e);
-        }
-    }
-
-    return updated || null;
 }
 
 // ----- Foods (separate collection) -----
@@ -3839,7 +3542,7 @@ export async function getFoods(query) {
         images: Array.isArray(f.images) && f.images.length
             ? f.images
             : (f.image ? [f.image] : []),
-        foodType: f.foodType || 'Non-Veg',
+        foodType: f.foodType || null,
         isAvailable: f.isAvailable !== false,
         preparationTime: f.preparationTime || '',
         approvalStatus: f.approvalStatus || 'approved',
@@ -3850,7 +3553,7 @@ export async function getFoods(query) {
     return { foods, total, page, limit };
 }
 
-const resolveAdminFoodCategory = async ({ categoryId, categoryName, foodType, pureVegSeller }) => {
+const resolveAdminFoodCategory = async ({ categoryId, categoryName }) => {
     let resolvedCategoryId = null;
     let resolvedCategoryName = typeof categoryName === 'string' ? categoryName.trim() : '';
     let categoryDoc = null;
@@ -3860,7 +3563,7 @@ const resolveAdminFoodCategory = async ({ categoryId, categoryName, foodType, pu
             throw new ValidationError('Invalid category id');
         }
         categoryDoc = await FoodCategory.findById(categoryId)
-            .select('name foodTypeScope')
+            .select('name')
             .lean();
         if (!categoryDoc?._id) {
             throw new ValidationError('Category not found');
@@ -3871,15 +3574,6 @@ const resolveAdminFoodCategory = async ({ categoryId, categoryName, foodType, pu
 
     if (!resolvedCategoryName) {
         throw new ValidationError('Category is required');
-    }
-
-    if (categoryDoc?.foodTypeScope) {
-        if (pureVegSeller && String(categoryDoc.foodTypeScope || '') !== 'Veg') {
-            throw new ValidationError('Pure veg stores can only use veg categories');
-        }
-        if (!categoryAllowsFoodType(categoryDoc.foodTypeScope, foodType)) {
-            throw new ValidationError(`This ${categoryDoc.foodTypeScope} category cannot accept ${foodType} food`);
-        }
     }
 
     return {
@@ -3963,26 +3657,21 @@ export async function createFood(body) {
         throw new ValidationError('Valid sellerId is required');
     }
     const seller = await FoodSeller.findById(sellerId)
-        .select('pureVegSeller')
+        .select('_id')
         .lean();
     if (!seller?._id) {
         throw new ValidationError('Store not found');
     }
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name) throw new ValidationError('Food name is required');
-    const foodType = body.foodType === 'Veg' ? 'Veg' : 'Non-Veg';
-    if (seller.pureVegSeller === true && foodType !== 'Veg') {
-        throw new ValidationError('Pure veg stores can only use veg foods');
-    }
+    const foodType = normalizeFoodType(body.foodType);
     const { price, otherPrice, variants } = getAdminFoodCreatePricing(body);
 
     let categoryName = typeof body.categoryName === 'string' ? body.categoryName.trim() : '';
     if (!categoryName && typeof body.category === 'string') categoryName = body.category.trim();
     const { categoryId, categoryName: resolvedCategoryName } = await resolveAdminFoodCategory({
         categoryId: body.categoryId,
-        categoryName,
-        foodType,
-        pureVegSeller: seller.pureVegSeller === true
+        categoryName
     });
 
     const doc = new FoodItem({
@@ -4039,17 +3728,13 @@ export async function updateFood(id, body) {
     const doc = await FoodItem.findById(id);
     if (!doc) return null;
     const seller = await FoodSeller.findById(doc.sellerId)
-        .select('pureVegSeller')
+        .select('_id')
         .lean();
     if (!seller?._id) {
         throw new ValidationError('Store not found');
     }
     if (body.name !== undefined) doc.name = String(body.name || '').trim();
     if (body.description !== undefined) doc.description = String(body.description || '').trim();
-    const targetFoodType = body.foodType !== undefined ? (body.foodType === 'Veg' ? 'Veg' : 'Non-Veg') : (doc.foodType === 'Veg' ? 'Veg' : 'Non-Veg');
-    if (seller.pureVegSeller === true && targetFoodType !== 'Veg') {
-        throw new ValidationError('Pure veg stores can only use veg foods');
-    }
     const pricingUpdate = getAdminFoodUpdatedPricing(doc.toObject(), body);
     if (pricingUpdate.price !== undefined) doc.price = pricingUpdate.price;
     if (pricingUpdate.otherPrice !== undefined) doc.otherPrice = pricingUpdate.otherPrice;
@@ -4059,7 +3744,7 @@ export async function updateFood(id, body) {
         doc.images = nextImages.images;
         doc.image = nextImages.image;
     }
-    if (body.foodType !== undefined) doc.foodType = targetFoodType;
+    if (body.foodType !== undefined) doc.foodType = normalizeFoodType(body.foodType);
     if (body.isAvailable !== undefined) doc.isAvailable = body.isAvailable !== false;
     if (body.preparationTime !== undefined) doc.preparationTime = String(body.preparationTime || '').trim();
     // MRP is validated against whichever price ends up on the document, so
@@ -4068,15 +3753,13 @@ export async function updateFood(id, body) {
     for (const [field, value] of Object.entries(adminCatalog)) {
         if (body[field] !== undefined) doc[field] = value ?? null;
     }
-    if (body.categoryId !== undefined || body.categoryName !== undefined || body.category !== undefined || body.foodType !== undefined) {
+    if (body.categoryId !== undefined || body.categoryName !== undefined || body.category !== undefined) {
         const nextCategoryName = body.categoryName !== undefined
             ? String(body.categoryName || '').trim()
             : (body.category !== undefined ? String(body.category || '').trim() : doc.categoryName);
         const { categoryId, categoryName } = await resolveAdminFoodCategory({
             categoryId: body.categoryId !== undefined ? body.categoryId : doc.categoryId,
-            categoryName: nextCategoryName,
-            foodType: targetFoodType,
-            pureVegSeller: seller.pureVegSeller === true
+            categoryName: nextCategoryName
         });
         doc.categoryId = categoryId;
         doc.categoryName = categoryName;
@@ -4167,9 +3850,6 @@ export async function createSellerByAdmin(body) {
         ownerEmail: toStr(body.ownerEmail),
         ownerPhone: toStr(body.ownerPhone),
         primaryContactNumber: toStr(body.primaryContactNumber) || toStr(body.ownerPhone),
-        pureVegSeller: body.pureVegSeller !== undefined
-            ? parseBooleanLike(body.pureVegSeller, 'pureVegSeller')
-            : false,
         addressLine1: toStr(loc.addressLine1),
         addressLine2: toStr(loc.addressLine2),
         area: toStr(loc.area),
@@ -4177,7 +3857,6 @@ export async function createSellerByAdmin(body) {
         state: toStr(loc.state),
         pincode: toStr(loc.pincode),
         landmark: toStr(loc.landmark),
-        cuisines: Array.isArray(body.cuisines) ? body.cuisines : [],
         openingTime: normalizedOpeningTime,
         closingTime: normalizedClosingTime,
         openDays: Array.isArray(body.openDays) ? body.openDays : [],
@@ -4202,13 +3881,6 @@ export async function createSellerByAdmin(body) {
         featuredDish: toStr(body.featuredDish),
         featuredPrice: typeof body.featuredPrice === 'number' ? body.featuredPrice : (parseFloat(body.featuredPrice) || undefined),
         offer: toStr(body.offer),
-        diningSettings: body.diningSettings && typeof body.diningSettings === 'object'
-            ? {
-                isEnabled: Boolean(body.diningSettings.isEnabled),
-                maxGuests: Math.max(1, parseInt(body.diningSettings.maxGuests, 10) || 6),
-                diningType: toStr(body.diningSettings.diningType) || 'family-dining'
-            }
-            : undefined,
         status: 'approved',
         approvedAt: new Date()
     };
@@ -6248,7 +5920,6 @@ export async function getSidebarBadges() {
             pendingSellers,
             pendingDeliveryPartners,
             pendingFoods,
-            pendingAddons,
             pendingOrders,
             pendingOfflinePayments,
             pendingSellerWithdrawals,
@@ -6263,7 +5934,6 @@ export async function getSidebarBadges() {
             FoodSeller.countDocuments({ status: 'pending' }),
             FoodDeliveryPartner.countDocuments({ status: 'pending' }),
             FoodItem.countDocuments({ approvalStatus: 'pending' }),
-            FoodAddon.countDocuments({ approvalStatus: 'pending' }),
             FoodOrder.countDocuments({ orderStatus: 'pending' }),
             FoodOrder.countDocuments({ paymentMethod: 'offline_payment', orderStatus: 'pending' }),
             FoodSellerWithdrawal.countDocuments({ status: 'pending' }),
@@ -6279,7 +5949,7 @@ export async function getSidebarBadges() {
         return {
             sellers: pendingSellers,
             deliveryPartners: pendingDeliveryPartners,
-            foods: pendingFoods + pendingAddons,
+            foods: pendingFoods,
             foodApprovals: pendingFoods,
             orders: pendingOrders,
             offlinePayments: pendingOfflinePayments,
@@ -6318,26 +5988,7 @@ export async function bulkApproveFoodItems(sellerId) {
         }
     );
 
-    // 2. Bulk Approve Addons
-    // For addons, we need to move 'draft' to 'published'
-    // UpdateMany with pipeline (if MongoDB 4.2+) or manual loop
-    // To be efficient for bulk admin use, we'll use a loop if the count is small, 
-    // or a direct update if we just want to set the status (though published should ideally match)
-    const addonResult = await FoodAddon.updateMany(
-        filter,
-        [
-            {
-                $set: {
-                    published: '$draft',
-                    approvalStatus: 'approved',
-                    approvedAt: now,
-                    rejectionReason: ''
-                }
-            }
-        ]
-    );
-
-    // 3. Invalidate Cache if sellerId is provided
+    // 2. Invalidate Cache if sellerId is provided
     if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
         try {
             const { invalidateCache } = await import('../../../../middleware/cache.js');
@@ -6349,8 +6000,7 @@ export async function bulkApproveFoodItems(sellerId) {
 
     return {
         foodItems: foodResult,
-        addons: addonResult,
-        modifiedCount: (foodResult.modifiedCount || 0) + (addonResult.modifiedCount || 0)
+        modifiedCount: foodResult.modifiedCount || 0
     };
 }
 
@@ -6369,9 +6019,6 @@ export async function deleteSeller(id) {
 
     // Delete associated food items
     await FoodItem.deleteMany({ sellerId: id });
-
-    // Delete associated addons
-    await FoodAddon.deleteMany({ sellerId: id });
 
     // Delete associated categories if they are seller-specific
     // Assuming categories are global unless they have a sellerId field (need to check FoodCategory model)

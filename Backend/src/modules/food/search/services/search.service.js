@@ -6,7 +6,6 @@ import mongoose from 'mongoose';
 const SELLER_SEARCH_SELECT = [
     'sellerName',
     'sellerNameNormalized',
-    'cuisines',
     'profileImage',
     'coverImages',
     'estimatedDeliveryTime',
@@ -18,7 +17,6 @@ const SELLER_SEARCH_SELECT = [
     'totalRatings',
     'isAcceptingOrders',
     'status',
-    'pureVegSeller',
     'createdAt',
     'location',
     'zoneId',
@@ -95,10 +93,6 @@ export const searchUnified = async (query = {}, options = {}) => {
         sellerFilter.zoneId = new mongoose.Types.ObjectId(zoneId);
     }
 
-    if (isVeg === 'true') {
-        sellerFilter.pureVegSeller = true;
-    }
-
     if (minRating) {
         sellerFilter.rating = { $gte: parseFloat(minRating) };
     }
@@ -131,10 +125,7 @@ export const searchUnified = async (query = {}, options = {}) => {
     if (regex) {
         const matchedSellers = await FoodSeller.find({
             ...sellerFilter,
-            $or: [
-                { sellerName: { $regex: regex } },
-                { cuisines: { $regex: regex } }
-            ]
+            sellerName: { $regex: regex }
         })
             .select(SELLER_SEARCH_SELECT)
             .sort({ rating: -1, createdAt: -1 })

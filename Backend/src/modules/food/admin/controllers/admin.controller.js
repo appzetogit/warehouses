@@ -467,38 +467,6 @@ export async function getSellerAnalytics(req, res, next) {
     }
 }
 
-export async function getSellerMenuById(req, res, next) {
-    try {
-        const { id } = req.params;
-        if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: 'Invalid store id' });
-        }
-        const menu = await adminService.getSellerMenuById(id);
-        if (!menu) {
-            return res.status(404).json({ success: false, message: 'Store not found' });
-        }
-        res.status(200).json({ success: true, message: 'Menu fetched successfully', data: { menu } });
-    } catch (error) {
-        next(error);
-    }
-}
-
-export async function updateSellerMenuById(req, res, next) {
-    try {
-        const { id } = req.params;
-        if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: 'Invalid store id' });
-        }
-        const menu = await adminService.updateSellerMenuById(id, req.body || {});
-        if (!menu) {
-            return res.status(404).json({ success: false, message: 'Store not found' });
-        }
-        res.status(200).json({ success: true, message: 'Menu updated successfully', data: { menu } });
-    } catch (error) {
-        next(error);
-    }
-}
-
 export async function updateSellerById(req, res, next) {
     try {
         const { id } = req.params;

@@ -110,7 +110,6 @@ async function main() {
             $set: {
               name: wantedName,
               ...(parent ? { parentId: parent._id } : {}),
-              foodTypeScope: 'Both',
               approvalStatus: 'approved',
               isApproved: true,
               isActive: true,

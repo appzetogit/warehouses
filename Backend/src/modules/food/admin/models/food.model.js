@@ -37,7 +37,8 @@ const foodSchema = new mongoose.Schema(
          * `image` rather than assuming this is populated.
          */
         images: { type: [String], default: [] },
-        foodType: { type: String, enum: ['Veg', 'Non-Veg'], default: 'Non-Veg' },
+        // Optional veg / non-veg mark; null for products it does not apply to. See shared/foodType.js.
+        foodType: { type: String, enum: ['Veg', 'Non-Veg', null], default: null },
         /** Manufacturer, for the grocery listing where two sellers stock the same product. */
         brand: { type: String, trim: true, default: '' },
         /** What one unit is: "500 g", "1 L", "pack of 6". Free text, since packs are not standard. */

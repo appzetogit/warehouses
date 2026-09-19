@@ -1,9 +1,7 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { FoodItem } from '../models/food.model.js';
-import { FoodAddon } from '../../seller/models/foodAddon.model.js';
 import { FoodSeller } from '../../seller/models/seller.model.js';
-import { syncMenuItemApprovalStatus } from '../../seller/services/sellerMenu.service.js';
 import { getFoodDisplayOtherPrice, getFoodDisplayPrice, serializeFoodVariants } from './foodVariant.service.js';
 
 const toSellerDisplayId = (mongoId) => {
@@ -35,16 +33,7 @@ export async function listPendingFoodApprovals(query = {}) {
         .select('sellerId categoryName name price variants image foodType approvalStatus requestedAt createdAt')
         .lean();
 
-    const addonList = await FoodAddon.find({ approvalStatus: 'pending' })
-        .sort({ requestedAt: -1, createdAt: -1 })
-        .limit(limit)
-        .select('sellerId draft isAvailable requestedAt createdAt')
-        .lean();
-
-    const sellerIds = Array.from(new Set([
-        ...foodList.map((f) => String(f.sellerId)),
-        ...addonList.map((a) => String(a.sellerId))
-    ].filter(Boolean)));
+    const sellerIds = Array.from(new Set(foodList.map((f) => String(f.sellerId)).filter(Boolean)));
 
     const sellers = sellerIds.length
         ? await FoodSeller.find({ _id: { $in: sellerIds } }).select('sellerName').lean()
@@ -60,7 +49,7 @@ export async function listPendingFoodApprovals(query = {}) {
         sellerId: toSellerDisplayId(f.sellerId),
         category: f.categoryName || '',
         itemName: f.name,
-        foodType: f.foodType || 'Non-Veg',
+        foodType: f.foodType || null,
         sectionName: f.categoryName || '',
         subsectionName: '',
         approvalStatus: f.approvalStatus || 'pending',
@@ -73,28 +62,7 @@ export async function listPendingFoodApprovals(query = {}) {
         isActionable: (f.approvalStatus || 'pending') === 'pending'
     }));
 
-    const addonRequests = addonList.map((a) => ({
-        _id: a._id,
-        id: a._id,
-        entityType: 'addon',
-        type: 'addon',
-        sellerName: sellerMap.get(String(a.sellerId)) || 'Unknown Seller',
-        sellerId: toSellerDisplayId(a.sellerId),
-        category: 'Add-on',
-        itemName: a.draft?.name || 'Unnamed Add-on',
-        foodType: 'Add-on',
-        sectionName: 'Add-on',
-        subsectionName: '',
-        approvalStatus: 'pending',
-        price: a.draft?.price ?? 0,
-        image: a.draft?.image || (a.draft?.images && a.draft.images[0]) || '',
-        images: a.draft?.images || (a.draft?.image ? [a.draft.image] : []),
-        requestedAt: a.requestedAt || a.createdAt,
-        isActionable: true,
-        description: a.draft?.description || ''
-    }));
-
-    const allRequests = [...foodRequests, ...addonRequests].sort((a, b) => 
+    const allRequests = foodRequests.sort((a, b) =>
         new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
     );
 
@@ -111,9 +79,6 @@ export async function approveFoodItem(id) {
         { new: true }
     ).lean();
     if (updated?.sellerId) {
-        // Single DB update; makes user-facing menu reflect approval immediately.
-        await syncMenuItemApprovalStatus(updated.sellerId, updated._id, 'approved', '');
-        
         try {
             const { invalidateCache } = await import('../../../../middleware/cache.js');
             await invalidateCache(`seller_menu:${updated.sellerId}`);
@@ -157,8 +122,6 @@ export async function rejectFoodItem(id, reason) {
         { new: true }
     ).lean();
     if (updated?.sellerId) {
-        await syncMenuItemApprovalStatus(updated.sellerId, updated._id, 'rejected', r);
-        
         try {
             const { invalidateCache } = await import('../../../../middleware/cache.js');
             await invalidateCache(`seller_menu:${updated.sellerId}`);

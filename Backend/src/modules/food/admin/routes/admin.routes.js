@@ -2,11 +2,9 @@ import express from 'express';
 import { AuthError } from '../../../../core/auth/errors.js';
 import * as adminController from '../controllers/admin.controller.js';
 import * as foodApprovalController from '../controllers/foodApproval.controller.js';
-import * as addonsApprovalController from '../controllers/addonsApproval.controller.js';
 import * as businessSettingsController from '../controllers/businessSettings.controller.js';
 import * as feedbackExperienceController from '../controllers/feedbackExperience.controller.js';
 import * as notificationBroadcastController from '../controllers/notificationBroadcast.controller.js';
-import * as diningAdminController from '../../dining/controllers/diningAdmin.controller.js';
 import * as subscriptionBillingController from '../controllers/subscriptionBilling.controller.js';
 import * as orderController from '../../orders/controllers/order.controller.js';
 import { listUserCartsAdminController, getUserCartPricingAdminController } from '../controllers/userCartAdmin.controller.js';
@@ -72,7 +70,7 @@ const resolveSectionFromRequest = (path = '', method = '') => {
         path.startsWith('/seller-subscriptions') ||
         path.startsWith('/zones')
     ) return 'seller_management';
-    if (path.startsWith('/categories') || path.startsWith('/addons') || path.startsWith('/foods')) return 'food_management';
+    if (path.startsWith('/categories') || path.startsWith('/foods')) return 'food_management';
     if (path.startsWith('/offers')) return 'promotions_management';
     if (path.startsWith('/orders') || path.startsWith('/order-detect-delivery')) return 'order_management';
     if (path.startsWith('/delivery')) return 'delivery_management';
@@ -114,7 +112,6 @@ router.use('/seller-settings', requireAdminPermission('seller_management', 'view
 router.use('/seller-subscription-settings', requireAdminPermission('seller_management', 'view'));
 router.use('/seller-subscriptions', requireAdminPermission('seller_management', 'view'));
 router.use('/categories', requireAdminPermission('food_management', 'view'));
-router.use('/addons', requireAdminPermission('food_management', 'view'));
 router.use('/foods', requireAdminPermission('food_management', 'view'));
 router.use('/offers', requireAdminPermission('promotions_management', 'view'));
 router.use('/delivery', requireAdminPermission('delivery_management', 'view'));
@@ -224,12 +221,10 @@ router.get(
     ]),
     adminController.getSellerAnalytics
 );
-router.get('/sellers/:id/menu', adminController.getSellerMenuById);
 router.post('/sellers', adminController.createSeller);
 router.patch('/sellers/:id', adminController.updateSellerById);
 router.patch('/sellers/:id/status', adminController.updateSellerStatus);
 router.patch('/sellers/:id/location', adminController.updateSellerLocation);
-router.patch('/sellers/:id/menu', adminController.updateSellerMenuById);
 router.patch('/sellers/:id/approve', adminController.approveSeller);
 router.patch('/sellers/:id/reject', adminController.rejectSeller);
 router.delete('/sellers/:id', adminController.deleteSeller);
@@ -253,12 +248,6 @@ router.patch('/categories/:id/toggle', adminController.toggleCategoryStatus);
 router.patch('/categories/:id/approve', adminController.approveCategory);
 router.patch('/categories/:id/reject', adminController.rejectCategory);
 router.patch('/categories/:id/make-global', adminController.makeCategoryGlobal);
-
-// ----- Seller Add-ons Approval -----
-router.get('/addons', addonsApprovalController.getSellerAddons);
-router.patch('/addons/:id', addonsApprovalController.updateSellerAddon);
-router.patch('/addons/:id/approve', addonsApprovalController.approveSellerAddon);
-router.patch('/addons/:id/reject', addonsApprovalController.rejectSellerAddon);
 
 // ----- Foods -----
 router.get('/foods', adminController.getFoods);
@@ -437,14 +426,6 @@ router.get(
 router.post('/zones', adminController.createZone);
 router.patch('/zones/:id', adminController.updateZone);
 router.delete('/zones/:id', adminController.deleteZone);
-
-// ----- Dining -----
-router.get('/dining/categories', diningAdminController.getDiningCategories);
-router.post('/dining/categories', diningAdminController.createDiningCategory);
-router.patch('/dining/categories/:id', diningAdminController.updateDiningCategory);
-router.delete('/dining/categories/:id', diningAdminController.deleteDiningCategory);
-router.get('/dining/sellers', diningAdminController.getDiningSellers);
-router.patch('/dining/sellers/:sellerId', diningAdminController.updateDiningSeller);
 
 // ----- Orders -----
 router.get(

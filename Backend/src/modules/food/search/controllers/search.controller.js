@@ -2,7 +2,7 @@ import { searchUnified, searchProducts, getAdminCategories } from '../services/s
 import { sendResponse, sendError } from '../../../../utils/response.js';
 
 /**
- * Unified Search for Sellers, Food Items, and Cuisines
+ * Unified Search for Sellers and Food Items
  */
 export const searchController = async (req, res, next) => {
     try {

@@ -15,14 +15,10 @@ const buildCategoryKeywords = (categorySlug) => {
     return [...new Set([raw, normalized, ...words])];
 };
 
-const isSwitch99Price = (price) => String(price ?? '').includes('99');
-
 export async function listPublicFoods(query = {}) {
     const limit = Math.min(Math.max(parseInt(query.limit, 10) || 500, 1), 1000);
     const zoneIdRaw = String(query.zoneId || '').trim();
     const categorySlug = String(query.categorySlug || query.category || '').trim().toLowerCase();
-    const promo = String(query.promo || query.promoSlug || '').trim().toLowerCase();
-    const isSwitch99Promo = promo === 'switch99' || promo === 'under-250' || promo === 'under250';
 
     const sellerFilter = { status: 'approved' };
     if (zoneIdRaw && mongoose.Types.ObjectId.isValid(zoneIdRaw)) {
@@ -63,7 +59,7 @@ export async function listPublicFoods(query = {}) {
 
     const list = await FoodItem.find(foodFilter)
         .sort({ createdAt: -1 })
-        .limit(isSwitch99Promo ? Math.max(limit, 2000) : limit)
+        .limit(limit)
         .lean();
 
     const foods = list
@@ -99,17 +95,13 @@ export async function listPublicFoods(query = {}) {
             images: Array.isArray(food.images) && food.images.length
                 ? food.images
                 : (food.image ? [food.image] : []),
-            foodType: food.foodType || 'Non-Veg',
+            foodType: food.foodType || null,
             isAvailable: food.isAvailable !== false,
             preparationTime: food.preparationTime || '',
             approvalStatus: food.approvalStatus || 'approved'
         };
     })
-        .filter((food) => {
-            if (food.isAvailable === false) return false;
-            if (isSwitch99Promo) return isSwitch99Price(food.price);
-            return true;
-        })
+        .filter((food) => food.isAvailable !== false)
         .slice(0, limit);
 
     return { foods, total: foods.length };

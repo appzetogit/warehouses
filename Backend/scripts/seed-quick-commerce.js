@@ -156,7 +156,6 @@ async function main() {
                     location: { type: 'Point', coordinates: [s.longitude, s.latitude] },
                     rating: 4.4,
                     totalRatings: 120,
-                    pureVegSeller: false,
                     // Marker for --wipe; sellers have no dedicated tag field.
                     website: SEED_TAG,
                 },
@@ -177,7 +176,6 @@ async function main() {
                 $set: {
                     name: parentName,
                     type: SEED_TAG,
-                    foodTypeScope: 'Both',
                     approvalStatus: 'approved',
                     isApproved: true,
                     isActive: true,
@@ -196,7 +194,6 @@ async function main() {
                         name: childName,
                         type: SEED_TAG,
                         parentId: parent._id,
-                        foodTypeScope: 'Both',
                         approvalStatus: 'approved',
                         isApproved: true,
                         isActive: true,

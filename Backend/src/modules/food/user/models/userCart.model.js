@@ -14,7 +14,7 @@ const userCartItemSchema = new mongoose.Schema(
         otherPrice: { type: Number, min: 0, default: 0 },
         image: { type: String, default: '' },
         foodType: { type: String, default: '' },
-        isVeg: { type: Boolean, default: false },
+        isVeg: { type: Boolean, default: null },
     },
     { _id: false },
 );

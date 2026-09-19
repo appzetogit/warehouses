@@ -62,7 +62,7 @@ const buildMenuFromFoods = async (foods = []) => {
             images: Array.isArray(food.images) && food.images.length
                 ? food.images
                 : (food.image ? [food.image] : []),
-            foodType: food.foodType || 'Non-Veg',
+            foodType: food.foodType || null,
             isAvailable: food.isAvailable !== false,
             // null means the seller does not count this item, which the app has
             // to tell apart from zero so it does not render "0 left" on
@@ -134,12 +134,6 @@ export async function getSellerMenu(sellerId) {
     return buildMenuFromFoods(foods);
 }
 
-export async function updateSellerMenu(sellerId, body = {}) {
-    // Option A: single source of truth (food_items). Menu layout snapshots are disabled.
-    // Keep endpoint for backward compatibility, but make it explicit.
-    throw new ValidationError('Menu editing is disabled. Menu is generated from food items.');
-}
-
 export async function getPublicApprovedSellerMenu(sellerIdOrSlug) {
     const value = String(sellerIdOrSlug || '').trim();
     if (!value) throw new ValidationError('Store id is required');
@@ -167,8 +161,3 @@ export async function getPublicApprovedSellerMenu(sellerIdOrSlug) {
     return buildMenuFromFoods(foods);
 }
 
-export async function syncMenuItemApprovalStatus(sellerId, itemId, status, rejectionReason = '') {
-    // No-op in Option A (menu snapshots removed). Approval status lives only in food_items.
-    // Kept to avoid breaking admin approval flows that call this helper.
-    return;
-}

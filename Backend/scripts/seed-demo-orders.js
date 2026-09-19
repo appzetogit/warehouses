@@ -172,7 +172,7 @@ async function main() {
                         categoryId: p.categoryId || null,
                         categoryName: p.categoryName || '',
                         image: p.image || '',
-                        isVeg: String(p.foodType || '').toLowerCase() === 'veg',
+                        isVeg: p.foodType ? p.foodType === 'Veg' : null,
                     });
                 }
 

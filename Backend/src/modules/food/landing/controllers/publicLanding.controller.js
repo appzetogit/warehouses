@@ -1,8 +1,5 @@
-import { getPublicGourmetSellers } from '../services/gourmet.service.js';
 import { getLandingSettings } from '../services/landingSettings.service.js';
 import { FoodHeroBanner } from '../models/heroBanner.model.js';
-import { FoodUnder250Banner } from '../models/under250Banner.model.js';
-import { FoodDiningBanner } from '../models/diningBanner.model.js';
 import { FoodExploreIcon } from '../models/exploreIcon.model.js';
 import { HomePromotionBanner } from '../models/homePromotionBanner.model.js';
 import { FoodSeller } from '../../seller/models/seller.model.js';
@@ -18,7 +15,7 @@ export const getPublicHeroBannersController = async (req, res, next) => {
             .sort({ sortOrder: 1, createdAt: -1 })
             .populate({
                 path: 'linkedSellerIds',
-                select: '_id sellerName slug area city rating cuisines profileImage pureVegSeller',
+                select: '_id sellerName slug area city rating profileImage',
                 model: 'FoodSeller'
             })
             .lean();
@@ -45,24 +42,6 @@ export const getPublicTopBannersController = async (req, res, next) => {
     }
 };
 
-export const getPublicUnder250BannersController = async (req, res, next) => {
-    try {
-        const docs = await FoodUnder250Banner.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean();
-        return sendResponse(res, 200, 'Under 250 banners fetched', { banners: docs });
-    } catch (error) {
-        next(error);
-    }
-};
-
-export const getPublicDiningBannersController = async (req, res, next) => {
-    try {
-        const docs = await FoodDiningBanner.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean();
-        return sendResponse(res, 200, 'Dining banners fetched', { banners: docs });
-    } catch (error) {
-        next(error);
-    }
-};
-
 export const getPublicExploreIconsController = async (req, res, next) => {
     try {
         const docs = await FoodExploreIcon.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean();
@@ -83,23 +62,6 @@ export const getPublicHomePromotionBannersController = async (req, res, next) =>
     }
 };
 
-export const getPublicGourmetController = async (req, res, next) => {
-    try {
-        const { zoneId } = req.query;
-        const docs = await getPublicGourmetSellers(zoneId);
-        const sellers = (docs || [])
-            .filter((d) => d.seller) // Only include if seller data is populated (matches zone)
-            .map((d) => ({
-                ...(d.seller || {}),
-                _id: d.seller?._id || d.sellerId,
-                priority: d.priority
-            }));
-        return sendResponse(res, 200, 'Gourmet stores fetched', { sellers });
-    } catch (error) {
-        next(error);
-    }
-};
-
 export const getPublicLandingSettingsController = async (req, res, next) => {
     try {
         const { zoneId } = req.query;
@@ -112,7 +74,7 @@ export const getPublicLandingSettingsController = async (req, res, next) => {
                 query.zoneId = new mongoose.Types.ObjectId(zoneId);
             }
             recommendedSellers = await FoodSeller.find(query)
-                .select('sellerName area city profileImage coverImages menuImages slug rating cuisines pureVegSeller zoneId')
+                .select('sellerName area city profileImage coverImages menuImages slug rating zoneId')
                 .lean();
         }
         const payload = {

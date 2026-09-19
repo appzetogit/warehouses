@@ -10,33 +10,9 @@ const orderItemSchema = z.object({
     price: z.number().min(0),
     otherPrice: z.number().min(0).optional(),
     quantity: z.number().int().min(1),
-    isVeg: z.boolean().optional().default(true),
+    isVeg: z.boolean().nullable().optional(),
     image: z.string().optional(),
-    notes: z.string().optional(),
-    /**
-     * Add-ons chosen for this line.
-     *
-     * Zod strips keys it does not declare, so omitting this discarded the
-     * customer's add-ons before any pricing code could see them — the reason
-     * they were never billed and never appeared on the order.
-     *
-     * Ids or names, as strings or objects, because the shipped apps send names
-     * while a corrected client sends ids. Nothing here is trusted for price:
-     * resolveOrderCartItems looks each one up against the seller's
-     * published add-ons and ignores anything it cannot identify.
-     */
-    addons: z
-        .array(
-            z.union([
-                z.string(),
-                z.object({
-                    addonId: z.string().optional(),
-                    id: z.string().optional(),
-                    name: z.string().optional()
-                })
-            ])
-        )
-        .optional()
+    notes: z.string().optional()
 });
 
 const addressSchema = z.object({
@@ -122,7 +98,6 @@ export function validateCreateOrderDto(body) {
         note: z.string().optional(),
         deliveryInstructions: z.string().optional(),
         deliveryMode: z.enum(['basic', 'quick']).optional(),
-        sendCutlery: z.boolean().optional(),
         // 'cash' is true COD, collected as notes at the door.
         // 'razorpay_qr' is the same pay-at-delivery flow, collected by QR instead.
         // 'cash' is accepted here regardless so the service can return the friendly

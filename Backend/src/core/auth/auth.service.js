@@ -613,7 +613,6 @@ export const getProfile = async (userId, role) => {
           // Frontend expects "name" and "location" for seller screens.
           name: doc.sellerName || "",
           sellerName: doc.sellerName || "",
-          cuisines: Array.isArray(doc.cuisines) ? doc.cuisines : [],
           location,
           ownerName: doc.ownerName || "",
           ownerEmail: doc.ownerEmail || "",

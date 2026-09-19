@@ -44,7 +44,7 @@ export const getUserFavorites = async (userId) => {
                   status: 'approved'
               })
                   .select(
-                      'sellerName profileImage coverImage coverImages cuisines rating totalRatings area city location offer estimatedDeliveryTimeMinutes isAcceptingOrders'
+                      'sellerName profileImage coverImage coverImages rating totalRatings area city location offer estimatedDeliveryTimeMinutes isAcceptingOrders'
                   )
                   .lean()
             : [],

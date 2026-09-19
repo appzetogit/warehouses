@@ -664,7 +664,6 @@ export async function createOrder(userId, dto) {
       ],
       note: String(dto.note || ""),
       deliveryInstructions: String(dto.deliveryInstructions || ""),
-      sendCutlery: dto.sendCutlery !== false,
       deliveryFleet: String(dto.deliveryFleet || "standard"),
       scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
       riderEarning: Number(riderEarning) || 0,

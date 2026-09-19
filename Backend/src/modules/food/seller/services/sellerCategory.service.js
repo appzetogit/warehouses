@@ -6,7 +6,6 @@ import { FoodSeller } from '../models/seller.model.js';
 import {
     backfillLegacyCategoryWorkflow,
     GLOBAL_CATEGORY_FILTER,
-    normalizeCategoryFoodTypeScope,
     serializeCategoryForResponse,
     toObjectId
 } from '../../shared/categoryWorkflow.js';
@@ -23,7 +22,7 @@ const getSellerContext = async (sellerId) => {
     }
 
     const seller = await FoodSeller.findById(sellerId)
-        .select('zoneId pureVegSeller')
+        .select('zoneId')
         .lean();
     if (!seller?._id) {
         throw new ValidationError('Store not found');
@@ -31,8 +30,7 @@ const getSellerContext = async (sellerId) => {
 
     return {
         sellerId: toObjectId(sellerId),
-        zoneId: seller.zoneId ? String(seller.zoneId) : '',
-        pureVegSeller: seller.pureVegSeller === true
+        zoneId: seller.zoneId ? String(seller.zoneId) : ''
     };
 };
 
@@ -103,18 +101,14 @@ export async function listSellerCategories(sellerId, query = {}) {
     }
     applyZoneVisibilityFilter(filter.$and, zoneIdRaw);
 
-    if (compact && context.pureVegSeller) {
-        filter.$and.push({ foodTypeScope: 'Veg' });
-    }
-
     const queryBuilder = FoodCategory.find(filter)
         .sort({ sortOrder: 1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .select(
             compact
-                ? 'name image type foodTypeScope approvalStatus rejectionReason zoneId sellerId createdBySellerId isActive sortOrder requestedAt approvedAt rejectedAt globalizedAt'
-                : 'name image type foodTypeScope approvalStatus rejectionReason zoneId sellerId createdBySellerId isActive sortOrder requestedAt approvedAt rejectedAt globalizedAt createdAt updatedAt'
+                ? 'name image type approvalStatus rejectionReason zoneId sellerId createdBySellerId isActive sortOrder requestedAt approvedAt rejectedAt globalizedAt'
+                : 'name image type approvalStatus rejectionReason zoneId sellerId createdBySellerId isActive sortOrder requestedAt approvedAt rejectedAt globalizedAt createdAt updatedAt'
         );
 
     const [list, total] = await Promise.all([
@@ -193,7 +187,7 @@ export async function listPublicCategories(query = {}) {
             .sort({ sortOrder: 1, createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .select('name image type foodTypeScope zoneId sortOrder createdAt updatedAt')
+            .select('name image type zoneId sortOrder createdAt updatedAt')
             .lean(),
         FoodCategory.countDocuments(filter)
     ]);
@@ -211,23 +205,10 @@ export async function createSellerCategory(sellerId, body = {}) {
     if (!name) throw new ValidationError('Category name is required');
     if (name.length > 200) throw new ValidationError('Category name is too long');
 
-    const foodTypeScopeRaw = typeof body.foodTypeScope === 'string' ? body.foodTypeScope.trim() : '';
-    if (!foodTypeScopeRaw) {
-        throw new ValidationError('Category diet type is required');
-    }
-    const foodTypeScope = normalizeCategoryFoodTypeScope(foodTypeScopeRaw, '');
-    if (!foodTypeScope) {
-        throw new ValidationError('Invalid category diet type');
-    }
-    if (context.pureVegSeller && foodTypeScope !== 'Veg') {
-        throw new ValidationError('Pure veg stores can only create veg categories');
-    }
-
     const doc = new FoodCategory({
         name,
         image: typeof body.image === 'string' ? body.image.trim() : '',
         type: typeof body.type === 'string' ? body.type.trim() : '',
-        foodTypeScope,
         isActive: body.isActive !== false,
         sortOrder: Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : 0,
         sellerId: context.sellerId,
@@ -253,16 +234,6 @@ export async function updateSellerCategory(sellerId, id, body = {}) {
     const doc = await FoodCategory.findOne({ _id: id, sellerId: context.sellerId });
     if (!doc) return null;
 
-    const nextFoodTypeScope = body.foodTypeScope !== undefined
-        ? normalizeCategoryFoodTypeScope(body.foodTypeScope, '')
-        : normalizeCategoryFoodTypeScope(doc.foodTypeScope, 'Both');
-    if (body.foodTypeScope !== undefined && !nextFoodTypeScope) {
-        throw new ValidationError('Invalid category diet type');
-    }
-    if (context.pureVegSeller && nextFoodTypeScope !== 'Veg') {
-        throw new ValidationError('Pure veg stores can only keep veg categories');
-    }
-
     if (body.name !== undefined) {
         const name = String(body.name || '').trim();
         if (!name) throw new ValidationError('Category name is required');
@@ -273,20 +244,8 @@ export async function updateSellerCategory(sellerId, id, body = {}) {
     if (body.type !== undefined) doc.type = String(body.type || '').trim();
     if (body.isActive !== undefined) doc.isActive = body.isActive !== false;
     if (body.sortOrder !== undefined) doc.sortOrder = Number(body.sortOrder) || 0;
-    if (body.foodTypeScope !== undefined) {
-        const incompatibleFoods = nextFoodTypeScope === 'Both'
-            ? 0
-            : await FoodItem.countDocuments({
-                categoryId: doc._id,
-                foodType: nextFoodTypeScope === 'Veg' ? 'Non-Veg' : 'Veg'
-            });
-        if (incompatibleFoods > 0) {
-            throw new ValidationError(`This category already has ${incompatibleFoods} food item(s) outside the selected diet type`);
-        }
-        doc.foodTypeScope = nextFoodTypeScope;
-    }
 
-    const APPROVAL_CRITICAL_FIELDS = ['name', 'image', 'type', 'foodTypeScope', 'sortOrder'];
+    const APPROVAL_CRITICAL_FIELDS = ['name', 'image', 'type', 'sortOrder'];
     const shouldResubmitForApproval = APPROVAL_CRITICAL_FIELDS.some((key) => body[key] !== undefined);
 
     doc.createdBySellerId = doc.createdBySellerId || context.sellerId;

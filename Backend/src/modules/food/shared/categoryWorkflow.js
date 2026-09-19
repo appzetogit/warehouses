@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import { FoodItem } from '../admin/models/food.model.js';
 
 export const CATEGORY_APPROVAL_STATUSES = ['pending', 'approved', 'rejected'];
-export const CATEGORY_FOOD_TYPE_SCOPES = ['Veg', 'Non-Veg', 'Both'];
 export const GLOBAL_CATEGORY_FILTER = [{ sellerId: { $exists: false } }, { sellerId: null }];
 
 export const toObjectId = (value) => new mongoose.Types.ObjectId(String(value));
@@ -10,24 +9,6 @@ export const toObjectId = (value) => new mongoose.Types.ObjectId(String(value));
 export const normalizeCategoryApprovalStatus = (value, fallback = 'pending') => {
     const normalized = String(value || '').trim();
     return CATEGORY_APPROVAL_STATUSES.includes(normalized) ? normalized : fallback;
-};
-
-export const normalizeCategoryFoodTypeScope = (value, fallback = 'Both') => {
-    const normalized = String(value || '').trim();
-    return CATEGORY_FOOD_TYPE_SCOPES.includes(normalized) ? normalized : fallback;
-};
-
-export const normalizeFoodTypeForCategory = (value) => {
-    const normalized = String(value || '').trim();
-    if (normalized === 'Veg') return 'Veg';
-    return 'Non-Veg';
-};
-
-export const categoryAllowsFoodType = (scope, foodType) => {
-    const normalizedScope = normalizeCategoryFoodTypeScope(scope, 'Both');
-    const normalizedFoodType = normalizeFoodTypeForCategory(foodType);
-    if (normalizedScope === 'Both') return true;
-    return normalizedScope === normalizedFoodType;
 };
 
 export const isGlobalCategory = (category = {}) => {
@@ -63,11 +44,6 @@ const buildCategoryStatsMap = async (categoryIds = []) => {
             $group: {
                 _id: '$categoryId',
                 totalFoods: { $sum: 1 },
-                vegFoods: {
-                    $sum: {
-                        $cond: [{ $eq: ['$foodType', 'Veg'] }, 1, 0]
-                    }
-                },
                 approvedFoods: {
                     $sum: {
                         $cond: [{ $eq: ['$approvalStatus', 'approved'] }, 1, 0]
@@ -95,7 +71,6 @@ export const backfillLegacyCategoryWorkflow = async (categories = []) => {
         const next = {};
         const hasSellerOwner = Boolean(category?.sellerId);
         const currentApprovalStatus = String(category?.approvalStatus || '').trim();
-        const currentFoodTypeScope = String(category?.foodTypeScope || '').trim();
 
         if (!category?.createdBySellerId && hasSellerOwner) {
             next.createdBySellerId = category.sellerId;
@@ -121,14 +96,6 @@ export const backfillLegacyCategoryWorkflow = async (categories = []) => {
             if (approvalStatus === 'pending' && !category?.requestedAt) {
                 next.requestedAt = category?.updatedAt || category?.createdAt || new Date();
             }
-        }
-
-        if (!CATEGORY_FOOD_TYPE_SCOPES.includes(currentFoodTypeScope)) {
-            let foodTypeScope = 'Both';
-            if (Number(stats?.totalFoods || 0) > 0) {
-                foodTypeScope = Number(stats?.vegFoods || 0) === Number(stats?.totalFoods || 0) ? 'Veg' : 'Non-Veg';
-            }
-            next.foodTypeScope = foodTypeScope;
         }
 
         if (Object.keys(next).length > 0) {
@@ -176,7 +143,6 @@ export const serializeCategoryForResponse = (category = {}, options = {}) => {
         isActive: category.isActive !== false,
         isApproved: approvalStatus === 'approved',
         approvalStatus,
-        foodTypeScope: normalizeCategoryFoodTypeScope(category.foodTypeScope, 'Both'),
         rejectionReason: category.rejectionReason || '',
         sellerId,
         createdBySellerId,

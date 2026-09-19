@@ -6,7 +6,6 @@ import mongoose from 'mongoose';
 import { FoodZone } from '../../admin/models/zone.model.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodOfferUsage } from '../../admin/models/offerUsage.model.js';
-import { FoodSellerMenu } from '../models/sellerMenu.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 import { FoodOrder } from '../../orders/models/order.model.js';
 import { FoodSellerOutletTimings } from '../models/outletTimings.model.js';
@@ -350,7 +349,6 @@ const toSellerProfile = (doc) => {
         name: doc.sellerName || '',
         sellerName: doc.sellerName || '',
         zoneId: doc.zoneId ? String(doc.zoneId) : '',
-        cuisines: Array.isArray(doc.cuisines) ? doc.cuisines : [],
         location,
         ownerName: doc.ownerName || '',
         ownerEmail: doc.ownerEmail || '',
@@ -373,7 +371,6 @@ const toSellerProfile = (doc) => {
         accountType: doc.accountType || '',
         upiId: doc.upiId || '',
         upiQrImage: doc.upiQrImage ? { url: doc.upiQrImage } : null,
-        pureVegSeller: Boolean(doc.pureVegSeller),
         profileImage: doc.profileImage ? { url: doc.profileImage } : null,
         menuImages,
         coverImages,
@@ -385,11 +382,6 @@ const toSellerProfile = (doc) => {
             Number.isFinite(Number(doc.estimatedDeliveryTimeMinutes))
                 ? Number(doc.estimatedDeliveryTimeMinutes)
                 : null,
-        diningSettings: {
-            isEnabled: doc.diningSettings?.isEnabled !== false,
-            maxGuests: Math.max(1, parseInt(doc.diningSettings?.maxGuests, 10) || 6),
-            diningType: String(doc.diningSettings?.diningType || 'family-dining').trim() || 'family-dining'
-        },
         isAcceptingOrders: doc.isAcceptingOrders !== false,
         outsideHoursOverride: doc.outsideHoursOverride === true,
         subscriptionPlan: doc.subscriptionPlan || '',
@@ -424,7 +416,6 @@ const toFiniteNumber = (value) => {
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const normalizeCuisine = (value) => String(value || '').trim().slice(0, 80);
 
 const parseSortBy = (value) => {
     const v = String(value || '').trim();
@@ -674,7 +665,6 @@ export const registerSeller = async (payload, files) => {
         ownerEmail,
         ownerPhone,
         primaryContactNumber,
-        pureVegSeller,
         addressLine1,
         addressLine2,
         area,
@@ -686,7 +676,6 @@ export const registerSeller = async (payload, files) => {
         latitude,
         longitude,
         zoneId,
-        cuisines,
         openingTime,
         closingTime,
         openDays,
@@ -920,7 +909,6 @@ export const registerSeller = async (payload, files) => {
             ownerPhoneDigits,
             ownerPhoneLast10,
             primaryContactNumber,
-            pureVegSeller: pureVegSeller === true,
             zoneId: zoneId && mongoose.Types.ObjectId.isValid(String(zoneId).trim())
                 ? new mongoose.Types.ObjectId(String(zoneId).trim())
                 : undefined,
@@ -940,7 +928,6 @@ export const registerSeller = async (payload, files) => {
                 pincode: pincode || '',
                 landmark: landmark || ''
             },
-            cuisines: cuisines || [],
             openingTime: normalizedOpeningTime || undefined,
             closingTime: normalizedClosingTime || undefined,
             openDays: openDays || [],
@@ -1029,7 +1016,6 @@ export const getCurrentSellerProfile = async (sellerId) => {
         .select(
             [
                 'sellerName',
-                'cuisines',
                 'location',
                 'addressLine1',
                 'addressLine2',
@@ -1059,7 +1045,6 @@ export const getCurrentSellerProfile = async (sellerId) => {
                 'accountType',
                 'upiId',
                 'upiQrImage',
-                'pureVegSeller',
                 'profileImage',
                 'coverImages',
                 'menuImages',
@@ -1068,7 +1053,6 @@ export const getCurrentSellerProfile = async (sellerId) => {
                 'openDays',
                 'estimatedDeliveryTime',
                 'estimatedDeliveryTimeMinutes',
-                'diningSettings',
                 'isAcceptingOrders',
                 'outsideHoursOverride',
                 'subscriptionPlan',
@@ -1131,7 +1115,6 @@ export const updateSellerAcceptingOrders = async (sellerId, isAcceptingOrders) =
             runValidators: true,
             projection: [
                 'sellerName',
-                'cuisines',
                 'location',
                 'addressLine1',
                 'addressLine2',
@@ -1150,14 +1133,12 @@ export const updateSellerAcceptingOrders = async (sellerId, isAcceptingOrders) =
                 'accountType',
                 'upiId',
                 'upiQrImage',
-                'pureVegSeller',
                 'profileImage',
                 'coverImages',
                 'menuImages',
                 'openingTime',
                 'closingTime',
                 'openDays',
-                'diningSettings',
                 'isAcceptingOrders',
                 'outsideHoursOverride',
                 'status',
@@ -1168,132 +1149,6 @@ export const updateSellerAcceptingOrders = async (sellerId, isAcceptingOrders) =
     ).lean();
     const profile = toSellerProfile(doc);
     return enrichSellerProfileWithAvailability(profile, doc);
-};
-
-export const updateCurrentSellerDiningSettings = async (sellerId, body = {}) => {
-    if (!sellerId) {
-        throw new ValidationError('Invalid store id');
-    }
-
-    const currentSeller = await FoodSeller.findById(sellerId)
-        .select('diningSettings status')
-        .lean();
-
-    if (!currentSeller) {
-        throw new ValidationError('Store not found');
-    }
-
-    const currentDiningSettings =
-        currentSeller.diningSettings && typeof currentSeller.diningSettings === 'object'
-            ? currentSeller.diningSettings
-            : {};
-
-    const parseBoolean = (value, fallback = false) => {
-        if (value === undefined || value === null) return Boolean(fallback);
-        if (typeof value === 'boolean') return value;
-        const normalized = String(value).trim().toLowerCase();
-        if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
-        if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
-        return Boolean(fallback);
-    };
-
-    const maxGuests = Math.max(
-        1,
-        parseInt(body.maxGuests ?? currentDiningSettings.maxGuests ?? 6, 10) || 6
-    );
-    const diningType =
-        String(body.diningType ?? currentDiningSettings.diningType ?? 'family-dining').trim() ||
-        'family-dining';
-
-    const doc = await FoodSeller.findByIdAndUpdate(
-        sellerId,
-        {
-            $set: {
-                diningSettings: {
-                    isEnabled: parseBoolean(body.isEnabled, currentDiningSettings.isEnabled),
-                    maxGuests,
-                    diningType
-                }
-            }
-        },
-        {
-            new: true,
-            runValidators: true,
-            projection: [
-                'sellerName',
-                'cuisines',
-                'location',
-                'addressLine1',
-                'addressLine2',
-                'area',
-                'city',
-                'state',
-                'pincode',
-                'landmark',
-                'ownerName',
-                'ownerEmail',
-                'ownerPhone',
-                'primaryContactNumber',
-                'accountNumber',
-                'ifscCode',
-                'accountHolderName',
-                'accountType',
-                'upiId',
-                'upiQrImage',
-                'pureVegSeller',
-                'profileImage',
-                'coverImages',
-                'menuImages',
-                'openingTime',
-                'closingTime',
-                'openDays',
-                'estimatedDeliveryTime',
-                'estimatedDeliveryTimeMinutes',
-                'diningSettings',
-                'isAcceptingOrders',
-                'outsideHoursOverride',
-                'status',
-                'createdAt',
-                'updatedAt'
-            ].join(' ')
-        }
-    ).lean();
-
-    // Sync with FoodDiningSeller for public visibility (Dining Section)
-    try {
-        const { FoodDiningSeller } = await import('../../dining/models/diningSeller.model.js');
-        const { FoodDiningCategory } = await import('../../dining/models/diningCategory.model.js');
-
-        const isEnabled = parseBoolean(body.isEnabled, currentDiningSettings.isEnabled);
-
-        let primaryCategoryId = null;
-        if (diningType) {
-            // Find category by slug (diningType) to link correctly
-            const category = await FoodDiningCategory.findOne({ slug: diningType }).select('_id').lean();
-            if (category) {
-                primaryCategoryId = category._id;
-            }
-        }
-
-        await FoodDiningSeller.findOneAndUpdate(
-            { sellerId },
-            {
-                $set: {
-                    isEnabled,
-                    maxGuests,
-                    primaryCategoryId,
-                    categoryIds: primaryCategoryId ? [primaryCategoryId] : [],
-                    pureVegSeller: doc.pureVegSeller === true
-                }
-            },
-            { upsert: true }
-        );
-    } catch (syncError) {
-        console.error('[DINING_SYNC_ERROR] Failed to sync with FoodDiningSeller:', syncError);
-    }
-
-    return toSellerProfile(doc);
-
 };
 
 export const updateSellerProfile = async (sellerId, body = {}) => {
@@ -1383,23 +1238,6 @@ export const updateSellerProfile = async (sellerId, body = {}) => {
         }
     }
 
-    if (body.pureVegSeller !== undefined) {
-        if (typeof body.pureVegSeller === 'boolean') {
-            update.pureVegSeller = body.pureVegSeller;
-        } else if (typeof body.pureVegSeller === 'string') {
-            const normalized = body.pureVegSeller.trim().toLowerCase();
-            if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
-                update.pureVegSeller = true;
-            } else if (normalized === 'false' || normalized === '0' || normalized === 'no') {
-                update.pureVegSeller = false;
-            } else {
-                throw new ValidationError('pureVegSeller must be a boolean');
-            }
-        } else {
-            throw new ValidationError('pureVegSeller must be a boolean');
-        }
-    }
-
     if (body.zoneId !== undefined && body.location === undefined) {
         const zoneId = String(body.zoneId || '').trim();
         update.zoneId = zoneId && mongoose.Types.ObjectId.isValid(zoneId)
@@ -1443,17 +1281,6 @@ export const updateSellerProfile = async (sellerId, body = {}) => {
             update.sellerName = name;
             update.sellerNameNormalized = normalizedName;
         }
-    }
-
-    if (body.cuisines !== undefined) {
-        if (!Array.isArray(body.cuisines)) {
-            throw new ValidationError('Cuisines must be an array of strings');
-        }
-        const cuisines = body.cuisines
-            .map((c) => String(c || '').trim())
-            .filter(Boolean)
-            .slice(0, 50);
-        update.cuisines = cuisines;
     }
 
     if (body.location !== undefined) {
@@ -1678,8 +1505,7 @@ export const updateSellerProfile = async (sellerId, body = {}) => {
                 runValidators: true,
                 projection: [
                     'sellerName',
-                    'cuisines',
-                    'location',
+                        'location',
                     'addressLine1',
                     'addressLine2',
                     'area',
@@ -1691,8 +1517,7 @@ export const updateSellerProfile = async (sellerId, body = {}) => {
                     'ownerEmail',
                     'ownerPhone',
                     'primaryContactNumber',
-                    'pureVegSeller',
-                    'profileImage',
+                        'profileImage',
                     'coverImages',
                     'menuImages',
                     'openingTime',
@@ -1776,7 +1601,7 @@ export const uploadSellerProfileImage = async (sellerId, file) => {
                 rejectionReason: 1
             }
         },
-        { new: true, projection: 'profileImage coverImages sellerName cuisines location menuImages addressLine1 addressLine2 area city state pincode landmark ownerName ownerEmail ownerPhone primaryContactNumber pureVegSeller openingTime closingTime openDays status createdAt updatedAt' }
+        { new: true, projection: 'profileImage coverImages sellerName location menuImages addressLine1 addressLine2 area city state pincode landmark ownerName ownerEmail ownerPhone primaryContactNumber openingTime closingTime openDays status createdAt updatedAt' }
     ).lean();
 
     if (!doc) throw new ValidationError('Store not found');
@@ -1924,11 +1749,6 @@ export const listApprovedSellers = async (query = {}) => {
         const rx = { $regex: escapeRegex(area), $options: 'i' };
         filter.$and = [...(filter.$and || []), { $or: [{ 'location.area': rx }, { area: rx }] }];
     }
-    if (query.cuisine && String(query.cuisine).trim()) {
-        const cuisine = normalizeCuisine(query.cuisine);
-        // cuisines is an array of strings.
-        filter.cuisines = { $in: [new RegExp(escapeRegex(cuisine), 'i')] };
-    }
     if (query.hasOffers === 'true') {
         const activeOfferFilter = buildActivePublicOfferFilter();
         const [hasGlobalOffers, selectedOffers] = await Promise.all([
@@ -1997,8 +1817,7 @@ export const listApprovedSellers = async (query = {}) => {
                 { area: { $regex: term, $options: 'i' } },
                 { city: { $regex: term, $options: 'i' } },
                 { 'location.area': { $regex: term, $options: 'i' } },
-                { 'location.city': { $regex: term, $options: 'i' } },
-                { cuisines: { $in: [new RegExp(term, 'i')] } }
+                { 'location.city': { $regex: term, $options: 'i' } }
             ];
         }
     }
@@ -2020,7 +1839,6 @@ export const listApprovedSellers = async (query = {}) => {
         sellerName: 1,
         area: 1,
         city: 1,
-        cuisines: 1,
         profileImage: 1,
         coverImages: 1,
         menuImages: 1,
@@ -2033,7 +1851,6 @@ export const listApprovedSellers = async (query = {}) => {
         totalRatings: 1,
         isAcceptingOrders: 1,
         status: 1,
-        pureVegSeller: 1,
         createdAt: 1,
         location: 1,
         openingTime: 1,
@@ -2234,13 +2051,13 @@ export const listApprovedSellers = async (query = {}) => {
 export const PUBLIC_SELLER_SELECT = [
     '_id', 'sellerName', 'sellerNameNormalized', 'description',
     'profileImage', 'coverImage', 'coverImages', 'galleryImages', 'menuImages',
-    'cuisines', 'rating', 'totalRatings',
+    'rating', 'totalRatings',
     'addressLine1', 'addressLine2', 'area', 'city', 'state', 'pincode',
     'landmark', 'formattedAddress', 'location', 'latitude', 'longitude',
     'estimatedDeliveryTime', 'estimatedDeliveryTimeMinutes',
     'isAcceptingOrders', 'isVerified', 'openingTime', 'closingTime', 'openDays',
     'outletTimings', 'deliveryTimings', 'outsideHoursOverride',
-    'pureVegSeller', 'diningSettings', 'offer', 'featuredDish',
+    'offer', 'featuredDish',
     'featuredPrice', 'status', 'zoneId', 'createdAt',
 ].join(' ');
 
@@ -2511,25 +2328,21 @@ export async function updateSellerOfferStatus(sellerId, offerId, status) {
 }
 
 /**
- * Delete a seller and all associated data (menu, wallet, items, timings) permanently.
+ * Delete a seller and all associated data (wallet, items, timings) permanently.
  */
 export const deleteCurrentSellerAccount = async (sellerId) => {
     // Dynamic imports to avoid issues
-    const { FoodSellerMenu } = await import('../models/sellerMenu.model.js');
     const { FoodSellerWallet } = await import('../models/sellerWallet.model.js');
     const { FoodSellerOutletTimings } = await import('../models/outletTimings.model.js');
     const { FoodItem } = await import('../../admin/models/food.model.js');
-    const { FoodAddon } = await import('../models/foodAddon.model.js');
 
     const seller = await FoodSeller.findById(sellerId);
     if (!seller) throw new NotFoundError('Store not found');
 
     // Remove all associated documents
-    await FoodSellerMenu.findOneAndDelete({ sellerId });
     await FoodSellerWallet.findOneAndDelete({ sellerId });
     await FoodSellerOutletTimings.findOneAndDelete({ sellerId });
     await FoodItem.deleteMany({ sellerId });
-    await FoodAddon.deleteMany({ sellerId });
 
     // Remove Seller
     await FoodSeller.findByIdAndDelete(sellerId);

@@ -5,7 +5,6 @@ const foodCategorySchema = new mongoose.Schema(
         name: { type: String, required: true, trim: true, index: true },
         image: { type: String, trim: true, default: '' },
         type: { type: String, trim: true, default: '' },
-        foodTypeScope: { type: String, enum: ['Veg', 'Non-Veg', 'Both'], default: 'Both', index: true },
         /**
          * Category scope:
          * - When sellerId is missing: category is admin/global and can be shared across sellers.

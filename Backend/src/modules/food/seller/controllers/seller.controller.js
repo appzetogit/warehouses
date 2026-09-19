@@ -5,7 +5,6 @@ import {
     getCurrentSellerProfile,
     updateSellerProfile,
     updateSellerAcceptingOrders,
-    updateCurrentSellerDiningSettings,
     uploadSellerProfileImage,
     uploadSellerMenuImage,
     uploadSellerCoverImages,
@@ -98,16 +97,6 @@ export const updateSellerAcceptingOrdersController = async (req, res, next) => {
         const sellerId = req.user?.userId;
         const seller = await updateSellerAcceptingOrders(sellerId, req.body?.isAcceptingOrders);
         return sendResponse(res, 200, 'Store availability updated successfully', { seller });
-    } catch (error) {
-        next(error);
-    }
-};
-
-export const updateCurrentSellerDiningSettingsController = async (req, res, next) => {
-    try {
-        const sellerId = req.user?.userId;
-        const seller = await updateCurrentSellerDiningSettings(sellerId, req.body || {});
-        return sendResponse(res, 200, 'Dining settings updated successfully', { seller });
     } catch (error) {
         next(error);
     }
