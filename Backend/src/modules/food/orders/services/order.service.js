@@ -2774,6 +2774,10 @@ export async function processRefundAdmin(orderId, amount, adminId) {
 
     const refundAmount = Number(amount) || order.pricing?.total || 0;
     if (refundAmount <= 0) throw new ValidationError("Invalid refund amount");
+    const orderTotal = Number(order.pricing?.total) || 0;
+    if (orderTotal > 0 && refundAmount > orderTotal + 0.01) {
+        throw new ValidationError(`Refund cannot exceed the order total of ₹${orderTotal}`);
+    }
 
     const refundResult = await applyCancellationRefund(order, {
         cancelledBy: 'admin',

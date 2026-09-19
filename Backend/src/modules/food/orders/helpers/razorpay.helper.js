@@ -26,14 +26,26 @@ export function getRazorpayInstance() {
     return new Razorpay({ key_id: KEY_ID, key_secret: KEY_SECRET });
 }
 
-export function createRazorpayOrder(amountPaise, currency = 'INR', receipt = '') {
+export function createRazorpayOrder(amountPaise, currency = 'INR', receipt = '', notes = undefined) {
     const instance = getRazorpayInstance();
     if (!instance) return Promise.reject(new Error('Razorpay not configured'));
     return instance.orders.create({
         amount: Math.round(amountPaise),
         currency,
-        receipt: receipt || undefined
+        receipt: receipt || undefined,
+        notes: notes || undefined
     });
+}
+
+/**
+ * Fetch a Razorpay order, to learn what it was created for (receipt/notes).
+ * @param {string} orderId
+ */
+export async function fetchRazorpayOrder(orderId) {
+    const instance = getRazorpayInstance();
+    if (!instance) throw new Error('Razorpay not configured');
+    if (!orderId) throw new Error('orderId is required');
+    return instance.orders.fetch(String(orderId));
 }
 
 export function createPaymentLink({ amountPaise, currency = 'INR', description, orderId, customerName, customerEmail, customerPhone }) {

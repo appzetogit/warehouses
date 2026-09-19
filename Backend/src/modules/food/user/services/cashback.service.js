@@ -1,11 +1,10 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { FoodUserWallet } from '../models/userWallet.model.js';
+import { creditCashback } from './userWallet.service.js';
 import { FoodCashbackSettings } from '../../admin/models/cashbackSettings.model.js';
 import { FoodOrder } from '../../orders/models/order.model.js';
 import { logger } from '../../../../utils/logger.js';
-
-const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
 export const getActiveCashbackSettings = async () => {
     const doc = await FoodCashbackSettings.findOne({ isActive: true })
@@ -93,20 +92,8 @@ export const awardOrderCashback = async (orderId) => {
             return { awarded: false, reason: 'per_user_limit_reached' };
         }
 
-        const target = wallet || (await FoodUserWallet.create({ userId: userOid, balance: 0, transactions: [] }));
-        target.transactions.unshift({
-            type: 'addition',
-            amount,
-            status: 'Completed',
-            description: `Cashback on order ${order.order_id || order._id}`,
-            metadata: {
-                source: 'cashback',
-                orderId: String(order._id),
-                orderDisplayId: order.order_id || String(order._id)
-            }
-        });
-        target.balance = round2(Number(target.balance || 0) + amount);
-        await target.save();
+        const credited = await creditCashback(userOid, amount, order);
+        if (!credited) return { awarded: false, reason: 'already_awarded' };
 
         try {
             const { notifyOwnerSafely } = await import('../../orders/services/order.helpers.js');
