@@ -318,10 +318,9 @@ const transformOrderForTracking = (apiOrder, previousOrder = null, explicitSelle
       isVeg: (() => {
         if (typeof item.isVeg === "boolean") return item.isVeg;
         const foodType = String(item.foodType || "").toLowerCase().trim();
-        const category = String(item.category || "").toLowerCase().trim();
-        const type = String(item.type || "").toLowerCase().trim();
-        if (foodType) return foodType === "veg" || foodType === "vegetarian";
-        return category === "veg" || type === "veg";
+        if (foodType === "veg" || foodType === "vegetarian") return true;
+        if (foodType === "non-veg" || foodType === "nonveg") return false;
+        return null;
       })(),
     })) || previousOrder?.items || [],
     total: apiOrder?.pricing?.total || previousOrder?.total || 0,
@@ -1570,18 +1569,25 @@ export default function OrderTracking() {
           </div>
           <div className="space-y-3">
             {order?.items?.map((item, i) => {
+              const resolvedFoodType = String(item?.foodType || "").toLowerCase().trim();
               const resolvedIsVeg = typeof item?.isVeg === "boolean"
                 ? item.isVeg
-                : ["veg", "vegetarian"].includes(String(item?.foodType || item?.category || item?.type || "").toLowerCase().trim());
+                : ["veg", "vegetarian"].includes(resolvedFoodType)
+                  ? true
+                  : ["non-veg", "nonveg"].includes(resolvedFoodType)
+                    ? false
+                    : null;
 
               return (
               <div key={i} className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2 min-w-0">
-                  <div
-                    className={`w-3.5 h-3.5 mt-0.5 border flex items-center justify-center p-[1px] shrink-0 ${resolvedIsVeg ? "border-[#16a34a] bg-green-50/40 dark:bg-green-900/25" : "border-[#dc2626] bg-red-50/40 dark:bg-red-900/25"}`}
-                  >
-                    <div className={`w-full h-full rounded-full ${resolvedIsVeg ? "bg-[#16a34a]" : "bg-[#dc2626]"}`} />
-                  </div>
+                  {typeof resolvedIsVeg === "boolean" && (
+                    <div
+                      className={`w-3.5 h-3.5 mt-0.5 border flex items-center justify-center p-[1px] shrink-0 ${resolvedIsVeg ? "border-[#16a34a] bg-green-50/40 dark:bg-green-900/25" : "border-[#dc2626] bg-red-50/40 dark:bg-red-900/25"}`}
+                    >
+                      <div className={`w-full h-full rounded-full ${resolvedIsVeg ? "bg-[#16a34a]" : "bg-[#dc2626]"}`} />
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <p className="text-sm text-gray-700 dark:text-gray-300 font-medium truncate">
                       {(item?.quantity || 1)} x {item?.name || "Item"}

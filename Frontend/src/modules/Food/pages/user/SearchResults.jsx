@@ -10,7 +10,6 @@ import { useProfile } from "@food/context/ProfileContext"
 import { useDeliveryLocation } from "@food/context/DeliveryLocationContext"
 import { sellerAPI, adminAPI } from "@food/api"
 import { useDelayedLoading } from "@food/hooks/useDelayedLoading"
-import { getSellerAvailabilityStatus } from "@food/utils/sellerAvailability"
 
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -21,7 +20,6 @@ const filterOptions = [
   { id: 'under-30-mins', label: 'Under 30 mins' },
   { id: 'price-match', label: 'Price Match', hasIcon: true },
   { id: 'flat-50-off', label: 'Flat 50% OFF', hasIcon: true },
-  { id: 'under-250', label: 'Switch 99' },
   { id: 'rating-4-plus', label: 'Rating 4.0+' },
 ]
 const SEARCH_HISTORY_KEY = "user_recent_searches_v1"
@@ -289,10 +287,6 @@ export default function SearchResults() {
                 offer = null
               }
 
-              const cuisine = seller.cuisines && seller.cuisines.length > 0
-                ? seller.cuisines.join(", ")
-                : null
-
               // Get images from backend only
               const coverImages = seller.coverImages && seller.coverImages.length > 0
                 ? seller.coverImages.map(img => img.url || img).filter(Boolean)
@@ -323,7 +317,6 @@ export default function SearchResults() {
               return {
                 id: sellerId,
                 name: seller.name,
-                cuisine: cuisine,
                 rating: seller.rating || null, // Use backend rating or null
                 deliveryTime: deliveryTime,
                 distance: distance,
@@ -586,7 +579,6 @@ export default function SearchResults() {
       const lowerQuery = deferredQuery.toLowerCase()
       filtered = filtered.filter(r =>
         r.name?.toLowerCase().includes(lowerQuery) ||
-        r.cuisine?.toLowerCase().includes(lowerQuery) ||
         r.featuredDish?.toLowerCase().includes(lowerQuery) ||
         r.category === selectedCategory
       )
@@ -621,16 +613,14 @@ export default function SearchResults() {
           return true
         }
 
-        // Check featured dish and cuisine for category keywords
+        // Check featured dish for category keywords
         const keywords = categoryKeywords[selectedCategory] || []
         if (keywords.length > 0) {
           const featuredDishLower = (r.featuredDish || '').toLowerCase()
-          const cuisineLower = (r.cuisine || '').toLowerCase()
           const nameLower = (r.name || '').toLowerCase()
 
           const matches = keywords.some(keyword =>
             featuredDishLower.includes(keyword) ||
-            cuisineLower.includes(keyword) ||
             nameLower.includes(keyword)
           )
 
@@ -660,14 +650,6 @@ export default function SearchResults() {
       filtered = filtered.filter(r => r.offer && r.offer.includes('50%'))
     }
 
-    // Switch 99 filter - exclude closed sellers
-    if (activeFilters.has('under-250')) {
-      filtered = filtered.filter(r => {
-        const availability = getSellerAvailabilityStatus(r, new Date(availabilityTick));
-        return r.featuredPrice && r.featuredPrice <= 99 && availability.isOpen;
-      })
-    }
-
     return uniqueSellers(filtered)
   }, [deferredQuery, selectedCategory, activeFilters, sellersData, categoryKeywords, loadingCategories, availabilityTick])
 
@@ -676,12 +658,11 @@ export default function SearchResults() {
     const sourceData = sellersData.length > 0 ? sellersData : []
     let filtered = [...sourceData]
 
-    // Filter by search query - Search in name, cuisine, featured dish
+    // Filter by search query - Search in name, featured dish
     if (deferredQuery.trim()) {
       const lowerQuery = deferredQuery.toLowerCase()
       filtered = filtered.filter(r => {
         const nameMatch = r.name?.toLowerCase().includes(lowerQuery)
-        const cuisineMatch = r.cuisine?.toLowerCase().includes(lowerQuery)
         const dishMatch = r.featuredDish?.toLowerCase().includes(lowerQuery)
 
         // Also search in menu items if menu is available
@@ -701,7 +682,7 @@ export default function SearchResults() {
           }
         }
 
-        return nameMatch || cuisineMatch || dishMatch || menuMatch || r.category === selectedCategory
+        return nameMatch || dishMatch || menuMatch || r.category === selectedCategory
       })
     }
 
@@ -734,16 +715,14 @@ export default function SearchResults() {
           return true
         }
 
-        // Check featured dish and cuisine for category keywords
+        // Check featured dish for category keywords
         const keywords = categoryKeywords[selectedCategory] || []
         if (keywords.length > 0) {
           const featuredDishLower = (r.featuredDish || '').toLowerCase()
-          const cuisineLower = (r.cuisine || '').toLowerCase()
           const nameLower = (r.name || '').toLowerCase()
 
           const matches = keywords.some(keyword =>
             featuredDishLower.includes(keyword) ||
-            cuisineLower.includes(keyword) ||
             nameLower.includes(keyword)
           )
 
@@ -768,13 +747,6 @@ export default function SearchResults() {
     }
     if (activeFilters.has('rating-4-plus')) {
       filtered = filtered.filter(r => r.rating && r.rating >= 4.0)
-    }
-    // Switch 99 filter - exclude closed sellers (already handled above but ensuring consistency if logic differs)
-    if (activeFilters.has('under-250')) {
-      filtered = filtered.filter(r => {
-        const availability = getSellerAvailabilityStatus(r, new Date(availabilityTick));
-        return r.featuredPrice && r.featuredPrice <= 99 && availability.isOpen;
-      })
     }
     if (activeFilters.has('flat-50-off')) {
       filtered = filtered.filter(r => r.offer && r.offer.includes('50%'))

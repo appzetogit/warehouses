@@ -168,7 +168,6 @@ export default function UserOrderDetails() {
 
   const items = Array.isArray(order.items) ? order.items : []
   const pricing = order.pricing || {}
-  const sendsCutlery = order.sendCutlery !== false
 
   const userName = order.customerName || order.userName || order.userId?.name || order.userId?.fullName || ""
   const userPhone = order.customerPhone || order.userPhone || order.userId?.phone || ""
@@ -363,7 +362,7 @@ export default function UserOrderDetails() {
           seller: sellerName,
           sellerId: sellerObj._id || sellerObj.sellerId || currentOrder?.sellerId,
           description: item.description || "",
-          isVeg: item.isVeg !== false,
+          isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null,
           quantity: Math.max(1, Number(item.quantity || item.qty) || 1),
           reorderIndex: index,
         }
@@ -452,19 +451,6 @@ export default function UserOrderDetails() {
             </button>
           </div>
 
-          {order.status !== "delivered" && (
-            <div className="flex items-center gap-2 mb-4">
-              <span
-                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${sendsCutlery
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
-                    : "bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800"
-                  }`}
-              >
-                {sendsCutlery ? "Send cutlery" : "Don't send cutlery"}
-              </span>
-            </div>
-          )}
-
           <div className="border-t border-dashed border-gray-200 dark:border-zinc-800 my-3" />
 
           {/* Items */}
@@ -475,15 +461,17 @@ export default function UserOrderDetails() {
             return (
             <div key={idx} className="flex justify-between items-start mt-2 gap-3">
               <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className={`w-3 h-3 border shrink-0 ${item.isVeg ? "border-green-600" : "border-red-600"
-                    } flex items-center justify-center p-[1px]`}
-                >
+                {typeof item.isVeg === "boolean" && (
                   <div
-                    className={`w-full h-full rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"
-                      }`}
-                  />
-                </div>
+                    className={`w-3 h-3 border shrink-0 ${item.isVeg ? "border-green-600" : "border-red-600"
+                      } flex items-center justify-center p-[1px]`}
+                  >
+                    <div
+                      className={`w-full h-full rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"
+                        }`}
+                    />
+                  </div>
+                )}
                 <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
                   {qty} x {item.name}{item.variantName ? ` (${item.variantName})` : ""}
                 </span>

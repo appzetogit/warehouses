@@ -104,15 +104,13 @@ const normalizeCartData = (rawCart) => {
         buildCartLineId(baseItemId, variantId)
 
         const name = item.name || item.product?.name || "Item";
-        const nameLower = name.toLowerCase();
-        
-        // Strict cache sanitation: If it was wrongly cached as Veg previously, override it
-        let currentFoodType = item.foodType;
-        if (nameLower.includes("chicken") || nameLower.includes("salmon") || nameLower.includes("tart")) {
-          currentFoodType = "Non-Veg";
-        }
-        
-        const finalFoodType = currentFoodType || (item.isVeg === true ? "Veg" : "Non-Veg");
+
+        const finalFoodType =
+          item.foodType === "Veg" || item.foodType === "Non-Veg"
+            ? item.foodType
+            : typeof item.isVeg === "boolean"
+              ? (item.isVeg ? "Veg" : "Non-Veg")
+              : null;
 
         return {
           ...item,
@@ -131,7 +129,7 @@ const normalizeCartData = (rawCart) => {
           price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
           otherPrice: Number(item.otherPrice) > 0 ? Number(item.otherPrice) : 0,
           foodType: finalFoodType,
-          isVeg: finalFoodType === "Veg",
+          isVeg: finalFoodType === "Veg" ? true : finalFoodType === "Non-Veg" ? false : null,
         seller: normalizedSellerName,
         sellerId: normalizedSellerId,
         image: normalizedImage,

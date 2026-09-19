@@ -23,7 +23,6 @@ const gradientColors = [
 export default function Collections() {
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
-  const [activeTab, setActiveTab] = useState("delivery")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState("")
 
@@ -31,14 +30,6 @@ export default function Collections() {
   const [deliveryCollections, setDeliveryCollections] = useState([
     { id: "bookmarks", name: "Bookmarks", dishes: 0, sellers: 0, isDefault: true }
   ])
-
-  // Dining collections
-  const [diningCollections, setDiningCollections] = useState([
-    { id: "bookmarks", name: "Bookmarks", dishes: 0, sellers: 0, isDefault: true }
-  ])
-
-  const currentCollections = activeTab === "delivery" ? deliveryCollections : diningCollections
-  const setCurrentCollections = activeTab === "delivery" ? setDeliveryCollections : setDiningCollections
 
   const handleCreateCollection = () => {
     if (newCollectionName.trim()) {
@@ -49,7 +40,7 @@ export default function Collections() {
         sellers: 0,
         isDefault: false
       }
-      setCurrentCollections(prev => [...prev, newCollection])
+      setDeliveryCollections(prev => [...prev, newCollection])
       setNewCollectionName("")
       setIsCreateDialogOpen(false)
     }
@@ -80,38 +71,12 @@ export default function Collections() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="sticky top-0 bg-white dark:bg-[#1a1a1a] z-10 border-b dark:border-gray-800">
-        <div className="flex">
-          <button
-            onClick={() => setActiveTab("delivery")}
-            className={`flex-1 py-4 text-center font-semibold transition-colors relative ${activeTab === "delivery" ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-500"
-              }`}
-          >
-            Delivery
-            {activeTab === "delivery" && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-[#EB590E] rounded-full" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("dining")}
-            className={`flex-1 py-4 text-center font-semibold transition-colors relative ${activeTab === "dining" ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-500"
-              }`}
-          >
-            Dining
-            {activeTab === "dining" && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-[#EB590E] rounded-full" />
-            )}
-          </button>
-        </div>
-      </div>
-
       {/* Content */}
       <div className="px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-8 lg:py-10">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5 lg:gap-6">
             {/* Collection Cards */}
-            {currentCollections.map((collection, index) => (
+            {deliveryCollections.map((collection, index) => (
               <Link
                 key={collection.id}
                 to={collection.isDefault ? "/user/profile/favorites" : `/user/collections/${collection.id}`}

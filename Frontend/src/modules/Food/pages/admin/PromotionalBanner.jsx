@@ -264,7 +264,7 @@ export default function PromotionalBanner() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 leading-tight">Home Promotion Banners</h1>
-              <p className="text-slate-500 text-sm mt-0.5">Manage sliding banners visible below pure veg/99 options</p>
+              <p className="text-slate-500 text-sm mt-0.5">Manage sliding banners visible on the home page</p>
             </div>
           </div>
           <button

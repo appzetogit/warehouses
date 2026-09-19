@@ -28,7 +28,6 @@ const DaySlots = lazy(() => import("@food/pages/seller/DaySlots"))
 const OutletInfo = lazy(() => import("@food/pages/seller/OutletInfo"))
 const RatingsReviews = lazy(() => import("@food/pages/seller/RatingsReviews"))
 const EditOwner = lazy(() => import("@food/pages/seller/EditOwner"))
-const EditCuisines = lazy(() => import("@food/pages/seller/EditCuisines"))
 const EditSellerAddress = lazy(() => import("@food/pages/seller/EditSellerAddress"))
 const Inventory = lazy(() => import("@food/pages/seller/Inventory"))
 const Feedback = lazy(() => import("@food/pages/seller/Feedback"))
@@ -37,7 +36,6 @@ const DishRatings = lazy(() => import("@food/pages/seller/DishRatings"))
 const SellerSupport = lazy(() => import("@food/pages/seller/SellerSupport"))
 const FssaiDetails = lazy(() => import("@food/pages/seller/FssaiDetails"))
 const FssaiUpdate = lazy(() => import("@food/pages/seller/FssaiUpdate"))
-const Hyperpure = lazy(() => import("@food/pages/seller/Hyperpure"))
 const ItemDetailsPage = lazy(() => import("@food/pages/seller/ItemDetailsPage"))
 const HubFinance = lazy(() => import("@food/pages/seller/HubFinance"))
 const FinanceDetailsPage = lazy(() => import("@food/pages/seller/FinanceDetailsPage"))
@@ -47,7 +45,6 @@ const DownloadReport = lazy(() => import("@food/pages/seller/DownloadReport"))
 const ManageOutlets = lazy(() => import("@food/pages/seller/ManageOutlets"))
 const UpdateBankDetails = lazy(() => import("@food/pages/seller/UpdateBankDetails"))
 const ZoneSetup = lazy(() => import("@food/pages/seller/ZoneSetup"))
-const DiningReservations = lazy(() => import("@food/pages/seller/DiningReservations"))
 const SellerStatus = lazy(() => import("@food/pages/seller/SellerStatus"))
 const ExploreMore = lazy(() => import("@food/pages/seller/ExploreMore"))
 const SellerPrivacy = lazy(() => import("@food/pages/seller/Privacy"))
@@ -124,7 +121,6 @@ export default function SellerRouter() {
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><OutletInfo /></ProtectedRoute>} path="outlet-info" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><RatingsReviews /></ProtectedRoute>} path="ratings-reviews" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><EditOwner /></ProtectedRoute>} path="edit-owner" />
-          <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><EditCuisines /></ProtectedRoute>} path="edit-cuisines" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><EditSellerAddress /></ProtectedRoute>} path="edit-address" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><Inventory /></ProtectedRoute>} path="inventory" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><Feedback /></ProtectedRoute>} path="feedback" />
@@ -133,7 +129,6 @@ export default function SellerRouter() {
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><SellerSupport /></ProtectedRoute>} path="help-centre/support" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><FssaiDetails /></ProtectedRoute>} path="fssai" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><FssaiUpdate /></ProtectedRoute>} path="fssai/update" />
-          <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><Hyperpure /></ProtectedRoute>} path="hyperpure" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><ItemDetailsPage /></ProtectedRoute>} path="hub-menu/item/:id" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><HubFinance /></ProtectedRoute>} path="hub-finance" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><Subscription /></ProtectedRoute>} path="subscription" />
@@ -143,7 +138,6 @@ export default function SellerRouter() {
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><DownloadReport /></ProtectedRoute>} path="download-report" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><ManageOutlets /></ProtectedRoute>} path="manage-outlets" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><UpdateBankDetails /></ProtectedRoute>} path="update-bank-details" />
-          <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><DiningReservations /></ProtectedRoute>} path="reservations" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><ZoneSetup /></ProtectedRoute>} path="zone-setup" />
         </Route>
 

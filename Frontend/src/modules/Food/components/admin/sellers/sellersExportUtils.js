@@ -7,7 +7,6 @@ export const exportSellersToExcel = (sellers, filename = "sellers") => {
     "Owner Name",
     "Owner Phone",
     "Zone",
-    "Cuisine",
     "Status",
     "Rating"
   ]
@@ -19,7 +18,6 @@ export const exportSellersToExcel = (sellers, filename = "sellers") => {
     seller.ownerName || "N/A",
     seller.ownerPhone || "N/A",
     seller.zone || "N/A",
-    seller.cuisine || "N/A",
     seller.isActive ? "Active" : "Inactive",
     seller.rating || 0
   ])
@@ -48,7 +46,6 @@ export const exportSellersToPDF = (sellers, filename = "sellers") => {
     "Owner Name",
     "Owner Phone",
     "Zone",
-    "Cuisine",
     "Status",
     "Rating"
   ]
@@ -60,7 +57,6 @@ export const exportSellersToPDF = (sellers, filename = "sellers") => {
     seller.ownerName || "N/A",
     seller.ownerPhone || "N/A",
     seller.zone || "N/A",
-    seller.cuisine || "N/A",
     seller.isActive ? "Active" : "Inactive",
     seller.rating || 0
   ])

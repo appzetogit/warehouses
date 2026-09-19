@@ -28,7 +28,6 @@ function normalizeFilters(input) {
   return {
     activeFilters,
     sortBy: input.sortBy ?? null,
-    selectedCuisine: input.selectedCuisine ?? null,
   };
 }
 

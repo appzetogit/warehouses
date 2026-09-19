@@ -18,7 +18,7 @@ const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
-export default function DesktopNavbar({ showLogo = true }) {
+export default function DesktopNavbar() {
     const location = useLocation()
     const navigate = useNavigate()
     const {
@@ -56,15 +56,11 @@ export default function DesktopNavbar({ showLogo = true }) {
     }
 
     // Check active routes - support both /user/* and /* paths
-    const isDining = location.pathname === "/food/user/dining" || location.pathname === "/food/dining"
-    const isUnder250 = location.pathname === "/food/user/under-250" || location.pathname === "/food/under-250"
     const isProfile = location.pathname.startsWith("/food/user/profile") || location.pathname.startsWith("/food/profile")
-    const isDelivery = !isDining && !isUnder250 && !isProfile && (location.pathname === "/food/user" || location.pathname === "/food" || (location.pathname.startsWith("/food/user") && !location.pathname.includes("/dining") && !location.pathname.includes("/under-250") && !location.pathname.includes("/profile")))
+    const isDelivery = !isProfile && (location.pathname === "/food/user" || location.pathname === "/food" || (location.pathname.startsWith("/food/user") && !location.pathname.includes("/profile")))
     const isBannerRoute =
         location.pathname === "/food/user" ||
-        location.pathname === "/food" ||
-        location.pathname === "/food/user/under-250" ||
-        location.pathname === "/food/under-250"
+        location.pathname === "/food"
 
     // Load business settings logo
     useEffect(() => {
@@ -161,28 +157,26 @@ export default function DesktopNavbar({ showLogo = true }) {
                         {/* Left: Logo & Location */}
                         <div className="flex items-center gap-4 lg:gap-6 flex-shrink-0">
                             {/* Logo */}
-                            {showLogo && (
-                                <Link
-                                  to="/food/user"
-                                  onClick={() => clearHomeScrollState()}
-                                  className="flex items-center justify-center flex-shrink-0"
-                                >
-                                    {logoUrl || companyName ? (
-                                        <img
-                                            src={logoUrl || quickSpicyLogo}
-                                            alt={companyName || "Company Logo"}
-                                            className="h-10 w-auto md:h-14 lg:h-16 object-contain"
-                                            onError={(e) => {
-                                                if (e.target.src !== quickSpicyLogo) {
-                                                    e.target.src = quickSpicyLogo
-                                                }
-                                            }}
-                                        />
-                                    ) : (
-                                        <img src={quickSpicyLogo} alt={companyName || "Logo"} className="h-10 w-auto md:h-14 lg:h-16 object-contain" />
-                                    )}
-                                </Link>
-                            )}
+                            <Link
+                              to="/food/user"
+                              onClick={() => clearHomeScrollState()}
+                              className="flex items-center justify-center flex-shrink-0"
+                            >
+                                {logoUrl || companyName ? (
+                                    <img
+                                        src={logoUrl || quickSpicyLogo}
+                                        alt={companyName || "Company Logo"}
+                                        className="h-10 w-auto md:h-14 lg:h-16 object-contain"
+                                        onError={(e) => {
+                                            if (e.target.src !== quickSpicyLogo) {
+                                                e.target.src = quickSpicyLogo
+                                            }
+                                        }}
+                                    />
+                                ) : (
+                                    <img src={quickSpicyLogo} alt={companyName || "Logo"} className="h-10 w-auto md:h-14 lg:h-16 object-contain" />
+                                )}
+                            </Link>
 
                             {/* Location Selector */}
                             <Button
@@ -319,46 +313,6 @@ export default function DesktopNavbar({ showLogo = true }) {
                             >
                                 <span className="text-sm font-bold tracking-wide uppercase">Delivery</span>
                                 {isDelivery && (
-                                    <motion.div
-                                        layoutId="navIndicator"
-                                        className="absolute -bottom-3 left-0 right-0 h-0.5 bg-orange-600 dark:bg-orange-500"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 0.3 }}
-                                    />
-                                )}
-                            </Link>
-
-                            {/* Under 250 Tab */}
-                            <Link
-                                to="/food/user/under-250"
-                                className={`flex flex-col items-center gap-1 px-2 py-1 transition-colors relative group ${isUnder250
-                                    ? "text-orange-600 dark:text-orange-500"
-                                    : "text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-500"
-                                    }`}
-                            >
-                                <span className="text-sm font-bold tracking-wide uppercase">Switch 99</span>
-                                {isUnder250 && (
-                                    <motion.div
-                                        layoutId="navIndicator"
-                                        className="absolute -bottom-3 left-0 right-0 h-0.5 bg-orange-600 dark:bg-orange-500"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 0.3 }}
-                                    />
-                                )}
-                            </Link>
-
-                            {/* Dining Tab */}
-                            <Link
-                                to="/food/user/dining"
-                                className={`flex flex-col items-center gap-1 px-2 py-1 transition-colors relative group ${isDining
-                                    ? "text-orange-600 dark:text-orange-500"
-                                    : "text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-500"
-                                    }`}
-                            >
-                                <span className="text-sm font-bold tracking-wide uppercase">Dining</span>
-                                {isDining && (
                                     <motion.div
                                         layoutId="navIndicator"
                                         className="absolute -bottom-3 left-0 right-0 h-0.5 bg-orange-600 dark:bg-orange-500"

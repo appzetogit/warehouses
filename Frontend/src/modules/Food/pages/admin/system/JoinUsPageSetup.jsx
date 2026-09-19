@@ -7,7 +7,7 @@ const debugError = (...args) => {}
 
 const defaultFields = [
   "Seller Name", "Seller Logo", "Owner Last Name",
-  "Vat/Tax", "Cuisine", "Phone Number",
+  "Vat/Tax", "Phone Number",
   "Delivery Address", "Zone", "Email",
   "Min Delivery Time", "Latitude & Longitude", "Password",
   "Max Delivery Time", "Map Location",

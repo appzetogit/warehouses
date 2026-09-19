@@ -90,16 +90,11 @@ const normalizeLocationFormFromSeller = (seller) => {
 const normalizeDetailsFormFromSeller = (seller) => {
   return {
     name: seller?.name || seller?.sellerName || "",
-    pureVegSeller:
-      typeof seller?.pureVegSeller === "boolean"
-        ? seller.pureVegSeller
-        : false,
     ownerName: seller?.ownerName || "",
     ownerEmail: seller?.ownerEmail || "",
     ownerPhone: seller?.ownerPhone || "",
     primaryContactNumber: seller?.primaryContactNumber || "",
     email: seller?.email || "",
-    cuisinesText: Array.isArray(seller?.cuisines) ? seller.cuisines.join(", ") : "",
     estimatedDeliveryTimeMinutes:
       seller?.estimatedDeliveryTimeMinutes ??
       seller?.estimatedDeliveryTime ??
@@ -325,21 +320,14 @@ export default function EditSeller() {
     try {
       setSavingDetails(true)
 
-      const cuisines = String(detailsForm.cuisinesText || "")
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean)
-
       const payload = {
         name: detailsForm.name,
-        pureVegSeller: detailsForm.pureVegSeller === true,
         billingExempt: detailsForm.billingExempt === true,
         ownerName: detailsForm.ownerName,
         ownerEmail: detailsForm.ownerEmail,
         ownerPhone: detailsForm.ownerPhone,
         primaryContactNumber: detailsForm.primaryContactNumber,
         email: detailsForm.email,
-        cuisines,
         estimatedDeliveryTimeMinutes:
           detailsForm.estimatedDeliveryTimeMinutes === ""
             ? undefined
@@ -549,33 +537,6 @@ export default function EditSeller() {
                   <Input value={detailsForm.name} onChange={(e) => setDetailsForm((p) => ({ ...p, name: e.target.value }))} />
                 </div>
                 <div>
-                  <Label>Pure Veg</Label>
-                  <div className="mt-2 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDetailsForm((p) => ({ ...p, pureVegSeller: true }))}
-                      className={`px-3 py-1.5 text-xs rounded-full border ${
-                        detailsForm.pureVegSeller === true
-                          ? "bg-green-600 text-white border-green-600"
-                          : "bg-white text-slate-700 border-slate-300"
-                      }`}
-                    >
-                      Yes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDetailsForm((p) => ({ ...p, pureVegSeller: false }))}
-                      className={`px-3 py-1.5 text-xs rounded-full border ${
-                        detailsForm.pureVegSeller === false
-                          ? "bg-slate-900 text-white border-slate-900"
-                          : "bg-white text-slate-700 border-slate-300"
-                      }`}
-                    >
-                      No
-                    </button>
-                  </div>
-                </div>
-                <div>
                   <Label>Primary Email</Label>
                   <Input value={detailsForm.email} onChange={(e) => setDetailsForm((p) => ({ ...p, email: e.target.value }))} />
                 </div>
@@ -625,10 +586,6 @@ export default function EditSeller() {
                 <div>
                   <Label>Primary Contact Number</Label>
                   <Input value={detailsForm.primaryContactNumber} onChange={(e) => setDetailsForm((p) => ({ ...p, primaryContactNumber: e.target.value }))} />
-                </div>
-                <div className="md:col-span-2">
-                  <Label>Cuisines (comma separated)</Label>
-                  <Input value={detailsForm.cuisinesText} onChange={(e) => setDetailsForm((p) => ({ ...p, cuisinesText: e.target.value }))} />
                 </div>
                 <div>
                   <Label>Estimated Delivery Time (minutes)</Label>

@@ -13,16 +13,6 @@ const debugWarn = (...args) => { console.warn(...args) }
 const debugError = (...args) => { console.error(...args) }
 
 
-const cuisinesOptions = [
-  "North Indian",
-  "South Indian",
-  "Chinese",
-  "Pizza",
-  "Burgers",
-  "Bakery",
-  "Cafe",
-]
-
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9\-]+(?:\.[a-zA-Z0-9\-]+)*\.[a-zA-Z]{2,6}$/
 const PHONE_REGEX = /^\d{10}$/
@@ -167,7 +157,6 @@ export default function AddSeller() {
   // Step 1: Basic Info
   const [step1, setStep1] = useState({
     sellerName: "",
-    pureVegSeller: null,
     ownerName: "",
     ownerEmail: "",
     ownerPhone: "",
@@ -191,7 +180,6 @@ export default function AddSeller() {
   const [step2, setStep2] = useState({
     menuImages: [],
     profileImage: null,
-    cuisines: [],
     estimatedDeliveryTime: "",
     openingTime: "",
     closingTime: "",
@@ -414,7 +402,6 @@ export default function AddSeller() {
   const validateStep1 = () => {
     const errors = []
     if (!step1.sellerName?.trim()) errors.push("Seller name is required")
-    if (typeof step1.pureVegSeller !== "boolean") errors.push("Please select whether seller is pure veg")
     if (!step1.ownerName?.trim()) errors.push("Owner name is required")
     if (step1.ownerName?.trim() && (!NAME_REGEX.test(step1.ownerName.trim()) || !hasLetters(step1.ownerName))) {
       errors.push("Owner name must contain valid characters")
@@ -459,7 +446,6 @@ export default function AddSeller() {
     const errors = []
     if (!step2.menuImages || step2.menuImages.length === 0) errors.push("At least one menu image is required")
     if (!step2.profileImage) errors.push("Seller profile image is required")
-    if (!step2.cuisines || step2.cuisines.length === 0) errors.push("Please select at least one cuisine")
     if (!step2.estimatedDeliveryTime?.trim()) errors.push("Estimated delivery time is required")
     if (!step2.openingTime?.trim()) errors.push("Opening time is required")
     if (!step2.closingTime?.trim()) errors.push("Closing time is required")
@@ -603,7 +589,6 @@ export default function AddSeller() {
       const payload = {
         // Step 1
         sellerName: step1.sellerName,
-        pureVegSeller: step1.pureVegSeller,
         ownerName: step1.ownerName,
         ownerEmail: step1.ownerEmail,
         ownerPhone: step1.ownerPhone,
@@ -613,7 +598,6 @@ export default function AddSeller() {
         // Step 2
         menuImages: menuImagesData,
         profileImage: profileImageData,
-        cuisines: step2.cuisines,
         estimatedDeliveryTime: step2.estimatedDeliveryTime,
         openingTime: step2.openingTime,
         closingTime: step2.closingTime,
@@ -916,36 +900,6 @@ export default function AddSeller() {
               placeholder="Customers will see this name"
             />
           </div>
-          <div>
-            <Label className="text-xs text-gray-700">Pure veg seller?*</Label>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setStep1({ ...step1, pureVegSeller: true })}
-                className={`px-3 py-1.5 text-xs rounded-full border ${
-                  step1.pureVegSeller === true
-                    ? "bg-green-600 text-white border-green-600"
-                    : "bg-white text-gray-700 border-gray-200"
-                }`}
-              >
-                Yes, Pure Veg
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep1({ ...step1, pureVegSeller: false })}
-                className={`px-3 py-1.5 text-xs rounded-full border ${
-                  step1.pureVegSeller === false
-                    ? "bg-gray-900 text-white border-gray-900"
-                    : "bg-white text-gray-700 border-gray-200"
-                }`}
-              >
-                No, Mixed Menu
-              </button>
-            </div>
-            <p className="text-[11px] text-gray-500 mt-1">
-              This helps users filter sellers by dietary preference.
-            </p>
-          </div>
         </div>
       </section>
 
@@ -1220,32 +1174,6 @@ export default function AddSeller() {
       </section>
 
       <section className="bg-white p-4 sm:p-6 rounded-md space-y-5">
-        <div>
-          <Label className="text-xs text-gray-700">Select cuisines (up to 3)*</Label>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {cuisinesOptions.map((cuisine) => {
-              const active = step2.cuisines.includes(cuisine)
-              return (
-                <button
-                  key={cuisine}
-                  type="button"
-                  onClick={() => {
-                    setStep2((prev) => {
-                      const exists = prev.cuisines.includes(cuisine)
-                      if (exists) return { ...prev, cuisines: prev.cuisines.filter((c) => c !== cuisine) }
-                      if (prev.cuisines.length >= 3) return prev
-                      return { ...prev, cuisines: [...prev.cuisines, cuisine] }
-                    })
-                  }}
-                  className={`px-3 py-1.5 text-xs rounded-full ${active ? "bg-black text-white" : "bg-gray-100 text-gray-800"}`}
-                >
-                  {cuisine}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
         <div className="space-y-3">
           <Label className="text-xs text-gray-700">Outlet timings*</Label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -27,7 +27,6 @@ const defaultFormData = {
   image: "",
   isActive: true,
   sortOrder: 0,
-  foodTypeScope: "Veg",
 }
 
 const approvalBadgeClass = (status) => {
@@ -36,12 +35,6 @@ const approvalBadgeClass = (status) => {
   if (value === "rejected") return "bg-rose-50 text-rose-700 border-rose-200"
   if (value === "deactivated") return "bg-slate-100 text-slate-700 border-slate-200"
   return "bg-amber-50 text-amber-700 border-amber-200"
-}
-
-const scopePillClass = (scope) => {
-  if (scope === "Veg") return "bg-green-50 text-green-700 border-green-200"
-  if (scope === "Non-Veg") return "bg-red-50 text-red-700 border-red-200"
-  return "bg-slate-100 text-slate-700 border-slate-200"
 }
 
 export default function MenuCategoriesPage() {
@@ -57,31 +50,11 @@ export default function MenuCategoriesPage() {
   const [imagePreview, setImagePreview] = useState(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false)
-  const [isPureVegSeller, setIsPureVegSeller] = useState(false)
   const fileInputRef = useRef(null)
 
   useEffect(() => {
     fetchCategories()
   }, [])
-
-  useEffect(() => {
-    const fetchSellerType = async () => {
-      try {
-        const response = await sellerAPI.getCurrentSeller()
-        const data = response?.data?.data?.seller || response?.data?.seller
-        setIsPureVegSeller(data?.pureVegSeller === true)
-      } catch {
-        setIsPureVegSeller(false)
-      }
-    }
-    fetchSellerType()
-  }, [])
-
-  useEffect(() => {
-    if (isPureVegSeller && formData.foodTypeScope !== "Veg") {
-      setFormData((prev) => ({ ...prev, foodTypeScope: "Veg" }))
-    }
-  }, [isPureVegSeller, formData.foodTypeScope])
 
   // Prevent background scroll when modal is open
   useEffect(() => {
@@ -137,7 +110,7 @@ export default function MenuCategoriesPage() {
 
   const openCreateModal = () => {
     setEditingCategory(null)
-    setFormData((prev) => ({ ...defaultFormData, foodTypeScope: isPureVegSeller ? "Veg" : defaultFormData.foodTypeScope }))
+    setFormData(defaultFormData)
     setSelectedImageFile(null)
     setImagePreview(null)
     setShowModal(true)
@@ -155,7 +128,6 @@ export default function MenuCategoriesPage() {
       image: category?.image || "",
       isActive: category?.isActive !== false,
       sortOrder: Number.isFinite(Number(category?.sortOrder)) ? Number(category.sortOrder) : 0,
-      foodTypeScope: isPureVegSeller ? "Veg" : (category?.foodTypeScope || "Veg"),
     })
     setSelectedImageFile(null)
     setImagePreview(category?.image || null)
@@ -206,7 +178,6 @@ export default function MenuCategoriesPage() {
         image: imageUrl,
         isActive: formData.isActive !== false,
         sortOrder: Number.isFinite(Number(formData.sortOrder)) ? Number(formData.sortOrder) : 0,
-        foodTypeScope: isPureVegSeller ? "Veg" : formData.foodTypeScope,
       }
 
       if (editingCategory) {
@@ -271,7 +242,7 @@ export default function MenuCategoriesPage() {
         <p className="text-xs text-slate-500 md:text-sm">
           {editingCategory
             ? "Any edit sends this category back for admin approval."
-            : "Choose the diet scope carefully before sending it for approval."}
+            : "New categories are sent for admin approval."}
         </p>
       </div>
       <button type="button" onClick={resetModal} className="rounded-full p-1 hover:bg-slate-100">
@@ -291,25 +262,6 @@ export default function MenuCategoriesPage() {
           placeholder="Enter category name"
           className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
         />
-      </div>
-
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">Diet Scope</label>
-        <select
-          value={formData.foodTypeScope}
-          onChange={(e) => setFormData((prev) => ({ ...prev, foodTypeScope: e.target.value }))}
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-          disabled={isPureVegSeller}
-        >
-          <option value="Veg">Veg</option>
-          {!isPureVegSeller && <option value="Non-Veg">Non-Veg</option>}
-          {!isPureVegSeller && <option value="Both">Both</option>}
-        </select>
-        {isPureVegSeller && (
-          <p className="mt-1 text-xs text-emerald-700">
-            Pure veg seller: category scope is locked to Veg.
-          </p>
-        )}
       </div>
 
       <div>
@@ -449,7 +401,7 @@ export default function MenuCategoriesPage() {
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center md:py-16">
             <p className="text-lg font-semibold text-slate-900">No seller categories yet</p>
             <p className="mt-2 text-sm text-slate-500">
-              Start with a category and choose diet scope for dishes.
+              Start by creating a category for your items.
             </p>
           </div>
         ) : (
@@ -498,11 +450,6 @@ export default function MenuCategoriesPage() {
                               <Clock3 className="mr-1 h-3.5 w-3.5" />
                             )}
                             {status.charAt(0).toUpperCase() + status.slice(1)}
-                          </span>
-                          <span
-                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${scopePillClass(category?.foodTypeScope)}`}
-                          >
-                            {category?.foodTypeScope || "Both"}
                           </span>
                           {isGlobal && (
                             <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700">

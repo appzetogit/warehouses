@@ -68,7 +68,7 @@ export default function ItemDetailsPage() {
   const [itemSizeQuantity, setItemSizeQuantity] = useState("")
   const [itemSizeUnit, setItemSizeUnit] = useState("piece")
   const [itemDescription, setItemDescription] = useState("")
-  const [foodType, setFoodType] = useState("Non-Veg")
+  const [foodType, setFoodType] = useState(null)
   const [basePrice, setBasePrice] = useState("")
   const [otherPrice, setOtherPrice] = useState("")
   const [variants, setVariants] = useState([])
@@ -103,7 +103,6 @@ export default function ItemDetailsPage() {
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [loadingItem, setLoadingItem] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
-  const [isPureVegSeller, setIsPureVegSeller] = useState(false)
 
   const maxNameLength = 70
   const maxDescriptionLength = 1000
@@ -124,7 +123,7 @@ export default function ItemDetailsPage() {
     setItemSizeQuantity(item.itemSizeQuantity || "")
     setItemSizeUnit(item.itemSizeUnit || "piece")
     setItemDescription(item.description || "")
-    setFoodType(item.foodType === "Veg" ? "Veg" : "Non-Veg")
+    setFoodType(item.foodType === "Veg" || item.foodType === "Non-Veg" ? item.foodType : null)
     const itemVariants = getFoodVariants(item)
     setVariants(itemVariants.map(createVariantDraft))
     setBasePrice(itemVariants.length === 0 ? item.price?.toString() || "" : "")
@@ -244,20 +243,12 @@ export default function ItemDetailsPage() {
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true)
-        try {
-          const sellerRes = await sellerAPI.getCurrentSeller()
-          const seller = sellerRes?.data?.data?.seller || sellerRes?.data?.seller
-          setIsPureVegSeller(seller?.pureVegSeller === true)
-        } catch {
-          setIsPureVegSeller(false)
-        }
         const response = await sellerAPI.getCategories()
         if (response.data.success && response.data.data.categories) {
           // Format categories for the UI - flat list, no subcategories
           const formattedCategories = response.data.data.categories.map(cat => ({
             id: cat._id || cat.id,
             name: cat.name,
-            foodTypeScope: cat.foodTypeScope || "Both",
           }))
 
           debugLog('Formatted seller categories:', formattedCategories)
@@ -286,12 +277,6 @@ export default function ItemDetailsPage() {
 
     fetchCategories()
   }, [category, defaultCategory, defaultCategoryId, isNewItem, selectedCategoryId])
-
-  useEffect(() => {
-    if (isPureVegSeller && foodType !== "Veg") {
-      setFoodType("Veg")
-    }
-  }, [isPureVegSeller, foodType])
 
   // Keep focused form fields visible above mobile keyboard
   useEffect(() => {
@@ -648,16 +633,6 @@ export default function ItemDetailsPage() {
       if (!categoryId) {
         toast.error("Please select an approved category first")
         setIsCategoryPopupOpen(true)
-        setUploadingImages(false)
-        return
-      }
-
-      if (
-        matchedCategory?.foodTypeScope &&
-        matchedCategory.foodTypeScope !== "Both" &&
-        matchedCategory.foodTypeScope !== foodType
-      ) {
-        toast.error(`This ${matchedCategory.foodTypeScope} category cannot accept ${foodType} food`)
         setUploadingImages(false)
         return
       }
@@ -1074,18 +1049,26 @@ export default function ItemDetailsPage() {
                 {foodType === "Veg" && <Check className="w-4 h-4" style={{ color: "#16A34A" }} />}
                 <span>Veg</span>
               </button>
-              {!isPureVegSeller && (
-                <button
-                  onClick={() => setFoodType("Non-Veg")}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${foodType === "Non-Veg"
-                    ? "border-red-600 border-2 text-red-600"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                >
-                  {foodType === "Non-Veg" && <Check className="w-4 h-4" />}
-                  <span>Non-Veg</span>
-                </button>
-              )}
+              <button
+                onClick={() => setFoodType("Non-Veg")}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${foodType === "Non-Veg"
+                  ? "border-red-600 border-2 text-red-600"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+              >
+                {foodType === "Non-Veg" && <Check className="w-4 h-4" />}
+                <span>Non-Veg</span>
+              </button>
+              <button
+                onClick={() => setFoodType(null)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${foodType !== "Veg" && foodType !== "Non-Veg"
+                  ? "border-gray-900 border-2 text-gray-900"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+              >
+                {foodType !== "Veg" && foodType !== "Non-Veg" && <Check className="w-4 h-4" />}
+                <span>Not applicable</span>
+              </button>
             </div>
           </div>
 
@@ -1377,14 +1360,6 @@ export default function ItemDetailsPage() {
                       >
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-sm font-medium">{cat.name}</span>
-                          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${cat.foodTypeScope === "Veg"
-                            ? "border-green-200 bg-green-50 text-green-700"
-                            : cat.foodTypeScope === "Non-Veg"
-                              ? "border-red-200 bg-red-50 text-red-700"
-                              : "border-slate-200 bg-slate-100 text-slate-700"
-                            }`}>
-                            {cat.foodTypeScope || "Both"}
-                          </span>
                         </div>
                       </button>
                     ))}
@@ -1460,14 +1435,6 @@ export default function ItemDetailsPage() {
                         >
                           <div className="flex items-center justify-between gap-3">
                             <span className="text-sm font-medium">{cat.name}</span>
-                            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${cat.foodTypeScope === "Veg"
-                              ? "border-green-200 bg-green-50 text-green-700"
-                              : cat.foodTypeScope === "Non-Veg"
-                                ? "border-red-200 bg-red-50 text-red-700"
-                                : "border-slate-200 bg-slate-100 text-slate-700"
-                              }`}>
-                              {cat.foodTypeScope || "Both"}
-                            </span>
                           </div>
                         </button>
                       ))}

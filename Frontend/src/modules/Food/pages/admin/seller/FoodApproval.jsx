@@ -93,27 +93,21 @@ export default function FoodApproval() {
       request.category?.toLowerCase().includes(query) ||
       request.sellerName?.toLowerCase().includes(query) ||
       request.sellerId?.toLowerCase().includes(query) ||
-      request.approvalStatus?.toLowerCase().includes(query) ||
-      request.entityType?.toLowerCase().includes(query)
+      request.approvalStatus?.toLowerCase().includes(query)
     )
   }, [foodRequests, searchQuery])
 
   const totalRequests = filteredRequests.length
 
-  // Handle approve food item or addon
+  // Handle approve food item
   const handleApprove = async (request) => {
     if (!request?.isActionable) return
     try {
       setProcessing(true)
       const id = request._id || request.id
       
-      if (request.entityType === 'addon') {
-        await adminAPI.approveSellerAddon(id)
-        toast.success('Add-on approved successfully')
-      } else {
-        await adminAPI.approveFoodItem(id)
-        toast.success('Food item approved successfully')
-      }
+      await adminAPI.approveFoodItem(id)
+      toast.success('Food item approved successfully')
       
       await fetchFoodRequests()
       setShowDetailModal(false)
@@ -126,7 +120,7 @@ export default function FoodApproval() {
     }
   }
 
-  // Handle reject food item or addon
+  // Handle reject food item
   const handleReject = async () => {
     if (!selectedRequest?.isActionable) {
       setShowRejectModal(false)
@@ -141,13 +135,8 @@ export default function FoodApproval() {
       setProcessing(true)
       const id = selectedRequest._id || selectedRequest.id
       
-      if (selectedRequest.entityType === 'addon') {
-        await adminAPI.rejectSellerAddon(id, rejectReason)
-        toast.success('Add-on rejected')
-      } else {
-        await adminAPI.rejectFoodItem(id, rejectReason)
-        toast.success('Food item rejected')
-      }
+      await adminAPI.rejectFoodItem(id, rejectReason)
+      toast.success('Food item rejected')
       
       await fetchFoodRequests()
       setShowRejectModal(false)
@@ -193,7 +182,7 @@ export default function FoodApproval() {
           {/* Section Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-gray-900">Pending Food & Add-on Approvals</h2>
+              <h2 className="text-base font-semibold text-gray-900">Pending Food Approvals</h2>
               <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-600">
                 {totalRequests}
               </span>
@@ -264,9 +253,6 @@ export default function FoodApproval() {
                         Item Name
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -283,8 +269,8 @@ export default function FoodApproval() {
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {filteredRequests.length === 0 ? (
                       <tr>
-                        <td colSpan="9" className="px-3 py-8 text-center text-sm text-gray-500">
-                          {loading ? "Loading..." : "No food or add-on records found."}
+                        <td colSpan="8" className="px-3 py-8 text-center text-sm text-gray-500">
+                          {loading ? "Loading..." : "No food records found."}
                         </td>
                       </tr>
                     ) : (
@@ -304,11 +290,6 @@ export default function FoodApproval() {
                           </td>
                           <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700 font-semibold">
                             {request.itemName || '-'}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700 capitalize text-center">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${request.entityType === 'addon' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                                {request.entityType || 'food'}
-                            </span>
                           </td>
                           <td className="px-3 py-3 whitespace-nowrap text-sm">
                             <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
@@ -371,7 +352,7 @@ export default function FoodApproval() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0 bg-white shadow-2xl rounded-2xl border-none">
           <DialogHeader className="p-6 pb-4 border-b border-gray-100 bg-slate-50/50">
             <DialogTitle className="text-xl font-bold text-gray-900">
-              {selectedRequest?.entityType === 'addon' ? 'Add-on Details' : 'Food Item Details'}
+              Food Item Details
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-500 mt-1">
               Review the submitted details before approval.
@@ -413,7 +394,7 @@ export default function FoodApproval() {
                 </div>
 
                 <div className="space-y-4">
-                    {selectedRequest.foodType && (
+                    {(selectedRequest.foodType === 'Veg' || selectedRequest.foodType === 'Non-Veg') && (
                         <div>
                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Food Type</label>
                             <p className="text-sm text-gray-700">{selectedRequest.foodType}</p>

@@ -40,7 +40,6 @@ export const addSeller = (sellerData) => {
     ownerName: `${sellerData.firstName} ${sellerData.lastName}`,
     ownerPhone: `${sellerData.phoneCode} ${sellerData.phone}`,
     zone: sellerData.zone,
-    cuisine: sellerData.cuisine,
     status: true,
     rating: 0,
     logo: sellerData.logo ? URL.createObjectURL(sellerData.logo) : null,

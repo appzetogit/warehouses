@@ -18,7 +18,6 @@ export const useHomeData = (location, zoneId) => {
   
   const [menuCategories, setMenuCategories] = useState([]);
   const [loadingMenuCategories, setLoadingMenuCategories] = useState(false);
-  const [sellerDietMeta, setSellerDietMeta] = useState({});
 
   // Old backend endpoints (hero banners / landing config) are not used anymore.
   // Keep UI stable by setting safe defaults once.
@@ -44,7 +43,6 @@ export const useHomeData = (location, zoneId) => {
       const params = {
         _ts: Date.now(),
         ...(filters.sortBy && { sortBy: filters.sortBy }),
-        ...(filters.cuisine && { cuisine: filters.cuisine }),
         ...(zoneId && { zoneId })
       };
       const res = await sellerAPI.getSellers(params);
@@ -71,8 +69,7 @@ export const useHomeData = (location, zoneId) => {
             distanceInKm: distInKm,
             image: allImgs[0] || "",
             images: allImgs,
-            rating: r.rating || 4.5,
-            cuisine: r.cuisines?.[0] || "Multi-cuisine"
+            rating: r.rating || 4.5
           };
         });
         setSellersData(transformed);
@@ -87,7 +84,6 @@ export const useHomeData = (location, zoneId) => {
     setLoadingMenuCategories(true);
     try {
       const categoryMap = new Map();
-      const dietMeta = {};
 
       const menuResponses = await Promise.all(
         sellersData.slice(0, 50).map(async (r) => {
@@ -100,16 +96,10 @@ export const useHomeData = (location, zoneId) => {
         })
       );
 
-      menuResponses.forEach(({ id, menu }) => {
-        let hasVeg = false, hasNonVeg = false;
+      menuResponses.forEach(({ menu }) => {
         const sections = menu?.sections || [];
         sections.forEach(s => {
           const items = s.items || [];
-          items.forEach(i => {
-            const type = String(i.foodType || "").toLowerCase();
-            if (type === "veg") hasVeg = true;
-            if (type.includes("non")) hasNonVeg = true;
-          });
           const slug = slugify(s.name);
           if (slug && !categoryMap.has(slug)) {
             categoryMap.set(slug, {
@@ -118,11 +108,9 @@ export const useHomeData = (location, zoneId) => {
             });
           }
         });
-        dietMeta[id] = { hasVeg, hasNonVeg, isPureVeg: hasVeg && !hasNonVeg };
       });
 
       setMenuCategories(Array.from(categoryMap.values()));
-      setSellerDietMeta(dietMeta);
     } finally {
       setLoadingMenuCategories(false);
     }
@@ -145,7 +133,7 @@ export const useHomeData = (location, zoneId) => {
     loadingConfig, landingCategories, exploreMoreItems, exploreMoreHeading, recommendedSellers,
     loadingBanners, heroBannerImages, heroBannersData,
     loadingSellers, sellersData, setSellersData,
-    loadingMenuCategories, menuCategories, sellerDietMeta,
+    loadingMenuCategories, menuCategories,
     fetchSellers
   };
 };

@@ -16,7 +16,6 @@ const databaseTables = [
   { name: "Carts", count: 3 },
   { name: "Categories", count: 29 },
   { name: "Contact_messages", count: 0 },
-  { name: "Cuisine_seller", count: 11 },
   { name: "D_m_reviews", count: 2 },
   { name: "Delivery_men", count: 9 },
   { name: "Disbursements", count: 2 },
@@ -52,7 +51,6 @@ const databaseTables = [
   { name: "Withdrawal_methods", count: 2 },
   
   // Column 2
-  { name: "Add_ons", count: 40 },
   { name: "Admin_special_criter...", count: 0 },
   { name: "Advertisements", count: 5 },
   { name: "Allergy_item_campaig...", count: 0 },
@@ -61,7 +59,6 @@ const databaseTables = [
   { name: "Cash_back_histories", count: 2 },
   { name: "Characteristic_resta...", count: 30 },
   { name: "Conversations", count: 2 },
-  { name: "Cuisines", count: 8 },
   { name: "Delivery_histories", count: 0 },
   { name: "Disbursement_details", count: 10 },
   { name: "Discounts", count: 3 },
@@ -93,7 +90,6 @@ const databaseTables = [
   { name: "Zones", count: 1 },
   
   // Column 3
-  { name: "Addon_categories", count: 4 },
   { name: "Admin_testimonials", count: 4 },
   { name: "Allergies", count: 2 },
   { name: "Analytic_scripts", count: 0 },

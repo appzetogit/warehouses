@@ -806,13 +806,6 @@ export default function JoiningRequest() {
                             </div>
                           ) : null
                         })()}
-                        {r?.pureVegSeller != null && (
-                          <div className="flex items-center gap-3">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${r.pureVegSeller ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
-                              {r.pureVegSeller ? "🟢 Pure Veg" : "🟠 Mixed Menu"}
-                            </span>
-                          </div>
-                        )}
                         {(r?.primaryContactNumber || r?.phone) && (
                           <div className="flex items-center gap-3">
                             <Phone className="w-5 h-5 text-slate-400" />

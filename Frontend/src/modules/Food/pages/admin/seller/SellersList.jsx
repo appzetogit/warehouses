@@ -184,7 +184,6 @@ export default function SellersList() {
   const [savingDetails, setSavingDetails] = useState(false)
   const [detailsForm, setDetailsForm] = useState({
     name: "",
-    pureVegSeller: false,
     ownerName: "",
     ownerEmail: "",
     ownerPhone: "",
@@ -924,7 +923,6 @@ export default function SellersList() {
     if (!seller) {
       return {
         name: "",
-        pureVegSeller: false,
         ownerName: "",
         ownerEmail: "",
         ownerPhone: "",
@@ -954,10 +952,6 @@ export default function SellersList() {
 
     return {
       name: seller.sellerName || seller.name || "",
-      pureVegSeller:
-        typeof seller.pureVegSeller === "boolean"
-          ? seller.pureVegSeller
-          : false,
       ownerName: seller.ownerName || "",
       ownerEmail: seller.ownerEmail || "",
       ownerPhone: seller.ownerPhone || seller.phone || "",
@@ -1024,7 +1018,6 @@ export default function SellersList() {
 
       const payload = {
         name: detailsForm.name.trim(),
-        pureVegSeller: detailsForm.pureVegSeller === true,
         ownerName: detailsForm.ownerName.trim(),
         ownerEmail: detailsForm.ownerEmail.trim(),
         ownerPhone: detailsForm.ownerPhone.trim(),
@@ -1658,33 +1651,6 @@ export default function SellersList() {
                       <input type="text" value={detailsForm.name} onChange={(e) => setDetailsForm((prev) => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-500 mb-1">Pure Veg</label>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setDetailsForm((prev) => ({ ...prev, pureVegSeller: true }))}
-                          className={`px-3 py-1.5 text-xs rounded-full border ${
-                            detailsForm.pureVegSeller === true
-                              ? "bg-green-600 text-white border-green-600"
-                              : "bg-white text-slate-700 border-slate-300"
-                          }`}
-                        >
-                          Yes
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDetailsForm((prev) => ({ ...prev, pureVegSeller: false }))}
-                          className={`px-3 py-1.5 text-xs rounded-full border ${
-                            detailsForm.pureVegSeller === false
-                              ? "bg-slate-900 text-white border-slate-900"
-                              : "bg-white text-slate-700 border-slate-300"
-                          }`}
-                        >
-                          No
-                        </button>
-                      </div>
-                    </div>
-                    <div>
                       <label className="block text-xs text-slate-500 mb-1">Seller Email</label>
                       <input type="email" value={detailsForm.email} onChange={(e) => setDetailsForm((prev) => ({ ...prev, email: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
                     </div>
@@ -1887,10 +1853,6 @@ export default function SellersList() {
                 // image field this modal never surfaced, so an admin could not tell
                 // whether a seller had usable pickup photos without opening the edit page.
                 const galleryImages = Array.isArray(r?.galleryImages) ? r.galleryImages.map(normalizeImageUrl).filter(Boolean) : []
-                const cuisinesList =
-                  (Array.isArray(r?.cuisines) && r.cuisines.length ? r.cuisines : null) ||
-                  (Array.isArray(r?.onboarding?.step2?.cuisines) && r.onboarding.step2.cuisines.length ? r.onboarding.step2.cuisines : null) ||
-                  null
                 const outletTimingsByDay =
                   sellerOutletTimings && typeof sellerOutletTimings === "object" && !Array.isArray(sellerOutletTimings)
                     ? sellerOutletTimings
@@ -1918,7 +1880,6 @@ export default function SellersList() {
                 const estimatedDeliveryTimeVal = r?.estimatedDeliveryTime || r?.onboarding?.step4?.estimatedDeliveryTime || ""
                 const featuredDishVal = r?.featuredDish || r?.onboarding?.step4?.featuredDish || ""
                 const featuredPriceVal = r?.featuredPrice ?? r?.onboarding?.step4?.featuredPrice
-                const diningSettingsVal = r?.diningSettings || r?.onboarding?.step4?.diningSettings || null
                 const panDocumentUrl = typeof r?.panImage === "string" ? r.panImage : (r?.panImage?.url || r?.onboarding?.step3?.pan?.image?.url || "")
                 const gstDocumentUrl = typeof r?.gstImage === "string" ? r.gstImage : (r?.gstImage?.url || r?.onboarding?.step3?.gst?.image?.url || "")
                 const fssaiDocumentUrl = typeof r?.fssaiImage === "string" ? r.fssaiImage : (r?.fssaiImage?.url || r?.onboarding?.step3?.fssai?.image?.url || "")
@@ -2541,18 +2502,6 @@ export default function SellersList() {
                     <div className="pt-6 border-t border-slate-200">
                       <h4 className="text-lg font-semibold text-slate-900 mb-4">Registration Step 2 Details</h4>
                       <div className="space-y-4">
-                        {r.onboarding.step2.cuisines && Array.isArray(r.onboarding.step2.cuisines) && r.onboarding.step2.cuisines.length > 0 && (
-                          <div>
-                            <p className="text-xs text-slate-500 mb-2">Cuisines (at registration)</p>
-                            <div className="flex flex-wrap gap-2">
-                              {r.onboarding.step2.cuisines.map((cuisine, idx) => (
-                                <span key={idx} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                                  {cuisine}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                         {r.onboarding.step2.deliveryTimings && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>

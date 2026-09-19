@@ -264,15 +264,6 @@ export default function OrderDetailPage({
                   <p className="text-[11px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">
                     {item.quantity} × {formatMoney(item.price)}
                   </p>
-                  {item.addons && item.addons.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {item.addons.map((addon, aIdx) => (
-                        <span key={aIdx} className="text-[9px] font-black bg-gray-50 text-gray-500 px-2 py-1 rounded-lg border border-gray-100 uppercase tracking-tighter">
-                          + {addon.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             ))}

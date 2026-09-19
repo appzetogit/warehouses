@@ -583,35 +583,6 @@ export const adminAPI = {
   /** Categories (admin) */
   getCategories: (params = {}) =>
     apiClient.get("/food/admin/categories", { params, contextModule: "admin" }),
-  /** Dining categories (admin) */
-  getDiningCategories: (params = {}) =>
-    apiClient.get("/food/admin/dining/categories", {
-      params,
-      contextModule: "admin",
-    }),
-  createDiningCategory: (body) =>
-    apiClient.post("/food/admin/dining/categories", body ?? {}, {
-      contextModule: "admin",
-    }),
-  updateDiningCategory: (id, body) =>
-    apiClient.patch(`/food/admin/dining/categories/${String(id)}`, body ?? {}, {
-      contextModule: "admin",
-    }),
-  deleteDiningCategory: (id) =>
-    apiClient.delete(`/food/admin/dining/categories/${String(id)}`, {
-      contextModule: "admin",
-    }),
-  getDiningSellers: (params = {}) =>
-    apiClient.get("/food/admin/dining/sellers", {
-      params,
-      contextModule: "admin",
-    }),
-  updateSellerDiningSettings: (sellerId, body) =>
-    apiClient.patch(
-      `/food/admin/dining/sellers/${String(sellerId)}`,
-      body ?? {},
-      { contextModule: "admin" },
-    ),
   createCategory: (body) =>
     apiClient.post("/food/admin/categories", body ?? {}, {
       contextModule: "admin",
@@ -675,16 +646,6 @@ export const adminAPI = {
       body ?? {},
       { contextModule: "admin" },
     ),
-  /** Seller menu (admin) */
-  getSellerMenuById: (id, config = {}) =>
-    apiClient.get(`/food/admin/sellers/${id}/menu`, {
-      contextModule: "admin",
-      ...config,
-    }),
-  updateSellerMenuById: (id, body) =>
-    apiClient.patch(`/food/admin/sellers/${id}/menu`, body ?? {}, {
-      contextModule: "admin",
-    }),
   /** Foods (admin) - separate collection */
   getFoods: (params = {}) =>
     apiClient.get("/food/admin/foods", { params, contextModule: "admin" }),
@@ -1167,30 +1128,6 @@ export const adminAPI = {
       contextModule: "admin",
     }),
 
-  /** Seller add-ons approval (admin) */
-  getSellerAddons: (params = {}) =>
-    apiClient.get("/food/admin/addons", {
-      params: params ?? {},
-      contextModule: "admin",
-    }),
-  updateSellerAddon: (id, body) =>
-    apiClient.patch(
-      `/food/admin/addons/${String(id)}`,
-      body ?? {},
-      { contextModule: "admin" },
-    ),
-  approveSellerAddon: (id) =>
-    apiClient.patch(
-      `/food/admin/addons/${String(id)}/approve`,
-      {},
-      { contextModule: "admin" },
-    ),
-  rejectSellerAddon: (id, reason) =>
-    apiClient.patch(
-      `/food/admin/addons/${String(id)}/reject`,
-      { reason: String(reason || "").trim() },
-      { contextModule: "admin" },
-    ),
   /** Business Settings (admin) */
   getBusinessSettings: () =>
     apiClient.get(API_ENDPOINTS.ADMIN.BUSINESS_SETTINGS, {
@@ -1292,16 +1229,10 @@ export const sellerAPI = {
       params,
       contextModule: "seller"
     }),
-  /** Update seller profile fields (name/cuisines/location/menuImages). */
+  /** Update seller profile fields (name/location/menuImages). */
   updateProfile: (body) =>
     apiClient
       .patch("/food/seller/profile", body ?? {}, {
-        contextModule: "seller",
-      })
-      .then((res) => res),
-  updateDiningSettings: (body) =>
-    apiClient
-      .patch("/food/seller/dining-settings", body ?? {}, {
         contextModule: "seller",
       })
       .then((res) => res),
@@ -1470,10 +1401,6 @@ export const sellerAPI = {
     }),
   getOrderById: (orderId) =>
     apiClient.get(`/food/seller/orders/${String(orderId)}`, {
-      contextModule: "seller",
-    }),
-  updateMenu: (body) =>
-    apiClient.patch("/food/seller/menu", body ?? {}, {
       contextModule: "seller",
     }),
   saveFcmToken: (token, platform = "web") => {
@@ -1662,25 +1589,6 @@ export const sellerAPI = {
       contextModule: "seller",
     });
   },
-  /** Add-ons (seller) - approval handled by admin */
-  getAddons: (params = {}) =>
-    apiClient.get("/food/seller/addons", {
-      // Backend validator enforces limit <= 100
-      params: { limit: 100, page: 1, ...params },
-      contextModule: "seller",
-    }),
-  addAddon: (body) =>
-    apiClient.post("/food/seller/addons", body ?? {}, {
-      contextModule: "seller",
-    }),
-  updateAddon: (id, body) =>
-    apiClient.patch(`/food/seller/addons/${String(id)}`, body ?? {}, {
-      contextModule: "seller",
-    }),
-  deleteAddon: (id) =>
-    apiClient.delete(`/food/seller/addons/${String(id)}`, {
-      contextModule: "seller",
-    }),
   logout: async (refreshToken, fcmTokenOverride = null, platformOverride = null) => {
     const token =
       refreshToken ||
@@ -1733,11 +1641,6 @@ export const sellerAPI = {
   /** Public: approved foods for user category/search pages (zone + optional category slug) */
   getPublicFoods: (params = {}, config = {}) =>
     getPublicFoodsOnce(params, config),
-  /** Public (user app): approved add-ons by seller id/slug */
-  getAddonsBySellerId: (id, config = {}) =>
-    apiClient.get(`/food/seller/sellers/${String(id)}/addons`, {
-      ...config,
-    }),
   getPublicOffers: (params = {}, config = {}) =>
     apiClient.get("/food/seller/offers", { params, ...config }),
   /** Resend delivery notification (seller dashboard) */
@@ -2812,367 +2715,6 @@ export const orderAPI = {
       },
       { contextModule: "user" }
     ),
-};
-
-const DINING_BOOKINGS_STORAGE_KEY = "food_dining_bookings_v1";
-
-const safeJsonParse = (value, fallback) => {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-};
-
-const getStoredBookings = () => {
-  if (typeof localStorage === "undefined") return [];
-  const parsed = safeJsonParse(
-    localStorage.getItem(DINING_BOOKINGS_STORAGE_KEY) || "[]",
-    [],
-  );
-  return Array.isArray(parsed) ? parsed : [];
-};
-
-const saveStoredBookings = (bookings) => {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(
-    DINING_BOOKINGS_STORAGE_KEY,
-    JSON.stringify(Array.isArray(bookings) ? bookings : []),
-  );
-};
-
-const getStoredModuleUser = (module) => {
-  if (typeof localStorage === "undefined") return null;
-  const parsed = safeJsonParse(
-    localStorage.getItem(`${module}_user`) || "null",
-    null,
-  );
-  return parsed && typeof parsed === "object" ? parsed : null;
-};
-
-const normalizeName = (seller) =>
-  seller?.name || seller?.sellerName || "Seller";
-
-const normalizeSellerShape = (seller) => {
-  if (!seller || typeof seller !== "object") return null;
-  return {
-    _id: seller?._id || seller?.id || null,
-    id: seller?.id || seller?._id || null,
-    sellerId: seller?.sellerId || seller?._id || seller?.id || null,
-    sellerNameNormalized:
-      seller?.sellerNameNormalized || seller?.slug || "",
-    slug: seller?.slug || "",
-    name: normalizeName(seller),
-    sellerName: seller?.sellerName || normalizeName(seller),
-    profileImage: seller?.profileImage || null,
-    coverImages: Array.isArray(seller?.coverImages)
-      ? seller.coverImages
-      : [],
-    menuImages: Array.isArray(seller?.menuImages) ? seller.menuImages : [],
-    image:
-      seller?.coverImages?.[0]?.url ||
-      seller?.coverImages?.[0] ||
-      seller?.menuImages?.[0]?.url ||
-      seller?.menuImages?.[0] ||
-      seller?.image ||
-      seller?.profileImage?.url ||
-      (typeof seller?.profileImage === "string"
-        ? seller.profileImage
-        : ""),
-    location: seller?.location || null,
-  };
-};
-
-const collectSellerBookingKeys = (sellerCandidate) => {
-  if (!sellerCandidate) return [];
-
-  const raw =
-    typeof sellerCandidate === "object"
-      ? sellerCandidate
-      : { _id: sellerCandidate, id: sellerCandidate, sellerId: sellerCandidate };
-
-  const values = [
-    raw?._id,
-    raw?.id,
-    raw?.sellerId,
-    raw?.slug,
-    raw?.sellerNameNormalized,
-    raw?.seller?._id,
-    raw?.seller?.id,
-    raw?.seller?.sellerId,
-    raw?.seller?.slug,
-    raw?.seller?.sellerNameNormalized,
-  ];
-
-  return Array.from(
-    new Set(
-      values
-        .map((value) => String(value || "").trim())
-        .filter(Boolean),
-    ),
-  );
-};
-
-const buildLocalBookingId = () =>
-  `dbook_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-const buildDisplayBookingId = () => `TB${Date.now().toString().slice(-8)}`;
-
-const getCurrentUserForBookings = async () => {
-  const storedUser = getStoredModuleUser("user");
-  if (storedUser) return storedUser;
-
-  try {
-    const me = await authService.getMe("user");
-    return me?.data?.data?.user || me?.data?.user || me?.data?.data || null;
-  } catch {
-    return null;
-  }
-};
-
-const normalizeBookingUser = (candidate) => {
-  if (!candidate || typeof candidate !== "object") return null;
-  const name = String(candidate?.name || candidate?.fullName || "").trim();
-  const phone = String(
-    candidate?.phone || candidate?.mobile || candidate?.phoneNumber || "",
-  ).trim();
-  const email = String(candidate?.email || "").trim();
-
-  return {
-    _id: candidate?._id || candidate?.id || null,
-    id: candidate?.id || candidate?._id || null,
-    name,
-    phone,
-    email,
-  };
-};
-
-const byLatest = (a, b) =>
-  new Date(b?.createdAt || b?.date || 0).getTime() -
-  new Date(a?.createdAt || a?.date || 0).getTime();
-
-export const diningAPI = {
-  getCategories: (params = {}) =>
-    apiClient.get("/food/dining/categories/public", { params }),
-  getSellers: (params = {}) =>
-    apiClient.get("/food/dining/sellers/public", { params }),
-  getHeroBanners: () => apiClient.get("/food/hero-banners/dining/public"),
-  getSellerBySlug: (slug) =>
-    apiClient.get(`/food/seller/sellers/${String(slug)}`),
-  getOfferBanners: () => Promise.resolve({ data: { success: true, data: [] } }),
-  getStories: () => Promise.resolve({ data: { success: true, data: [] } }),
-  getBankOffers: () => Promise.resolve({ data: { success: true, data: [] } }),
-  getBookings: async () => {
-    const bookings = getStoredBookings();
-    const user = await getCurrentUserForBookings();
-
-    const userId = user?._id || user?.id || null;
-    const userPhone = String(user?.phone || "").trim();
-    const userEmail = String(user?.email || "")
-      .trim()
-      .toLowerCase();
-
-    const filtered = bookings
-      .filter((booking) => {
-        if (userId) {
-          return (
-            String(booking?.userId || "") === String(userId) ||
-            String(booking?.user?._id || booking?.user?.id || "") ===
-            String(userId)
-          );
-        }
-
-        if (userPhone) {
-          return String(booking?.user?.phone || "").trim() === userPhone;
-        }
-
-        if (userEmail) {
-          return (
-            String(booking?.user?.email || "")
-              .trim()
-              .toLowerCase() === userEmail
-          );
-        }
-
-        return false;
-      })
-      .sort(byLatest);
-
-    return Promise.resolve({ data: { success: true, data: filtered } });
-  },
-  getSellerBookings: (sellerRef) => {
-    const keys = collectSellerBookingKeys(sellerRef);
-    const bookings = getStoredBookings();
-
-    const filtered = bookings
-      .filter((booking) => {
-        if (keys.length === 0) return false;
-        const bookingKeys = collectSellerBookingKeys({
-          sellerId: booking?.sellerId,
-          ...(booking?.seller && typeof booking.seller === "object"
-            ? booking.seller
-            : {}),
-        });
-        return bookingKeys.some((value) => keys.includes(value));
-      })
-      .sort(byLatest);
-
-    return Promise.resolve({ data: { success: true, data: filtered } });
-  },
-  updateBookingStatusSeller: (bookingId, status) => {
-    const id = String(bookingId || "").trim();
-    const nextStatus = String(status || "")
-      .trim()
-      .toLowerCase();
-    const bookings = getStoredBookings();
-
-    const next = bookings.map((booking) => {
-      const bookingKey = String(booking?._id || booking?.id || "");
-      if (bookingKey !== id) return booking;
-      return {
-        ...booking,
-        status: nextStatus || booking?.status || "confirmed",
-        updatedAt: new Date().toISOString(),
-      };
-    });
-
-    saveStoredBookings(next);
-    const updated =
-      next.find(
-        (booking) => String(booking?._id || booking?.id || "") === id,
-      ) || null;
-
-    return Promise.resolve({
-      data: { success: Boolean(updated), data: updated },
-    });
-  },
-  createReview: (payload = {}) => {
-    const bookingId = String(payload?.bookingId || "").trim();
-    if (!bookingId) {
-      return Promise.resolve({
-        data: { success: false, message: "bookingId is required", data: null },
-      });
-    }
-
-    const bookings = getStoredBookings();
-    const next = bookings.map((booking) => {
-      const bookingKey = String(booking?._id || booking?.id || "");
-      if (bookingKey !== bookingId) return booking;
-      return {
-        ...booking,
-        review: {
-          rating: Number(payload?.rating || 0),
-          comment: String(payload?.comment || "").trim(),
-          createdAt: new Date().toISOString(),
-        },
-        updatedAt: new Date().toISOString(),
-      };
-    });
-
-    saveStoredBookings(next);
-    const updated =
-      next.find(
-        (booking) => String(booking?._id || booking?.id || "") === bookingId,
-      ) || null;
-
-    return Promise.resolve({
-      data: { success: Boolean(updated), data: updated },
-    });
-  },
-  createBooking: async (payload = {}) => {
-    const sellerId = String(
-      payload?.seller ||
-      payload?.sellerId ||
-      payload?.sellerRef?._id ||
-      payload?.sellerRef?.id ||
-      payload?.sellerRef?.seller?._id ||
-      payload?.sellerRef?.seller?.id ||
-      payload?.seller?._id ||
-      payload?.seller?.id ||
-      "",
-    ).trim();
-
-    if (!sellerId) {
-      return Promise.resolve({
-        data: {
-          success: false,
-          message: "Seller is required",
-          data: null,
-        },
-      });
-    }
-
-    let sellerData =
-      normalizeSellerShape(payload?.sellerRef) ||
-      normalizeSellerShape(payload?.seller?.seller) ||
-      normalizeSellerShape(payload?.seller);
-    if (!sellerData) {
-      try {
-        const sellerRes = await apiClient.get(
-          `/food/seller/sellers/${String(sellerId)}`,
-        );
-        const rawSeller =
-          sellerRes?.data?.data?.seller ||
-          sellerRes?.data?.data ||
-          null;
-        sellerData = normalizeSellerShape(rawSeller);
-      } catch {
-        sellerData = {
-          _id: sellerId,
-          id: sellerId,
-          name: "Seller",
-          sellerName: "Seller",
-          profileImage: null,
-          image: "",
-          location: null,
-          slug: "",
-        };
-      }
-    }
-
-    const payloadUser = normalizeBookingUser(payload?.userRef || payload?.user);
-    const resolvedUser =
-      payloadUser ||
-      normalizeBookingUser(await getCurrentUserForBookings()) ||
-      null;
-    const nowIso = new Date().toISOString();
-    const localBookingId = buildLocalBookingId();
-
-    const booking = {
-      _id: localBookingId,
-      id: localBookingId,
-      bookingId: buildDisplayBookingId(),
-      sellerId,
-      seller: sellerData,
-      userId: resolvedUser?._id || resolvedUser?.id || null,
-      user: {
-        _id: resolvedUser?._id || resolvedUser?.id || null,
-        id: resolvedUser?.id || resolvedUser?._id || null,
-        name: resolvedUser?.name || "Guest",
-        phone: resolvedUser?.phone || "",
-        email: resolvedUser?.email || "",
-      },
-      guests: Math.max(1, Number(payload?.guests) || 1),
-      date: new Date(payload?.date || nowIso).toISOString(),
-      timeSlot: String(payload?.timeSlot || "").trim(),
-      specialRequest: String(payload?.specialRequest || "").trim(),
-      status: "pending",
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    };
-
-    const bookings = getStoredBookings();
-    const next = [booking, ...bookings].sort(byLatest);
-    saveStoredBookings(next);
-
-    return Promise.resolve({
-      data: {
-        success: true,
-        message: "Booking created successfully",
-        data: booking,
-      },
-    });
-  },
 };
 export const heroBannerAPI = createStubAPI();
 export const publicAPI = createStubAPI();

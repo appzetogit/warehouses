@@ -16,7 +16,6 @@ import {
   Building2,
   Utensils,
   Grid,
-  PlusCircle,
   Bell,
   BellOff,
 } from "lucide-react";
@@ -596,7 +595,6 @@ export default function AdminNavbar({ onMenuClick }) {
                                 {result.type === 'Seller' && <Building2 className="w-5 h-5" />}
                                 {result.type === 'Product' && <Utensils className="w-5 h-5" />}
                                 {result.type === 'Category' && <Grid className="w-5 h-5" />}
-                                {result.type === 'Addon' && <PlusCircle className="w-5 h-5" />}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-neutral-900 truncate">

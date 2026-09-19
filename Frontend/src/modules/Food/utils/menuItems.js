@@ -11,7 +11,7 @@ const normalizeItem = (item = {}, sectionName = "", subsectionName = "") => ({
   image: item?.image || item?.images?.[0] || "",
   name: item?.name || "Unnamed Item",
   category: item?.category || sectionName || "Varieties",
-  foodType: item?.foodType || "Non-Veg",
+  foodType: item?.foodType || null,
   price: getFoodDisplayPrice(item),
   otherPrice: getFoodDisplayOtherPrice(item),
   rating: Number(item?.rating || 0),

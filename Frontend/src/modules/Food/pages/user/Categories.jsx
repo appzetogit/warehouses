@@ -89,7 +89,7 @@ export default function Categories() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-400 dark:text-neutral-500 group-focus-within:text-[#EB590E] transition-colors" />
           <input
             type="text"
-            placeholder="Search specialties, cuisines..."
+            placeholder="Search specialties, categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-4 bg-neutral-50 dark:bg-[#1a1a1a] border border-neutral-100 dark:border-neutral-800 rounded-2xl text-sm font-medium text-neutral-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-[#EB590E]/5 focus:border-[#EB590E] transition-all placeholder:text-neutral-400 dark:placeholder:text-neutral-500"

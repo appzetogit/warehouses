@@ -31,7 +31,6 @@ const ADMIN_PERMISSION_PATH_MAP = [
   { prefix: "/food/admin/seller-subscriptions", section: "seller_management" },
   { prefix: "/food/admin/zones", section: "seller_management" },
   { prefix: "/food/admin/categories", section: "food_management" },
-  { prefix: "/food/admin/addons", section: "food_management" },
   { prefix: "/food/admin/foods", section: "food_management" },
   { prefix: "/food/admin/offers", section: "promotions_management" },
   { prefix: "/food/admin/orders", section: "order_management" },

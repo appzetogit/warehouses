@@ -15,7 +15,6 @@ const seoPages = [
   { id: 1, name: "Seller list" },
   { id: 2, name: "Category list" },
   { id: 3, name: "Campaign" },
-  { id: 4, name: "Cuisine list" },
   { id: 5, name: "Home page" },
   { id: 6, name: "Contact us page" },
   { id: 7, name: "About us page" },

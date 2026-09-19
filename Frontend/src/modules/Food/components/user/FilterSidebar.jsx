@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from "framer-motion";
-import { X, SlidersHorizontal, ArrowDownUp, IndianRupee, UtensilsCrossed, Check } from "lucide-react";
+import { X, SlidersHorizontal, ArrowDownUp, IndianRupee, Check } from "lucide-react";
 
 const FilterSidebar = ({ 
   isOpen, 
@@ -9,8 +9,6 @@ const FilterSidebar = ({
   setActiveTab,
   sortBy,
   setSortBy,
-  selectedCuisine,
-  setSelectedCuisine,
   activeFilters,
   toggleFilter,
   onApply,
@@ -18,7 +16,6 @@ const FilterSidebar = ({
 }) => {
   const tabs = [
     { id: 'sort', label: 'Sort', icon: ArrowDownUp },
-    { id: 'cuisine', label: 'Cuisine', icon: UtensilsCrossed },
     { id: 'cost', label: 'Cost', icon: IndianRupee },
   ];
 
@@ -105,20 +102,6 @@ const FilterSidebar = ({
                 )}
 
                 {/* Other tab contents... (simplified for brevity, should follow the same pattern) */}
-                {activeTab === 'cuisine' && (
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Cuisines</h3>
-                    {['North Indian', 'Chinese', 'South Indian', 'Italian', 'Mexican', 'Continental'].map((c) => (
-                      <label key={c} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
-                        <span className="text-sm font-medium">{c}</span>
-                        <Checkbox 
-                          checked={selectedCuisine === c}
-                          onCheckedChange={() => setSelectedCuisine(c === selectedCuisine ? null : c)}
-                        />
-                      </label>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
 

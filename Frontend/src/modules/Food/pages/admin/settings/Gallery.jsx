@@ -29,7 +29,6 @@ export default function Gallery() {
     "Header_ima": { type: "folder", items: [] },
     "Delivery-M": { type: "folder", items: [] },
     "Vendor": { type: "folder", items: [] },
-    "Cuisine": { type: "folder", items: [] },
     "Opportunit": { type: "folder", items: [] },
     "Admin": { type: "folder", items: [] },
     "Landing": { type: "folder", items: [] },

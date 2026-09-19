@@ -19,13 +19,12 @@ const getNormalizedUserPath = (pathname) => {
   return pathname || "/"
 }
 
-const resolveBackPath = ({ pathname, search, state }) => {
+const resolveBackPath = ({ pathname, state }) => {
   const normalizedPath = getNormalizedUserPath(pathname)
   const explicitBackPath = toFoodPath(state?.backTo) || toFoodPath(state?.from)
   if (explicitBackPath && explicitBackPath !== pathname) {
     return explicitBackPath
   }
-  const searchParams = new URLSearchParams(search || "")
 
   if (
     normalizedPath === "/user/profile/payments/new" ||
@@ -59,31 +58,7 @@ const resolveBackPath = ({ pathname, search, state }) => {
   }
 
   if (/^\/user\/sellers\/[^/]+$/.test(normalizedPath)) {
-    if (searchParams.get("under250") === "true") {
-      return "/food/user/under-250"
-    }
     return explicitBackPath || "/food/user"
-  }
-
-  if (/^\/user\/dining\/book(\/|$)/.test(normalizedPath)) {
-    return explicitBackPath || "/food/user/dining"
-  }
-
-  if (/^\/user\/dining\/[^/]+\/[^/]+$/.test(normalizedPath)) {
-    return explicitBackPath || "/food/user/dining"
-  }
-
-  if (
-    normalizedPath === "/user/dining/sellers" ||
-    normalizedPath === "/user/dining/explore/upto50" ||
-    normalizedPath === "/user/dining/explore/near-rated" ||
-    normalizedPath === "/user/dining/coffee"
-  ) {
-    return "/food/user/dining"
-  }
-
-  if (/^\/user\/dining\/[^/]+$/.test(normalizedPath)) {
-    return "/food/user/dining"
   }
 
   if (/^\/user\/orders\/[^/]+(\/invoice|\/details)?$/.test(normalizedPath)) {
@@ -110,9 +85,7 @@ const resolveBackPath = ({ pathname, search, state }) => {
   }
 
   if (
-    normalizedPath === "/user/offers" ||
-    normalizedPath === "/user/gourmet" ||
-    normalizedPath === "/user/coffee"
+    normalizedPath === "/user/offers"
   ) {
     return "/food/user"
   }

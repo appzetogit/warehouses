@@ -71,14 +71,10 @@ export default function Sellers() {
               .toLowerCase()
               .trim()
               .replace(/\s+/g, "-")
-          const cuisine = Array.isArray(seller?.cuisines) && seller.cuisines.length > 0
-            ? seller.cuisines[0]
-            : "Multi-cuisine"
           return {
             id: seller?._id || seller?.sellerId || slug,
             slug,
             name: seller?.name || "Unknown Seller",
-            cuisine,
             rating: Number(seller?.rating || 0) || 4.5,
             deliveryTime: seller?.estimatedDeliveryTime || (seller?.estimatedDeliveryTimeMinutes ? `${seller.estimatedDeliveryTimeMinutes} mins` : "25-30 mins"),
             distance: seller?.distance ? (typeof seller.distance === 'number' ? `${seller.distance.toFixed(1)} km` : seller.distance) : "1.2 km",
@@ -143,7 +139,6 @@ export default function Sellers() {
                   addFavorite({
                     slug: seller.slug,
                     name: seller.name,
-                    cuisine: seller.cuisine,
                     rating: seller.rating,
                     deliveryTime: seller.deliveryTime,
                     distance: seller.distance,
@@ -166,9 +161,6 @@ export default function Sellers() {
                                   <CardTitle className="text-base sm:text-lg md:text-xl mb-1 line-clamp-2 text-gray-900 dark:text-white">
                                     {seller.name}
                                   </CardTitle>
-                                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium mb-2 line-clamp-1">
-                                    {seller.cuisine}
-                                  </p>
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <div className="flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/30 px-1.5 py-0.5 rounded-full">
                                       <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-yellow-400 text-yellow-400" />

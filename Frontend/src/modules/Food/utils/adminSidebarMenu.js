@@ -27,7 +27,6 @@ export const adminSidebarMenu = [
         icon: "Utensils",
         subItems: [
           { label: "Seller Products List", path: "/admin/store/products" },
-          { label: "Seller Add-ons List", path: "/admin/store/addons" },
         ],
       },
       {
@@ -202,14 +201,6 @@ export const adminSidebarMenu = [
       { type: "link", label: "Landing Page Management", path: "/admin/store/hero-banner-management", icon: "Image" },
       { type: "link", label: "Promotional Banners", path: "/admin/store/promotional-banner", icon: "Megaphone" },
 // { type: "link", label: "General Banners", path: "/admin/store/banners", icon: "Image" },
-    ],
-  },
-  {
-    type: "section",
-    label: "DINING MANAGEMENT",
-    items: [
-      // { type: "link", label: "Dining Banners", path: "/admin/store/dining-management", icon: "UtensilsCrossed" },
-      // { type: "link", label: "Dining List", path: "/admin/store/dining-list", icon: "FileText" },
     ],
   },
   {

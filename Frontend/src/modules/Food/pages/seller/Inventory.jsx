@@ -25,17 +25,13 @@ import SellerNavbar from "@food/components/seller/SellerNavbar"
 import BottomNavOrders from "@food/components/seller/BottomNavOrders"
 import { Switch } from "@food/components/ui/switch"
 import { useNavigate } from "react-router-dom"
-import { sellerAPI, uploadAPI } from "@food/api"
-import { isFlutterBridgeAvailable, openGallery } from "@food/utils/imageUploadUtils"
+import { sellerAPI } from "@food/api"
 import { toast } from "sonner"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 const INVENTORY_STORAGE_KEY = "seller_inventory_state"
-const ADDON_FORM_STORAGE_KEY = "seller_addon_form_data"
-const INVENTORY_ACTIVE_TAB_KEY = "seller_inventory_active_tab"
-const INVENTORY_ADDON_FORM_KEY = "seller_inventory_addon_form"
 const INVENTORY_STOCK_RULES_KEY = "seller_inventory_stock_rules_v1"
 
 const MENU_FILTER_OPTIONS = [
@@ -47,18 +43,6 @@ const MENU_FILTER_OPTIONS = [
   { value: "non-veg", label: "Non-veg" },
 ]
 
-const ADDON_FILTER_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "available", label: "Available" },
-  { value: "unavailable", label: "Unavailable" },
-  { value: "approved", label: "Approved" },
-  { value: "pending", label: "Pending" },
-  { value: "rejected", label: "Rejected" },
-]
-const ADDON_TYPE_OPTIONS = [
-  { value: "veg", label: "Veg" },
-  { value: "non-veg", label: "Non-veg" },
-]
 
 const applyStockRulesToCategories = (categories, stockRules) => {
   const nowMs = Date.now()
@@ -766,15 +750,6 @@ function SimpleCalendar({ selectedDate, onDateSelect, isOpen, onClose }) {
 
 export default function Inventory() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState(() => {
-    try {
-      if (typeof window === "undefined") return "all-items"
-      const saved = localStorage.getItem(INVENTORY_ACTIVE_TAB_KEY)
-      return saved || "all-items"
-    } catch {
-      return "all-items"
-    }
-  })
   const [searchQuery, setSearchQuery] = useState("")
   const [filterOpen, setFilterOpen] = useState(false)
   const [selectedFilter, setSelectedFilter] = useState("all")
@@ -816,7 +791,6 @@ export default function Inventory() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [showTimePicker, setShowTimePicker] = useState(false)
   const [sellerProfile, setSellerProfile] = useState(null)
-  const isPureVegSeller = sellerProfile?.pureVegSeller === true
   const [stockRules, setStockRules] = useState(() => {
     try {
       if (typeof window === "undefined") return {}
@@ -830,20 +804,6 @@ export default function Inventory() {
   })
 
   const categoryRefs = useRef({})
-  const addonImageInputRef = useRef(null)
-
-  // Swipe gesture refs
-  const touchStartX = useRef(0)
-  const touchEndX = useRef(0)
-  const touchStartY = useRef(0)
-  const isSwiping = useRef(false)
-  const mouseStartX = useRef(0)
-  const mouseEndX = useRef(0)
-  const isMouseDown = useRef(false)
-  const [isTransitioning, setIsTransitioning] = useState(false)
-  const [addons, setAddons] = useState([])
-  const [loadingAddons, setLoadingAddons] = useState(false)
-  const [isAddAddonOpen, setIsAddAddonOpen] = useState(false)
 
   useEffect(() => {
     if (!filterOpen) return undefined
@@ -913,7 +873,7 @@ export default function Inventory() {
         
         // Refresh data in background without reloading the page
         if (normalizedResults.success > 0) {
-            fetchMenuAndAddons()
+            fetchMenu()
         }
       }
     } catch (error) {
@@ -934,19 +894,6 @@ export default function Inventory() {
       setBulkUploadFile(file)
     }
   }
-  const [addonName, setAddonName] = useState("")
-  const [addonDescription, setAddonDescription] = useState("")
-  const [addonPrice, setAddonPrice] = useState("")
-  const [addonFoodType, setAddonFoodType] = useState("veg")
-  const [addonImageFile, setAddonImageFile] = useState(null)
-  const [addonImagePreview, setAddonImagePreview] = useState("")
-  const [savingAddon, setSavingAddon] = useState(false)
-
-  // Inventory tabs
-  const inventoryTabs = ["all-items", "add-ons"]
-
-  // Tab bar ref for excluding swipe on topbar
-  const tabBarRef = useRef(null)
 
   // Content container ref
   const contentContainerRef = useRef(null)
@@ -973,15 +920,11 @@ export default function Inventory() {
   stockRulesRef.current = stockRules
 
   // Reusable fetch function — must NOT depend on stockRules (that caused refetch + stale overwrite on toggle)
-  const fetchMenuAndAddons = useCallback(async () => {
+  const fetchMenu = useCallback(async () => {
     try {
       setLoadingInventory(true)
-      setLoadingAddons(true)
 
-      const [menuResponse, addonsResponse] = await Promise.all([
-        sellerAPI.getMenu(),
-        sellerAPI.getAddons(),
-      ])
+      const menuResponse = await sellerAPI.getMenu()
 
       if (menuResponse.data && menuResponse.data.success && menuResponse.data.data && menuResponse.data.data.menu) {
         const menuSections = menuResponse.data.data.menu.sections || []
@@ -1001,8 +944,8 @@ export default function Inventory() {
                 categoryId: section.categoryId || section.id || "",
                 inStock: item.isAvailable !== undefined ? item.isAvailable : true,
                 isAvailable: item.isAvailable !== undefined ? item.isAvailable : true,
-                isVeg: item.foodType === "Veg",
-                foodType: item.foodType || "Non-Veg",
+                isVeg: item.foodType === "Veg" ? true : item.foodType === "Non-Veg" ? false : null,
+                foodType: item.foodType ?? null,
                 approvalStatus: String(item.approvalStatus || "approved").toLowerCase(),
                 rejectionReason: item.rejectionReason || "",
                 isRecommended: item.isRecommended === true,
@@ -1028,8 +971,8 @@ export default function Inventory() {
                     categoryId: section.categoryId || section.id || "",
                     inStock: item.isAvailable !== undefined ? item.isAvailable : true,
                     isAvailable: item.isAvailable !== undefined ? item.isAvailable : true,
-                    isVeg: item.foodType === "Veg",
-                    foodType: item.foodType || "Non-Veg",
+                    isVeg: item.foodType === "Veg" ? true : item.foodType === "Non-Veg" ? false : null,
+                    foodType: item.foodType ?? null,
                     approvalStatus: String(item.approvalStatus || "approved").toLowerCase(),
                     rejectionReason: item.rejectionReason || "",
                     isRecommended: item.isRecommended === true,
@@ -1056,10 +999,6 @@ export default function Inventory() {
         setCategories(applyStockRulesToCategories(convertedCategories, stockRulesRef.current))
         setExpandedCategories(convertedCategories.map(c => c.id))
       }
-
-      if (addonsResponse.data && addonsResponse.data.success) {
-        setAddons(addonsResponse.data.data.addons || [])
-      }
     } catch (error) {
       if (error.code !== 'ERR_NETWORK' && error.code !== 'ECONNABORTED' && !error.message?.includes('timeout')) {
         debugError('Error fetching data:', error)
@@ -1067,13 +1006,12 @@ export default function Inventory() {
       }
     } finally {
       setLoadingInventory(false)
-      setLoadingAddons(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchMenuAndAddons()
-  }, [fetchMenuAndAddons])
+    fetchMenu()
+  }, [fetchMenu])
 
   // Re-apply local stock rules when they change — without refetching menu from API
   useEffect(() => {
@@ -1082,242 +1020,6 @@ export default function Inventory() {
       return applyStockRulesToCategories(prev, stockRules)
     })
   }, [stockRules])
-
-
-
-  // Persist active tab
-  useEffect(() => {
-    try {
-      if (typeof window === "undefined") return
-      localStorage.setItem(INVENTORY_ACTIVE_TAB_KEY, activeTab)
-    } catch {}
-  }, [activeTab])
-
-  // Load persisted add-on form
-  useEffect(() => {
-    try {
-      if (typeof window === "undefined") return
-      const raw = localStorage.getItem(INVENTORY_ADDON_FORM_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        setAddonName(parsed?.name || "")
-        setAddonDescription(parsed?.description || "")
-        setAddonPrice(parsed?.price || "")
-        setAddonFoodType(parsed?.foodType === "non-veg" ? "non-veg" : "veg")
-        if (parsed?.isOpen) setIsAddAddonOpen(true)
-        if (parsed?.preview) {
-          setAddonImagePreview(parsed.preview)
-        }
-      }
-    } catch {}
-  }, [])
-
-  // Persist form state
-  useEffect(() => {
-    try {
-      if (typeof window === "undefined") return
-      const payload = {
-        name: addonName,
-        description: addonDescription,
-        price: addonPrice,
-        foodType: addonFoodType,
-        preview: addonImagePreview,
-        isOpen: isAddAddonOpen
-      }
-      localStorage.setItem(INVENTORY_ADDON_FORM_KEY, JSON.stringify(payload))
-    } catch {}
-  }, [addonName, addonDescription, addonPrice, addonFoodType, addonImagePreview, isAddAddonOpen])
-
-  useEffect(() => {
-    if (isPureVegSeller && addonFoodType !== "veg") {
-      setAddonFoodType("veg")
-    }
-  }, [isPureVegSeller, addonFoodType])
-
-  const resetAddonForm = () => {
-    if (addonImagePreview && addonImagePreview.startsWith("blob:")) {
-      URL.revokeObjectURL(addonImagePreview)
-    }
-    setAddonName("")
-    setAddonDescription("")
-    setAddonPrice("")
-    setAddonFoodType("veg")
-    setAddonImageFile(null)
-    setAddonImagePreview("")
-    if (addonImageInputRef.current) {
-      addonImageInputRef.current.value = ""
-    }
-    setIsAddAddonOpen(false)
-    localStorage.removeItem(INVENTORY_ADDON_FORM_KEY)
-  }
-
-  const handleAddonImageFileSelect = (file) => {
-    if (!file) return
-    const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/heic", "image/heif"]
-    if (!allowed.includes(file.type)) {
-      toast.error("Invalid image type. Please use PNG, JPG, JPEG, WEBP, HEIC, or HEIF.")
-      return
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be under 5MB.")
-      return
-    }
-    if (addonImagePreview && addonImagePreview.startsWith("blob:")) {
-      URL.revokeObjectURL(addonImagePreview)
-    }
-    const preview = URL.createObjectURL(file)
-    setAddonImageFile(file)
-    setAddonImagePreview(preview)
-  }
-
-  const handleAddonImageSelect = (e) => {
-    const file = e.target.files?.[0]
-    handleAddonImageFileSelect(file)
-    e.target.value = ""
-  }
-
-  const handleAddonGalleryPick = async () => {
-    if (isFlutterBridgeAvailable()) {
-      await openGallery({
-        onSelectFile: handleAddonImageFileSelect,
-        fileNamePrefix: "seller-addon-image",
-      })
-      return
-    }
-
-    addonImageInputRef.current?.click()
-  }
-
-  const handleSaveAddon = async () => {
-    if (!addonName.trim()) {
-      toast.error("Please enter add-on name")
-      return
-    }
-    const parsedPrice = parseFloat(addonPrice)
-    if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
-      toast.error("Please enter a valid price")
-      return
-    }
-    setSavingAddon(true)
-    try {
-      let imageUrl = ""
-      if (addonImageFile) {
-        const uploadRes = await uploadAPI.uploadMedia(addonImageFile, { folder: "switcheats/seller/addons" })
-        imageUrl = uploadRes?.data?.data?.url || uploadRes?.data?.url || ""
-      }
-      const payload = {
-        name: addonName.trim(),
-        description: addonDescription.trim(),
-        foodType: addonFoodType === "non-veg" ? "non-veg" : "veg",
-        price: parsedPrice,
-        image: imageUrl,
-        images: imageUrl ? [imageUrl] : [],
-      }
-      await sellerAPI.addAddon(payload)
-      toast.success("Add-on submitted to admin for approval")
-      resetAddonForm()
-      setIsAddAddonOpen(false)
-      void fetchMenuAndAddons()
-    } catch (error) {
-      debugError("Error saving add-on:", error)
-      toast.error(error?.response?.data?.message || "Failed to save add-on")
-    } finally {
-      setSavingAddon(false)
-    }
-  }
-
-  // Handle addon toggle
-  const handleAddonToggle = async (addonId, isAvailable) => {
-    try {
-      // Update addon availability via API
-      await sellerAPI.updateAddon(addonId, {
-        isAvailable: isAvailable
-      })
-
-      // Update local state
-      setAddons(prev => prev.map(a => 
-        a.id === addonId ? { ...a, isAvailable } : a
-      ))
-
-      toast.success(`Add-on ${isAvailable ? 'enabled' : 'disabled'} successfully`)
-    } catch (error) {
-      debugError('Error toggling addon:', error)
-      toast.error('Failed to update add-on availability')
-    }
-  }
-
-  // Handle swipe gestures
-  const handleTouchStart = (e) => {
-    const target = e.target
-    // Don't handle swipe if starting on topbar
-    if (tabBarRef.current?.contains(target)) return
-
-    touchStartX.current = e.touches[0].clientX
-    touchStartY.current = e.touches[0].clientY
-    touchEndX.current = e.touches[0].clientX
-    isSwiping.current = false
-  }
-
-  const handleTouchMove = (e) => {
-    if (!isSwiping.current) {
-      const deltaX = Math.abs(e.touches[0].clientX - touchStartX.current)
-      const deltaY = Math.abs(e.touches[0].clientY - touchStartY.current)
-
-      // Determine if this is a horizontal swipe
-      if (deltaX > deltaY && deltaX > 10) {
-        isSwiping.current = true
-      }
-    }
-
-    if (isSwiping.current) {
-      touchEndX.current = e.touches[0].clientX
-    }
-  }
-
-  const handleTouchEnd = () => {
-    if (!isSwiping.current) {
-      touchStartX.current = 0
-      touchEndX.current = 0
-      return
-    }
-
-    const swipeDistance = touchStartX.current - touchEndX.current
-    const minSwipeDistance = 50
-    const swipeVelocity = Math.abs(swipeDistance)
-
-    if (swipeVelocity > minSwipeDistance && !isTransitioning) {
-      const currentIndex = inventoryTabs.findIndex(tab => tab === activeTab)
-      let newIndex = currentIndex
-
-      if (swipeDistance > 0 && currentIndex < inventoryTabs.length - 1) {
-        // Swipe left - go to next tab
-        newIndex = currentIndex + 1
-      } else if (swipeDistance < 0 && currentIndex > 0) {
-        // Swipe right - go to previous tab
-        newIndex = currentIndex - 1
-      }
-
-      if (newIndex !== currentIndex) {
-        setIsTransitioning(true)
-
-        // Smooth transition with animation
-        setTimeout(() => {
-          setActiveTab(inventoryTabs[newIndex])
-
-          // Reset transition state after animation
-          setTimeout(() => {
-            setIsTransitioning(false)
-          }, 300)
-        }, 50)
-      }
-    }
-
-    // Reset touch positions
-    touchStartX.current = 0
-    touchEndX.current = 0
-    touchStartY.current = 0
-    isSwiping.current = false
-  }
 
   // Persist categories to localStorage whenever they change
   useEffect(() => {
@@ -1416,40 +1118,13 @@ export default function Inventory() {
     }
   }, [stockRules])
 
-  // Calculate total items
-  const totalItems = useMemo(
-    () => categories.reduce((sum, cat) => sum + (cat.itemCount || (cat.items?.length || 0)), 0),
-    [categories]
-  )
-
-  const activeFilterOptions = useMemo(
-    () => (activeTab === "add-ons" ? ADDON_FILTER_OPTIONS : MENU_FILTER_OPTIONS),
-    [activeTab]
-  )
-
-  useEffect(() => {
-    if (!activeFilterOptions.some((option) => option.value === selectedFilter)) {
-      setSelectedFilter("all")
-    }
-  }, [activeFilterOptions, selectedFilter])
-
   const filterMenuItems = (items = [], filterValue = "all") => {
     if (filterValue === "all") return items
     if (filterValue === "in-stock") return items.filter((item) => item.inStock)
     if (filterValue === "out-of-stock") return items.filter((item) => !item.inStock)
     if (filterValue === "recommended") return items.filter((item) => item.isRecommended)
-    if (filterValue === "veg") return items.filter((item) => item.isVeg)
-    if (filterValue === "non-veg") return items.filter((item) => !item.isVeg)
-    return items
-  }
-
-  const filterAddonsList = (items = [], filterValue = "all") => {
-    if (filterValue === "all") return items
-    if (filterValue === "available") return items.filter((item) => item.isAvailable !== false)
-    if (filterValue === "unavailable") return items.filter((item) => item.isAvailable === false)
-    if (filterValue === "approved") return items.filter((item) => item.approvalStatus === "approved")
-    if (filterValue === "pending") return items.filter((item) => item.approvalStatus === "pending")
-    if (filterValue === "rejected") return items.filter((item) => item.approvalStatus === "rejected")
+    if (filterValue === "veg") return items.filter((item) => item.isVeg === true)
+    if (filterValue === "non-veg") return items.filter((item) => item.isVeg === false)
     return items
   }
 
@@ -1463,15 +1138,6 @@ export default function Inventory() {
         return acc
       }, {}),
     [categories]
-  )
-
-  const addonFilterCounts = useMemo(
-    () =>
-      ADDON_FILTER_OPTIONS.reduce((acc, option) => {
-        acc[option.value] = filterAddonsList(addons, option.value).length
-        return acc
-      }, {}),
-    [addons]
   )
 
   // Filter categories based on selected filter
@@ -1521,27 +1187,9 @@ export default function Inventory() {
       .filter(Boolean)
   }, [statusFilteredCategories, searchQuery])
 
-  const filteredAddons = useMemo(() => {
-    const byFilter = filterAddonsList(addons, selectedFilter)
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return byFilter
+  const listToRender = filteredCategories
 
-    return byFilter.filter((addon) => {
-      const status = String(addon?.approvalStatus || "").toLowerCase()
-      return (
-        String(addon?.name || "").toLowerCase().includes(q) ||
-        String(addon?.description || "").toLowerCase().includes(q) ||
-        status.includes(q)
-      )
-    })
-  }, [addons, searchQuery, selectedFilter])
-
-  // When on Add-ons tab, keep the list empty (no items shown)
-  const listToRender = activeTab === "add-ons" ? [] : filteredCategories
-
-  const activeFilterCount = activeTab === "add-ons"
-    ? (addonFilterCounts[selectedFilter] || 0)
-    : (menuFilterCounts[selectedFilter] || 0)
+  const activeFilterCount = menuFilterCounts[selectedFilter] || 0
 
   const hasActiveTools = searchQuery.trim().length > 0 || selectedFilter !== "all"
 
@@ -1895,7 +1543,7 @@ export default function Inventory() {
         <div className="px-6 py-5 flex items-start justify-between gap-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Menu inventory</h1>
-            <p className="text-sm text-slate-500 mt-1">Manage dishes, stock, and add-ons</p>
+            <p className="text-sm text-slate-500 mt-1">Manage dishes and stock</p>
           </div>
           <div className="flex items-center gap-6 text-sm">
             <div className="text-right">
@@ -1918,98 +1566,8 @@ export default function Inventory() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-[#f3f5f8] px-4 md:px-0 md:bg-white md:border-b md:border-slate-200 pt-4 pb-4 md:py-0 shrink-0">
+      <div className="bg-[#f3f5f8] px-4 md:px-0 md:bg-white md:border-b md:border-slate-200 pt-4 md:py-0 shrink-0">
         <div className="md:px-6 md:py-4 flex md:items-center md:justify-between md:gap-6">
-        <div ref={tabBarRef} className="grid grid-cols-2 gap-3 md:inline-flex md:bg-slate-100 md:rounded-xl md:p-1 md:grid-cols-none md:gap-1 w-full md:w-auto">
-          <motion.button
-            onClick={() => setActiveTab("all-items")}
-            className={`relative overflow-hidden rounded-[24px] md:rounded-xl border md:border-none px-5 py-4 md:py-2 text-sm font-semibold whitespace-nowrap ${
-              activeTab === "all-items"
-                ? "text-white md:shadow-none"
-                : "border-white/80 bg-white/80 text-slate-700 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.4)] md:bg-transparent md:shadow-none md:hover:bg-transparent"
-            }`}
-            style={activeTab === "all-items" ? {
-              borderColor: "rgba(var(--module-theme-rgb, 37,99,235), 0.45)",
-              color: "var(--module-theme-color, #2563EB)",
-              boxShadow: "0 18px 32px -24px rgba(var(--module-theme-rgb, 37,99,235), 0.65)",
-            } : undefined}
-            animate={{
-              scale: activeTab === "all-items" ? 1.02 : 1,
-            }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeTab === "all-items" && (
-              <motion.div
-                layoutId="activeTabBackground"
-                className="absolute inset-0 rounded-[24px] md:rounded-xl -z-10 md:bg-white md:shadow-sm"
-                style={{ backgroundColor: "rgba(var(--module-theme-rgb, 37,99,235), 0.16)" }}
-                initial={false}
-                transition={{
-                  type: "spring",
-                  stiffness: 500,
-                  damping: 30
-                }}
-              />
-            )}
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              <span className="md:hidden">All items</span>
-              <span className="hidden md:inline">Menu Items</span>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                activeTab === "all-items" ? "" : "bg-slate-100 text-slate-600"
-              }`} style={activeTab === "all-items" ? {
-                backgroundColor: "rgba(var(--module-theme-rgb, 37,99,235), 0.14)",
-                color: "var(--module-theme-color, #2563EB)",
-              } : undefined}>
-                {totalItems}
-              </span>
-            </span>
-          </motion.button>
-
-          <motion.button
-            onClick={() => setActiveTab("add-ons")}
-            className={`relative overflow-hidden rounded-[24px] md:rounded-xl border md:border-none px-5 py-4 md:py-2 text-sm font-semibold whitespace-nowrap ${
-              activeTab === "add-ons"
-                ? "text-white md:shadow-none"
-                : "border-white/80 bg-white/80 text-slate-700 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.4)] md:bg-transparent md:shadow-none md:hover:bg-transparent"
-            }`}
-            style={activeTab === "add-ons" ? {
-              borderColor: "rgba(var(--module-theme-rgb, 37,99,235), 0.45)",
-              color: "var(--module-theme-color, #2563EB)",
-              boxShadow: "0 18px 32px -24px rgba(var(--module-theme-rgb, 37,99,235), 0.65)",
-            } : undefined}
-            animate={{
-              scale: activeTab === "add-ons" ? 1.02 : 1,
-            }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeTab === "add-ons" && (
-              <motion.div
-                layoutId="activeTabBackground"
-                className="absolute inset-0 rounded-[24px] md:rounded-xl -z-10 md:bg-white md:shadow-sm"
-                style={{ backgroundColor: "rgba(var(--module-theme-rgb, 37,99,235), 0.16)" }}
-                initial={false}
-                transition={{
-                  type: "spring",
-                  stiffness: 500,
-                  damping: 30
-                }}
-              />
-            )}
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              <span>Add-ons</span>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                activeTab === "add-ons" ? "" : "bg-slate-100 text-slate-600"
-              }`} style={activeTab === "add-ons" ? {
-                backgroundColor: "rgba(var(--module-theme-rgb, 37,99,235), 0.14)",
-                color: "var(--module-theme-color, #2563EB)",
-              } : undefined}>
-                {addons.length}
-              </span>
-            </span>
-          </motion.button>
-        </div>
-
         {/* Desktop toolbar */}
         <div className="hidden md:flex flex-1 items-center gap-3 min-w-0">
           <div className="flex-1 relative min-w-0">
@@ -2018,7 +1576,7 @@ export default function Inventory() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={activeTab === "add-ons" ? "Search add-ons..." : "Search categories or dishes..."}
+              placeholder="Search categories or dishes..."
               className="w-full h-11 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-colors"
             />
           </div>
@@ -2038,15 +1596,12 @@ export default function Inventory() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (activeTab === "add-ons") setIsAddAddonOpen(true)
-              else navigate("/seller/hub-menu/item/new")
-            }}
+            onClick={() => navigate("/seller/hub-menu/item/new")}
             className="h-11 px-5 text-white rounded-xl font-semibold transition-colors flex items-center gap-2 shrink-0 hover:opacity-90"
             style={{ backgroundColor: "var(--module-theme-color, #16a34a)" }}
           >
             <Plus className="w-4 h-4" />
-            {activeTab === "add-ons" ? "Add add-on" : "Add item"}
+            Add item
           </button>
         </div>
         </div>
@@ -2063,12 +1618,10 @@ export default function Inventory() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-950">
-                  {activeTab === "add-ons" ? "Search and review add-ons" : "Search and manage menu inventory"}
+                  Search and manage menu inventory
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {activeTab === "add-ons"
-                    ? `${filteredAddons.length} add-on${filteredAddons.length !== 1 ? "s" : ""} in this view`
-                    : `${listToRender.length} categor${listToRender.length !== 1 ? "ies" : "y"} and ${activeFilterCount} item${activeFilterCount !== 1 ? "s" : ""} in focus`}
+                  {`${listToRender.length} categor${listToRender.length !== 1 ? "ies" : "y"} and ${activeFilterCount} item${activeFilterCount !== 1 ? "s" : ""} in focus`}
                 </p>
               </div>
               {hasActiveTools ? (
@@ -2092,7 +1645,7 @@ export default function Inventory() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={activeTab === "add-ons" ? "Search add-ons by name or status" : "Search categories or menu items"}
+                  placeholder="Search categories or menu items"
                   className="h-12 w-full rounded-[20px] border border-slate-200 bg-slate-50 pl-11 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:bg-white focus:outline-none"
                 />
                 {searchQuery ? (
@@ -2121,10 +1674,8 @@ export default function Inventory() {
             </div>
 
             <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-              {activeFilterOptions.map((option) => {
-                const count = activeTab === "add-ons"
-                  ? (addonFilterCounts[option.value] || 0)
-                  : (menuFilterCounts[option.value] || 0)
+              {MENU_FILTER_OPTIONS.map((option) => {
+                const count = menuFilterCounts[option.value] || 0
 
                 const isActive = selectedFilter === option.value
                 return (
@@ -2163,514 +1714,162 @@ export default function Inventory() {
 
         {/* Desktop layout — categories & items scroll independently */}
         <div className="hidden md:flex flex-1 min-h-0 px-6 py-6 gap-6">
-            {activeTab !== "add-ons" && (
-              <aside className="w-[240px] shrink-0 h-full min-h-0 flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-100 shrink-0">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Categories</h3>
-                  </div>
-                  <div
-                    className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
-                    onWheel={(e) => e.stopPropagation()}
+            <aside className="w-[240px] shrink-0 h-full min-h-0 flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100 shrink-0">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Categories</h3>
+                </div>
+                <div
+                  className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+                  onWheel={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setActiveDesktopCategory("all")}
+                    className={`w-full px-4 py-3 text-left text-sm transition-colors ${activeDesktopCategory === "all" ? "bg-slate-900 text-white font-semibold" : "text-slate-600 hover:bg-slate-50"}`}
                   >
+                    All items
+                  </button>
+                  {categories.map((cat) => (
                     <button
                       type="button"
-                      onClick={() => setActiveDesktopCategory("all")}
-                      className={`w-full px-4 py-3 text-left text-sm transition-colors ${activeDesktopCategory === "all" ? "bg-slate-900 text-white font-semibold" : "text-slate-600 hover:bg-slate-50"}`}
+                      key={cat.id}
+                      onClick={() => setActiveDesktopCategory(cat.id)}
+                      className={`w-full px-4 py-3 text-left text-sm transition-colors border-t border-slate-100 flex items-center justify-between gap-2 ${activeDesktopCategory === cat.id ? "bg-slate-900 text-white font-semibold" : "text-slate-600 hover:bg-slate-50"}`}
                     >
-                      All items
+                      <span className="truncate">{cat.name}</span>
+                      <span className={`text-xs font-bold ${activeDesktopCategory === cat.id ? "text-white/80" : "text-slate-400"}`}>
+                        {cat.items?.length || 0}
+                      </span>
                     </button>
-                    {categories.map((cat) => (
-                      <button
-                        type="button"
-                        key={cat.id}
-                        onClick={() => setActiveDesktopCategory(cat.id)}
-                        className={`w-full px-4 py-3 text-left text-sm transition-colors border-t border-slate-100 flex items-center justify-between gap-2 ${activeDesktopCategory === cat.id ? "bg-slate-900 text-white font-semibold" : "text-slate-600 hover:bg-slate-50"}`}
-                      >
-                        <span className="truncate">{cat.name}</span>
-                        <span className={`text-xs font-bold ${activeDesktopCategory === cat.id ? "text-white/80" : "text-slate-400"}`}>
-                          {cat.items?.length || 0}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-              </aside>
-            )}
+                  ))}
+                </div>
+            </aside>
 
             <div
               className="flex-1 min-w-0 min-h-0 overflow-y-auto overscroll-contain pr-1"
               onWheel={(e) => e.stopPropagation()}
             >
-              {activeTab === "add-ons" ? (
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                  {isAddAddonOpen && (
-                    <div className="border-b border-slate-100 p-4">
-                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Add-on Name *</label>
-                            <input
-                              type="text"
-                              value={addonName}
-                              onChange={(e) => setAddonName(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                              placeholder="e.g., Coke, Chips"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹) *</label>
-                            <input
-                              type="number"
-                              value={addonPrice}
-                              onChange={(e) => setAddonPrice(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                              min="0"
-                              step="0.01"
-                              placeholder="0.00"
-                            />
-                          </div>
-                          <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <textarea
-                              value={addonDescription}
-                              onChange={(e) => setAddonDescription(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none resize-none"
-                              rows={2}
-                              placeholder="Describe the add-on..."
-                            />
-                          </div>
+              <div className="space-y-6">
+                {listToRender
+                  .filter((cat) => activeDesktopCategory === "all" || cat.id === activeDesktopCategory)
+                  .map((category) => (
+                    <div key={category.id}>
+                      {activeDesktopCategory === "all" && (
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h3 className="text-sm font-bold text-slate-900">{category.name}</h3>
+                          <span className="text-xs font-medium text-slate-500">{category.items?.length || 0} items</span>
                         </div>
-                        <div className="mt-4 flex gap-2 justify-end">
-                          <button
-                            type="button"
-                            onClick={() => setIsAddAddonOpen(false)}
-                            className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleSaveAddon}
-                            disabled={savingAddon}
-                            className="px-4 py-2 rounded-lg text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                            style={{ backgroundColor: "var(--module-theme-color, #16a34a)" }}
-                          >
-                            {savingAddon ? "Saving..." : "Save add-on"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 border-b border-slate-200">
-                      <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <th className="px-4 py-3">Add-on</th>
-                        <th className="px-4 py-3">Type</th>
-                        <th className="px-4 py-3">Price</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Stock</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredAddons.map((addon) => (
-                        <tr key={addon.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                              {addon.images?.[0] ? (
-                                <img src={addon.images[0]} alt={addon.name} className="h-11 w-11 rounded-lg object-cover border border-slate-200" />
-                              ) : (
-                                <div className="h-11 w-11 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300">
-                                  <Utensils className="w-4 h-4" />
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <p className="font-semibold text-slate-900 truncate">{addon.name}</p>
-                                {addon.description ? (
-                                  <p className="text-xs text-slate-500 truncate">{addon.description}</p>
-                                ) : null}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${addon.foodType === "Veg" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
-                              {addon.foodType === "Veg" ? "VEG" : "NON-VEG"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 font-semibold text-slate-900">₹{addon.price}</td>
-                          <td className="px-4 py-3">
-                            {addon.approvalStatus === "approved" && <span className="text-xs font-semibold text-emerald-700">Approved</span>}
-                            {addon.approvalStatus === "pending" && <span className="text-xs font-semibold text-amber-700">Pending</span>}
-                            {addon.approvalStatus === "rejected" && <span className="text-xs font-semibold text-rose-700">Rejected</span>}
-                          </td>
-                          <td className="px-4 py-3">
-                            <Switch
-                              checked={addon.isAvailable !== false}
-                              onCheckedChange={(checked) => handleAddonToggle(addon.id, checked)}
-                              className="data-[state=checked]:bg-emerald-600"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {filteredAddons.length === 0 && (
-                    <div className="px-6 py-16 text-center text-sm text-slate-500">No add-ons found.</div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {listToRender
-                    .filter((cat) => activeDesktopCategory === "all" || cat.id === activeDesktopCategory)
-                    .map((category) => (
-                      <div key={category.id}>
-                        {activeDesktopCategory === "all" && (
-                          <div className="mb-3 flex items-center justify-between gap-3">
-                            <h3 className="text-sm font-bold text-slate-900">{category.name}</h3>
-                            <span className="text-xs font-medium text-slate-500">{category.items?.length || 0} items</span>
-                          </div>
-                        )}
-                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                          <table className="w-full text-sm">
-                            <thead className="bg-slate-50 border-b border-slate-200">
-                              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                <th className="px-4 py-3">Item</th>
-                                <th className="px-4 py-3">Type</th>
-                                <th className="px-4 py-3">Price</th>
-                                <th className="px-4 py-3">Approval</th>
-                                <th className="px-4 py-3">Stock</th>
-                                <th className="px-4 py-3 text-right">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(category.items || []).map((item) => {
-                                const approvalMeta = getApprovalDisplayMeta(item.approvalStatus)
-                                const isRejectedItem = item.approvalStatus === "rejected"
-                                return (
-                                  <tr key={item.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
-                                    <td className="px-4 py-3">
-                                      <div className="flex items-center gap-3 min-w-0">
-                                        {item.image || item.images?.[0] ? (
-                                          <img
-                                            src={item.image || item.images[0]}
-                                            alt={item.name}
-                                            className="h-11 w-11 rounded-lg object-cover border border-slate-200"
-                                          />
-                                        ) : (
-                                          <div className="h-11 w-11 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300">
-                                            <Utensils className="w-4 h-4" />
-                                          </div>
-                                        )}
-                                        <div className="min-w-0">
-                                          <p className="font-semibold text-slate-900 truncate">{item.name}</p>
-                                          <p className={`text-xs font-medium ${item.inStock ? "text-emerald-600" : "text-rose-600"}`}>
-                                            {item.inStock ? "In stock" : getRuleStatusLabel(item.stockRule)}
-                                          </p>
+                      )}
+                      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-slate-50 border-b border-slate-200">
+                            <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              <th className="px-4 py-3">Item</th>
+                              <th className="px-4 py-3">Type</th>
+                              <th className="px-4 py-3">Price</th>
+                              <th className="px-4 py-3">Approval</th>
+                              <th className="px-4 py-3">Stock</th>
+                              <th className="px-4 py-3 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(category.items || []).map((item) => {
+                              const approvalMeta = getApprovalDisplayMeta(item.approvalStatus)
+                              const isRejectedItem = item.approvalStatus === "rejected"
+                              return (
+                                <tr key={item.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      {item.image || item.images?.[0] ? (
+                                        <img
+                                          src={item.image || item.images[0]}
+                                          alt={item.name}
+                                          className="h-11 w-11 rounded-lg object-cover border border-slate-200"
+                                        />
+                                      ) : (
+                                        <div className="h-11 w-11 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300">
+                                          <Utensils className="w-4 h-4" />
                                         </div>
+                                      )}
+                                      <div className="min-w-0">
+                                        <p className="font-semibold text-slate-900 truncate">{item.name}</p>
+                                        <p className={`text-xs font-medium ${item.inStock ? "text-emerald-600" : "text-rose-600"}`}>
+                                          {item.inStock ? "In stock" : getRuleStatusLabel(item.stockRule)}
+                                        </p>
                                       </div>
-                                    </td>
-                                    <td className="px-4 py-3">
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    {typeof item.isVeg === "boolean" && (
                                       <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${item.isVeg ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
                                         {item.isVeg ? "VEG" : "NON-VEG"}
                                       </span>
-                                    </td>
-                                    <td className="px-4 py-3 font-semibold text-slate-900">₹{item.price}</td>
-                                    <td className="px-4 py-3">
-                                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${approvalMeta.className}`}>
-                                        {approvalMeta.label.toUpperCase()}
-                                      </span>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                      <Switch
-                                        checked={item.inStock}
-                                        onCheckedChange={(checked) => handleToggleChange("item", category.id, item.id, checked)}
-                                        className="data-[state=checked]:bg-emerald-600"
-                                      />
-                                    </td>
-                                    <td className="px-4 py-3">
-                                      <div className="flex items-center justify-end gap-2">
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleRecommendToggle(category.id, item.id)
-                                          }}
-                                          className={`p-2 rounded-lg border transition-colors ${item.isRecommended ? "border-blue-200 bg-blue-50 text-blue-600" : "border-slate-200 text-slate-400 hover:bg-slate-50"}`}
-                                          title={item.isRecommended ? "Recommended" : "Recommend"}
-                                        >
-                                          <ThumbsUp className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleEditItem(category, item)}
-                                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${isRejectedItem ? "bg-red-600 text-white hover:bg-red-700" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
-                                        >
-                                          <Pencil className="w-3.5 h-3.5" />
-                                          {isRejectedItem ? "Fix" : "Edit"}
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
-                          {(category.items || []).length === 0 && (
-                            <div className="px-6 py-10 text-center text-sm text-slate-500">No items in this category.</div>
-                          )}
-                        </div>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 font-semibold text-slate-900">₹{item.price}</td>
+                                  <td className="px-4 py-3">
+                                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${approvalMeta.className}`}>
+                                      {approvalMeta.label.toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <Switch
+                                      checked={item.inStock}
+                                      onCheckedChange={(checked) => handleToggleChange("item", category.id, item.id, checked)}
+                                      className="data-[state=checked]:bg-emerald-600"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleRecommendToggle(category.id, item.id)
+                                        }}
+                                        className={`p-2 rounded-lg border transition-colors ${item.isRecommended ? "border-blue-200 bg-blue-50 text-blue-600" : "border-slate-200 text-slate-400 hover:bg-slate-50"}`}
+                                        title={item.isRecommended ? "Recommended" : "Recommend"}
+                                      >
+                                        <ThumbsUp className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEditItem(category, item)}
+                                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${isRejectedItem ? "bg-red-600 text-white hover:bg-red-700" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                        {isRejectedItem ? "Fix" : "Edit"}
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                        {(category.items || []).length === 0 && (
+                          <div className="px-6 py-10 text-center text-sm text-slate-500">No items in this category.</div>
+                        )}
                       </div>
-                    ))}
-                  {!loadingInventory && listToRender.filter((cat) => activeDesktopCategory === "all" || cat.id === activeDesktopCategory).length === 0 && (
-                    <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                      <p className="text-base font-semibold text-slate-700">
-                        {hasActiveTools ? "No matching categories or items found" : "No menu categories available"}
-                      </p>
-                      <p className="mt-2 text-sm text-slate-500">
-                        {hasActiveTools ? "Try adjusting your search or filters." : "Your menu categories will appear here once items are added."}
-                      </p>
                     </div>
-                  )}
-                </div>
-              )}
+                  ))}
+                {!loadingInventory && listToRender.filter((cat) => activeDesktopCategory === "all" || cat.id === activeDesktopCategory).length === 0 && (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+                    <p className="text-base font-semibold text-slate-700">
+                      {hasActiveTools ? "No matching categories or items found" : "No menu categories available"}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-500">
+                      {hasActiveTools ? "Try adjusting your search or filters." : "Your menu categories will appear here once items are added."}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
         </div>
 
         {/* Mobile Categories Accordions */}
         <div className="md:hidden space-y-4 mb-6">
-          {activeTab === "add-ons" && (
-            <>
-              {isAddAddonOpen && (
-                <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Add-on Name *</label>
-                      <input
-                        type="text"
-                        value={addonName}
-                        onChange={(e) => setAddonName(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                        placeholder="e.g., Coke, Chips"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                      <textarea
-                        value={addonDescription}
-                        onChange={(e) => setAddonDescription(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none resize-none"
-                        rows={3}
-                        placeholder="Describe the add-on..."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹) *</label>
-                      <input
-                        type="number"
-                        value={addonPrice}
-                        onChange={(e) => setAddonPrice(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {(isPureVegSeller
-                          ? ADDON_TYPE_OPTIONS.filter((option) => option.value === "veg")
-                          : ADDON_TYPE_OPTIONS
-                        ).map((option) => {
-                          const active = addonFoodType === option.value
-                          return (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => setAddonFoodType(option.value)}
-                              className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                                active
-                                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                              }`}
-                            >
-                              {option.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Image (1 only)</label>
-                      {addonImagePreview && (
-                        <div className="mb-2">
-                          <img
-                            src={addonImagePreview}
-                            alt="Preview"
-                            className="w-24 h-24 object-cover rounded border"
-                            onError={(e) => (e.target.style.display = "none")}
-                          />
-                        </div>
-                      )}
-                      <input
-                        ref={addonImageInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAddonImageSelect}
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddonGalleryPick}
-                        className="w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-3 text-left transition-colors hover:bg-gray-100"
-                      >
-                        <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
-                          <Upload className="h-4 w-4 text-gray-500" />
-                          {addonImageFile?.name || "Upload image"}
-                        </span>
-                        <span className="mt-1 block text-xs text-gray-500">
-                          {addonImageFile ? "Image selected successfully" : "Tap to choose 1 image from your device"}
-                        </span>
-                      </button>
-                      <p className="text-xs text-gray-500 mt-1">PNG, JPG, WEBP, HEIC up to 5MB.</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          resetAddonForm()
-                          setIsAddAddonOpen(false)
-                        }}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSaveAddon}
-                        disabled={savingAddon}
-                        className="px-4 py-2 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        {savingAddon && <Loader2 className="h-4 w-4 animate-spin" />}
-                        <span>{savingAddon ? "Saving..." : "Submit for approval"}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {loadingAddons ? (
-                <div className="flex items-center justify-center py-20">
-                  <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-                </div>
-              ) : filteredAddons.length === 0 ? (
-                <div className="rounded-[28px] border border-dashed border-slate-200 bg-white/70 px-4 py-20 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.35)]">
-                  <div className="text-center">
-                    <p className="text-lg font-semibold text-slate-700">
-                      {hasActiveTools ? "No matching add-ons found" : "No add-ons available"}
-                    </p>
-                    <p className="mt-2 text-sm text-slate-500">
-                      {hasActiveTools ? "Try changing your search or filters" : "All add-ons will appear here"}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredAddons.map((addon) => (
-                    <div
-                      key={addon.id}
-                      className="rounded-[28px] border border-white/80 bg-white p-4 shadow-[0_20px_48px_-34px_rgba(15,23,42,0.45)]"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="mb-2 flex items-center gap-2 flex-wrap">
-                            <h3 className="text-base font-semibold text-slate-950">{addon.name}</h3>
-                            <div
-                              className={`h-4 w-4 rounded-sm border-2 flex items-center justify-center ${
-                                addon.isVeg === false || addon.foodType === "non-veg" ? "border-red-500" : ""
-                              }`}
-                              style={
-                                addon.isVeg === false || addon.foodType === "non-veg"
-                                  ? undefined
-                                  : { borderColor: "#16A34A", backgroundColor: "#F0FDF4" }
-                              }
-                            >
-                              <span
-                                className={`h-2 w-2 rounded-full ${
-                                  addon.isVeg === false || addon.foodType === "non-veg" ? "bg-red-500" : ""
-                                }`}
-                                style={
-                                  addon.isVeg === false || addon.foodType === "non-veg"
-                                    ? undefined
-                                    : { backgroundColor: "#16A34A" }
-                                }
-                              />
-                            </div>
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                                addon.isVeg === false || addon.foodType === "non-veg"
-                                  ? "bg-rose-50 text-rose-700"
-                                  : ""
-                              }`}
-                              style={
-                                addon.isVeg === false || addon.foodType === "non-veg"
-                                  ? undefined
-                                  : { backgroundColor: "#ECFDF3", color: "#15803D" }
-                              }
-                            >
-                              {addon.isVeg === false || addon.foodType === "non-veg" ? "Non-veg" : "Veg"}
-                            </span>
-                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                              addon.isAvailable !== false
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-slate-100 text-slate-600"
-                            }`}>
-                              {addon.isAvailable !== false ? "Live" : "Paused"}
-                            </span>
-                            {addon.approvalStatus === 'approved' && (
-                              <span className="rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-semibold text-green-800">Approved</span>
-                            )}
-                            {addon.approvalStatus === 'pending' && (
-                              <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-[11px] font-semibold text-yellow-800">Pending</span>
-                            )}
-                            {addon.approvalStatus === 'rejected' && (
-                              <span className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-800">Rejected</span>
-                            )}
-                          </div>
-                          {addon.description && (
-                            <p className="mb-2 text-sm leading-6 text-slate-600">{addon.description}</p>
-                          )}
-                          <p className="text-base font-bold text-slate-950">Rs. {addon.price}</p>
-                          {addon.approvalStatus === 'rejected' && addon.rejectionReason && (
-                            <p className="mt-2 text-xs font-medium text-red-600">Reason: {addon.rejectionReason}</p>
-                          )}
-                        </div>
-                        <div className="flex items-start gap-3">
-                          {addon.images && addon.images.length > 0 && addon.images[0] && (
-                            <img
-                              src={addon.images[0]}
-                              alt={addon.name}
-                              className="h-20 w-20 rounded-2xl object-cover ring-1 ring-slate-200"
-                              onError={(e) => {
-                                e.target.style.display = 'none'
-                              }}
-                            />
-                          )}
-                          <div className="flex items-center rounded-full bg-slate-100 px-2 py-1">
-                            <Switch
-                              checked={addon.isAvailable !== false}
-                              onCheckedChange={(checked) =>
-                                handleAddonToggle(addon.id, checked)
-                              }
-                              className="data-[state=checked]:bg-green-600"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-          {activeTab !== "add-ons" && !loadingInventory && listToRender.length === 0 && (
+          {!loadingInventory && listToRender.length === 0 && (
             <div className="rounded-[28px] border border-dashed border-slate-200 bg-white/70 px-6 py-16 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.35)]">
               <p className="text-lg font-semibold text-slate-700">
                 {hasActiveTools ? "No matching categories or items found" : "No menu categories available"}
@@ -2806,21 +2005,25 @@ export default function Inventory() {
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
-                                    <div
-                                      className={`h-4 w-4 rounded-sm border-2 flex items-center justify-center ${item.isVeg ? '' : 'border-red-500'}`}
-                                      style={item.isVeg ? { borderColor: "#16A34A", backgroundColor: "#F0FDF4" } : undefined}
-                                    >
-                                      <div
-                                        className={`h-2 w-2 rounded-full ${item.isVeg ? '' : 'bg-red-500'}`}
-                                        style={item.isVeg ? { backgroundColor: "#16A34A" } : undefined}
-                                      />
-                                    </div>
-                                    <span
-                                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${item.isVeg ? "" : "bg-rose-50 text-rose-700"}`}
-                                      style={item.isVeg ? { backgroundColor: "#ECFDF3", color: "#15803D" } : undefined}
-                                    >
-                                      {item.isVeg ? "Veg" : "Non-veg"}
-                                    </span>
+                                    {typeof item.isVeg === "boolean" && (
+                                      <>
+                                        <div
+                                          className={`h-4 w-4 rounded-sm border-2 flex items-center justify-center ${item.isVeg ? '' : 'border-red-500'}`}
+                                          style={item.isVeg ? { borderColor: "#16A34A", backgroundColor: "#F0FDF4" } : undefined}
+                                        >
+                                          <div
+                                            className={`h-2 w-2 rounded-full ${item.isVeg ? '' : 'bg-red-500'}`}
+                                            style={item.isVeg ? { backgroundColor: "#16A34A" } : undefined}
+                                          />
+                                        </div>
+                                        <span
+                                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${item.isVeg ? "" : "bg-rose-50 text-rose-700"}`}
+                                          style={item.isVeg ? { backgroundColor: "#ECFDF3", color: "#15803D" } : undefined}
+                                        >
+                                          {item.isVeg ? "Veg" : "Non-veg"}
+                                        </span>
+                                      </>
+                                    )}
                                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${approvalMeta.className}`}>
                                       {approvalMeta.label}
                                     </span>
@@ -2942,9 +2145,7 @@ export default function Inventory() {
                   <div>
                     <h2 className="text-lg font-bold text-gray-900">Filters</h2>
                     <p className="text-sm text-gray-500 mt-1">
-                      {activeTab === "add-ons"
-                        ? "Refine the add-ons list by availability or approval status."
-                        : "Refine your inventory by stock state, recommendation, or food type."}
+                      Refine your inventory by stock state, recommendation, or food type.
                     </p>
                   </div>
                   {selectedFilter !== "all" ? (
@@ -2955,10 +2156,8 @@ export default function Inventory() {
                 </div>
 
                 <div className="space-y-4 mb-6">
-                  {activeFilterOptions.map((option) => {
-                    const count = activeTab === "add-ons"
-                      ? (addonFilterCounts[option.value] || 0)
-                      : (menuFilterCounts[option.value] || 0)
+                  {MENU_FILTER_OPTIONS.map((option) => {
+                    const count = menuFilterCounts[option.value] || 0
 
                     return (
                       <label key={option.value} className="flex items-center justify-between gap-3 cursor-pointer rounded-xl border border-gray-200 px-4 py-3">
@@ -3279,102 +2478,92 @@ export default function Inventory() {
       <div className="md:hidden fixed right-4 bottom-24 z-30 flex flex-col items-end gap-2">
         <motion.button
           whileTap={{ scale: 0.96 }}
-          onClick={() => {
-            if (activeTab === "add-ons") {
-              setIsAddAddonOpen((v) => !v)
-            } else {
-              setIsAddPopupOpen(true)
-            }
-          }}
+          onClick={() => setIsAddPopupOpen(true)}
           className="rounded-full px-5 py-3 text-sm font-semibold text-white"
           style={{
             background: "linear-gradient(135deg, rgba(var(--module-theme-rgb, 37,99,235), 0.88), var(--module-theme-color, #2563EB))",
             boxShadow: "0 22px 40px -24px rgba(var(--module-theme-rgb, 37,99,235), 0.75)",
           }}
         >
-          {activeTab === "add-ons" ? (isAddAddonOpen ? "Close" : "+ Add add-on") : "+ Add item"}
+          + Add item
         </motion.button>
-        {activeTab !== "add-ons" && (
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.96 }}
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-            className="flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-sm font-semibold text-slate-800 shadow-[0_18px_36px_-28px_rgba(15,23,42,0.55)]"
-          >
-            <span className="w-5 h-5 flex items-center justify-center">
-              {isMenuOpen ? (
-                <X className="w-4 h-4 text-slate-900" />
-              ) : (
-                <Utensils className="w-4 h-4 text-slate-900" />
-              )}
-            </span>
-            <span>{isMenuOpen ? "Close" : "Menu"}</span>
-          </motion.button>
-        )}
-
-        {activeTab !== "add-ons" && (
-          <AnimatePresence>
-            {isMenuOpen && (
-              <>
-                {/* Backdrop */}
-                <motion.div
-                  className="fixed inset-0 bg-black/40 z-30"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsMenuOpen(false)}
-                />
-
-                {/* Menu Popup */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ duration: 0.2 }}
-                  className="fixed right-4 bottom-36 z-30 h-[45vh] w-[60vw] max-w-sm overflow-hidden rounded-[28px] border border-white/80 bg-white shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)]"
-                >
-                  <div className="h-full flex flex-col">
-                    <div className="bg-[linear-gradient(135deg,#f8fbff_0%,#eef6ff_100%)] px-4 pt-4 pb-3">
-                      <p className="text-sm font-semibold text-slate-950">Jump to category</p>
-                    </div>
-                    <div className="mx-4 h-px bg-slate-200" />
-                    <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
-                      {categories.map((category, index) => {
-                        const itemCount =
-                          category.itemCount || (category.items?.length || 0)
-                        const isLast = index === categories.length - 1
-
-                        return (
-                          <button
-                            key={category.id}
-                            type="button"
-                            onClick={() => {
-                              setIsMenuOpen(false)
-                              setTimeout(() => scrollToCategory(category.id), 200)
-                            }}
-                            className="w-full text-left py-3 focus:outline-none"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-slate-900">
-                                {category.name}
-                              </span>
-                              <span className="flex h-7 min-w-[28px] items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700">
-                                {itemCount}
-                              </span>
-                            </div>
-                            {!isLast && (
-                              <div className="mt-3 border-t border-dashed border-slate-200" />
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </motion.div>
-              </>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.96 }}
+          onClick={() => setIsMenuOpen((prev) => !prev)}
+          className="flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-sm font-semibold text-slate-800 shadow-[0_18px_36px_-28px_rgba(15,23,42,0.55)]"
+        >
+          <span className="w-5 h-5 flex items-center justify-center">
+            {isMenuOpen ? (
+              <X className="w-4 h-4 text-slate-900" />
+            ) : (
+              <Utensils className="w-4 h-4 text-slate-900" />
             )}
-          </AnimatePresence>
-        )}
+          </span>
+          <span>{isMenuOpen ? "Close" : "Menu"}</span>
+        </motion.button>
+
+        <AnimatePresence>
+          {isMenuOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                className="fixed inset-0 bg-black/40 z-30"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMenuOpen(false)}
+              />
+
+              {/* Menu Popup */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.2 }}
+                className="fixed right-4 bottom-36 z-30 h-[45vh] w-[60vw] max-w-sm overflow-hidden rounded-[28px] border border-white/80 bg-white shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)]"
+              >
+                <div className="h-full flex flex-col">
+                  <div className="bg-[linear-gradient(135deg,#f8fbff_0%,#eef6ff_100%)] px-4 pt-4 pb-3">
+                    <p className="text-sm font-semibold text-slate-950">Jump to category</p>
+                  </div>
+                  <div className="mx-4 h-px bg-slate-200" />
+                  <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
+                    {categories.map((category, index) => {
+                      const itemCount =
+                        category.itemCount || (category.items?.length || 0)
+                      const isLast = index === categories.length - 1
+
+                      return (
+                        <button
+                          key={category.id}
+                          type="button"
+                          onClick={() => {
+                            setIsMenuOpen(false)
+                            setTimeout(() => scrollToCategory(category.id), 200)
+                          }}
+                          className="w-full text-left py-3 focus:outline-none"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-slate-900">
+                              {category.name}
+                            </span>
+                            <span className="flex h-7 min-w-[28px] items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700">
+                              {itemCount}
+                            </span>
+                          </div>
+                          {!isLast && (
+                            <div className="mt-3 border-t border-dashed border-slate-200" />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Bulk Upload Modal */}

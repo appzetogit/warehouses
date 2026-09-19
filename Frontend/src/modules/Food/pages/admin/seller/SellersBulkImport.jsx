@@ -76,7 +76,7 @@ export default function SellersBulkImport() {
             <div className="space-y-2 text-sm text-slate-600 ml-14 mb-6">
               <p>• Fill up the data according to the format</p>
               <p>• By default status will be 1 please input the right ids</p>
-              <p>• Make sure to provide valid zone, cuisine, and business model IDs</p>
+              <p>• Make sure to provide valid zone and business model IDs</p>
               <p>• Seller owner information must be complete and accurate</p>
               <p>• Address and contact details are mandatory fields</p>
             </div>

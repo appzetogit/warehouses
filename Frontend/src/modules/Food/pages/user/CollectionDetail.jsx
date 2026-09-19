@@ -153,9 +153,6 @@ export default function CollectionDetail() {
                       <MapPin className="h-4 w-4" />
                       <span>{seller.distance || "2.5 km"}</span>
                     </div>
-                    {seller.cuisine && (
-                      <p className="text-sm text-muted-foreground line-clamp-1">{seller.cuisine}</p>
-                    )}
                   </CardContent>
                 </Card>
               </Link>

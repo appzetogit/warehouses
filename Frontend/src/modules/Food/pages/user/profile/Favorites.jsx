@@ -176,9 +176,6 @@ export default function Favorites() {
                       <CardTitle className="text-sm font-bold mb-0.5 line-clamp-1">
                         {seller.name}
                       </CardTitle>
-                      <p className="text-xs text-muted-foreground font-medium line-clamp-1">
-                        {seller.cuisine}
-                      </p>
                     </div>
                     <div className="flex items-center justify-between text-xs pt-2 border-t">
                       <div className="flex items-center gap-1 text-muted-foreground">
@@ -266,12 +263,14 @@ export default function Favorites() {
                                 <div className="w-3 h-3 border-2 border-green-600 flex items-center justify-center rounded-sm">
                                   <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
                                 </div>
-                              ) : (
+                              ) : dish.foodType === "Non-Veg" ? (
                                 <div className="w-3 h-3 border-2 border-orange-600 flex items-center justify-center rounded-sm">
                                   <div className="w-1.5 h-1.5 bg-orange-600 rounded-full"></div>
                                 </div>
+                              ) : null}
+                              {(dish.foodType === "Veg" || dish.foodType === "Non-Veg") && (
+                                <span className="text-muted-foreground font-medium text-xs">{dish.foodType}</span>
                               )}
-                              <span className="text-muted-foreground font-medium text-xs">{dish.foodType || "N/A"}</span>
                             </div>
                             <div className="text-sm font-bold text-primary-orange">
                               {"\u20B9"}{Math.round(dish.price || 0)}

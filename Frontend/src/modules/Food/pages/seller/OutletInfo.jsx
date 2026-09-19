@@ -57,7 +57,6 @@ export default function OutletInfo() {
   const [sellerData, setSellerData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sellerName, setSellerName] = useState("")
-  const [cuisineTags, setCuisineTags] = useState("")
   const [address, setAddress] = useState("")
   const [mainImage, setMainImage] = useState(STORE_COVER_PLACEHOLDER)
   const [thumbnailImage, setThumbnailImage] = useState(STORE_AVATAR_PLACEHOLDER)
@@ -69,7 +68,6 @@ export default function OutletInfo() {
     ownerName: "",
     primaryContactNumber: "",
     ownerEmail: "",
-    pureVegSeller: false,
   })
   const [savingBasic, setSavingBasic] = useState(false)
   const [showEditBankDialog, setShowEditBankDialog] = useState(false)
@@ -267,10 +265,6 @@ export default function OutletInfo() {
       setSellerMongoId(String(data.id || data._id || ""))
       setAddress(formatAddress(data.location))
 
-      if (data.cuisines && Array.isArray(data.cuisines) && data.cuisines.length > 0) {
-        setCuisineTags(data.cuisines.join(", "))
-      }
-
       if (data.profileImage?.url) {
         setThumbnailImage(toDisplayImageUrl(data.profileImage.url))
       }
@@ -315,18 +309,13 @@ export default function OutletInfo() {
     fetchSellerData()
 
     // Listen for updates from edit pages
-    const handleCuisinesUpdate = () => {
-      fetchSellerData()
-    }
     const handleAddressUpdate = () => {
       fetchSellerData()
     }
 
-    window.addEventListener("cuisinesUpdated", handleCuisinesUpdate)
     window.addEventListener("addressUpdated", handleAddressUpdate)
     
     return () => {
-      window.removeEventListener("cuisinesUpdated", handleCuisinesUpdate)
       window.removeEventListener("addressUpdated", handleAddressUpdate)
     }
   }, [refreshSellerData])
@@ -374,7 +363,6 @@ export default function OutletInfo() {
       ownerName: String(sellerData?.ownerName || ""),
       primaryContactNumber: String(sellerData?.primaryContactNumber || ""),
       ownerEmail: String(sellerData?.ownerEmail || ""),
-      pureVegSeller: sellerData?.pureVegSeller === true,
     })
   }, [sellerData])
 
@@ -830,8 +818,6 @@ export default function OutletInfo() {
     const ownerName = String(basicForm.ownerName || "").trim()
     const ownerEmail = String(basicForm.ownerEmail || "").trim().toLowerCase()
     const primaryContactNumber = String(basicForm.primaryContactNumber || "").replace(/\D/g, "")
-    const currentPureVeg = sellerData?.pureVegSeller === true
-    const nextPureVeg = basicForm.pureVegSeller === true
 
     if (!ownerName || !OWNER_NAME_REGEX.test(ownerName)) {
       toast.error("Owner name should contain only letters and spaces")
@@ -845,18 +831,12 @@ export default function OutletInfo() {
       toast.error("Primary contact must be a valid 10-digit Indian mobile number")
       return
     }
-    // Business rule: allow Pure Veg -> Mixed, but restrict Mixed -> Pure Veg from edit info flow.
-    if (!currentPureVeg && nextPureVeg) {
-      toast.error("Changing seller type from Mixed to Pure Veg is not allowed from Edit Info.")
-      return
-    }
 
     try {
       setSavingBasic(true)
       const payload = {
         ownerName,
         ownerEmail,
-        pureVegSeller: basicForm.pureVegSeller === true,
       }
       const response = await sellerAPI.updateProfile(payload)
       applyProfileSaveResult(response, "basic", payload)
@@ -1087,9 +1067,6 @@ export default function OutletInfo() {
             <h2 className="text-2xl font-black text-gray-900 tracking-tight truncate">
               {loading ? "Loading..." : (sellerName || "Store Name")}
             </h2>
-            <p className="text-sm text-slate-500 mt-1 truncate">
-              {cuisineTags || "Update cuisines and outlet details below"}
-            </p>
           </div>
         </div>
 
@@ -1192,26 +1169,6 @@ export default function OutletInfo() {
               <div><p className="text-xs text-slate-500">Owner name</p><p className="text-sm font-medium text-slate-900">{direct(sellerData?.ownerName)}</p></div>
               <div><p className="text-xs text-slate-500">Primary contact</p><p className="text-sm font-medium text-slate-900">{direct(sellerData?.primaryContactNumber)}</p></div>
               <div><p className="text-xs text-slate-500">Email</p><p className="text-sm font-medium text-slate-900">{direct(sellerData?.ownerEmail)}</p></div>
-              <div>
-                <p className="text-xs text-slate-500">Store type</p>
-                <div className="mt-0.5 flex items-center gap-2">
-                  <div
-                    className={`h-4 w-4 rounded-sm border-2 flex items-center justify-center ${sellerData?.pureVegSeller === true ? "" : "border-red-500"}`}
-                    style={sellerData?.pureVegSeller === true ? { borderColor: "#16A34A", backgroundColor: "#F0FDF4" } : undefined}
-                  >
-                    <div
-                      className={`h-2 w-2 rounded-full ${sellerData?.pureVegSeller === true ? "" : "bg-red-500"}`}
-                      style={sellerData?.pureVegSeller === true ? { backgroundColor: "#16A34A" } : undefined}
-                    />
-                  </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${sellerData?.pureVegSeller === true ? "" : "bg-rose-50 text-rose-700"}`}
-                    style={sellerData?.pureVegSeller === true ? { backgroundColor: "#ECFDF3", color: "#15803D" } : undefined}
-                  >
-                    {sellerData?.pureVegSeller === true ? "Pure Veg" : "Mixed"}
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1456,37 +1413,6 @@ export default function OutletInfo() {
                 }
                 placeholder="Enter email"
               />
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 mb-2">Store type</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setBasicForm((prev) => ({ ...prev, pureVegSeller: true }))
-                  }
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                    basicForm.pureVegSeller === true
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  Pure Veg
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setBasicForm((prev) => ({ ...prev, pureVegSeller: false }))
-                  }
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                    basicForm.pureVegSeller === false
-                      ? "border-rose-500 bg-rose-50 text-rose-700"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  Mixed
-                </button>
-              </div>
             </div>
           </div>
           <DialogFooter className="p-4 bg-gray-50 flex flex-row gap-3">

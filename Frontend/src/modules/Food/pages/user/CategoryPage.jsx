@@ -27,7 +27,6 @@ const filterOptions = [
   { id: 'under-30-mins', label: 'Under 30 mins' },
   { id: 'price-match', label: 'Price Match', hasIcon: true },
   { id: 'flat-50-off', label: 'Flat 50% OFF', hasIcon: true },
-  { id: 'under-250', label: 'Switch 99' },
   { id: 'rating-4-plus', label: 'Rating 4.0+' },
 ]
 
@@ -222,7 +221,6 @@ export default function CategoryPage() {
           images: Array.isArray(matchedSeller?.images) && matchedSeller.images.length > 0
             ? matchedSeller.images
             : (fallbackImage ? [fallbackImage] : []),
-          cuisine: matchedSeller?.cuisine || null,
           rating: matchedSeller?.rating || null,
           deliveryTime: matchedSeller?.deliveryTime || null,
           distance: matchedSeller?.distance || null,
@@ -235,7 +233,7 @@ export default function CategoryPage() {
           categoryDishName: food?.name || "Unnamed Item",
           categoryDishPrice: Number(food?.price || 0),
           categoryDishImage: fallbackImage,
-          categoryDishFoodType: food?.foodType || "Non-Veg",
+          categoryDishFoodType: food?.foodType || null,
         }
       })
   }
@@ -412,12 +410,6 @@ export default function CategoryPage() {
       })
     }
 
-    if (activeFilters.has('under-250')) {
-      nextRows = nextRows.filter((row) => {
-        const price = getComparablePrice(row)
-        return price != null && price <= 99
-      })
-    }
 
     if (activeFilters.has('price-under-500')) {
       nextRows = nextRows.filter((row) => {
@@ -442,7 +434,6 @@ export default function CategoryPage() {
       const query = deferredSearchQuery.toLowerCase()
       nextRows = nextRows.filter((row) =>
         row.name?.toLowerCase().includes(query) ||
-        row.cuisine?.toLowerCase().includes(query) ||
         row.featuredDish?.toLowerCase().includes(query) ||
         row.categoryDishName?.toLowerCase().includes(query)
       )
@@ -638,7 +629,6 @@ export default function CategoryPage() {
                 name: seller.sellerName || seller.name || "Unknown Seller",
                 image: image,
                 images: allImages,
-                cuisine: Array.isArray(seller.cuisines) && seller.cuisines.length > 0 ? seller.cuisines[0] : "Multi-cuisine",
                 rating: Number(seller.rating || seller.avgRating || 0) || 4.5,
                 deliveryTime: deliveryTime || (seller.estimatedDeliveryTimeMinutes ? `${seller.estimatedDeliveryTimeMinutes} mins` : "25-30 mins"),
                 distance: distance || (seller.distance ? (typeof seller.distance === 'number' ? `${seller.distance.toFixed(1)} km` : seller.distance) : "1.2 km"),
@@ -1033,8 +1023,7 @@ export default function CategoryPage() {
                 { id: 'distance-under-1km', label: 'Under 1km', icon: MapPin },
                 { id: 'distance-under-2km', label: 'Under 2km', icon: MapPin },
                 { id: 'flat-50-off', label: 'Flat 50% OFF' },
-                { id: 'under-250', label: 'Switch 99' },
-              ].map((filter) => {
+                            ].map((filter) => {
                 const Icon = filter.icon
                 const isActive = activeFilters.has(filter.id)
                 return (
@@ -1567,15 +1556,6 @@ export default function CategoryPage() {
                               }`}
                           >
                             <span className={`text-sm md:text-base font-medium ${activeFilters.has('price-under-200') ? 'text-[#EB590E]' : 'text-gray-700 dark:text-gray-300'}`}>Under ₹200</span>
-                          </button>
-                          <button
-                            onClick={() => toggleFilter('under-250')}
-                            className={`px-4 md:px-5 py-3 md:py-4 rounded-xl border text-left transition-colors ${activeFilters.has('under-250')
-                              ? 'border-green-600 bg-green-50 dark:bg-green-900/20'
-                              : 'border-gray-200 dark:border-gray-700 hover:border-green-600'
-                              }`}
-                          >
-                            <span className={`text-sm md:text-base font-medium ${activeFilters.has('under-250') ? 'text-[#EB590E]' : 'text-gray-700 dark:text-gray-300'}`}>Switch 99</span>
                           </button>
                           <button
                             onClick={() => toggleFilter('price-under-500')}

@@ -202,6 +202,6 @@ export function buildCartItemsForPricing(cart = []) {
     quantity: item.quantity || 1,
     image: item.image,
     description: item.description,
-    isVeg: item.isVeg !== false,
+    isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null,
   }))
 }

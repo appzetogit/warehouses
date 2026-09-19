@@ -35,7 +35,6 @@ const PATH_PREFIX_TO_SECTION = [
   // bookmarks resolve, and without a prefix here those visits would match no
   // section and be refused for someone who is allowed in.
   { prefix: "/admin/store/foods", section: "food_management" },
-  { prefix: "/admin/store/addons", section: "food_management" },
   { prefix: "/admin/store/categories", section: "food_management" },
   { prefix: "/admin/store/zone-setup", section: "seller_management" },
   { prefix: "/admin/store/sellers", section: "seller_management" },

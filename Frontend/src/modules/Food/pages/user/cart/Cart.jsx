@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from "react"
 import { createPortal } from "react-dom"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Minus, ArrowLeft, ChevronRight, Clock, MapPin, Phone, FileText, Utensils, Tag, Percent, Share2, ChevronUp, ChevronDown, X, Check, Settings, CreditCard, Wallet, Building2, Sparkles, Banknote, Zap, CheckCircle2, MessageCircle, Send, Mail, Copy, Home, Briefcase, Pencil, Square, Receipt, ShoppingCart, DoorOpen, PhoneOff, BellOff } from "lucide-react"
+import { Plus, Minus, ArrowLeft, ChevronRight, Clock, MapPin, Phone, FileText, Utensils, Tag, Percent, Share2, ChevronUp, ChevronDown, X, Check, Settings, CreditCard, Wallet, Building2, Sparkles, Banknote, Zap, CheckCircle2, MessageCircle, Send, Mail, Copy, Home, Briefcase, Pencil, Receipt, ShoppingCart, DoorOpen, PhoneOff, BellOff } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
 
@@ -49,7 +49,6 @@ const debugError = (...args) => { }
 
 
 
-// Removed hardcoded suggested items - now fetching approved addons from backend
 // Coupons will be fetched from backend based on items in cart
 
 /**
@@ -312,8 +311,8 @@ export default function Cart() {
     );
   }
 
-  const { cart, updateQuantity, addToCart, getCartCount, clearCart, cleanCartForSeller, replaceCart } = cartContext;
-  const { getDefaultAddress, getDefaultPaymentMethod, setDefaultAddress, addresses, paymentMethods, userProfile, vegMode } = useProfile()
+  const { cart, updateQuantity, getCartCount, clearCart, cleanCartForSeller, replaceCart } = cartContext;
+  const { getDefaultAddress, getDefaultPaymentMethod, setDefaultAddress, addresses, paymentMethods, userProfile } = useProfile()
   const { createOrder } = useOrders()
   const { location: currentLocation, loading: currentLocationLoading } = useUserLocation() // Get live location address
 
@@ -342,7 +341,6 @@ export default function Cart() {
     phone: "",
   })
 
-  const [sendCutlery, setSendCutlery] = useState(true)
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const [showBillDetails, setShowBillDetails] = useState(true)
   const [showPlacingOrder, setShowPlacingOrder] = useState(false)
@@ -393,10 +391,6 @@ export default function Cart() {
   // Same Google road Rest→User distance as Home / delivery (overrides Haversine 6.9).
   const [roadDistanceKm, setRoadDistanceKm] = useState(null)
   const [addressRoadKmById, setAddressRoadKmById] = useState({})
-
-  // Addons state
-  const [addons, setAddons] = useState([])
-  const [loadingAddons, setLoadingAddons] = useState(false)
 
   // Coupons state - fetched from backend
   const [availableCoupons, setAvailableCoupons] = useState([])
@@ -449,18 +443,6 @@ export default function Cart() {
     window.addEventListener(AUTO_COUPON_STATE_EVENT, onAutoCouponState)
     return () => window.removeEventListener(AUTO_COUPON_STATE_EVENT, onAutoCouponState)
   }, [cart, sellerData])
-
-  const suggestedAddons = useMemo(() => {
-    if (!Array.isArray(addons) || addons.length === 0) return []
-    // Veg mode ON => only veg suggestions.
-    // Veg mode OFF => show all suggestions.
-    if (vegMode !== true) return addons
-    return addons.filter((addon) => {
-      if (addon?.isVeg === true) return true
-      const ft = String(addon?.foodType || "").trim().toLowerCase()
-      return ft === "veg" || ft === "vegetarian"
-    })
-  }, [addons, vegMode])
 
   // Fee settings from database (used for platform fee and GST fallback only)
   const [feeSettings, setFeeSettings] = useState({
@@ -792,17 +774,6 @@ export default function Cart() {
     ? (sellerData?._id || sellerData?.sellerId || cart[0]?.sellerId || null)
     : null
 
-  // Stable seller ID for addons fetch (memoized to prevent dependency array issues)
-  // Prefer sellerData IDs (more reliable) over slug from cart
-  const sellerIdForAddons = useMemo(() => {
-    // Only use sellerData if it's loaded, otherwise wait
-    if (sellerData) {
-      return sellerData._id || sellerData.sellerId || null
-    }
-    // If sellerData is not loaded yet, return null to wait
-    return null
-  }, [sellerData])
-
 
 
   // Lock body scroll and scroll to top when any full-screen modal opens
@@ -1010,116 +981,6 @@ export default function Cart() {
     }
   }, [cart.length, cart[0]?.sellerId])
 
-  // Fetch approved addons for the seller
-  useEffect(() => {
-    const fetchAddonsWithId = async (idToUse) => {
-
-      debugLog("?? Addons fetch - Using ID:", {
-        sellerData: sellerData ? {
-          _id: sellerData._id,
-          sellerId: sellerData.sellerId,
-          name: sellerData.name
-        } : 'Not loaded',
-        cartSellerId: sellerId,
-        idToUse: idToUse
-      })
-
-      // Convert to string for validation
-      const idString = String(idToUse)
-      debugLog("?? Seller ID string:", idString, "Type:", typeof idString, "Length:", idString.length)
-
-      // Validate ID format (should be ObjectId or sellerId format)
-      const isValidIdFormat = /^[a-zA-Z0-9\-_]+$/.test(idString) && idString.length >= 3
-
-      if (!isValidIdFormat) {
-        debugWarn("?? Seller ID format invalid:", idString)
-        setAddons([])
-        return
-      }
-
-      try {
-        setLoadingAddons(true)
-        debugLog("?? Fetching addons for seller ID:", idString)
-        const response = await sellerAPI.getAddonsBySellerId(idString)
-        debugLog("? Addons API response received:", response?.data)
-        debugLog("?? Response structure:", {
-          success: response?.data?.success,
-          data: response?.data?.data,
-          addons: response?.data?.data?.addons,
-          directAddons: response?.data?.addons
-        })
-
-        const data = response?.data?.data?.addons || response?.data?.addons || []
-        debugLog("?? Fetched addons count:", data.length)
-        debugLog("?? Fetched addons data:", JSON.stringify(data, null, 2))
-
-        if (data.length === 0) {
-          debugWarn("?? No addons returned from API. Response:", response?.data)
-        } else {
-          debugLog("? Successfully fetched", data.length, "addons:", data.map(a => a.name))
-        }
-
-        setAddons(data.map(addon => ({
-          ...addon,
-          isVeg: addon.isVeg ?? (sellerData?.pureVegSeller === true),
-          foodType: addon.foodType || (sellerData?.pureVegSeller ? "Veg" : "Non-Veg")
-        })))
-      } catch (error) {
-        // Log error for debugging
-        debugError("? Addons fetch error:", {
-          code: error.code,
-          status: error.response?.status,
-          message: error.message,
-          url: error.config?.url,
-          data: error.response?.data
-        })
-        // Silently handle network errors and 404 errors
-        // Network errors (ERR_NETWORK) happen when backend is not running - this is OK for development
-        // 404 errors mean seller might not have addons or seller not found - also OK
-        if (error.code !== 'ERR_NETWORK' && error.response?.status !== 404) {
-          debugError("Error fetching addons:", error)
-        }
-        // Continue with cart even if addons fetch fails
-        setAddons([])
-      } finally {
-        setLoadingAddons(false)
-      }
-    }
-
-    const fetchAddons = async () => {
-      if (cart.length === 0) {
-        setAddons([])
-        return
-      }
-
-      // Wait for sellerData to be loaded (including fallback search)
-      if (loadingSeller) {
-        debugLog("? Waiting for sellerData to load (including fallback search)...")
-        return
-      }
-
-      // Must have sellerData to fetch addons
-      if (!sellerData) {
-        debugWarn("?? No sellerData available for addons fetch")
-        setAddons([])
-        return
-      }
-
-      // Use sellerData ID (most reliable)
-      const idToUse = sellerData._id || sellerData.sellerId
-      if (!idToUse) {
-        debugWarn("?? No valid seller ID in sellerData")
-        setAddons([])
-        return
-      }
-
-      debugLog("? Using sellerData ID for addons:", idToUse)
-      fetchAddonsWithId(idToUse)
-    }
-
-    fetchAddons()
-  }, [sellerData, cart.length, loadingSeller])
-
   // Fetch coupons for items in cart
   useEffect(() => {
     const fetchCouponsForCartItems = async () => {
@@ -1209,7 +1070,7 @@ export default function Cart() {
           quantity: item.quantity || 1,
           image: item.image,
           description: item.description,
-          isVeg: item.isVeg !== false
+          isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null
         }))
 
         const resolvedSellerId = sellerData?.sellerId || sellerData?._id || sellerId || undefined
@@ -1769,7 +1630,7 @@ export default function Cart() {
           quantity: item.quantity || 1,
           image: item.image,
           description: item.description,
-          isVeg: item.isVeg !== false
+          isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null
         }))
 
         const response = await orderAPI.calculateOrder({
@@ -1836,7 +1697,7 @@ export default function Cart() {
         quantity: item.quantity || 1,
         image: item.image,
         description: item.description,
-        isVeg: item.isVeg !== false
+        isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null
       }))
 
       const response = await orderAPI.calculateOrder({
@@ -1911,7 +1772,7 @@ export default function Cart() {
           quantity: item.quantity || 1,
           image: item.image,
           description: item.description,
-          isVeg: item.isVeg !== false
+          isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null
         }))
 
         const response = await orderAPI.calculateOrder({
@@ -1972,8 +1833,7 @@ export default function Cart() {
       debugLog("?? Applied coupon:", appliedCoupon?.code || "None")
       debugLog("?? Delivery address:", defaultAddress?.label || defaultAddress?.city)
 
-      // Include all cart items (main items + addons)
-      // Note: Addons are added as separate cart items when user clicks the + button
+      // Include all cart items
       const orderItems = cart.map(item => ({
         itemId: item.itemId || item.id,
         name: item.name,
@@ -1984,7 +1844,7 @@ export default function Cart() {
         quantity: item.quantity || 1,
         image: item.image || "",
         description: item.description || "",
-        isVeg: item.isVeg !== false,
+        isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null,
         preparationTime: item.preparationTime
       }))
 
@@ -2214,7 +2074,6 @@ export default function Cart() {
         note: String(note || "").trim(),
         deliveryInstructions: deliveryInstructionText,
         deliveryMode,
-        sendCutlery: sendCutlery !== false,
         paymentMethod: selectedPaymentMethod,
         // `useZone()` can return `null`. Zod expects string/undefined, not null.
         zoneId: zoneId || undefined,
@@ -2577,15 +2436,17 @@ export default function Cart() {
                   {cart.map((item) => (
                     <div key={item.id} className="flex items-start gap-3 md:gap-4">
                       {/* Veg/Non-veg indicator */}
-                      <div
-                        className="w-4 h-4 md:w-5 md:h-5 border-2 flex items-center justify-center mt-1 flex-shrink-0"
-                        style={{ borderColor: item.foodType === 'Veg' || item.isVeg === true ? "#16a34a" : "#dc2626" }}
-                      >
+                      {typeof item.isVeg === "boolean" && (
                         <div
-                          className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full"
-                          style={{ backgroundColor: item.foodType === 'Veg' || item.isVeg === true ? "#16a34a" : "#dc2626" }}
-                        />
-                      </div>
+                          className="w-4 h-4 md:w-5 md:h-5 border-2 flex items-center justify-center mt-1 flex-shrink-0"
+                          style={{ borderColor: item.isVeg ? "#16a34a" : "#dc2626" }}
+                        >
+                          <div
+                            className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full"
+                            style={{ backgroundColor: item.isVeg ? "#16a34a" : "#dc2626" }}
+                          />
+                        </div>
+                      )}
 
                       <div className="flex-1 min-w-0">
                         <p className="text-sm md:text-base font-medium text-gray-800 dark:text-gray-200 leading-tight">{item.name}</p>
@@ -2666,18 +2527,6 @@ export default function Cart() {
                     <Pencil className="h-3.5 w-3.5" />
                     {note.trim() ? "Edit cooking requests" : "Cooking requests"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setSendCutlery(!sendCutlery)}
-                    className={`flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-2 text-[12px] font-semibold ${
-                      sendCutlery
-                        ? "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] text-gray-700 dark:text-gray-300"
-                        : "border-[#EB590E]/40 bg-[#FFF1E8] text-[#EB590E]"
-                    }`}
-                  >
-                    <Square className={`h-3.5 w-3.5 ${sendCutlery ? "" : "fill-current"}`} />
-                    {sendCutlery ? "Send cutlery" : "No cutlery"}
-                  </button>
                 </div>
                 {note.trim() ? (
                   <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
@@ -2685,94 +2534,6 @@ export default function Cart() {
                   </p>
                 ) : null}
               </div>
-
-              {/* Complete your meal section - Approved Addons */}
-              {suggestedAddons.length > 0 && (
-                <div className="bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400 mb-3">
-                    Complete your meal
-                  </p>
-                  {loadingAddons ? (
-                    <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 -mx-4 md:-mx-6 px-4 md:px-6 scrollbar-hide">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="flex-shrink-0 w-[84px] md:w-[92px] animate-pulse">
-                          <div className="w-full aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg" />
-                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mt-2" />
-                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded mt-1 w-2/3" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex gap-2.5 md:gap-3 overflow-x-auto pb-2 -mx-4 md:-mx-6 px-4 md:px-6 scrollbar-hide">
-                      {suggestedAddons.map((addon) => (
-                        <div key={addon.id} className="flex-shrink-0 w-[84px] md:w-[92px]">
-                          <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden aspect-square">
-                            <img
-                              src={addon.image || (addon.images && addon.images[0]) || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop"}
-                              alt={addon.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.onerror = null
-                                e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop"
-                              }}
-                            />
-                            <div className="absolute top-1 md:top-2 left-1 md:left-2">
-                              <div
-                                className="w-3.5 h-3.5 md:w-4 md:h-4 bg-white border flex items-center justify-center rounded"
-                                style={{ borderColor: addon.foodType === 'Veg' || addon.isVeg === true ? "#16a34a" : "#dc2626" }}
-                              >
-                                <div
-                                  className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full"
-                                  style={{ backgroundColor: addon.foodType === 'Veg' || addon.isVeg === true ? "#16a34a" : "#dc2626" }}
-                                />
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => {
-                                // Use seller info from existing cart items to ensure format consistency
-                                const cartSellerId = cart[0]?.sellerId || sellerId;
-                                const cartSellerName = cart[0]?.seller || sellerName;
-
-                                if (!cartSellerId || !cartSellerName) {
-                                  debugError('? Cannot add addon: Missing seller information', {
-                                    cartSellerId,
-                                    cartSellerName,
-                                    sellerId,
-                                    sellerName,
-                                    cartItem: cart[0]
-                                  });
-                                  toast.error('Seller information is missing. Please refresh the page.');
-                                  return;
-                                }
-
-                                addToCart({
-                                  id: addon.id,
-                                  name: addon.name,
-                                  price: addon.price,
-                                  image: addon.image || (addon.images && addon.images[0]) || "",
-                                  description: addon.description || "",
-                                  isVeg: addon.isVeg,
-                                  foodType: addon.foodType,
-                                  seller: cartSellerName,
-                                  sellerId: cartSellerId
-                                });
-                              }}
-                              className="absolute top-1 right-1 h-6 w-6 rounded-full bg-white border border-[#EB590E] flex items-center justify-center shadow-sm hover:bg-orange-50 transition-colors"
-                            >
-                              <Plus className="h-3 w-3 text-[#EB590E]" />
-                            </button>
-                          </div>
-                          <p className="text-[11px] md:text-xs font-medium text-gray-800 dark:text-gray-200 mt-1 line-clamp-2 leading-tight">{addon.name}</p>
-                          {addon.description && (
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{addon.description}</p>
-                          )}
-                          <p className="text-[11px] md:text-xs text-gray-800 dark:text-gray-200 font-semibold mt-0.5">{RUPEE_SYMBOL}{addon.price}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Offers row */}
               <button

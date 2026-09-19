@@ -32,7 +32,6 @@ import {
   ShieldCheck,
   IndianRupee,
   UtensilsCrossed,
-  Leaf,
   AlertCircle,
   Loader2,
   Plus,
@@ -90,7 +89,6 @@ import {
 const debugLog = (...args) => {};
 const debugWarn = (...args) => {};
 const debugError = (...args) => {};
-const VEG_MODE_OPTION_STORAGE_KEY = "food_user_veg_mode_option";
 
 // Import shared food images - prevents duplication
 import { foodImages } from "@food/constants/images";
@@ -119,7 +117,6 @@ import OutOfZoneScreen from "@food/components/user/OutOfZoneScreen";
 
 // Explore More Icons
 import exploreOffers from "@food/assets/explore more icons/offers.png";
-import exploreGourmet from "@food/assets/explore more icons/gourmet.png";
 import exploreTop10 from "@food/assets/explore more icons/top 10.png";
 import exploreCollection from "@food/assets/explore more icons/collection.png";
 import { isVideoUrl } from "@food/utils/mediaType";
@@ -706,49 +703,37 @@ const SellerCard = React.memo(({
                   </span>
                 </div>
 
-                {/* Cuisine & Offers */}
+                {/* Offers */}
                 <div className="mt-auto flex flex-col gap-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 line-clamp-1 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-300 shrink min-w-0">
-                      {seller.cuisine}
-                    </p>
                     {currentOffer && (
-                      <>
-                        <span className="text-xs text-gray-300 dark:text-gray-600">|</span>
-                        <div
-                          className="flex flex-1 items-center gap-1 min-w-0"
+                      <div
+                        className="flex flex-1 items-center gap-1 min-w-0"
+                        style={{ color: "#16a34a" }}
+                      >
+                        <BadgePercent
+                          className="h-3.5 w-3.5 shrink-0"
                           style={{ color: "#16a34a" }}
-                        >
-                          <BadgePercent
-                            className="h-3.5 w-3.5 shrink-0"
-                            style={{ color: "#16a34a" }}
-                          />
-                          <div className="flex-1 overflow-hidden min-w-0">
-                            <AnimatePresence mode="wait">
-                              <motion.span
-                                key={`${sellerSlug}-offer-${offerIndex}-${currentOffer}`}
-                                initial={{ y: 10, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: -10, opacity: 0 }}
-                                transition={{ duration: 0.25, ease: "easeOut" }}
-                                className="block truncate text-[11px] lg:text-xs font-semibold"
-                                style={{ color: "#16a34a" }}
-                                title={currentOffer}
-                              >
-                                {currentOffer}
-                              </motion.span>
-                            </AnimatePresence>
-                          </div>
+                        />
+                        <div className="flex-1 overflow-hidden min-w-0">
+                          <AnimatePresence mode="wait">
+                            <motion.span
+                              key={`${sellerSlug}-offer-${offerIndex}-${currentOffer}`}
+                              initial={{ y: 10, opacity: 0 }}
+                              animate={{ y: 0, opacity: 1 }}
+                              exit={{ y: -10, opacity: 0 }}
+                              transition={{ duration: 0.25, ease: "easeOut" }}
+                              className="block truncate text-[11px] lg:text-xs font-semibold"
+                              style={{ color: "#16a34a" }}
+                              title={currentOffer}
+                            >
+                              {currentOffer}
+                            </motion.span>
+                          </AnimatePresence>
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
-                  {seller.pureVegSeller && (
-                    <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold uppercase tracking-wider">
-                      <Leaf className="h-3 w-3 fill-emerald-600" />
-                      <span>Pure Veg</span>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </div>
@@ -771,20 +756,9 @@ export default function Home() {
   const { openLocationSelector } = useLocationSelector();
   const { vegMode, setVegMode: setVegModeContext } = useProfile();
   const [prevVegMode, setPrevVegMode] = useState(vegMode);
-  const [showVegModePopup, setShowVegModePopup] = useState(false);
   const [showSwitchOffPopup, setShowSwitchOffPopup] = useState(false);
-  const [vegModeOption, setVegModeOption] = useState(() => {
-    try {
-      const saved = localStorage.getItem(VEG_MODE_OPTION_STORAGE_KEY);
-      return saved === "pure-veg" ? "pure-veg" : "all";
-    } catch (_) {
-      return "all";
-    }
-  }); // "all" or "pure-veg"
   const [isApplyingVegMode, setIsApplyingVegMode] = useState(false);
   const [isSwitchingOffVegMode, setIsSwitchingOffVegMode] = useState(false);
-  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0, triangleLeft: 0 });
-  const vegModeToggleRef = useRef(null);
 
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [topBannersData, setTopBannersData] = useState([]);
@@ -855,7 +829,6 @@ export default function Home() {
   const [loadingRealCategories, setLoadingRealCategories] = useState(true);
   const [menuCategories, setMenuCategories] = useState([]);
   const [loadingMenuCategories, setLoadingMenuCategories] = useState(false);
-  const [, setSellerDietMeta] = useState({});
   const [showAllCategoriesModal, setShowAllCategoriesModal] = useState(false);
   const [availabilityTick, setAvailabilityTick] = useState(Date.now());
   const SELLERS_BATCH_SIZE = 9;
@@ -888,7 +861,6 @@ export default function Home() {
   const homeUiStateRef = useRef({
     activeFilters: [],
     sortBy: null,
-    selectedCuisine: null,
     sellersData: [],
   });
   const sellerLoadMoreRef = useRef(null);
@@ -1117,7 +1089,6 @@ export default function Home() {
         filters: {
           activeFilters: ui.activeFilters,
           sortBy: ui.sortBy,
-          selectedCuisine: ui.selectedCuisine,
         },
         lock: false,
       });
@@ -1148,7 +1119,6 @@ export default function Home() {
       filters: {
         activeFilters: ui.activeFilters,
         sortBy: ui.sortBy,
-        selectedCuisine: ui.selectedCuisine,
       },
       lock: true,
     });
@@ -1237,12 +1207,6 @@ export default function Home() {
         href: "/food/user/offers",
       },
       {
-        id: "gourmet",
-        label: "Gourmet",
-        image: exploreGourmet,
-        href: "/food/user/gourmet",
-      },
-      {
         id: "collection",
         label: "Collections",
         image: exploreCollection,
@@ -1309,21 +1273,14 @@ export default function Home() {
     }
   }, [vegMode]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(VEG_MODE_OPTION_STORAGE_KEY, vegModeOption);
-    } catch (_) {}
-  }, [vegModeOption]);
-
   // Keep persisted Veg Mode preference; only reset popup UI state on mount.
   useEffect(() => {
     setPrevVegMode(vegMode);
-    setShowVegModePopup(false);
     setShowSwitchOffPopup(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle vegMode toggle - show popup when turned ON or OFF
+  // Handle vegMode toggle - apply when turned ON, confirm when turned OFF
   const handleVegModeChange = (newValue) => {
     // Skip if we're handling switch off confirmation
     if (isHandlingSwitchOff.current) {
@@ -1332,25 +1289,12 @@ export default function Home() {
 
     if (newValue && !prevVegMode) {
       // Veg mode was just turned ON
-      // Calculate popup position relative to toggle
-      if (vegModeToggleRef.current) {
-        const rect = vegModeToggleRef.current.getBoundingClientRect();
-        const screenWidth = window.innerWidth;
-        const popupWidth = Math.min(screenWidth - 32, 320); // 320 is max-w-xs
-        
-        let left = rect.left + rect.width / 2 - popupWidth / 2;
-        left = Math.max(16, Math.min(left, screenWidth - popupWidth - 16));
-        
-        const triangleLeft = rect.left + rect.width / 2 - left;
-        
-        setPopupPosition({
-          top: rect.bottom + 10,
-          left: left,
-          triangleLeft: triangleLeft
-        });
-      }
-      setShowVegModePopup(true);
-      // Don't update context yet - wait for user to apply or cancel
+      setIsApplyingVegMode(true);
+      setVegModeContext(true);
+      setPrevVegMode(true);
+      setTimeout(() => {
+        setIsApplyingVegMode(false);
+      }, 2000);
     } else if (!newValue && prevVegMode) {
       // Veg mode was just turned OFF - show switch off confirmation popup
       isHandlingSwitchOff.current = true;
@@ -1362,38 +1306,6 @@ export default function Home() {
       setPrevVegMode(newValue);
     }
   };
-
-  // Update popup position on scroll/resize
-  useEffect(() => {
-    if (!showVegModePopup) return;
-
-    const updatePosition = () => {
-      if (vegModeToggleRef.current) {
-        const rect = vegModeToggleRef.current.getBoundingClientRect();
-        const screenWidth = window.innerWidth;
-        const popupWidth = Math.min(screenWidth - 32, 320);
-        
-        let left = rect.left + rect.width / 2 - popupWidth / 2;
-        left = Math.max(16, Math.min(left, screenWidth - popupWidth - 16));
-        
-        const triangleLeft = rect.left + rect.width / 2 - left;
-        
-        setPopupPosition({
-          top: rect.bottom + 10,
-          left: left,
-          triangleLeft: triangleLeft
-        });
-      }
-    };
-
-    window.addEventListener("scroll", updatePosition, true);
-    window.addEventListener("resize", updatePosition);
-
-    return () => {
-      window.removeEventListener("scroll", updatePosition, true);
-      window.removeEventListener("resize", updatePosition);
-    };
-  }, [showVegModePopup]);
 
   // Hero banners from centralized public config
   useEffect(() => {
@@ -1566,16 +1478,12 @@ export default function Home() {
   const [sortBy, setSortBy] = useState(
     () => homeRestoreBootRef.current?.pending?.filters?.sortBy ?? null,
   ); // null, 'price-low', 'price-high', 'rating-high', 'rating-low'
-  const [selectedCuisine, setSelectedCuisine] = useState(
-    () => homeRestoreBootRef.current?.pending?.filters?.selectedCuisine ?? null,
-  );
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(() => {
     const f = homeRestoreBootRef.current?.pending?.filters;
     return {
       activeFilters: new Set(Array.isArray(f?.activeFilters) ? f.activeFilters : []),
       sortBy: f?.sortBy ?? null,
-      selectedCuisine: f?.selectedCuisine ?? null,
     };
   });
   const [isLoadingFilterResults, setIsLoadingFilterResults] = useState(false);
@@ -1585,10 +1493,9 @@ export default function Home() {
     homeUiStateRef.current = {
       activeFilters: Array.from(activeFilters),
       sortBy,
-      selectedCuisine,
       sellersData,
     };
-  }, [activeFilters, sortBy, selectedCuisine, sellersData]);
+  }, [activeFilters, sortBy, sellersData]);
   const categoryScrollRef = useRef(null);
   const gsapAnimationsRef = useRef([]);
   // Show skeletons immediately while loading — delayed toggles caused visible layout swap (CLS).
@@ -1853,11 +1760,6 @@ export default function Home() {
           params.sortBy = filters.sortBy;
         }
 
-        // Cuisine
-        if (filters.selectedCuisine) {
-          params.cuisine = filters.selectedCuisine;
-        }
-
         // Rating filters
         if (filters.activeFilters?.has("rating-45-plus")) {
           params.minRating = 4.5;
@@ -1982,12 +1884,6 @@ export default function Home() {
                     : `${Math.round(distanceInKm * 1000)} m`;
               }
 
-              // Get first cuisine or default
-              const cuisine =
-                seller.cuisines && seller.cuisines.length > 0
-                  ? seller.cuisines[0]
-                  : "Multi-cuisine";
-
               // Legacy-safe image extraction (supports old schema variants).
               const coverImages = extractImages([
                 ...(Array.isArray(seller.coverImages) ? seller.coverImages : [seller.coverImages]).filter(Boolean),
@@ -2024,10 +1920,6 @@ export default function Home() {
                 id: seller.sellerId || seller._id,
                 mongoId: seller._id || null,
                 name: getSellerDisplayName(seller),
-                cuisine: cuisine,
-                cuisines: Array.isArray(seller.cuisines)
-                  ? seller.cuisines
-                  : [],
                 rating: Number(seller.rating) || 0,
                 deliveryTime:
                   seller.deliveryTime ||
@@ -2040,11 +1932,7 @@ export default function Home() {
                 image: image,
                 images: allImages, // Array of cover images for carousel (separate from menu images)
                 priceRange: seller.priceRange || "$$", // Use from API or default
-                featuredDish:
-                  seller.featuredDish ||
-                  (seller.cuisines && seller.cuisines.length > 0
-                    ? `${seller.cuisines[0]} Special`
-                    : "Special Dish"),
+                featuredDish: seller.featuredDish || "Special Dish",
                 featuredPrice: seller.featuredPrice || 249, // Use from API or default
                 offer: offerText,
                 activeOffers,
@@ -2054,7 +1942,6 @@ export default function Home() {
                     : activeOffers.length,
                 slug: seller.slug,
                 sellerId: seller.sellerId,
-                pureVegSeller: seller.pureVegSeller === true,
                 location: sellerLoc || seller.location, // Normalized for distance recalculation
                 isActive: seller.isActive !== false, // Default to true if not specified
                 isAcceptingOrders: seller.isAcceptingOrders !== false, // Default to true if not specified
@@ -2208,12 +2095,10 @@ export default function Home() {
     async (
       nextActiveFilters = activeFilters,
       nextSortBy = sortBy,
-      nextSelectedCuisine = selectedCuisine,
     ) => {
       const nextFilterState = {
         activeFilters: new Set(nextActiveFilters),
         sortBy: nextSortBy,
-        selectedCuisine: nextSelectedCuisine,
       };
 
       setAppliedFilters(nextFilterState);
@@ -2227,7 +2112,7 @@ export default function Home() {
         setIsLoadingFilterResults(false);
       }
     },
-    [activeFilters, sortBy, selectedCuisine, fetchSellers],
+    [activeFilters, sortBy, fetchSellers],
   );
 
   // Fetch sellers when appliedFilters change
@@ -2360,19 +2245,18 @@ export default function Home() {
 
   // IMPORTANT:
   // Homepage should avoid eager N+1 menu requests. We only resolve menu metadata
-  // when the UI truly needs it: Veg Mode is enabled, or admin categories are unavailable.
+  // when the UI truly needs it: admin categories are unavailable.
   useEffect(() => {
     const sellerIds = menuUnionSellerIdsKey
       ? menuUnionSellerIdsKey.split(",").filter(Boolean)
       : [];
-    const shouldFetchMenuMeta = vegMode || realCategories.length === 0;
+    const shouldFetchMenuMeta = realCategories.length === 0;
 
     const fetchMenuCategories = async () => {
       const requestSeq = ++menuUnionRequestSeqRef.current;
 
       if (!menuUnionSellerIdsKey || !shouldFetchMenuMeta) {
         setMenuCategories([]);
-        setSellerDietMeta({});
         setLoadingMenuCategories(false);
         return;
       }
@@ -2411,50 +2295,9 @@ export default function Home() {
 
         if (requestSeq !== menuUnionRequestSeqRef.current) return;
 
-        const nextDietMeta = {};
-
-        menuResponses.forEach(({ id, menu }) => {
-          let hasVeg = false;
-          let hasNonVeg = false;
+        menuResponses.forEach(({ menu }) => {
           const sections = Array.isArray(menu?.sections) ? menu.sections : [];
           sections.forEach((section) => {
-            const sectionItems = Array.isArray(section?.items)
-              ? section.items
-              : [];
-            sectionItems.forEach((item) => {
-              const foodType = String(item?.foodType || "")
-                .trim()
-                .toLowerCase();
-              if (foodType === "veg") hasVeg = true;
-              if (
-                foodType === "non-veg" ||
-                foodType === "non veg" ||
-                foodType === "nonveg"
-              )
-                hasNonVeg = true;
-            });
-
-            const subsections = Array.isArray(section?.subsections)
-              ? section.subsections
-              : [];
-            subsections.forEach((subsection) => {
-              const subsectionItems = Array.isArray(subsection?.items)
-                ? subsection.items
-                : [];
-              subsectionItems.forEach((item) => {
-                const foodType = String(item?.foodType || "")
-                  .trim()
-                  .toLowerCase();
-                if (foodType === "veg") hasVeg = true;
-                if (
-                  foodType === "non-veg" ||
-                  foodType === "non veg" ||
-                  foodType === "nonveg"
-                )
-                  hasNonVeg = true;
-              });
-            });
-
             const categoryName = String(section?.name || "").trim();
             if (!categoryName) return;
 
@@ -2489,14 +2332,6 @@ export default function Home() {
               categoryMap.get(slug).image = image;
             }
           });
-
-          if (id) {
-            nextDietMeta[id] = {
-              hasVeg,
-              hasNonVeg,
-              isPureVeg: hasVeg && !hasNonVeg,
-            };
-          }
         });
 
         const categories = Array.from(categoryMap.values())
@@ -2510,7 +2345,6 @@ export default function Home() {
           }));
 
         setMenuCategories(categories);
-        setSellerDietMeta(nextDietMeta);
       } finally {
         if (requestSeq === menuUnionRequestSeqRef.current) {
           setLoadingMenuCategories(false);
@@ -2524,29 +2358,18 @@ export default function Home() {
     normalizeImageUrl,
     realCategories.length,
     slugifyCategory,
-    vegMode,
   ]);
-
-  const matchesVegMode = useCallback(
-    (seller) => {
-      if (!vegMode) return true;
-      if (vegModeOption === "all") return true;
-      return seller?.pureVegSeller === true;
-    },
-    [vegMode, vegModeOption],
-  );
 
     // Filter sellers and foods based on active filters
   const filteredSellers = useMemo(() => {
     // Rely on API data which is already filtered and sorted by the backend.
-    // We only apply client-side Veg Mode filtering here.
-    return (sellersData || []).filter(matchesVegMode);
-  }, [sellersData, matchesVegMode]);
+    return sellersData || [];
+  }, [sellersData]);
 
   const sellerLazyLoadResetKey = useMemo(() => {
     const activeFilterKey = Array.from(activeFilters).sort().join("|");
-    return `${sellersData.length}:${activeFilterKey}:${selectedCuisine || ""}:${sortBy || ""}:${vegMode ? "1" : "0"}:${vegModeOption}`;
-  }, [activeFilters, sellersData.length, selectedCuisine, sortBy, vegMode, vegModeOption]);
+    return `${sellersData.length}:${activeFilterKey}:${sortBy || ""}`;
+  }, [activeFilters, sellersData.length, sortBy]);
 
   const visibleSellers = useMemo(
     () => filteredSellers.slice(0, visibleSellerCount),
@@ -2765,10 +2588,6 @@ export default function Home() {
     // Primary source: sellers returned by landing settings API (already admin-selected).
     const fromSettingsMapped = fromSettings.map((seller) => {
       const sellerId = seller?._id ? String(seller._id) : "";
-      const cuisine =
-        Array.isArray(seller?.cuisines) && seller.cuisines.length > 0
-          ? seller.cuisines[0]
-          : "Multi-cuisine";
       const imageCandidates = extractImages([
         ...(Array.isArray(seller?.coverImages)
           ? seller.coverImages
@@ -2782,7 +2601,6 @@ export default function Home() {
         id: seller?.sellerId || sellerId,
         mongoId: sellerId,
         name: getSellerDisplayName(seller),
-        cuisine,
         rating: Number(seller?.rating) || 0,
         distance: "",
         deliveryTime: "",
@@ -2790,7 +2608,6 @@ export default function Home() {
         images: imageCandidates.length > 0 ? imageCandidates : [foodImages[0]],
         slug: seller?.slug || seller?.sellerId || sellerId,
         offer: null,
-        pureVegSeller: seller?.pureVegSeller === true,
         isActive: true,
         isAcceptingOrders: true,
       };
@@ -2820,16 +2637,13 @@ export default function Home() {
       );
     });
 
-    return [...orderedFromSettings, ...fromFetchedMissing]
-      .filter(matchesVegMode)
-      .slice(0, 12);
+    return [...orderedFromSettings, ...fromFetchedMissing].slice(0, 12);
   }, [
     recommendedSellerIds,
     recommendedSellersFromSettings,
     sellersData,
     extractImages,
     normalizeImageUrl,
-    matchesVegMode,
   ]);
 
   // Featured foods removed - will be handled by sellers data from API
@@ -3196,17 +3010,13 @@ export default function Home() {
           placeholders={placeholders}
           handleVegModeChange={handleVegModeChange}
           isVegMode={vegMode}
-          vegModeToggleRef={vegModeToggleRef}
           isCategoryStuck={isCategoryStuck}
         />
 
 
 
-        <PromoRow 
-          handleVegModeChange={handleVegModeChange}
+        <PromoRow
           navigate={navigate}
-          isVegMode={vegMode}
-          toggleRef={vegModeToggleRef}
         />
 
         <PromotionBannerCarousel zoneId={zoneId} />
@@ -3376,7 +3186,6 @@ export default function Home() {
                       addFavorite({
                         slug: slug,
                         name: res.name,
-                        cuisine: res.cuisine,
                         rating: res.rating,
                         deliveryTime: res.deliveryTime,
                         distance: res.distance,
@@ -3461,7 +3270,6 @@ export default function Home() {
                     onClick={() => {
                       setActiveFilters(new Set());
                       setSortBy(null);
-                      setSelectedCuisine(null);
                     }}
                     className="text-[#EB590E] font-medium text-sm">
                     Clear all
@@ -3810,160 +3618,23 @@ export default function Home() {
                       await applyFiltersAndRefetch(
                         activeFilters,
                         sortBy,
-                        selectedCuisine,
                       );
                     }}
                     className={`flex-1 py-3 font-semibold rounded-xl transition-colors ${
-                      activeFilters.size > 0 || sortBy || selectedCuisine
+                      activeFilters.size > 0 || sortBy
                         ? "bg-[#EB590E] text-white hover:bg-[#D94F0C]"
                         : "bg-gray-200 text-gray-500"
                     }`}
                     disabled={isLoadingFilterResults}>
                     {isLoadingFilterResults
                       ? "Loading..."
-                      : activeFilters.size > 0 || sortBy || selectedCuisine
+                      : activeFilters.size > 0 || sortBy
                         ? `Show results`
                         : "Show results"}
                   </button>
                 </div>
               </motion.div>
             </div>
-          )}
-        </AnimatePresence>
-
-        {/* Veg Mode Popup */}
-        <AnimatePresence>
-          {showVegModePopup && (
-            <motion.div
-              key="veg-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => {
-                setShowVegModePopup(false);
-                // Revert veg mode to OFF if popup is closed without applying
-                setVegModeContext(false);
-                setPrevVegMode(false);
-              }}
-              className="fixed inset-0 bg-black/30 z-[9998] backdrop-blur-sm"
-            />
-          )}
-          {showVegModePopup && (
-            /* Popup */
-            <motion.div
-              key="veg-popup"
-              initial={{ opacity: 0, scale: 0.9, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 10 }}
-              transition={{
-                type: "spring",
-                damping: 25,
-                stiffness: 300,
-                mass: 0.8,
-              }}
-              className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl p-6 w-[85%] max-w-xs relative border border-gray-100 dark:border-gray-800">
-                <button
-                  type="button"
-                  aria-label="Close veg mode popup"
-                  onClick={() => {
-                    setShowVegModePopup(false);
-                    setVegModeContext(false);
-                    setPrevVegMode(false);
-                  }}
-                  className="absolute top-3 right-3 p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-
-
-                {/* Title */}
-                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-3">
-                  See veg dishes from
-                </h3>
-
-                {/* Radio Options */}
-                <div className="space-y-2 mb-4">
-                  {/* All sellers */}
-                  <label
-                    className="flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    onClick={() => setVegModeOption("all")}>
-                    <div className="relative flex items-center justify-center">
-                      <input
-                        type="radio"
-                        name="vegModeOption"
-                        value="all"
-                        checked={vegModeOption === "all"}
-                        onChange={() => setVegModeOption("all")}
-                        className="sr-only"
-                      />
-                      <div
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
-                          vegModeOption === "all"
-                            ? "border-green-600 dark:border-green-500 bg-green-600 dark:bg-green-500"
-                            : "border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2a2a2a]"
-                        }`}>
-                        {vegModeOption === "all" && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-white" />
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      All sellers
-                    </span>
-                  </label>
-
-                  {/* Pure Veg sellers only */}
-                  <label
-                    className="flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    onClick={() => setVegModeOption("pure-veg")}>
-                    <div className="relative flex items-center justify-center">
-                      <input
-                        type="radio"
-                        name="vegModeOption"
-                        value="pure-veg"
-                        checked={vegModeOption === "pure-veg"}
-                        onChange={() => setVegModeOption("pure-veg")}
-                        className="sr-only"
-                      />
-                      <div
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
-                          vegModeOption === "pure-veg"
-                            ? "border-green-600 dark:border-green-500 bg-green-600 dark:bg-green-500"
-                            : "border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2a2a2a]"
-                        }`}>
-                        {vegModeOption === "pure-veg" && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-white" />
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      Pure Veg sellers only
-                    </span>
-                  </label>
-                </div>
-
-                {/* Apply Button */}
-                <button
-                  onClick={() => {
-                    setShowVegModePopup(false);
-                    setIsApplyingVegMode(true);
-                    // Confirm veg mode is ON by updating context and prevVegMode
-                    setVegModeContext(true);
-                    setPrevVegMode(true);
-                    // Simulate applying veg mode settings
-                    setTimeout(() => {
-                      setIsApplyingVegMode(false);
-                    }, 2000);
-                  }}
-                  className="w-full bg-[#EB590E] text-white font-semibold py-2.5 rounded-xl hover:bg-[#D94F0C] transition-colors mb-2 text-sm">
-                  Apply
-                </button>
-              </div>
-            </motion.div>
           )}
         </AnimatePresence>
 
@@ -4219,9 +3890,7 @@ export default function Home() {
                 transition={{ delay: 0.4 }}
                 className="text-gray-800 font-normal text-base text-center relative z-10"
               >
-                {vegModeOption === "pure-veg"
-                  ? "Explore pure veg sellers only"
-                  : "Explore veg dishes from all sellers"}
+                Explore veg dishes from all stores
               </motion.p>
             </div>
           </motion.div>
@@ -4309,9 +3978,7 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                   className="text-xl font-normal text-gray-800 dark:text-gray-200 text-center relative z-10 mt-56 w-full">
-                  {vegModeOption === "pure-veg"
-                    ? "Explore pure veg sellers only"
-                    : "Explore veg dishes from all sellers"}
+                  Explore veg dishes from all stores
                 </motion.p>
               </div>
             </motion.div>

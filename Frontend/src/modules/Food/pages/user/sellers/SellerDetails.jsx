@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, Component, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
-import { sellerAPI, diningAPI, orderAPI } from "@food/api"
+import { sellerAPI, orderAPI } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
 import { toast } from "sonner"
 import { useDeliveryLocation } from "@food/context/DeliveryLocationContext"
@@ -107,7 +107,6 @@ function SellerDetailsContent() {
     } catch (_) {}
   }, [])
   const [searchParams] = useSearchParams()
-  const showOnlyUnder250 = searchParams.get('under250') === 'true'
   const targetDishId = useMemo(() => String(searchParams.get('dish') || '').trim(), [searchParams])
   const { addToCart, updateQuantity, removeFromCart, getCartItem, cart, itemCount } = useCart()
   const { vegMode, addDishFavorite, removeDishFavorite, isDishFavorite, getDishFavorites, getFavorites, addFavorite, removeFavorite, isFavorite } = useProfile()
@@ -166,6 +165,13 @@ function SellerDetailsContent() {
     if (item.isVeg === true) return true
     const foodType = String(item.foodType || "").trim().toLowerCase()
     return foodType === "veg" || foodType === "vegetarian"
+  }
+
+  const isNonVegDish = (item) => {
+    if (!item || typeof item !== "object") return false
+    if (item.isVeg === false) return true
+    const foodType = String(item.foodType || "").trim().toLowerCase()
+    return foodType === "non-veg" || foodType === "nonveg"
   }
 
   // Initialize filters from localStorage if available
@@ -260,26 +266,7 @@ function SellerDetailsContent() {
         let response = null
         let apiSeller = null
 
-        // Try dining API first (if available). If it doesn't return a valid seller,
-        // always fall back to seller API (important when diningAPI is stubbed).
-        try {
-          response = await diningAPI.getSellerBySlug(slug)
-          if (response?.data?.success && response?.data?.data) {
-            apiSeller = response.data.data
-            debugLog('? Found seller in dining API:', apiSeller)
-          } else {
-            debugLog('? Dining API returned no seller, falling back to seller API...')
-          }
-        } catch (diningError) {
-          // If dining API errors, we still fall back unless it's a hard network failure handled below.
-          if (diningError?.response?.status === 404) {
-            debugLog('? Seller not found in dining API, trying seller API...')
-          } else {
-            debugWarn('? Dining API failed, trying seller API...', diningError?.message)
-          }
-        }
-
-        // Seller API fallback (works for both ObjectId and slug)
+        // Seller API (works for both ObjectId and slug)
         if (!apiSeller) {
           try {
             // First, try to get seller directly by slug/ID (no zoneId needed)
@@ -338,7 +325,7 @@ function SellerDetailsContent() {
           debugLog('? Seller _id:', apiSeller?._id)
           debugLog('? Seller.seller:', apiSeller?.seller)
 
-          // Check if this is a dining seller with nested seller data
+          // Some responses nest the seller data under `seller`
           const actualSeller = apiSeller?.seller || apiSeller
 
           // Helper function to format address with zone and pin code
@@ -457,7 +444,7 @@ function SellerDetailsContent() {
             })
           }
 
-          // Resolve display category/cuisine with broad API compatibility
+          // Resolve display category with broad API compatibility
           const categoryFromArray = (list) => {
             if (!Array.isArray(list) || list.length === 0) return null
             const firstEntry = list[0]
@@ -473,15 +460,11 @@ function SellerDetailsContent() {
             apiSeller?.topCategory ||
             categoryFromArray(actualSeller?.topCategories) ||
             categoryFromArray(apiSeller?.topCategories) ||
-            categoryFromArray(actualSeller?.cuisines) ||
-            categoryFromArray(apiSeller?.cuisines) ||
             categoryFromArray(actualSeller?.categories) ||
             categoryFromArray(apiSeller?.categories) ||
-            actualSeller?.cuisine ||
-            apiSeller?.cuisine ||
             actualSeller?.category ||
             apiSeller?.category ||
-            "Multi-cuisine"
+            null
 
           const onboardingStep2 = actualSeller?.onboarding?.step2 || apiSeller?.onboarding?.step2 || {}
           const onboardingStep4 = actualSeller?.onboarding?.step4 || apiSeller?.onboarding?.step4 || {}
@@ -503,7 +486,7 @@ function SellerDetailsContent() {
           const normalizedSellerOffers = actualSeller?.sellerOffers || apiSeller?.sellerOffers || {}
 
           // Transform API data to match expected format with comprehensive fallbacks
-          // Handle both dining seller and regular seller data structures
+          // Handle both nested and flat seller data structures
           const transformedSeller = {
             id: actualSeller?.sellerId || actualSeller?._id || actualSeller?.id || apiSeller?.sellerId || apiSeller?._id || null,
             mongoId: actualSeller?._id || apiSeller?._id || null,
@@ -513,7 +496,6 @@ function SellerDetailsContent() {
               apiSeller?.name ||
               apiSeller?.sellerName ||
               "Unknown Seller",
-            cuisine: resolvedTopCategory,
             topCategory: resolvedTopCategory,
             rating: actualSeller?.rating || apiSeller?.rating || actualSeller?.averageRating || apiSeller?.averageRating || 4.5,
             reviews: actualSeller?.totalRatings || apiSeller?.totalRatings || actualSeller?.reviewCount || apiSeller?.reviewCount || actualSeller?.reviews?.length || apiSeller?.reviews?.length || 0,
@@ -560,7 +542,6 @@ function SellerDetailsContent() {
               closingTime: actualSeller?.closingTime || apiSeller?.closingTime || onboardingStep2?.deliveryTimings?.closingTime || "22:00",
             },
             outletTimings: actualSeller?.outletTimings || apiSeller?.outletTimings || null,
-            cuisines: Array.isArray(actualSeller?.cuisines) ? actualSeller.cuisines : (Array.isArray(apiSeller?.cuisines) ? apiSeller.cuisines : (Array.isArray(onboardingStep2?.cuisines) ? onboardingStep2.cuisines : [])),
             profileImage: normalizedProfileImage,
             coverImages: normalizedCoverImages,
             menuImages: normalizedMenuImages,
@@ -769,7 +750,7 @@ function SellerDetailsContent() {
                 const normalizeItem = (item = {}) => {
                    const isRecommended = item.isRecommended === true || item.isRecommended === 1 || String(item.isRecommended) === "true"
                    const isSpicy = item.isSpicy === true || item.isSpicy === 1 || String(item.isSpicy) === "true"
-                   let foodType = item.foodType || "Non-Veg"
+                   let foodType = item.foodType || null
                    if (typeof foodType === 'string') {
                      if (foodType.toLowerCase() === 'veg') foodType = 'Veg'
                      else if (foodType.toLowerCase() === 'non-veg' || foodType.toLowerCase() === 'nonveg') foodType = 'Non-Veg'
@@ -894,7 +875,7 @@ function SellerDetailsContent() {
               }
             } catch (menuError) {
               if (menuError.response && menuError.response.status === 404) {
-                debugLog('? Menu not found for this seller (might be a dining-only listing).')
+                debugLog('? Menu not found for this seller.')
               } else {
                 debugError('? Error fetching menu:', menuError)
               }
@@ -939,7 +920,7 @@ function SellerDetailsContent() {
                     id: String(item.id || Date.now() + Math.random()),
                     name: item.name || "Unnamed Item",
                     inStock: item.inStock !== undefined ? item.inStock : true,
-                    isVeg: item.isVeg !== undefined ? item.isVeg : true,
+                    isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null,
                     stockQuantity: item.stockQuantity || "Unlimited",
                     unit: item.unit || "piece",
                     expiryDate: item.expiryDate || null,
@@ -956,7 +937,7 @@ function SellerDetailsContent() {
               }
             } catch (inventoryError) {
               if (inventoryError.response && inventoryError.response.status === 404) {
-                debugLog('? Inventory not found for this seller (might be a dining-only listing).')
+                debugLog('? Inventory not found for this seller.')
               } else {
                 debugError('? Error fetching inventory:', inventoryError)
               }
@@ -1189,7 +1170,7 @@ function SellerDetailsContent() {
       description: item.description,
       originalPrice: item.originalPrice,
       foodType: item.foodType,
-      isVeg: item.foodType === "Veg",
+      isVeg: item.foodType === "Veg" ? true : item.foodType === "Non-Veg" ? false : null,
       preparationTime: item.preparationTime // Add preparationTime property
     }
 
@@ -1466,7 +1447,6 @@ function SellerDetailsContent() {
       addFavorite({
         slug: sellerSlug,
         name: seller.name || "",
-        cuisine: seller.cuisine || "",
         rating: seller.rating || 0,
         deliveryTime: seller.deliveryTime || seller.estimatedDeliveryTime || "",
         distance: seller.distance || "",
@@ -1664,12 +1644,6 @@ function SellerDetailsContent() {
     if (!items) return items
 
     return items.filter((item) => {
-      // Under 250 filter (when coming from Under 250 page)
-      if (showOnlyUnder250) {
-        const finalPrice = getFinalPrice(item);
-        if (finalPrice > 250) return false;
-      }
-
       // Search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim()
@@ -1739,37 +1713,6 @@ function SellerDetailsContent() {
     return null
   }
 
-  // Helper function to check if a section has any items under Rs 250
-  const sectionHasItemsUnder250 = (section) => {
-    if (!showOnlyUnder250) return true; // If not filtering, show all sections
-
-    // Check direct items
-    if (section.items && section.items.length > 0) {
-      const hasUnder250Items = section.items.some(item => {
-        if (item.isAvailable === false) return false;
-        const finalPrice = getFinalPrice(item);
-        return finalPrice <= 250;
-      });
-      if (hasUnder250Items) return true;
-    }
-
-    // Check subsection items
-    if (section.subsections && section.subsections.length > 0) {
-      for (const subsection of section.subsections) {
-        if (subsection.items && subsection.items.length > 0) {
-          const hasUnder250Items = subsection.items.some(item => {
-            if (item.isAvailable === false) return false;
-            const finalPrice = getFinalPrice(item);
-            return finalPrice <= 250;
-          });
-          if (hasUnder250Items) return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
   // Build renderable sections from the current filter state so section/subsection visibility
   // stays in sync with the actual filtered items shown on screen.
   const getFilteredSections = () => {
@@ -1836,7 +1779,6 @@ function SellerDetailsContent() {
   }
 
   const hasActiveMenuFilters = Boolean(
-    showOnlyUnder250 ||
     searchQuery.trim() ||
     vegMode === true ||
     filters.sortBy ||
@@ -1847,7 +1789,7 @@ function SellerDetailsContent() {
 
   const filteredSections = useMemo(
     () => getFilteredSections(),
-    [seller?.menuSections, showOnlyUnder250, searchQuery, vegMode, filters, selectedMenuCategory]
+    [seller?.menuSections, searchQuery, vegMode, filters, selectedMenuCategory]
   )
 
   useEffect(() => {
@@ -2146,10 +2088,12 @@ function SellerDetailsContent() {
                 <h1 className="text-[17px] sm:text-xl md:text-2xl font-bold tracking-tight text-gray-950 dark:text-white leading-snug line-clamp-2">
                   {seller?.name || "Unknown Seller"}
                 </h1>
-                <div className="mt-1.5 flex items-center gap-2 text-[13px] sm:text-sm text-gray-700 dark:text-gray-300">
-                  <Utensils className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-                  <span>{seller?.topCategory || seller?.cuisine || "Multi-cuisine"}</span>
-                </div>
+                {seller?.topCategory && (
+                  <div className="mt-1.5 flex items-center gap-2 text-[13px] sm:text-sm text-gray-700 dark:text-gray-300">
+                    <Utensils className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                    <span>{seller.topCategory}</span>
+                  </div>
+                )}
                 <div className="mt-1.5 flex items-start gap-1.5 text-[13px] sm:text-sm text-gray-600 dark:text-gray-400">
                   <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5 text-gray-400" />
                   <span className="leading-relaxed line-clamp-2">
@@ -2497,6 +2441,7 @@ function SellerDetailsContent() {
                         const quantity = getDishQuantity(item)
                         // Determine veg/non-veg based on foodType
                         const isVeg = item.foodType === "Veg"
+                        const isNonVeg = item.foodType === "Non-Veg"
 
                         // Debug: Log preparationTime for troubleshooting
                         if (item.preparationTime) {
@@ -2534,11 +2479,11 @@ function SellerDetailsContent() {
                                   <div className="w-4 h-4 border-2 flex items-center justify-center rounded-sm flex-shrink-0" style={{ borderColor: "#16a34a" }}>
                                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#16a34a" }}></div>
                                   </div>
-                                ) : (
+                                ) : isNonVeg ? (
                                   <div className="w-4 h-4 border-2 border-red-600 flex items-center justify-center rounded-sm flex-shrink-0" style={{ borderColor: "#dc2626" }}>
                                     <div className="w-2 h-2 bg-red-600 rounded-full" style={{ backgroundColor: "#dc2626" }}></div>
                                   </div>
-                                )}
+                                ) : null}
                                 {item.isSpicy && <span className="text-xs font-semibold text-red-500">Spicy</span>}
                               </div>
 
@@ -2724,6 +2669,7 @@ function SellerDetailsContent() {
                                   const quantity = getDishQuantity(item)
                                   // Determine veg/non-veg based on foodType
                                   const isVeg = item.foodType === "Veg"
+                                  const isNonVeg = item.foodType === "Non-Veg"
 
                                   // Debug: Log preparationTime for troubleshooting
                                   if (item.preparationTime) {
@@ -2761,11 +2707,11 @@ function SellerDetailsContent() {
                                             <div className="w-4 h-4 border-2 flex items-center justify-center rounded-sm flex-shrink-0" style={{ borderColor: "#16a34a" }}>
                                               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#16a34a" }}></div>
                                             </div>
-                                          ) : (
+                                          ) : isNonVeg ? (
                                             <div className="w-4 h-4 border-2 border-red-600 flex items-center justify-center rounded-sm flex-shrink-0" style={{ borderColor: "#dc2626" }}>
                                               <div className="w-2 h-2 bg-red-600 rounded-full" style={{ backgroundColor: "#dc2626" }}></div>
                                             </div>
-                                          )}
+                                          ) : null}
                                           {item.isSpicy && <span className="text-xs font-semibold text-red-500">Spicy</span>}
                                         </div>
 
@@ -3546,11 +3492,11 @@ function SellerDetailsContent() {
                           <div className="h-5 w-5 rounded border-2 flex items-center justify-center flex-shrink-0" style={{ borderColor: "#16A34A", backgroundColor: "#F0FDF4" }}>
                             <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#16A34A" }} />
                           </div>
-                        ) : (
+                        ) : isNonVegDish(selectedItem) ? (
                           <div className="h-5 w-5 rounded border-2 border-red-600 bg-red-50 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
                             <div className="h-2.5 w-2.5 rounded-full bg-red-600" />
                           </div>
-                        )}
+                        ) : null}
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                           {selectedItem.name}
                         </h2>

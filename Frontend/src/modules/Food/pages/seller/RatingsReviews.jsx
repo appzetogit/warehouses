@@ -24,7 +24,7 @@ const accordionItems = [
   {
     id: 1,
     question: "How is my seller's rating calculated",
-    answer: "Your seller's rating is calculated based on customer reviews and ratings from delivery and dining orders. The system takes an average of all ratings received, with more recent reviews having slightly more weight."
+    answer: "Your seller's rating is calculated based on customer reviews and ratings from delivery orders. The system takes an average of all ratings received, with more recent reviews having slightly more weight."
   },
   {
     id: 2,

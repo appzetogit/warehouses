@@ -662,7 +662,6 @@ export default function SellerOnboarding() {
 
   const [step1, setStep1] = useState({
     sellerName: "",
-    pureVegSeller: null,
     ownerName: "",
     ownerEmail: "",
     ownerPhone: "",
@@ -685,7 +684,6 @@ export default function SellerOnboarding() {
   const [step2, setStep2] = useState({
     menuImages: [],
     profileImage: null,
-    cuisines: [],
     estimatedDeliveryTime: "",
     openingTime: "",
     closingTime: "",
@@ -1037,10 +1035,6 @@ export default function SellerOnboarding() {
             setStep1((prev) => ({
               ...prev,
               sellerName: localData.step1.sellerName || "",
-              pureVegSeller:
-                typeof localData.step1.pureVegSeller === "boolean"
-                  ? localData.step1.pureVegSeller
-                  : null,
               ownerName: localData.step1.ownerName || "",
               ownerEmail: localData.step1.ownerEmail || "",
               ownerPhone: localData.step1.ownerPhone || "",
@@ -1086,7 +1080,6 @@ export default function SellerOnboarding() {
                 (typeof localData.step2.profileImage === "string" || localData.step2.profileImage?.url
                   ? localData.step2.profileImage
                   : null),
-              cuisines: localData.step2.cuisines || [],
               estimatedDeliveryTime: localData.step2.estimatedDeliveryTime || "",
               openingTime: normalizeTimeValue(localData.step2.openingTime),
               closingTime: normalizeTimeValue(localData.step2.closingTime),
@@ -1237,14 +1230,6 @@ export default function SellerOnboarding() {
             setStep1((prev) => ({
               ...prev,
               sellerName: prev.sellerName || step1Data.sellerName || data.name || data.sellerName || "",
-              pureVegSeller:
-                typeof prev.pureVegSeller === "boolean"
-                  ? prev.pureVegSeller
-                  : typeof step1Data.pureVegSeller === "boolean"
-                  ? step1Data.pureVegSeller
-                  : typeof data.pureVegSeller === "boolean"
-                  ? data.pureVegSeller
-                  : null,
               ownerName: prev.ownerName || step1Data.ownerName || data.ownerName || "",
               ownerEmail: prev.ownerEmail || step1Data.ownerEmail || data.ownerEmail || data.email || "",
               ownerPhone: prev.ownerPhone || step1Data.ownerPhone || data.ownerPhone || data.phone || "",
@@ -1286,12 +1271,6 @@ export default function SellerOnboarding() {
                   ? data.menuImages
                   : prev.menuImages,
               profileImage: step2Data.profileImageUrl || data.profileImage || prev.profileImage,
-              cuisines:
-                (step2Data.cuisines && step2Data.cuisines.length > 0)
-                  ? step2Data.cuisines
-                  : (data.cuisines && data.cuisines.length > 0)
-                  ? data.cuisines
-                  : prev.cuisines,
               estimatedDeliveryTime:
                 step2Data.estimatedDeliveryTime ||
                 data.estimatedDeliveryTime ||
@@ -1409,9 +1388,6 @@ export default function SellerOnboarding() {
 
     if (!step1.sellerName?.trim()) {
       errors.push("Store name is required")
-    }
-    if (typeof step1.pureVegSeller !== "boolean") {
-      errors.push("Please select whether your seller is pure veg")
     }
     if (!step1.ownerName?.trim()) {
       errors.push("Owner name is required")
@@ -1633,7 +1609,6 @@ export default function SellerOnboarding() {
 
     const formData = new FormData()
     formData.append('sellerName', step1.sellerName || '')
-    formData.append('pureVegSeller', step1.pureVegSeller === true ? 'true' : 'false')
     formData.append('ownerName', step1.ownerName || '')
     formData.append('ownerEmail', (step1.ownerEmail || '').trim())
     formData.append('ownerPhone', normalizePhoneDigits(step1.ownerPhone))
@@ -1649,7 +1624,6 @@ export default function SellerOnboarding() {
     formData.append('formattedAddress', step1.location?.formattedAddress || '')
     formData.append('latitude', String(step1.location?.latitude || ''))
     formData.append('longitude', String(step1.location?.longitude || ''))
-    formData.append('cuisines', (step2.cuisines || []).join(','))
     formData.append('estimatedDeliveryTime', (step2.estimatedDeliveryTime || '').trim())
     formData.append('openingTime', normalizeTimeValue(step2.openingTime) || '')
     formData.append('closingTime', normalizeTimeValue(step2.closingTime) || '')
@@ -1870,28 +1844,6 @@ export default function SellerOnboarding() {
               placeholder="Customers will see this name"
               disabled={!isEditing}
             />
-          </div>
-          <div>
-            <Label className={ONBOARDING_LABEL}>Pure veg seller?*</Label>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => isEditing && setStep1({ ...step1, pureVegSeller: true })}
-                className={chipClass(step1.pureVegSeller === true, !isEditing)}
-              >
-                Yes, Pure Veg
-              </button>
-              <button
-                type="button"
-                onClick={() => isEditing && setStep1({ ...step1, pureVegSeller: false })}
-                className={chipClass(step1.pureVegSeller === false, !isEditing)}
-              >
-                No, Mixed Menu
-              </button>
-            </div>
-            <p className={ONBOARDING_HINT}>
-              This helps users filter sellers by dietary preference.
-            </p>
           </div>
         </div>
       </section>

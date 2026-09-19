@@ -241,10 +241,9 @@ export default function AllOrdersPage() {
     
     // Determine tags based on order properties
     const tags = []
-    if (order.sendCutlery) tags.push('CUTLERY')
     tags.push('HOME DELIVERY')
     // Check if all items are veg
-    const allVeg = items.every(item => item.isVeg !== false)
+    const allVeg = items.every(item => item.isVeg === true)
     if (allVeg && items.length > 0) tags.push('VEG ONLY')
     
     const pricing = order.pricing || {}
@@ -512,7 +511,6 @@ export default function AllOrdersPage() {
   const getTagStyle = (tag) => {
     if (tag === "VEG ONLY") return { backgroundColor: "#16A34A", color: "#FFFFFF" }
     if (tag === "HOME DELIVERY") return { backgroundColor: "#2563EB", color: "#FFFFFF" }
-    if (tag === "CUTLERY") return { backgroundColor: "#7C3AED", color: "#FFFFFF" }
     return { backgroundColor: "#374151", color: "#FFFFFF" }
   }
 

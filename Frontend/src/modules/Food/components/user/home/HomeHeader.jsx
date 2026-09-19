@@ -31,7 +31,6 @@ export default function HomeHeader({
   placeholders,
   handleVegModeChange,
   isVegMode,
-  vegModeToggleRef,
   isCategoryStuck = false,
   topBanners = [],
   topBannersLoaded = false,
@@ -289,7 +288,6 @@ export default function HomeHeader({
             <div 
               className="flex items-center gap-1.5 h-10 bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-full px-2.5 border border-white/30 shadow-sm cursor-pointer hover:bg-white/30 dark:border-white/10 dark:hover:bg-white/10 active:scale-95 transition-all flex-shrink-0"
               onClick={() => handleVegModeChange && handleVegModeChange(!isVegMode)}
-              ref={vegModeToggleRef}
             >
               <div
                 className={`flex items-center justify-center p-[2px] rounded-sm border ${isVegMode ? '' : 'border-gray-500'} bg-white flex-shrink-0`}

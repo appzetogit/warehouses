@@ -35,7 +35,7 @@ const createFoodForm = () => ({
   variants: [],
   description: "",
   image: "",
-  foodType: "Non-Veg",
+  foodType: "",
   isAvailable: true,
   preparationTime: "",
 })
@@ -208,7 +208,7 @@ export default function FoodsList() {
             price: getFoodDisplayPrice(f),
             otherPrice: getFoodDisplayOtherPrice(f),
             variants: getFoodVariants(f),
-            foodType: f.foodType || "Non-Veg",
+            foodType: f.foodType === "Veg" || f.foodType === "Non-Veg" ? f.foodType : "",
             approvalStatus: f.approvalStatus || "approved",
             description: f.description || "",
             preparationTime: f.preparationTime || "",
@@ -377,7 +377,7 @@ export default function FoodsList() {
       variants: getFoodVariants(food).map(createVariantDraft),
       description: String(food.description || ""),
       image: String(food.image || ""),
-      foodType: String(food.foodType || "Non-Veg"),
+      foodType: food.foodType === "Veg" || food.foodType === "Non-Veg" ? food.foodType : "",
       isAvailable: food.isAvailable !== false,
       preparationTime: String(food.preparationTime || ""),
     })
@@ -552,7 +552,7 @@ export default function FoodsList() {
         description: foodForm.description.trim(),
         image: imageUrl,
         images: imageUrls,
-        foodType: foodForm.foodType === "Veg" ? "Veg" : "Non-Veg",
+        foodType: foodForm.foodType === "Veg" || foodForm.foodType === "Non-Veg" ? foodForm.foodType : null,
         isAvailable: foodForm.isAvailable !== false,
         preparationTime: String(foodForm.preparationTime || "").trim(),
       }
@@ -1249,6 +1249,7 @@ export default function FoodsList() {
                   onChange={(e) => setFoodForm((prev) => ({ ...prev, foodType: e.target.value }))}
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
                 >
+                  <option value="">Not applicable</option>
                   <option value="Veg">Veg</option>
                   <option value="Non-Veg">Non-Veg</option>
                 </select>

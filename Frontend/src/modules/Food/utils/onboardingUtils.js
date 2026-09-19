@@ -24,7 +24,6 @@ const isStepComplete = (stepData, stepNumber) => {
   if (stepNumber === 1) {
     return (
       stepData.sellerName &&
-      typeof stepData.pureVegSeller === "boolean" &&
       stepData.ownerName &&
       stepData.ownerEmail &&
       stepData.ownerPhone &&
@@ -36,8 +35,6 @@ const isStepComplete = (stepData, stepNumber) => {
 
   if (stepNumber === 2) {
     return (
-      Array.isArray(stepData.cuisines) &&
-      stepData.cuisines.length > 0 &&
       stepData.deliveryTimings?.openingTime &&
       stepData.deliveryTimings?.closingTime &&
       Array.isArray(stepData.openDays) &&
@@ -93,10 +90,6 @@ const buildOnboardingLikeDataFromSeller = (seller) => {
     completedSteps: onboarding.completedSteps,
     step1: onboarding.step1 || {
       sellerName: seller?.sellerName || seller?.name,
-      pureVegSeller:
-        typeof seller?.pureVegSeller === "boolean"
-          ? seller.pureVegSeller
-          : null,
       ownerName: seller?.ownerName,
       ownerEmail: seller?.ownerEmail || seller?.email,
       ownerPhone: seller?.ownerPhone || seller?.phone,
@@ -114,7 +107,6 @@ const buildOnboardingLikeDataFromSeller = (seller) => {
           : null),
     },
     step2: onboarding.step2 || {
-      cuisines: seller?.cuisines,
       deliveryTimings:
         seller?.deliveryTimings ||
         (openingTime || closingTime ? { openingTime, closingTime } : null),

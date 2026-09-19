@@ -322,14 +322,6 @@ export default function NewOrderAcceptCard({
             )}
           </div>
 
-          {order?.sendCutlery === false && (
-            <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-full border border-amber-100">
-              <span className="text-[10px] text-amber-700 font-black uppercase tracking-tight">
-                No Cutlery Requested
-              </span>
-            </div>
-          )}
-
           {cookingNote ? (
             <div className="mt-3 rounded-[16px] border border-blue-100 bg-blue-50/80 px-3.5 py-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-1">

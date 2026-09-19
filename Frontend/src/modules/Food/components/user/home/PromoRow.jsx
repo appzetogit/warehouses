@@ -1,29 +1,15 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import discountPromoIcon from "@food/assets/category-icons/discount_promo.png";
-import gourmetPromoIcon from "@food/assets/explore more icons/gourmet.png";
-import pricePromoIcon from "@food/assets/category-icons/price_promo.png";
 import collectionPromoIcon from "@food/assets/explore more icons/collection.png";
 
-export default function PromoRow({ handleVegModeChange, navigate, isVegMode, toggleRef }) {
+export default function PromoRow({ navigate }) {
   const promoCardsData = [
     {
       id: 'offers',
       title: "Hot Deals",
       value: "Offers",
       icon: discountPromoIcon,
-    },
-    {
-      id: 'gourmet',
-      title: "Premium",
-      value: "Gourmet",
-      icon: gourmetPromoIcon,
-    },
-    {
-      id: 'under-250',
-      title: "Under ₹99",
-      value: "Switch 99",
-      icon: pricePromoIcon,
     },
     {
       id: 'collections',
@@ -38,7 +24,6 @@ export default function PromoRow({ handleVegModeChange, navigate, isVegMode, tog
       {promoCardsData.map((promo, idx) => (
         <motion.div
           key={idx}
-          ref={promo.id === 'gourmet' ? toggleRef : null}
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: idx * 0.05, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
@@ -46,9 +31,7 @@ export default function PromoRow({ handleVegModeChange, navigate, isVegMode, tog
           whileTap={{ scale: 0.95 }}
           className="flex flex-col items-center gap-1.5 group cursor-pointer w-full"
           onClick={() => {
-            if (promo.id === 'gourmet') navigate('/food/user/gourmet');
-            else if (promo.id === 'offers') navigate('/food/user/offers');
-            else if (promo.id === 'under-250') navigate('/food/user/under-250');
+            if (promo.id === 'offers') navigate('/food/user/offers');
             else if (promo.id === 'collections') navigate('/food/user/profile/favorites');
           }}
         >

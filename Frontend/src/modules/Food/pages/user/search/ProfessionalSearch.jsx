@@ -303,11 +303,6 @@ export default function ProfessionalSearch() {
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                             onError={(e) => (e.target.src = "/placeholder-dish.jpg")}
                           />
-                          {r.pureVegSeller && (
-                            <div className="absolute top-1 left-1 w-4 h-4 border border-green-600 p-[1px] bg-white rounded-sm">
-                               <div className="w-full h-full bg-green-600 rounded-full" />
-                            </div>
-                          )}
                        </div>
                        <div className="flex-1 min-w-0 flex flex-col justify-center">
                           <div className="text-rose-500 text-[10px] font-bold uppercase tracking-wider mb-1">
@@ -321,8 +316,6 @@ export default function ProfessionalSearch() {
                              </div>
                              <span>•</span>
                              <span>{r.estimatedDeliveryTime || "30-40 mins"}</span>
-                             <span>•</span>
-                             <span className="line-clamp-1">{r.cuisines?.slice(0, 2).join(", ")}</span>
                           </div>
                        </div>
                     </Link>
@@ -351,7 +344,6 @@ export default function ProfessionalSearch() {
                         <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
                            <div>
                               <h3 className="text-xl font-bold text-white mb-1">{r.sellerName}</h3>
-                              <p className="text-white/80 text-xs line-clamp-1">{r.cuisines?.join(", ")}</p>
                            </div>
                            <div className="bg-white/20 backdrop-blur-md border border-white/30 px-2 py-1 rounded-lg flex items-center gap-1">
                               <Star className="w-3 h-3 text-white fill-white" />
