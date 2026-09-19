@@ -23,13 +23,7 @@ import * as sellerAppBanner from '../controllers/sellerAppBanner.controller.js';
 
 const router = express.Router();
 
-// ----- Public Business Settings (No Admin Required) -----
-router.get('/business-settings/public', businessSettingsController.getBusinessSettings);
-router.get('/power-scanning/public', businessSettingsController.getPowerScanningSettings);
-router.get('/fee-settings/public', adminController.getFeeSettings);
-router.get('/seller-subscription-settings/public', adminController.getSellerSubscriptionSettings);
-router.get('/feature-settings/public', adminController.getFeatureSettings);
-
+// Public reads of these settings are served under /v1/settings.
 
 const requireAdmin = (req, _res, next) => {
     const user = req.user;
@@ -321,7 +315,6 @@ router.get('/referral-settings', adminController.getReferralSettings);
 router.put('/referral-settings', adminController.createOrUpdateReferralSettings);
 
 // ----- Business Settings -----
-router.get('/business-settings/public', businessSettingsController.getBusinessSettings); // Public endpoint
 router.get('/business-settings', businessSettingsController.getBusinessSettings);
 router.patch('/business-settings', upload.fields([
     { name: 'logo', maxCount: 1 },

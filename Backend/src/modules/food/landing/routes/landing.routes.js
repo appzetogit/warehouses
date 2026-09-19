@@ -50,20 +50,11 @@ import { getPublicReferralSettingsController } from '../controllers/publicReferr
 const router = express.Router();
 
 /**
- * This router is mounted at /v1/food WITHOUT the admin guard, yet it also contains the
- * banner/landing MANAGEMENT endpoints (upload, delete, reorder, toggle). They were
- * therefore reachable unauthenticated by anyone.
- *
- * Allowlist the genuinely public reads and require an admin token for everything else, so
- * any route added to this file in future is protected by default rather than exposed.
- */
-/**
- * CRITICAL: this router is mounted at /v1/food, which is a PREFIX of /v1/food/user,
- * /v1/food/orders, /v1/food/chat, /v1/food/notifications, /v1/food/payments and
- * /v1/food/search — all of which mount AFTER it. So every one of those requests passes
- * through this middleware first. It must therefore only act on the paths this router
- * actually owns, and fall straight through for everything else, or it locks the whole
- * customer app out with 403.
+ * Mounted at /v1/content without an admin guard, because it serves the public
+ * banner and page reads. It also holds the banner MANAGEMENT endpoints (upload,
+ * delete, reorder, toggle), so everything under the managed prefixes needs an
+ * admin token except reads ending in /public. A route added under those prefixes
+ * is protected by default rather than exposed.
  */
 const LANDING_MANAGED_PREFIXES = [/^\/hero-banners/, /^\/top-banners/];
 

@@ -17,7 +17,7 @@ const PromotionBannerCarousel = ({ zoneId: propZoneId }) => {
     if (!zoneId) return;
     try {
       setLoading(true);
-      const response = await publicConfigGetOnce("/food/hero-banners/home-promotion/public", {
+      const response = await publicConfigGetOnce("/content/hero-banners/home-promotion/public", {
         params: { zoneId },
       });
       if (response.data?.success && response.data?.data?.banners) {

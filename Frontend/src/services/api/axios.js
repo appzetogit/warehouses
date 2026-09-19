@@ -1,7 +1,7 @@
 /**
  * Central API client for backend (auth and future APIs).
  * - baseURL from VITE_API_BASE_URL (e.g. http://localhost:5000/api/v1)
- * - When baseURL ends with /api/v1, request paths must NOT include /v1 (use /food/..., /auth/...)
+ * - When baseURL ends with /api/v1, request paths must NOT include /v1 (use /catalog/..., /auth/...)
  * - Attaches Bearer token (user or admin based on request URL)
  * - On 401: attempts refresh, retries once; on refresh failure logs out
  */
@@ -22,38 +22,38 @@ const apiClient = axios.create({
 });
 
 const ADMIN_PERMISSION_PATH_MAP = [
-  { prefix: "/food/admin/sub-admins", section: "sub_admin_management" },
-  { prefix: "/food/admin/customers", section: "customer_management" },
-  { prefix: "/food/admin/support-tickets", section: "customer_management" },
-  { prefix: "/food/admin/sellers", section: "seller_management" },
-  { prefix: "/food/admin/seller-settings", section: "seller_management" },
-  { prefix: "/food/admin/seller-subscription-settings", section: "seller_management" },
-  { prefix: "/food/admin/seller-subscriptions", section: "seller_management" },
-  { prefix: "/food/admin/zones", section: "seller_management" },
-  { prefix: "/food/admin/categories", section: "food_management" },
-  { prefix: "/food/admin/foods", section: "food_management" },
-  { prefix: "/food/admin/offers", section: "promotions_management" },
-  { prefix: "/food/admin/orders", section: "order_management" },
-  { prefix: "/food/admin/order-detect-delivery", section: "order_management" },
-  { prefix: "/food/admin/sidebar-badges", section: "dashboard" },
-  { prefix: "/food/admin/dashboard-stats", section: "dashboard" },
-  { prefix: "/food/admin/referral-settings", section: "referral_rewards" },
-  { prefix: "/food/admin/delivery", section: "delivery_management" },
-  { prefix: "/food/admin/fee-settings", section: "delivery_management" },
-  { prefix: "/food/admin/delivery-cash-limit", section: "delivery_management" },
-  { prefix: "/food/admin/cash-limit-settlements", section: "delivery_management" },
-  { prefix: "/food/admin/cash-limit-settlement", section: "delivery_management" },
-  { prefix: "/food/admin/withdrawals", section: "transaction_management" },
-  { prefix: "/food/admin/reports", section: "report_management" },
-  { prefix: "/food/admin/feedback-experiences", section: "report_management" },
-  { prefix: "/food/hero-banners", section: "banner_management" },
-  { prefix: "/food/admin/contact-messages", section: "support_management" },
-  { prefix: "/food/admin/safety-emergency-reports", section: "support_management" },
-  { prefix: "/food/admin/feature-settings", section: "system_settings" },
-  { prefix: "/food/admin/business-settings", section: "system_settings" },
-  { prefix: "/food/admin/power-scanning", section: "system_settings" },
-  { prefix: "/food/admin/notifications", section: "system_settings" },
-  { prefix: "/food/admin/pages-social-media", section: "pages_social_media" },
+  { prefix: "/admin/sub-admins", section: "sub_admin_management" },
+  { prefix: "/admin/customers", section: "customer_management" },
+  { prefix: "/admin/support-tickets", section: "customer_management" },
+  { prefix: "/admin/sellers", section: "seller_management" },
+  { prefix: "/admin/seller-settings", section: "seller_management" },
+  { prefix: "/admin/seller-subscription-settings", section: "seller_management" },
+  { prefix: "/admin/seller-subscriptions", section: "seller_management" },
+  { prefix: "/admin/zones", section: "seller_management" },
+  { prefix: "/admin/categories", section: "food_management" },
+  { prefix: "/admin/foods", section: "food_management" },
+  { prefix: "/admin/offers", section: "promotions_management" },
+  { prefix: "/admin/orders", section: "order_management" },
+  { prefix: "/admin/order-detect-delivery", section: "order_management" },
+  { prefix: "/admin/sidebar-badges", section: "dashboard" },
+  { prefix: "/admin/dashboard-stats", section: "dashboard" },
+  { prefix: "/admin/referral-settings", section: "referral_rewards" },
+  { prefix: "/admin/delivery", section: "delivery_management" },
+  { prefix: "/admin/fee-settings", section: "delivery_management" },
+  { prefix: "/admin/delivery-cash-limit", section: "delivery_management" },
+  { prefix: "/admin/cash-limit-settlements", section: "delivery_management" },
+  { prefix: "/admin/cash-limit-settlement", section: "delivery_management" },
+  { prefix: "/admin/withdrawals", section: "transaction_management" },
+  { prefix: "/admin/reports", section: "report_management" },
+  { prefix: "/admin/feedback-experiences", section: "report_management" },
+  { prefix: "/content/hero-banners", section: "banner_management" },
+  { prefix: "/admin/contact-messages", section: "support_management" },
+  { prefix: "/admin/safety-emergency-reports", section: "support_management" },
+  { prefix: "/admin/feature-settings", section: "system_settings" },
+  { prefix: "/admin/business-settings", section: "system_settings" },
+  { prefix: "/admin/power-scanning", section: "system_settings" },
+  { prefix: "/admin/notifications", section: "system_settings" },
+  { prefix: "/admin/pages-social-media", section: "pages_social_media" },
 ];
 
 const normalizePath = (url) => {
@@ -73,7 +73,7 @@ const normalizePath = (url) => {
 const resolveAdminSectionByApiPath = (url, method = "GET") => {
   const path = normalizePath(url).toLowerCase();
   const normalizedMethod = String(method || "GET").toUpperCase();
-  if (path === "/food/admin/zones" && normalizedMethod === "GET") {
+  if (path === "/admin/zones" && normalizedMethod === "GET") {
     return "seller_management";
   }
   const match = ADMIN_PERMISSION_PATH_MAP.find((item) => path.startsWith(item.prefix));
@@ -117,47 +117,22 @@ const hasAdminAction = (adminUser, section, action = "view") => {
 function getModuleFromUrl(url = "") {
   const u = typeof url === "string" ? url : (url?.url || "");
   if (!u) return "user";
-  
-  const normalized = u.toLowerCase();
-  
-  // Admin detection
-  if (
-    normalized.includes("/admin/") ||
-    normalized.includes("/food/admin/") ||
-    normalized.includes("/food/auth/admin") ||
-    normalized.includes("/auth/admin") ||
-    normalized.includes("admin/login")
-  ) return "admin";
 
-  // Landing/banner management lives at /food/hero-banners and /food/top-banners rather
-  // than under /food/admin, so it fell through to "user" and was sent with no token at
-  // all (admin login only writes admin_accessToken). Anything here that is NOT a
-  // /public read is an admin operation and must carry the admin token.
-  if (
-    (normalized.includes("/food/hero-banners") || normalized.includes("/food/top-banners")) &&
-    !normalized.includes("/public")
-  ) return "admin";
-  
-  // Delivery detection - Catch all delivery-specific functional and auth routes
-  if (
-    normalized.includes("/food/delivery") || 
-    normalized.includes("/auth/delivery") || 
-    normalized.includes("/delivery/")
-  ) return "delivery";
-  
-  // Seller detection - Catch all seller-specific functional and auth routes
-  if (
-    normalized.includes("/food/seller/") || 
-    normalized.includes("/auth/seller") || 
-    normalized.includes("/seller/")
-  ) {
-    // Exception: /sellers (plural) is usually a public user app route
-    if (normalized.includes("/sellers") && !normalized.includes("/food/seller/")) {
-       return "user";
-    }
-    return "seller";
+  // Which signed-in role a request belongs to decides which token it carries.
+  // Paths are grouped by audience (/admin, /seller, /delivery, ...); auth and
+  // payments put the role one segment down (/auth/seller/..., /payments/seller/...).
+  const path = normalizePath(u).toLowerCase().replace(/^\/api\/v1(?=\/)/, "");
+  const [, first = "", second = ""] = path.split("/");
+  const area = first === "auth" || first === "payments" ? second : first;
+
+  if (area === "admin") return "admin";
+  // Banner management sits under /content next to the public banner reads, and
+  // needs the admin token; only the /public reads are open.
+  if (first === "content" && (second === "hero-banners" || second === "top-banners") && !path.endsWith("/public")) {
+    return "admin";
   }
-  
+  if (area === "delivery") return "delivery";
+  if (area === "seller") return "seller";
   return "user";
 }
 
@@ -241,26 +216,26 @@ apiClient.interceptors.request.use(
       const path = normalizePath(config?.url);
       const normalizedPath = String(path || "").toLowerCase();
       const isPublicAdminEndpoint =
-        normalizedPath.startsWith("/food/admin/") &&
+        normalizedPath.startsWith("/admin/") &&
         normalizedPath.endsWith("/public");
       const isAuthEndpoint =
-        path.includes("/food/auth/admin/login") ||
-        path.includes("/food/auth/me") ||
-        path.includes("/food/auth/refresh-token") ||
-        path.includes("/food/auth/logout");
+        path.includes("/auth/admin/login") ||
+        path.includes("/auth/me") ||
+        path.includes("/auth/refresh-token") ||
+        path.includes("/auth/logout");
 
       if (!isAuthEndpoint && !isPublicAdminEndpoint) {
         const action = resolveActionByMethod(config?.method);
-        const isSellerListRead = normalizedPath === "/food/admin/sellers" && action === "view";
+        const isSellerListRead = normalizedPath === "/admin/sellers" && action === "view";
         const isSellerDetailRead =
-          /^\/food\/admin\/sellers\/[^/]+$/.test(normalizedPath) && action === "view";
+          /^\/admin\/sellers\/[^/]+$/.test(normalizedPath) && action === "view";
         const isSellerAnalyticsRead =
-          /^\/food\/admin\/sellers\/[^/]+\/analytics$/.test(normalizedPath) && action === "view";
-        const isOrdersRead = normalizedPath === "/food/admin/orders" && action === "view";
-        const isCustomersRead = normalizedPath === "/food/admin/customers" && action === "view";
-        const isZonesRead = normalizedPath === "/food/admin/zones" && action === "view";
+          /^\/admin\/sellers\/[^/]+\/analytics$/.test(normalizedPath) && action === "view";
+        const isOrdersRead = normalizedPath === "/admin/orders" && action === "view";
+        const isCustomersRead = normalizedPath === "/admin/customers" && action === "view";
+        const isZonesRead = normalizedPath === "/admin/zones" && action === "view";
         const isZoneDetailRead =
-          /^\/food\/admin\/zones\/[^/]+$/.test(normalizedPath) && action === "view";
+          /^\/admin\/zones\/[^/]+$/.test(normalizedPath) && action === "view";
 
         // POS dropdown needs seller list read access.
         if (isSellerListRead || isSellerDetailRead || isSellerAnalyticsRead) {
@@ -402,7 +377,7 @@ apiClient.interceptors.response.use(
     try {
       // Use relative URL so this works both with an explicit baseURL and with a dev proxy.
       // Use plain axios to avoid interceptor recursion.
-      const refreshUrl = baseURL ? `${baseURL}/food/auth/refresh-token` : "/api/v1/food/auth/refresh-token";
+      const refreshUrl = baseURL ? `${baseURL}/auth/refresh-token` : "/api/v1/auth/refresh-token";
       const { data } = await axios.post(refreshUrl, { refreshToken }, { timeout: 10000 });
       const newAccessToken = data?.data?.accessToken || data?.accessToken;
       if (newAccessToken) {

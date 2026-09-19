@@ -61,7 +61,7 @@ export default function LandingPage() {
   useEffect(() => {
     async function fetchSupportInfo() {
       try {
-        const response = await apiClient.get("/food/pages/support", {
+        const response = await apiClient.get("/content/pages/support", {
           params: { module: "USER" }
         });
         const data = response?.data?.data || response?.data;

@@ -150,7 +150,7 @@ export default function LandingPageManagement() {
     try {
       setTopBannersLoading(true)
       setError(null)
-      const response = await api.get('/food/top-banners', getAuthConfig())
+      const response = await api.get('/content/top-banners', getAuthConfig())
       if (response.data.success) {
         setTopBanners(response.data.data.banners || [])
       }
@@ -198,7 +198,7 @@ export default function LandingPageManagement() {
       })
 
       const config = getAuthConfig()
-      const response = await api.post('/food/top-banners/multiple', formData, config)
+      const response = await api.post('/content/top-banners/multiple', formData, config)
 
       if (response.data.success) {
         const uploadedBanners = response.data.data?.banners || []
@@ -242,7 +242,7 @@ export default function LandingPageManagement() {
       setTopBannersDeleting(id)
       setError(null)
       setSuccess(null)
-      const response = await api.delete(`/food/top-banners/${id}`, getAuthConfig())
+      const response = await api.delete(`/content/top-banners/${id}`, getAuthConfig())
       if (response.data.success) {
         setSuccess('Top banner deleted successfully!')
         await fetchTopBanners()
@@ -259,7 +259,7 @@ export default function LandingPageManagement() {
     try {
       setError(null)
       setSuccess(null)
-      const response = await api.patch(`/food/top-banners/${id}/status`, {}, getAuthConfig())
+      const response = await api.patch(`/content/top-banners/${id}/status`, {}, getAuthConfig())
       if (response.data.success) {
         setSuccess(`Banner ${currentStatus ? 'deactivated' : 'activated'} successfully!`)
         await fetchTopBanners()
@@ -278,9 +278,9 @@ export default function LandingPageManagement() {
     if (!otherBanner && newOrder < 0) return
     try {
       setError(null)
-      await api.patch(`/food/top-banners/${id}/order`, { order: newOrder }, getAuthConfig())
+      await api.patch(`/content/top-banners/${id}/order`, { order: newOrder }, getAuthConfig())
       if (otherBanner) {
-        await api.patch(`/food/top-banners/${otherBanner._id}/order`, { order: banner.order }, getAuthConfig())
+        await api.patch(`/content/top-banners/${otherBanner._id}/order`, { order: banner.order }, getAuthConfig())
       }
       await fetchTopBanners()
     } catch (err) {
@@ -293,7 +293,7 @@ export default function LandingPageManagement() {
     try {
       setBannersLoading(true)
       setError(null)
-      const response = await api.get('/food/hero-banners', getAuthConfig())
+      const response = await api.get('/content/hero-banners', getAuthConfig())
       if (response.data.success) {
         setBanners(response.data.data.banners || [])
       }
@@ -382,7 +382,7 @@ export default function LandingPageManagement() {
         })
       }
 
-      const response = await api.post('/food/hero-banners/multiple', formData, config)
+      const response = await api.post('/content/hero-banners/multiple', formData, config)
 
       if (response.data.success) {
         const uploadedBanners = response.data.data?.banners || []
@@ -433,7 +433,7 @@ export default function LandingPageManagement() {
       setBannersDeleting(id)
       setError(null)
       setSuccess(null)
-      const response = await api.delete(`/food/hero-banners/${id}`, getAuthConfig())
+      const response = await api.delete(`/content/hero-banners/${id}`, getAuthConfig())
       if (response.data.success) {
         setSuccess('Hero banner deleted successfully!')
         await fetchBanners()
@@ -450,7 +450,7 @@ export default function LandingPageManagement() {
     try {
       setError(null)
       setSuccess(null)
-      const response = await api.patch(`/food/hero-banners/${id}/status`, {}, getAuthConfig())
+      const response = await api.patch(`/content/hero-banners/${id}/status`, {}, getAuthConfig())
       if (response.data.success) {
         setSuccess(`Banner ${currentStatus ? 'deactivated' : 'activated'} successfully!`)
         await fetchBanners()
@@ -469,9 +469,9 @@ export default function LandingPageManagement() {
     if (!otherBanner && newOrder < 0) return
     try {
       setError(null)
-      await api.patch(`/food/hero-banners/${id}/order`, { order: newOrder }, getAuthConfig())
+      await api.patch(`/content/hero-banners/${id}/order`, { order: newOrder }, getAuthConfig())
       if (otherBanner) {
-        await api.patch(`/food/hero-banners/${otherBanner._id}/order`, { order: banner.order }, getAuthConfig())
+        await api.patch(`/content/hero-banners/${otherBanner._id}/order`, { order: banner.order }, getAuthConfig())
       }
       await fetchBanners()
     } catch (err) {
@@ -489,7 +489,7 @@ export default function LandingPageManagement() {
       setSuccess(null)
 
       const response = await api.patch(
-        `/food/hero-banners/${selectedBannerId}/link-sellers`,
+        `/content/hero-banners/${selectedBannerId}/link-sellers`,
         { sellerIds: selectedSellerIds },
         getAuthConfig()
       )
@@ -561,7 +561,7 @@ export default function LandingPageManagement() {
     try {
       setCategoriesLoading(true)
       setError(null)
-      const response = await api.get('/food/hero-banners/landing/categories', getAuthConfig())
+      const response = await api.get('/content/hero-banners/landing/categories', getAuthConfig())
       if (response.data.success) {
         setCategories(response.data.data.categories || [])
       }
@@ -660,7 +660,7 @@ export default function LandingPageManagement() {
         formData.append('label', item.label.trim())
 
         try {
-          const response = await api.post('/food/hero-banners/landing/categories', formData, getAuthConfig({
+          const response = await api.post('/content/hero-banners/landing/categories', formData, getAuthConfig({
             headers: { 'Content-Type': 'multipart/form-data' },
           }))
           if (response.data.success) {
@@ -716,7 +716,7 @@ export default function LandingPageManagement() {
       setCategoriesDeleting(id)
       setError(null)
       setSuccess(null)
-      const response = await api.delete(`/food/hero-banners/landing/categories/${id}`, getAuthConfig())
+      const response = await api.delete(`/content/hero-banners/landing/categories/${id}`, getAuthConfig())
       if (response.data.success) {
         setSuccess('Category deleted successfully!')
         await fetchCategories()
@@ -733,7 +733,7 @@ export default function LandingPageManagement() {
     try {
       setError(null)
       setSuccess(null)
-      const response = await api.patch(`/food/hero-banners/landing/categories/${id}/status`, {}, getAuthConfig())
+      const response = await api.patch(`/content/hero-banners/landing/categories/${id}/status`, {}, getAuthConfig())
       if (response.data.success) {
         setSuccess(`Category ${currentStatus ? 'deactivated' : 'activated'} successfully!`)
         await fetchCategories()
@@ -752,9 +752,9 @@ export default function LandingPageManagement() {
     if (!otherCategory && newOrder < 0) return
     try {
       setError(null)
-      await api.patch(`/food/hero-banners/landing/categories/${id}/order`, { order: newOrder }, getAuthConfig())
+      await api.patch(`/content/hero-banners/landing/categories/${id}/order`, { order: newOrder }, getAuthConfig())
       if (otherCategory) {
-        await api.patch(`/food/hero-banners/landing/categories/${otherCategory._id}/order`, { order: category.order }, getAuthConfig())
+        await api.patch(`/content/hero-banners/landing/categories/${otherCategory._id}/order`, { order: category.order }, getAuthConfig())
       }
       await fetchCategories()
     } catch (err) {
@@ -767,7 +767,7 @@ export default function LandingPageManagement() {
     try {
       setExploreMoreLoading(true)
       setError(null)
-      const response = await api.get('/food/hero-banners/landing/explore-more', getAuthConfig())
+      const response = await api.get('/content/hero-banners/landing/explore-more', getAuthConfig())
       if (response.data.success) {
         setExploreMore(response.data.data.items || [])
       }
@@ -810,7 +810,7 @@ export default function LandingPageManagement() {
       formData.append('image', file)
       formData.append('label', exploreMoreLabel.trim())
       formData.append('link', exploreMoreLink.trim())
-      const response = await api.post('/food/hero-banners/landing/explore-more', formData, getAuthConfig({
+      const response = await api.post('/content/hero-banners/landing/explore-more', formData, getAuthConfig({
         headers: { 'Content-Type': 'multipart/form-data' },
       }))
       if (response.data.success) {
@@ -834,7 +834,7 @@ export default function LandingPageManagement() {
       setExploreMoreDeleting(id)
       setError(null)
       setSuccess(null)
-      const response = await api.delete(`/food/hero-banners/landing/explore-more/${id}`, getAuthConfig())
+      const response = await api.delete(`/content/hero-banners/landing/explore-more/${id}`, getAuthConfig())
       if (response.data.success) {
         setSuccess('Explore more item deleted successfully!')
         await fetchExploreMore()
@@ -851,7 +851,7 @@ export default function LandingPageManagement() {
     try {
       setError(null)
       setSuccess(null)
-      const response = await api.patch(`/food/hero-banners/landing/explore-more/${id}/status`, {}, getAuthConfig())
+      const response = await api.patch(`/content/hero-banners/landing/explore-more/${id}/status`, {}, getAuthConfig())
       if (response.data.success) {
         setSuccess(`Explore more item ${currentStatus ? 'deactivated' : 'activated'} successfully!`)
         await fetchExploreMore()
@@ -880,14 +880,14 @@ export default function LandingPageManagement() {
 
       if (existingItem) {
         // Update existing
-        res = await api.patch(`/food/hero-banners/landing/explore-more/${existingItem._id}`, formData, getAuthConfig({
+        res = await api.patch(`/content/hero-banners/landing/explore-more/${existingItem._id}`, formData, getAuthConfig({
           headers: { 'Content-Type': 'multipart/form-data' }
         }))
       } else {
         // Create new
         formData.append('label', label)
         formData.append('link', link)
-        res = await api.post('/food/hero-banners/landing/explore-more', formData, getAuthConfig({
+        res = await api.post('/content/hero-banners/landing/explore-more', formData, getAuthConfig({
           headers: { 'Content-Type': 'multipart/form-data' }
         }))
       }
@@ -913,9 +913,9 @@ export default function LandingPageManagement() {
     if (!otherItem && newOrder < 0) return
     try {
       setError(null)
-      await api.patch(`/food/hero-banners/landing/explore-more/${id}/order`, { order: newOrder }, getAuthConfig())
+      await api.patch(`/content/hero-banners/landing/explore-more/${id}/order`, { order: newOrder }, getAuthConfig())
       if (otherItem) {
-        await api.patch(`/food/hero-banners/landing/explore-more/${otherItem._id}/order`, { order: item.order }, getAuthConfig())
+        await api.patch(`/content/hero-banners/landing/explore-more/${otherItem._id}/order`, { order: item.order }, getAuthConfig())
       }
       await fetchExploreMore()
     } catch (err) {
@@ -928,7 +928,7 @@ export default function LandingPageManagement() {
     try {
       setSettingsLoading(true)
       setError(null)
-      const response = await api.get('/food/hero-banners/landing/settings', getAuthConfig())
+      const response = await api.get('/content/hero-banners/landing/settings', getAuthConfig())
       if (response.data.success) {
         const nextSettings = response.data.data.settings || {}
         setSettings({
@@ -956,7 +956,7 @@ export default function LandingPageManagement() {
       setSettingsSaving(true)
       setError(null)
       setSuccess(null)
-      const response = await api.patch('/food/hero-banners/landing/settings', {
+      const response = await api.patch('/content/hero-banners/landing/settings', {
         exploreMoreHeading: settings.exploreMoreHeading,
         recommendedSellerIds: Array.isArray(settings.recommendedSellerIds) ? settings.recommendedSellerIds : []
       }, getAuthConfig())

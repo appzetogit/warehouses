@@ -244,7 +244,7 @@ export default function OTP() {
 
       // Update name via profile API
       try {
-        await apiClient.patch("/food/user/profile", 
+        await apiClient.patch("/user/profile", 
           { name: normalizedName },
           { headers: { Authorization: `Bearer ${accessToken}` } }
         )

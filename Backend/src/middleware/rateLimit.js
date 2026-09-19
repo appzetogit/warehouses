@@ -35,7 +35,7 @@ export const shouldSkipGlobalRateLimit = (req) => {
     const path = requestPath(req);
 
     // Session maintenance — must stay reachable (documented as exempt)
-    if (/^\/api\/v1\/food\/auth\/(me|refresh-token|logout)(\/|$)/.test(path)) {
+    if (/^\/api\/v1\/auth\/(me|refresh-token|logout)(\/|$)/.test(path)) {
         return true;
     }
     if (/^\/api\/v1\/health/.test(path)) {
@@ -52,13 +52,13 @@ export const shouldSkipGlobalRateLimit = (req) => {
         return true;
     }
 
-    // Cached seller catalog reads (high volume on home/browse, server-side cache)
-    if (req.method === 'GET' && /\/food\/seller\/sellers/.test(path)) {
+    // Cached catalog reads and search (every keystroke / page load, server-side cache)
+    if (req.method === 'GET' && /^\/api\/v1\/catalog\//.test(path)) {
         return true;
     }
 
-    // Search reads (unified search on every keystroke / page load)
-    if (req.method === 'GET' && /\/food\/search\//.test(path)) {
+    // Public settings read on every app start
+    if (req.method === 'GET' && /^\/api\/v1\/settings\//.test(path)) {
         return true;
     }
 
@@ -216,31 +216,31 @@ export const getRateLimitSummary = () => ({
         globalSkipped: [
             'GET */public/*',
             'GET */zones/detect',
-            'GET /api/v1/food/seller/sellers/*',
-            'GET /api/v1/food/search/*',
-            'GET /api/v1/food/auth/me',
-            'POST /api/v1/food/auth/refresh-token',
-            'POST /api/v1/food/auth/logout',
+            'GET /api/v1/catalog/*',
+            'GET /api/v1/settings/*',
+            'GET /api/v1/auth/me',
+            'POST /api/v1/auth/refresh-token',
+            'POST /api/v1/auth/logout',
             'GET /api/v1/health/*',
         ],
         auth: [
-            'POST /api/v1/food/auth/user/request-otp',
-            'POST /api/v1/food/auth/user/verify-otp',
-            'POST /api/v1/food/auth/seller/request-otp',
-            'POST /api/v1/food/auth/seller/verify-otp',
-            'POST /api/v1/food/auth/delivery/request-otp',
-            'POST /api/v1/food/auth/delivery/verify-otp',
-            'POST /api/v1/food/auth/admin/login',
-            'POST /api/v1/food/auth/admin/forgot-password/request-otp',
-            'POST /api/v1/food/auth/admin/forgot-password/reset',
+            'POST /api/v1/auth/user/request-otp',
+            'POST /api/v1/auth/user/verify-otp',
+            'POST /api/v1/auth/seller/request-otp',
+            'POST /api/v1/auth/seller/verify-otp',
+            'POST /api/v1/auth/delivery/request-otp',
+            'POST /api/v1/auth/delivery/verify-otp',
+            'POST /api/v1/auth/admin/login',
+            'POST /api/v1/auth/admin/forgot-password/request-otp',
+            'POST /api/v1/auth/admin/forgot-password/reset',
         ],
         upload: ['POST /api/v1/uploads/image'],
         notRateLimited: [
             'GET /health',
             'GET /ready',
-            'POST /api/v1/food/auth/refresh-token',
-            'POST /api/v1/food/auth/logout',
-            'GET /api/v1/food/auth/me',
+            'POST /api/v1/auth/refresh-token',
+            'POST /api/v1/auth/logout',
+            'GET /api/v1/auth/me',
         ],
     },
 });

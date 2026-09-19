@@ -6,16 +6,16 @@
 import apiClient from "./axios.js";
 
 const AUTH = {
-  USER_REQUEST_OTP: "/food/auth/user/request-otp",
-  USER_VERIFY_OTP: "/food/auth/user/verify-otp",
-  ADMIN_LOGIN: "/food/auth/admin/login",
-  SELLER_REQUEST_OTP: "/food/auth/seller/request-otp",
-  SELLER_VERIFY_OTP: "/food/auth/seller/verify-otp",
-  DELIVERY_REQUEST_OTP: "/food/auth/delivery/request-otp",
-  DELIVERY_VERIFY_OTP: "/food/auth/delivery/verify-otp",
-  REFRESH_TOKEN: "/food/auth/refresh-token",
-  LOGOUT: "/food/auth/logout",
-  ME: "/food/auth/me",
+  USER_REQUEST_OTP: "/auth/user/request-otp",
+  USER_VERIFY_OTP: "/auth/user/verify-otp",
+  ADMIN_LOGIN: "/auth/admin/login",
+  SELLER_REQUEST_OTP: "/auth/seller/request-otp",
+  SELLER_VERIFY_OTP: "/auth/seller/verify-otp",
+  DELIVERY_REQUEST_OTP: "/auth/delivery/request-otp",
+  DELIVERY_VERIFY_OTP: "/auth/delivery/verify-otp",
+  REFRESH_TOKEN: "/auth/refresh-token",
+  LOGOUT: "/auth/logout",
+  ME: "/auth/me",
 };
 
 /**

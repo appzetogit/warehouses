@@ -3,7 +3,7 @@ import { sendResponse, sendError } from '../../../../utils/response.js';
 
 /**
  * Create a new feedback experience entry.
- * POST /api/v1/food/seller/feedback-experience
+ * POST /api/v1/seller/feedback-experience
  */
 export const createFeedbackExperience = async (req, res) => {
     try {
@@ -46,7 +46,7 @@ export const createFeedbackExperience = async (req, res) => {
 
 /**
  * Get all feedback experiences (Admin only).
- * GET /api/v1/food/admin/feedback-experiences
+ * GET /api/v1/admin/feedback-experiences
  */
 export const getFeedbackExperiences = async (req, res) => {
     try {
@@ -150,7 +150,7 @@ export const getFeedbackExperiences = async (req, res) => {
 
 /**
  * Delete a feedback experience (Admin only).
- * DELETE /api/v1/food/admin/feedback-experiences/:id
+ * DELETE /api/v1/admin/feedback-experiences/:id
  */
 export const deleteFeedbackExperience = async (req, res) => {
     try {

@@ -3,9 +3,6 @@ import { upload } from '../../../../middleware/upload.js';
 import {
     registerSellerController,
     createOnboardingFeeOrderController,
-    listApprovedSellersController,
-    getApprovedSellerController,
-    listPublicOffersController,
     getCurrentSellerController,
     updateSellerProfileController,
     updateSellerAcceptingOrdersController,
@@ -45,11 +42,9 @@ import {
     updateCategoryController,
     deleteCategoryController
 } from '../controllers/sellerCategory.controller.js';
-import { getMenuController, getPublicSellerMenuController } from '../controllers/sellerMenu.controller.js';
-import { listPublicFoodsController } from '../controllers/publicFoods.controller.js';
+import { getMenuController } from '../controllers/sellerMenu.controller.js';
 import * as feedbackExperienceController from '../../admin/controllers/feedbackExperience.controller.js';
 import {
-    getOutletTimingsBySellerIdController,
     getCurrentSellerOutletTimingsController,
     upsertCurrentSellerOutletTimingsController
 } from '../controllers/outletTimings.controller.js';
@@ -66,7 +61,7 @@ import {
     uploadBulkMenuController
 } from '../controllers/bulkUpload.controller.js';
 import * as orderController from '../../orders/controllers/order.controller.js';
-import { authMiddleware, optionalAuth } from '../../../../core/auth/auth.middleware.js';
+import { authMiddleware } from '../../../../core/auth/auth.middleware.js';
 import { sendError } from '../../../../utils/response.js';
 import { getSellerFinanceController } from '../controllers/sellerFinance.controller.js';
 import {
@@ -81,7 +76,7 @@ import {
 } from '../controllers/sellerBanner.controller.js';
 import { listBannersForSellerAppController } from '../../admin/controllers/sellerAppBanner.controller.js';
 
-import { cacheResponse, invalidateCache } from '../../../../middleware/cache.js';
+import { invalidateCache } from '../../../../middleware/cache.js';
 
 const router = express.Router();
 
@@ -108,15 +103,7 @@ router.post('/onboarding-fee/order', createOnboardingFeeOrderController);
 router.post('/unregistered', registerUnregisteredSellerController);
 router.post('/upload-attachment', upload.single('file'), uploadSellerAttachmentController);
 
-// Public: approved sellers list (for user app)
-router.get('/sellers', cacheResponse(300, 'sellers'), listApprovedSellersController);
-router.get('/sellers/:id', cacheResponse(600, 'seller_detail'), getApprovedSellerController);
-router.get('/sellers/:id/menu', cacheResponse(600, 'seller_menu'), getPublicSellerMenuController);
-router.get('/public/foods', cacheResponse(300, 'public_foods'), listPublicFoodsController);
-router.get('/sellers/:id/outlet-timings', cacheResponse(600, 'seller_timings'), getOutletTimingsBySellerIdController);
-router.get('/offers', optionalAuth, listPublicOffersController);
-// Public: categories list (zone-aware; returns zone categories + global)
-router.get('/categories/public', cacheResponse(600, 'categories'), listCategoriesController);
+// Public store and product reads live in the catalog router.
 
 // Seller dashboard/profile (Bearer token + SELLER role)
 router.get('/current', authMiddleware, requireSeller, getCurrentSellerController);

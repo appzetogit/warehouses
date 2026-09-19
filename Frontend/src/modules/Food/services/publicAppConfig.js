@@ -11,13 +11,13 @@ import { API_ENDPOINTS } from "@food/api/config";
 
 export const PUBLIC_CONFIG_URLS = {
   BUSINESS: API_ENDPOINTS.ADMIN.BUSINESS_SETTINGS_PUBLIC,
-  POWER_SCANNING: "/food/admin/power-scanning/public",
-  FEATURE: "/food/admin/feature-settings/public",
-  FEE: "/food/admin/fee-settings/public",
-  TOP_BANNERS: "/food/top-banners/public",
-  HERO_BANNERS: "/food/hero-banners/public",
-  EXPLORE_ICONS: "/food/explore-icons/public",
-  LANDING: "/food/landing/settings/public",
+  POWER_SCANNING: "/settings/power-scanning",
+  FEATURE: "/settings/features",
+  FEE: "/settings/fees",
+  TOP_BANNERS: "/content/top-banners/public",
+  HERO_BANNERS: "/content/hero-banners/public",
+  EXPLORE_ICONS: "/content/explore-icons/public",
+  LANDING: "/content/landing/settings/public",
 };
 
 const CONFIG_TTL_MS = 15 * 60 * 1000;
