@@ -1842,10 +1842,10 @@ export async function updateOrderStatusSeller(
     title = "Order Accepted! 🧑‍🍳";
     body = "The seller has accepted your order and is starting to prepare it.";
   } else if (orderStatus === "preparing") {
-    title = "Food is being prepared! 🍳";
-    body = "Your food is currently being prepared by the seller.";
+    title = "Your order is being prepared 🍳";
+    body = "The seller is preparing your order.";
   } else if (orderStatus === "ready_for_pickup") {
-    title = "Food is ready! 🛍️";
+    title = "Your order is ready! 🛍️";
     body = "Your order is ready and waiting to be picked up.";
   } else if (String(orderStatus).includes("cancel")) {
     const isOnlinePaid = order.payment.method === "razorpay" && (order.payment.status === "paid" || order.payment.status === "refunded");
@@ -2305,7 +2305,7 @@ export async function listOrdersAdmin(query) {
           { dispatch: { $exists: false } },
         ];
         break;
-      case "food-on-the-way":
+      case "out-for-delivery":
         // Delivery partner accepted; not yet delivered.
         filter["dispatch.status"] = "accepted";
         filter.orderStatus = {
@@ -2589,10 +2589,10 @@ export async function updateOrderStatusAdmin(orderId, orderStatus, note = "", ad
         title = "Order Accepted! 🧑‍🍳";
         body = "The order has been accepted and is starting to be prepared.";
     } else if (orderStatus === "preparing") {
-        title = "Food is being prepared! 🍳";
-        body = "Your food is currently being prepared by the seller.";
+        title = "Your order is being prepared 🍳";
+        body = "The seller is preparing your order.";
     } else if (orderStatus === "ready_for_pickup") {
-        title = "Food is ready! 🛍️";
+        title = "Your order is ready! 🛍️";
         body = "Your order is ready and waiting to be picked up.";
     } else if (String(orderStatus).includes("cancel")) {
         title = "Order Cancelled ❌";

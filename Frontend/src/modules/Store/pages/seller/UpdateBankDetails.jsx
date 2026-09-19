@@ -124,7 +124,7 @@ export default function UpdateBankDetails() {
         return
       }
       setUploadingQr(true)
-      const response = await uploadAPI.uploadMedia(file, { folder: "food/sellers/upi-qr" })
+      const response = await uploadAPI.uploadMedia(file, { folder: "sellers/upi-qr" })
       const url =
         response?.data?.data?.url ||
         response?.data?.url ||

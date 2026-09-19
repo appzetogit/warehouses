@@ -716,7 +716,7 @@ export const getProfile = async (userId, role) => {
   return { user: profile };
 };
 
-const ADMIN_SERVICES_ALLOWED = ["food", "quickCommerce", "taxi"];
+const ADMIN_SERVICES_ALLOWED = ["commerce", "quickCommerce", "taxi"];
 
 /** Update admin profile (name, email, phone, profileImage). Only for ADMIN role. */
 export const updateAdminProfile = async (userId, body) => {
@@ -768,9 +768,9 @@ export const updateAdminProfile = async (userId, body) => {
     const valid = admin.servicesAccess.filter((s) =>
       ADMIN_SERVICES_ALLOWED.includes(s),
     );
-    admin.servicesAccess = valid.length ? valid : ["food"];
+    admin.servicesAccess = valid.length ? valid : ["commerce"];
   } else {
-    admin.servicesAccess = ["food"];
+    admin.servicesAccess = ["commerce"];
   }
   await admin.save();
   const profile = admin.toObject();

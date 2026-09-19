@@ -35,12 +35,12 @@ export default function OnTheWayOrders() {
     handlePrintOrder,
     toggleColumn,
     resetColumns,
-  } = useOrdersManagement(onTheWayOrders, "food-on-the-way", "Food On The Way Orders")
+  } = useOrdersManagement(onTheWayOrders, "out-for-delivery", "Out For Delivery Orders")
 
   return (
     <div className="p-4 lg:p-6 bg-slate-50 min-h-screen w-full max-w-full overflow-x-hidden">
       <OrdersTopbar 
-        title="Food On The Way Orders" 
+        title="Out For Delivery Orders" 
         count={count} 
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}

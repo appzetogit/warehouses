@@ -44,8 +44,8 @@ export async function listPendingProductApprovals(query = {}) {
     const productRequests = productList.map((f) => ({
         _id: f._id,
         id: f._id,
-        entityType: 'food',
-        type: 'food',
+        entityType: 'product',
+        type: 'product',
         sellerName: sellerMap.get(String(f.sellerId)) || 'Unknown Seller',
         sellerId: toSellerDisplayId(f.sellerId),
         category: f.categoryName || '',
@@ -72,7 +72,7 @@ export async function listPendingProductApprovals(query = {}) {
 
 export async function approveProduct(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
-        throw new ValidationError('Invalid food id');
+        throw new ValidationError('Invalid product id');
     }
     const updated = await Product.findOneAndUpdate(
         { _id: id, approvalStatus: 'pending' },
@@ -84,7 +84,7 @@ export async function approveProduct(id) {
             const { invalidateCache } = await import('../../../../middleware/cache.js');
             await invalidateCache(`seller_menu:${updated.sellerId}`);
         } catch (cacheErr) {
-            console.error('Failed to invalidate cache after food approval:', cacheErr);
+            console.error('Failed to invalidate cache after product approval:', cacheErr);
         }
 
         try {
@@ -103,7 +103,7 @@ export async function approveProduct(id) {
                 }
             );
         } catch (e) {
-            console.error('Failed to send food approval notification:', e);
+            console.error('Failed to send product approval notification:', e);
         }
     }
     return updated;
@@ -111,7 +111,7 @@ export async function approveProduct(id) {
 
 export async function rejectProduct(id, reason) {
     if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
-        throw new ValidationError('Invalid food id');
+        throw new ValidationError('Invalid product id');
     }
     const r = typeof reason === 'string' ? reason.trim() : '';
     if (!r) throw new ValidationError('Rejection reason is required');
@@ -127,7 +127,7 @@ export async function rejectProduct(id, reason) {
             const { invalidateCache } = await import('../../../../middleware/cache.js');
             await invalidateCache(`seller_menu:${updated.sellerId}`);
         } catch (cacheErr) {
-            console.error('Failed to invalidate cache after food rejection:', cacheErr);
+            console.error('Failed to invalidate cache after product rejection:', cacheErr);
         }
 
         try {
@@ -147,7 +147,7 @@ export async function rejectProduct(id, reason) {
                 }
             );
         } catch (e) {
-            console.error('Failed to send food rejection notification:', e);
+            console.error('Failed to send product rejection notification:', e);
         }
     }
     return updated;

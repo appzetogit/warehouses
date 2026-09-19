@@ -63,21 +63,21 @@ export async function listPublicProducts(query = {}) {
         .lean();
 
     const products = list
-        .map((food) => {
-        const seller = sellerMap.get(String(food.sellerId));
-        const price = getProductDisplayPrice(food);
+        .map((product) => {
+        const seller = sellerMap.get(String(product.sellerId));
+        const price = getProductDisplayPrice(product);
         return {
-            id: food._id,
-            _id: food._id,
-            sellerId: food.sellerId,
+            id: product._id,
+            _id: product._id,
+            sellerId: product.sellerId,
             sellerName: seller?.sellerName || 'Unknown Seller',
-            categoryId: food.categoryId || null,
-            categoryName: food.categoryName || '',
-            category: food.categoryName || '',
-            name: food.name,
-            description: food.description || '',
+            categoryId: product.categoryId || null,
+            categoryName: product.categoryName || '',
+            category: product.categoryName || '',
+            name: product.name,
+            description: product.description || '',
             price,
-            otherPrice: getProductDisplayOtherPrice(food),
+            otherPrice: getProductDisplayOtherPrice(product),
             // Both keys, exactly as the seller-menu payload sends them.
             //
             // These were missing entirely, so a dish with sizes arrived here
@@ -86,22 +86,22 @@ export async function listPublicProducts(query = {}) {
             // checkout — which reads the dish from the database — correctly
             // refused with "please select a size". The customer was left with an
             // error and no control that could clear it.
-            variants: serializeProductVariants(food.variants),
-            variations: serializeProductVariants(food.variants),
-            image: food.image || '',
+            variants: serializeProductVariants(product.variants),
+            variations: serializeProductVariants(product.variants),
+            image: product.image || '',
             // Falls back to the single image so a dish saved before galleries
             // existed still returns a one-entry list — the app can then always
             // read `images` without special-casing the old shape.
-            images: Array.isArray(food.images) && food.images.length
-                ? food.images
-                : (food.image ? [food.image] : []),
-            foodType: food.foodType || null,
-            isAvailable: food.isAvailable !== false,
-            preparationTime: food.preparationTime || '',
-            approvalStatus: food.approvalStatus || 'approved'
+            images: Array.isArray(product.images) && product.images.length
+                ? product.images
+                : (product.image ? [product.image] : []),
+            foodType: product.foodType || null,
+            isAvailable: product.isAvailable !== false,
+            preparationTime: product.preparationTime || '',
+            approvalStatus: product.approvalStatus || 'approved'
         };
     })
-        .filter((food) => food.isAvailable !== false)
+        .filter((product) => product.isAvailable !== false)
         .slice(0, limit);
 
     return { products, total: products.length };

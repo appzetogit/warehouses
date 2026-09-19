@@ -461,13 +461,13 @@ export async function createSellerProduct(sellerId, body = {}) {
             body: `Seller has submitted a new item "${doc.name}" for approval.`,
             data: {
                 type: 'approval_request',
-                subType: 'food',
+                subType: 'product',
                 id: String(doc._id)
             }
         });
     } catch (e) {
         // eslint-disable-next-line no-console
-        console.error('Failed to notify admins of new food approval request:', e);
+        console.error('Failed to notify admins of new product approval request:', e);
     }
 
     return doc.toObject();
@@ -476,7 +476,7 @@ export async function createSellerProduct(sellerId, body = {}) {
 export async function updateSellerProduct(sellerId, productId, body = {}) {
     const context = await getSellerContext(sellerId);
     if (!productId || !mongoose.Types.ObjectId.isValid(String(productId))) {
-        throw new ValidationError('Invalid food id');
+        throw new ValidationError('Invalid product id');
     }
 
     const existing = await Product.findOne({ _id: productId, sellerId }).lean();
@@ -556,12 +556,12 @@ export async function updateSellerProduct(sellerId, productId, body = {}) {
                 body: `Seller has updated and resubmitted "${updated.name}" for approval.`,
                 data: {
                     type: 'approval_request',
-                    subType: 'food',
+                    subType: 'product',
                     id: String(updated._id)
                 }
             });
         } catch (e) {
-            console.error('Failed to notify admins of resubmitted food approval request:', e);
+            console.error('Failed to notify admins of resubmitted product approval request:', e);
         }
     }
 

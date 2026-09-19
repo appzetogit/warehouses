@@ -61,7 +61,7 @@ const buildAdminSummary = (seller) => {
         title: 'FSSAI License Expired',
         message: `${store?.sellerName || 'Store'} FSSAI expired on ${expiryLabel}. Owner: ${store?.ownerName || 'N/A'}.`,
         createdAt: expiryDate ? expiryDate.toISOString() : seller?.updatedAt || seller?.createdAt || new Date().toISOString(),
-        path: '/admin/food/sellers'
+        path: '/admin/store/sellers'
     };
 };
 

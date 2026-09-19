@@ -545,7 +545,7 @@ export async function getProducts(req, res, next) {
 export async function createProduct(req, res, next) {
     try {
         const created = await adminService.createProduct(req.body || {});
-        res.status(201).json({ success: true, message: 'Food created successfully', data: { food: created } });
+        res.status(201).json({ success: true, message: 'Product created successfully', data: { product: created } });
     } catch (error) {
         next(error);
     }
@@ -555,13 +555,13 @@ export async function updateProduct(req, res, next) {
     try {
         const { id } = req.params;
         if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: 'Invalid food id' });
+            return res.status(400).json({ success: false, message: 'Invalid product id' });
         }
         const updated = await adminService.updateProduct(id, req.body || {});
         if (!updated) {
-            return res.status(404).json({ success: false, message: 'Food not found' });
+            return res.status(404).json({ success: false, message: 'Product not found' });
         }
-        res.status(200).json({ success: true, message: 'Food updated successfully', data: { food: updated } });
+        res.status(200).json({ success: true, message: 'Product updated successfully', data: { product: updated } });
     } catch (error) {
         next(error);
     }
@@ -571,13 +571,13 @@ export async function deleteProduct(req, res, next) {
     try {
         const { id } = req.params;
         if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: 'Invalid food id' });
+            return res.status(400).json({ success: false, message: 'Invalid product id' });
         }
         const result = await adminService.deleteProduct(id);
         if (!result) {
-            return res.status(404).json({ success: false, message: 'Food not found' });
+            return res.status(404).json({ success: false, message: 'Product not found' });
         }
-        res.status(200).json({ success: true, message: 'Food deleted successfully', data: result });
+        res.status(200).json({ success: true, message: 'Product deleted successfully', data: result });
     } catch (error) {
         next(error);
     }

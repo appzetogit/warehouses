@@ -367,7 +367,7 @@ export default function EditSeller() {
     if (!file) return
     try {
       setUploadingMedia("cover")
-      const url = await uploadOne(file, "food/sellers/cover")
+      const url = await uploadOne(file, "sellers/cover")
       setMediaForm((p) => ({ ...p, coverImage: url }))
     } catch (e) {
       alert(e?.response?.data?.message || e?.message || "Cover image upload failed")
@@ -394,7 +394,7 @@ export default function EditSeller() {
       setUploadingMedia("gallery")
       const urls = []
       for (const file of list.slice(0, remaining)) {
-        urls.push(await uploadOne(file, "food/sellers/gallery"))
+        urls.push(await uploadOne(file, "sellers/gallery"))
       }
       setMediaForm((p) => ({ ...p, galleryImages: [...p.galleryImages, ...urls] }))
     } catch (e) {

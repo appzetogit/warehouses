@@ -130,7 +130,7 @@ export default function ProfessionalSearch() {
         })
         setResults({
           sellers: all.filter(r => r.matchType === 'seller' || !r.matchType),
-          dishes: all.filter(r => r.matchType === 'food')
+          dishes: all.filter(r => r.matchType === 'product')
         })
       }
     } catch (err) {

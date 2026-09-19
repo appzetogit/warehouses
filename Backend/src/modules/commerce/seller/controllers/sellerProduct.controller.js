@@ -11,8 +11,8 @@ import { getSellerAnalytics } from '../services/sellerAnalytics.service.js';
 export const createSellerProductController = async (req, res, next) => {
     try {
         const sellerId = req.user?.userId;
-        const food = await createSellerProduct(sellerId, req.body || {});
-        return sendResponse(res, 201, 'Food created successfully', { food });
+        const product = await createSellerProduct(sellerId, req.body || {});
+        return sendResponse(res, 201, 'Product created successfully', { product });
     } catch (error) {
         next(error);
     }
@@ -67,9 +67,9 @@ export const deleteSellerProductController = async (req, res, next) => {
 export const updateSellerProductController = async (req, res, next) => {
     try {
         const sellerId = req.user?.userId;
-        const food = await updateSellerProduct(sellerId, req.params.id, req.body || {});
-        if (!food) return sendError(res, 404, 'Food not found');
-        return sendResponse(res, 200, 'Food updated successfully', { food });
+        const product = await updateSellerProduct(sellerId, req.params.id, req.body || {});
+        if (!product) return sendError(res, 404, 'Product not found');
+        return sendResponse(res, 200, 'Product updated successfully', { product });
     } catch (error) {
         next(error);
     }

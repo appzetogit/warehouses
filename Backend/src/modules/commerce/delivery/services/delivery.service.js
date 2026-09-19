@@ -65,7 +65,7 @@ export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
 
     if (files?.profilePhoto?.[0]) {
         uploadTasks.push(
-            uploadImageBuffer(files.profilePhoto[0].buffer, 'food/delivery/profile').then((url) => [
+            uploadImageBuffer(files.profilePhoto[0].buffer, 'delivery/profile').then((url) => [
                 'profilePhoto',
                 url
             ])
@@ -73,7 +73,7 @@ export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
     }
     if (files?.aadharPhoto?.[0]) {
         uploadTasks.push(
-            uploadImageBuffer(files.aadharPhoto[0].buffer, 'food/delivery/aadhar').then((url) => [
+            uploadImageBuffer(files.aadharPhoto[0].buffer, 'delivery/aadhar').then((url) => [
                 'aadharPhoto',
                 url
             ])
@@ -81,7 +81,7 @@ export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
     }
     if (files?.panPhoto?.[0]) {
         uploadTasks.push(
-            uploadImageBuffer(files.panPhoto[0].buffer, 'food/delivery/pan').then((url) => [
+            uploadImageBuffer(files.panPhoto[0].buffer, 'delivery/pan').then((url) => [
                 'panPhoto',
                 url
             ])
@@ -91,7 +91,7 @@ export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
         uploadTasks.push(
             uploadImageBuffer(
                 files.drivingLicensePhoto[0].buffer,
-                'food/delivery/license'
+                'delivery/license'
             ).then((url) => ['drivingLicensePhoto', url])
         );
     }
@@ -111,7 +111,7 @@ export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
         const file = files?.[key]?.[0];
         if (!file) continue;
         dynamicDocTasks.push(
-            uploadImageBuffer(file.buffer, `food/delivery/${key}`).then((url) => [key, url])
+            uploadImageBuffer(file.buffer, `delivery/${key}`).then((url) => [key, url])
         );
     }
     for (const [k, v] of await Promise.all(dynamicDocTasks)) customDocuments[k] = v;
@@ -233,7 +233,7 @@ export const updateDeliveryPartnerProfile = async (userId, payload, files) => {
     let updatedDocsRequiringReapproval = false;
 
     if (files?.profilePhoto?.[0]) {
-        partner.profilePhoto = await uploadImageBuffer(files.profilePhoto[0].buffer, 'food/delivery/profile');
+        partner.profilePhoto = await uploadImageBuffer(files.profilePhoto[0].buffer, 'delivery/profile');
     }
 
     await partner.save();
@@ -307,7 +307,7 @@ export const updateDeliveryPartnerProfilePhotoBase64 = async (userId, payload) =
         throw new ValidationError('Image too large (max 8MB)');
     }
     // uploadImageBuffer expects raw bytes; mimeType is ignored by current implementation, but buffer is valid.
-    partner.profilePhoto = await uploadImageBuffer(buffer, 'food/delivery/profile');
+    partner.profilePhoto = await uploadImageBuffer(buffer, 'delivery/profile');
     await partner.save();
     return partner.toObject();
 };
@@ -351,7 +351,7 @@ export const updateDeliveryPartnerBankDetails = async (userId, payload, files) =
     }
 
     if (files?.upiQrCode?.[0]) {
-        partner.upiQrCode = await uploadImageBuffer(files.upiQrCode[0].buffer, 'food/delivery/upi');
+        partner.upiQrCode = await uploadImageBuffer(files.upiQrCode[0].buffer, 'delivery/upi');
     }
 
     await partner.save();

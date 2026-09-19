@@ -167,7 +167,7 @@ export default function MenuCategoriesPage() {
       let imageUrl = String(formData.image || "").trim()
 
       if (selectedImageFile) {
-        const res = await uploadAPI.uploadMedia(selectedImageFile, { folder: "food/categories" })
+        const res = await uploadAPI.uploadMedia(selectedImageFile, { folder: "categories" })
         const url = res?.data?.data?.url || res?.data?.url
         if (url) imageUrl = String(url)
       }

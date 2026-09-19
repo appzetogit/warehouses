@@ -18,7 +18,7 @@ const userFavoriteSchema = new mongoose.Schema(
 
         entityType: {
             type: String,
-            enum: ['seller', 'food'],
+            enum: ['seller', 'product'],
             required: true
         },
 

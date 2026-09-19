@@ -1,7 +1,7 @@
 import { HeroBanner } from '../models/heroBanner.model.js';
 import { saveImageFile, deleteStoredFile } from '../../../../services/storage.service.js';
 
-const BANNER_FOLDER = 'food/hero-banners';
+const BANNER_FOLDER = 'hero-banners';
 
 export const listHeroBanners = async () => {
     return HeroBanner.find().sort({ sortOrder: 1, createdAt: -1 }).lean();

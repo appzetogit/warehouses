@@ -4,7 +4,7 @@ import { imageUpload, uploadRateLimiter } from '../middleware/upload.middleware.
 
 const router = express.Router();
 
-// POST /v1/uploads/image?folder=food/users/profile
+// POST /v1/uploads/image?folder=users/profile
 // multipart field: file (required)
 router.post(
     '/image',

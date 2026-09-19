@@ -594,7 +594,7 @@ export const uploadSellerAttachment = async (file, folderType = 'profile') => {
         throw new Error('File is required for upload');
     }
 
-    let folder = 'food/sellers';
+    let folder = 'sellers';
     if (folderType === 'profile') folder += '/profile';
     else if (folderType === 'pan') folder += '/pan';
     else if (folderType === 'gst') folder += '/gst';
@@ -771,19 +771,19 @@ export const registerSeller = async (payload, files) => {
     const imageMap = {};
 
     if (files?.profileImage?.[0]) {
-        uploadTasks.push(uploadImageBuffer(files.profileImage[0].buffer, 'food/sellers/profile')
+        uploadTasks.push(uploadImageBuffer(files.profileImage[0].buffer, 'sellers/profile')
             .then(url => { imageMap.profileImage = url; }));
     }
     if (files?.panImage?.[0]) {
-        uploadTasks.push(uploadImageBuffer(files.panImage[0].buffer, 'food/sellers/pan')
+        uploadTasks.push(uploadImageBuffer(files.panImage[0].buffer, 'sellers/pan')
             .then(url => { imageMap.panImage = url; }));
     }
     if (files?.gstImage?.[0]) {
-        uploadTasks.push(uploadImageBuffer(files.gstImage[0].buffer, 'food/sellers/gst')
+        uploadTasks.push(uploadImageBuffer(files.gstImage[0].buffer, 'sellers/gst')
             .then(url => { imageMap.gstImage = url; }));
     }
     if (files?.fssaiImage?.[0]) {
-        uploadTasks.push(uploadImageBuffer(files.fssaiImage[0].buffer, 'food/sellers/fssai')
+        uploadTasks.push(uploadImageBuffer(files.fssaiImage[0].buffer, 'sellers/fssai')
             .then(url => { imageMap.fssaiImage = url; }));
     }
 
@@ -801,7 +801,7 @@ export const registerSeller = async (payload, files) => {
 
     if (files?.menuImages?.length) {
         uploadTasks.push(Promise.all(
-            files.menuImages.map((file) => uploadImageBuffer(file.buffer, 'food/sellers/menu'))
+            files.menuImages.map((file) => uploadImageBuffer(file.buffer, 'sellers/menu'))
         ).then(urls => { menuImages = [...menuImages, ...urls]; }));
     }
 
@@ -809,7 +809,7 @@ export const registerSeller = async (payload, files) => {
     let coverImage = String(payload.coverImage || '').trim();
     if (files?.coverImage?.[0]) {
         uploadTasks.push(
-            uploadImageBuffer(files.coverImage[0].buffer, 'food/sellers/cover')
+            uploadImageBuffer(files.coverImage[0].buffer, 'sellers/cover')
                 .then((url) => { if (url) coverImage = url; })
         );
     }
@@ -830,7 +830,7 @@ export const registerSeller = async (payload, files) => {
     }
     if (files?.galleryImages?.length) {
         uploadTasks.push(Promise.all(
-            files.galleryImages.map((file) => uploadImageBuffer(file.buffer, 'food/sellers/gallery'))
+            files.galleryImages.map((file) => uploadImageBuffer(file.buffer, 'sellers/gallery'))
         ).then((urls) => { galleryImages = [...galleryImages, ...urls.filter(Boolean)]; }));
     }
 
@@ -1587,7 +1587,7 @@ export const uploadSellerProfileImage = async (sellerId, file) => {
         .lean();
     if (!currentSeller) throw new ValidationError('Store not found');
 
-    const url = await uploadImageBuffer(file.buffer, 'food/sellers/profile');
+    const url = await uploadImageBuffer(file.buffer, 'sellers/profile');
     const doc = await Seller.findByIdAndUpdate(
         sellerId,
         {
@@ -1615,7 +1615,7 @@ export const uploadSellerProfileImage = async (sellerId, file) => {
 
 export const uploadSellerMenuImage = async (file) => {
     if (!file?.buffer) throw new ValidationError('Image file is required');
-    const url = await uploadImageBuffer(file.buffer, 'food/sellers/menu');
+    const url = await uploadImageBuffer(file.buffer, 'sellers/menu');
     return { menuImage: { url, publicId: null } };
 };
 
@@ -1636,7 +1636,7 @@ export const uploadSellerCoverImages = async (sellerId, files = []) => {
     if (!currentSeller) throw new ValidationError('Store not found');
 
     const uploadedUrls = await Promise.all(
-        validFiles.slice(0, 20).map((file) => uploadImageBuffer(file.buffer, 'food/sellers/cover'))
+        validFiles.slice(0, 20).map((file) => uploadImageBuffer(file.buffer, 'sellers/cover'))
     );
     const existingCoverImages = Array.isArray(currentSeller.coverImages)
         ? currentSeller.coverImages.map((image) => toUrl(image)).filter(Boolean)
@@ -1696,7 +1696,7 @@ export const uploadSellerMenuImages = async (sellerId, files = []) => {
     if (!currentSeller) throw new ValidationError('Store not found');
 
     const uploadedUrls = await Promise.all(
-        validFiles.slice(0, 20).map((file) => uploadImageBuffer(file.buffer, 'food/sellers/menu'))
+        validFiles.slice(0, 20).map((file) => uploadImageBuffer(file.buffer, 'sellers/menu'))
     );
     const existingMenuImages = Array.isArray(currentSeller.menuImages)
         ? currentSeller.menuImages.map((image) => toUrl(image)).filter(Boolean)

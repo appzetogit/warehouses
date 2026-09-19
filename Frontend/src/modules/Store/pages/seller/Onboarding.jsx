@@ -985,7 +985,7 @@ export default function SellerOnboarding() {
     const resolved = await Promise.all(
       items.map(async (image) => {
         if (isUploadableFile(image)) {
-          return handleUpload(image, "food/sellers/menu")
+          return handleUpload(image, "sellers/menu")
         }
 
         return getPersistedImagePayload(image)

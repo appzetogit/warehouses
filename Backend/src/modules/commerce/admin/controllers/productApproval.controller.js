@@ -8,7 +8,7 @@ import {
 export async function getPendingProductApprovals(req, res, next) {
     try {
         const data = await listPendingProductApprovals(req.query || {});
-        return sendResponse(res, 200, 'Pending food approvals fetched successfully', data);
+        return sendResponse(res, 200, 'Pending product approvals fetched successfully', data);
     } catch (error) {
         next(error);
     }
@@ -17,8 +17,8 @@ export async function getPendingProductApprovals(req, res, next) {
 export async function approveProductController(req, res, next) {
     try {
         const updated = await approveProduct(req.params.id);
-        if (!updated) return sendError(res, 404, 'Food item not found or not pending');
-        return sendResponse(res, 200, 'Food item approved successfully', { food: updated });
+        if (!updated) return sendError(res, 404, 'Product not found or not pending');
+        return sendResponse(res, 200, 'Product approved successfully', { product: updated });
     } catch (error) {
         next(error);
     }
@@ -27,8 +27,8 @@ export async function approveProductController(req, res, next) {
 export async function rejectProductController(req, res, next) {
     try {
         const updated = await rejectProduct(req.params.id, req.body?.reason);
-        if (!updated) return sendError(res, 404, 'Food item not found or not pending');
-        return sendResponse(res, 200, 'Food item rejected successfully', { food: updated });
+        if (!updated) return sendError(res, 404, 'Product not found or not pending');
+        return sendResponse(res, 200, 'Product rejected successfully', { product: updated });
     } catch (error) {
         next(error);
     }

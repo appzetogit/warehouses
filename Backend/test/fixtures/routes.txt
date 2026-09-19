@@ -219,8 +219,8 @@ GET /api/v1/user/refunds
 GET /api/v1/user/safety-emergency-reports
 GET /api/v1/user/support/my-tickets
 GET /api/v1/user/wallet
-GET /food-detail
 GET /health
+GET /product-detail
 GET /ready
 GET /seller-detail/:id
 PATCH /api/v1/admin/business-settings

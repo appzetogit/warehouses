@@ -1,7 +1,7 @@
 import { ExploreIcon } from '../models/exploreIcon.model.js';
 import { saveImageFile, deleteStoredFile } from '../../../../services/storage.service.js';
 
-const ICON_FOLDER = 'food/explore-icons';
+const ICON_FOLDER = 'explore-icons';
 
 /**
  * List all explore icons (admin). Sorted by sortOrder.

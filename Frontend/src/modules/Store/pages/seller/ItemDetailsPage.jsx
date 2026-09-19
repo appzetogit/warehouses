@@ -705,7 +705,7 @@ export default function ItemDetailsPage() {
           categoryName,
           isRecommended,
         })
-        const created = createRes?.data?.data?.food || createRes?.data?.food
+        const created = createRes?.data?.data?.product || createRes?.data?.product
         itemId = String(created?._id || created?.id || "")
         if (!itemId) {
           throw new Error("Failed to create item in database")

@@ -285,7 +285,7 @@ export async function globalSearch(query = '') {
         type: 'Order',
         title: `#${o.orderId}`,
         description: `Status: ${o.orderStatus}`,
-        path: `/admin/food/orders/all?orderId=${o._id}`
+        path: `/admin/store/orders/all?orderId=${o._id}`
     }));
 
     users.forEach(u => results.push({
@@ -293,7 +293,7 @@ export async function globalSearch(query = '') {
         type: 'User',
         title: u.name || 'Unnamed',
         description: `${u.email || u.phone || ''}`,
-        path: `/admin/food/customers?userId=${u._id}`
+        path: `/admin/store/customers?userId=${u._id}`
     }));
 
     sellers.forEach(r => results.push({
@@ -301,7 +301,7 @@ export async function globalSearch(query = '') {
         type: 'Seller',
         title: r.sellerName,
         description: `${r.area || ''}, ${r.city || ''} (${r.status})`,
-        path: `/admin/food/sellers?sellerId=${r._id}`
+        path: `/admin/store/sellers?sellerId=${r._id}`
     }));
 
     items.forEach(i => results.push({
@@ -309,7 +309,7 @@ export async function globalSearch(query = '') {
         type: 'Product',
         title: i.name,
         description: `Price: ₹${i.price}`,
-        path: `/admin/food/products?productId=${i._id}`
+        path: `/admin/store/products?productId=${i._id}`
     }));
 
     categories.forEach(c => results.push({
@@ -317,7 +317,7 @@ export async function globalSearch(query = '') {
         type: 'Category',
         title: c.name,
         description: 'Menu Category',
-        path: `/admin/food/categories`
+        path: `/admin/store/categories`
     }));
 
     return results;
@@ -3664,7 +3664,7 @@ export async function createProduct(body) {
         throw new ValidationError('Store not found');
     }
     const name = typeof body.name === 'string' ? body.name.trim() : '';
-    if (!name) throw new ValidationError('Food name is required');
+    if (!name) throw new ValidationError('Product name is required');
     const foodType = normalizeFoodType(body.foodType);
     const { price, otherPrice, variants } = getAdminProductCreatePricing(body);
 
@@ -3777,7 +3777,7 @@ export async function deleteProduct(id) {
             const { invalidateCache } = await import('../../../../middleware/cache.js');
             await invalidateCache(`seller_menu:${deleted.sellerId}`);
         } catch (cacheErr) {
-            console.error('Failed to invalidate cache after food delete:', cacheErr);
+            console.error('Failed to invalidate cache after product delete:', cacheErr);
         }
     }
     return deleted ? { id } : null;
@@ -3808,7 +3808,7 @@ export async function bulkDeleteProducts({ sellerId, productIds = [], selectAll 
             .filter((id) => mongoose.Types.ObjectId.isValid(id))
             .map((id) => new mongoose.Types.ObjectId(id));
         if (ids.length === 0) {
-            throw new ValidationError('No valid food items selected');
+            throw new ValidationError('No valid products selected');
         }
         filter._id = { $in: ids };
     }
@@ -3820,7 +3820,7 @@ export async function bulkDeleteProducts({ sellerId, productIds = [], selectAll 
             const { invalidateCache } = await import('../../../../middleware/cache.js');
             await invalidateCache(`seller_menu:${sellerId}`);
         } catch (cacheErr) {
-            console.error('Failed to invalidate cache after bulk food delete:', cacheErr);
+            console.error('Failed to invalidate cache after bulk product delete:', cacheErr);
         }
     }
 

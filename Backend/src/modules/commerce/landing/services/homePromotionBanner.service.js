@@ -1,7 +1,7 @@
 import { HomePromotionBanner } from '../models/homePromotionBanner.model.js';
 import { saveImageFile, deleteStoredFile } from '../../../../services/storage.service.js';
 
-const BANNER_FOLDER = 'food/home-promotion-banners';
+const BANNER_FOLDER = 'home-promotion-banners';
 
 export const listHomePromotionBanners = async () => {
     return HomePromotionBanner.find().sort({ sortOrder: 1, createdAt: -1 }).lean();

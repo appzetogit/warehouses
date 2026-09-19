@@ -54,7 +54,7 @@ export const listBannersForSellerApp = async () => {
 export const createBanner = async (file, body = {}) => {
     if (!file?.buffer) throw new ValidationError('Banner image file is required');
 
-    const imageUrl = await uploadImageBuffer(file.buffer, 'food/seller-app-banners');
+    const imageUrl = await uploadImageBuffer(file.buffer, 'seller-app-banners');
     if (!imageUrl) throw new ValidationError('Image upload failed');
 
     // Append to the end unless an explicit position was given.
@@ -79,7 +79,7 @@ export const updateBanner = async (id, body = {}, file = null) => {
     if (!doc) throw new ValidationError('Banner not found');
 
     if (file?.buffer) {
-        const imageUrl = await uploadImageBuffer(file.buffer, 'food/seller-app-banners');
+        const imageUrl = await uploadImageBuffer(file.buffer, 'seller-app-banners');
         if (imageUrl) doc.imageUrl = imageUrl;
     }
     if (body.title !== undefined) doc.title = String(body.title || '').trim();

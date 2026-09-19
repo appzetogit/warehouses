@@ -57,7 +57,7 @@ const addDistanceScore = (seller, userLat, userLng) => {
 
 /**
  * Unified Search Service
- * Searches for sellers by name and also searches for food items,
+ * Searches for sellers by name and also searches for products,
  * returning matched sellers with potential dish highlights.
  */
 export const searchUnified = async (query = {}, options = {}) => {
@@ -110,7 +110,7 @@ export const searchUnified = async (query = {}, options = {}) => {
             approvalStatus: 'approved'
         }).select('sellerId').limit(fetchLimit * 4).lean();
 
-        const catSellerIds = [...new Set(catProducts.map((food) => food.sellerId.toString()))];
+        const catSellerIds = [...new Set(catProducts.map((product) => product.sellerId.toString()))];
         if (catSellerIds.length > 0) {
             sellerFilter._id = { $in: catSellerIds.map((id) => new mongoose.Types.ObjectId(id)) };
         } else {
@@ -148,10 +148,10 @@ export const searchUnified = async (query = {}, options = {}) => {
             .limit(fetchLimit)
             .lean();
 
-        const matchedProductsBySeller = matchedProducts.reduce((acc, food) => {
-            const sellerId = String(food.sellerId || '');
+        const matchedProductsBySeller = matchedProducts.reduce((acc, product) => {
+            const sellerId = String(product.sellerId || '');
             if (sellerId && !acc.has(sellerId)) {
-                acc.set(sellerId, food);
+                acc.set(sellerId, product);
             }
             return acc;
         }, new Map());
@@ -170,7 +170,7 @@ export const searchUnified = async (query = {}, options = {}) => {
                 const matchedProduct = matchedProductsBySeller.get(seller._id.toString());
                 sellerDetailsMap.set(seller._id.toString(), {
                     ...seller,
-                    matchType: 'food',
+                    matchType: 'product',
                     matchedDish: matchedProduct?.name,
                     matchedDishImage: matchedProduct?.image,
                     matchedDishId: matchedProduct?._id
@@ -239,8 +239,8 @@ const PRODUCT_SEARCH_PROJECTION = Object.fromEntries(
 /**
  * Product search: a grid of things you can buy.
  *
- * searchUnified answers a different question and still exists for the food
- * apps: it rolls dish matches up into the seller that sells them and always
+ * searchUnified answers a different question and still exists for the store
+ * pages: it rolls product matches up into the seller that sells them and always
  * returns a seller list. Someone shopping for groceries searches "milk" and
  * means the product, not a list of shops that stock it, so this returns items
  * and names the seller on each one.

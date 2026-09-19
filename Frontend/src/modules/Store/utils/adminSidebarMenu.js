@@ -76,7 +76,7 @@ export const adminSidebarMenu = [
           { label: "All", path: "/admin/store/orders/all" },
           { label: "Pending", path: "/admin/store/orders/pending" },
           { label: "Processing", path: "/admin/store/orders/processing" },
-          { label: "Out For Delivery", path: "/admin/store/orders/food-on-the-way" },
+          { label: "Out For Delivery", path: "/admin/store/orders/out-for-delivery" },
           { label: "Delivered", path: "/admin/store/orders/delivered" },
           { label: "Cancelled", path: "/admin/store/orders/canceled" },
           { label: "Seller cancelled", path: "/admin/store/orders/seller-cancelled" },

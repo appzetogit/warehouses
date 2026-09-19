@@ -609,7 +609,7 @@ export default function OutletInfo() {
         return
       }
       setUploadingDocType(type)
-      const uploadRes = await uploadAPI.uploadMedia(file, { folder: `food/sellers/compliance/${type}` })
+      const uploadRes = await uploadAPI.uploadMedia(file, { folder: `sellers/compliance/${type}` })
       const url = uploadRes?.data?.data?.url || uploadRes?.data?.url || ""
       if (!url) throw new Error("Upload failed")
       const fieldMap = { pan: "panImage", gst: "gstImage", fssai: "fssaiImage" }
@@ -745,7 +745,7 @@ export default function OutletInfo() {
         return
       }
       setUploadingBankQr(true)
-      const response = await uploadAPI.uploadMedia(file, { folder: "food/sellers/upi-qr" })
+      const response = await uploadAPI.uploadMedia(file, { folder: "sellers/upi-qr" })
       const url = response?.data?.data?.url || response?.data?.url || ""
       if (!url) throw new Error("Upload failed")
       setBankForm((prev) => ({ ...prev, upiQrImage: url }))

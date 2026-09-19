@@ -68,7 +68,7 @@ export const uploadCurrentUserProfileImage = async (userId, file) => {
     const user = await User.findById(userId);
     if (!user) throw new AuthError('Profile not found');
 
-    const url = await uploadImageBuffer(file.buffer, 'food/users/profile');
+    const url = await uploadImageBuffer(file.buffer, 'users/profile');
     user.profileImage = String(url || '').trim();
     await user.save();
     return { profileImage: user.profileImage, user: user.toObject() };

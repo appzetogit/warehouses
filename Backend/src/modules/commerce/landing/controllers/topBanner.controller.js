@@ -1,7 +1,7 @@
 import TopBanner from '../models/topBanner.model.js';
 import { saveImageFile, deleteStoredFile } from '../../../../services/storage.service.js';
 
-const BANNER_FOLDER = 'food/top-banners';
+const BANNER_FOLDER = 'top-banners';
 
 export const listTopBannersController = async (req, res) => {
     try {

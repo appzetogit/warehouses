@@ -9,7 +9,7 @@ import { logger } from '../../utils/logger.js';
  */
 export async function createPayment({
     orderId, userId, amount, method, gateway = 'none',
-    gatewayOrderId = '', module = 'food', metadata
+    gatewayOrderId = '', module = 'commerce', metadata
 }) {
     const status = method === 'cash' ? 'pending' : method === 'wallet' ? 'success' : 'created';
     const doc = await Payment.create({
@@ -107,7 +107,7 @@ export async function getPaymentByGatewayId(gatewayPaymentId) {
  */
 export async function findOrCreatePayment({
     orderId, userId, amount, method, gateway = 'none',
-    gatewayOrderId = '', module = 'food'
+    gatewayOrderId = '', module = 'commerce'
 }) {
     // Check if a non-failed payment already exists
     const existing = await Payment.findOne({

@@ -10,8 +10,8 @@ const buildMenuFromProducts = async (products = []) => {
     const categoryIds = Array.from(
         new Set(
             (products || [])
-                .map((food) => {
-                    const raw = food?.categoryId;
+                .map((product) => {
+                    const raw = product?.categoryId;
                     if (!raw) return '';
                     return String(raw);
                 })
@@ -27,10 +27,10 @@ const buildMenuFromProducts = async (products = []) => {
     const categoryMap = new Map(categoryDocs.map((doc) => [String(doc._id), doc]));
 
     const byCategory = new Map();
-    for (const food of products) {
-        const categoryId = food?.categoryId ? String(food.categoryId) : '';
+    for (const product of products) {
+        const categoryId = product?.categoryId ? String(product.categoryId) : '';
         const categoryDoc = categoryMap.get(categoryId) || null;
-        const sectionName = (categoryDoc?.name || food?.categoryName || food?.category || 'Menu').trim() || 'Menu';
+        const sectionName = (categoryDoc?.name || product?.categoryName || product?.category || 'Menu').trim() || 'Menu';
         const groupKey = categoryId || `name:${sectionName.toLowerCase()}`;
 
         if (!byCategory.has(groupKey)) {
@@ -44,49 +44,49 @@ const buildMenuFromProducts = async (products = []) => {
         }
 
         byCategory.get(groupKey).items.push({
-            id: String(food._id),
-            _id: food._id,
+            id: String(product._id),
+            _id: product._id,
             categoryId: categoryId || null,
             categoryName: sectionName,
             category: sectionName,
-            name: food.name,
-            description: food.description || '',
-            price: getProductDisplayPrice(food),
-            otherPrice: getProductDisplayOtherPrice(food),
-            variants: serializeProductVariants(food.variants),
-            variations: serializeProductVariants(food.variants),
-            image: food.image || '',
+            name: product.name,
+            description: product.description || '',
+            price: getProductDisplayPrice(product),
+            otherPrice: getProductDisplayOtherPrice(product),
+            variants: serializeProductVariants(product.variants),
+            variations: serializeProductVariants(product.variants),
+            image: product.image || '',
             // Same fallback as the public feed: existing dishes have no gallery,
             // so return their single image as a one-entry list rather than an
             // empty one the detail screen would have to work around.
-            images: Array.isArray(food.images) && food.images.length
-                ? food.images
-                : (food.image ? [food.image] : []),
-            foodType: food.foodType || null,
-            isAvailable: food.isAvailable !== false,
+            images: Array.isArray(product.images) && product.images.length
+                ? product.images
+                : (product.image ? [product.image] : []),
+            foodType: product.foodType || null,
+            isAvailable: product.isAvailable !== false,
             // null means the seller does not count this item, which the app has
             // to tell apart from zero so it does not render "0 left" on
             // everything that predates inventory.
-            stockQty: food.stockQty ?? null,
+            stockQty: product.stockQty ?? null,
             // Was written and stored but never returned, so the seller app had
             // no threshold to read and flagged every product at a hardcoded 10
             // regardless of what the seller had set.
-            lowStockThreshold: food.lowStockThreshold ?? null,
-            maxQtyPerOrder: food.maxQtyPerOrder ?? null,
-            brand: food.brand || '',
-            packSize: food.packSize || '',
-            sku: food.sku || '',
-            barcode: food.barcode || '',
-            expiryDate: food.expiryDate ?? null,
-            mrp: food.mrp ?? null,
-            approvalStatus: food.approvalStatus || 'approved',
-            rejectionReason: food.rejectionReason || '',
-            requestedAt: food.requestedAt,
-            approvedAt: food.approvedAt,
-            rejectedAt: food.rejectedAt,
-            preparationTime: food.preparationTime || '',
-            createdAt: food.createdAt,
-            updatedAt: food.updatedAt
+            lowStockThreshold: product.lowStockThreshold ?? null,
+            maxQtyPerOrder: product.maxQtyPerOrder ?? null,
+            brand: product.brand || '',
+            packSize: product.packSize || '',
+            sku: product.sku || '',
+            barcode: product.barcode || '',
+            expiryDate: product.expiryDate ?? null,
+            mrp: product.mrp ?? null,
+            approvalStatus: product.approvalStatus || 'approved',
+            rejectionReason: product.rejectionReason || '',
+            requestedAt: product.requestedAt,
+            approvedAt: product.approvedAt,
+            rejectedAt: product.rejectedAt,
+            preparationTime: product.preparationTime || '',
+            createdAt: product.createdAt,
+            updatedAt: product.updatedAt
         });
     }
 

@@ -64,7 +64,7 @@ export const uploadSellerCoverImage = async (sellerId, file) => {
     }
     if (!file?.buffer) throw new ValidationError('Cover image file is required');
 
-    const url = await uploadImageBuffer(file.buffer, 'food/sellers/cover');
+    const url = await uploadImageBuffer(file.buffer, 'sellers/cover');
     if (!url) throw new ValidationError('Image upload failed');
 
     await Seller.findByIdAndUpdate(sellerId, { $set: { coverImage: url } });
@@ -91,7 +91,7 @@ export const uploadSellerGalleryImages = async (sellerId, files = []) => {
 
     const uploaded = (
         await Promise.all(
-            valid.slice(0, room).map((f) => uploadImageBuffer(f.buffer, 'food/sellers/gallery'))
+            valid.slice(0, room).map((f) => uploadImageBuffer(f.buffer, 'sellers/gallery'))
         )
     ).filter(Boolean);
 
@@ -150,7 +150,7 @@ export const uploadSellerBanners = async (sellerId, files = []) => {
     }
 
     const uploaded = await Promise.all(
-        validFiles.slice(0, room).map((file) => uploadImageBuffer(file.buffer, 'food/sellers/cover'))
+        validFiles.slice(0, room).map((file) => uploadImageBuffer(file.buffer, 'sellers/cover'))
     );
 
     const banners = [...existing];

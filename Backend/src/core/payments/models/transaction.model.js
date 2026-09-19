@@ -80,7 +80,7 @@ const transactionSchema = new mongoose.Schema(
             default: 'other'
         },
 
-        module: { type: String, default: 'food', trim: true },
+        module: { type: String, default: 'commerce', trim: true },
 
         metadata: { type: mongoose.Schema.Types.Mixed, default: undefined }
     },

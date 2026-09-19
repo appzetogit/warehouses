@@ -37,8 +37,8 @@ const statusConfig = {
     color: "orange",
     icon: Package,
   },
-  "food-on-the-way": {
-    title: "Food On The Way Orders",
+  "out-for-delivery": {
+    title: "Out For Delivery Orders",
     subtitle: "Delivery partner accepted — not yet delivered",
     color: "amber",
     icon: Package,
@@ -1401,7 +1401,7 @@ export default function OrdersPage({ statusKey = "all" }) {
           statusKey === "all" ||
           statusKey === "pending" ||
           statusKey === "processing" ||
-          statusKey === "food-on-the-way"
+          statusKey === "out-for-delivery"
             ? handleCancelOrder
             : undefined
         }
@@ -1410,7 +1410,7 @@ export default function OrdersPage({ statusKey = "all" }) {
         showAssignedDeliveryPartner={
           statusKey === "all" ||
           statusKey === "processing" ||
-          statusKey === "food-on-the-way"
+          statusKey === "out-for-delivery"
         }
       />
     </div>

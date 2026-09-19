@@ -34,7 +34,7 @@ export const getUserFavorites = async (userId) => {
         .filter((r) => r.entityType === 'seller')
         .map((r) => String(r.entityId));
     const productIds = rows
-        .filter((r) => r.entityType === 'food')
+        .filter((r) => r.entityType === 'product')
         .map((r) => String(r.entityId));
 
     const [sellers, products] = await Promise.all([
@@ -109,7 +109,7 @@ export const addFavoriteSeller = (userId, sellerId) =>
 export const removeFavoriteSeller = (userId, sellerId) =>
     removeFavorite(userId, 'seller', sellerId);
 
-export const addFavoriteProduct = (userId, productId) => addFavorite(userId, 'food', productId);
+export const addFavoriteProduct = (userId, productId) => addFavorite(userId, 'product', productId);
 
 export const removeFavoriteProduct = (userId, productId) =>
-    removeFavorite(userId, 'food', productId);
+    removeFavorite(userId, 'product', productId);

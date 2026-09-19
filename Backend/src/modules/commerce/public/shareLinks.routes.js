@@ -202,41 +202,41 @@ router.get('/seller-detail/:id', async (req, res, next) => {
     }
 });
 
-router.get('/food-detail', async (req, res, next) => {
+router.get('/product-detail', async (req, res, next) => {
     try {
         const id = String(req.query.id || req.query.productId || '').trim();
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return notFoundPage(req, res, 'dish');
+            return notFoundPage(req, res, 'product');
         }
 
-        const food = await Product.findOne({ _id: id, approvalStatus: 'approved' })
+        const product = await Product.findOne({ _id: id, approvalStatus: 'approved' })
             .select('name description price image images sellerId')
             .populate('sellerId', 'sellerName')
             .lean();
 
-        if (!food) return notFoundPage(req, res, 'dish');
+        if (!product) return notFoundPage(req, res, 'product');
 
-        const sellerName = food.sellerId?.sellerName || '';
-        const price = Number(food.price);
+        const sellerName = product.sellerId?.sellerName || '';
+        const price = Number(product.price);
         const description = [
             Number.isFinite(price) && price > 0 ? `Rs.${price}` : '',
             sellerName ? `from ${sellerName}` : '',
-            food.description || '',
+            product.description || '',
         ]
             .filter(Boolean)
             .join(' · ');
 
-        const sellerId = String(food.sellerId?._id || food.sellerId || '');
+        const sellerId = String(product.sellerId?._id || product.sellerId || '');
         const query = new URLSearchParams({ id, sellerId }).toString();
 
         sendPage(
             res,
             renderPage({
-                title: food.name || 'Dish',
+                title: product.name || 'Product',
                 description: description || `Order it on ${config.brand.name}.`,
-                image: absoluteUrl(req, firstOf(food.image, food.images || [])),
-                canonical: `${req.protocol}://${req.get('host')}/food-detail?${query}`,
-                appUrl: `${config.brand.appScheme}://food-detail?${query}`,
+                image: absoluteUrl(req, firstOf(product.image, product.images || [])),
+                canonical: `${req.protocol}://${req.get('host')}/product-detail?${query}`,
+                appUrl: `${config.brand.appScheme}://product-detail?${query}`,
             }),
         );
     } catch (err) {

@@ -342,7 +342,7 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
                             const urlToUpload = trimmedUrl.startsWith('//') ? `https:${trimmedUrl}` : trimmedUrl;
                             const saved = await saveImageFromUrl(
                                 urlToUpload,
-                                `sellers/${sellerId}/food`
+                                `sellers/${sellerId}/products`
                             );
                             finalImageUrl = saved.url;
                         } catch (imgErr) {
