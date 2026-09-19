@@ -207,10 +207,10 @@ node Backend/src/modules/food/shared/zoneServiceability.selfcheck.mjs
 ```
 
 These cover the pure arithmetic and the polygon test. The atomic stock
-decrement, the partial rollback and the restock claim are single Mongo
-operations and **have not been exercised against a database yet** — simulating
-them would test a copy of the semantics rather than the semantics. Do that
-before production.
+decrement, the partial rollback and the restock claim run against a real
+MongoDB in `Backend/test/inventory.test.js` (`npm test` in `Backend/`), including
+concurrent buyers racing for the last unit and an order restocked from several
+paths at once.
 
 ---
 
