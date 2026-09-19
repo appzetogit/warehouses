@@ -71,31 +71,31 @@ export const PickupActionModal = ({
   }
 
   const isAtPickup = status === 'REACHED_PICKUP';
-  const restaurantName =
-    order.restaurantName ||
-    order.restaurant_name ||
-    order.restaurant?.restaurantName ||
-    order.restaurant?.name ||
-    order.restaurantId?.restaurantName ||
-    order.restaurantId?.name ||
-    'Restaurant';
-  const restaurantAddress =
-    order.restaurantAddress ||
-    order.restaurant_address ||
-    order.restaurant?.addressLine1 ||
-    order.restaurant?.location?.address ||
-    order.restaurantId?.addressLine1 ||
-    order.restaurantId?.location?.address ||
-    order.restaurantLocation?.address ||
+  const sellerName =
+    order.sellerName ||
+    order.seller_name ||
+    order.seller?.sellerName ||
+    order.seller?.name ||
+    order.sellerId?.sellerName ||
+    order.sellerId?.name ||
+    'Seller';
+  const sellerAddress =
+    order.sellerAddress ||
+    order.seller_address ||
+    order.seller?.addressLine1 ||
+    order.seller?.location?.address ||
+    order.sellerId?.addressLine1 ||
+    order.sellerId?.location?.address ||
+    order.sellerLocation?.address ||
     'Address not available';
-  const restaurantPhone =
-    order.restaurantPhone ||
-    order.restaurant_phone ||
-    order.restaurant?.phone ||
-    order.restaurantId?.phone ||
+  const sellerPhone =
+    order.sellerPhone ||
+    order.seller_phone ||
+    order.seller?.phone ||
+    order.sellerId?.phone ||
     '';
   const items = order.items || [];
-  const restaurantLogo = order.restaurantImage || order.restaurant?.logo || order.restaurant?.profileImage || 'https://cdn-icons-png.flaticon.com/512/3170/3170733.png';
+  const sellerLogo = order.sellerImage || order.seller?.logo || order.seller?.profileImage || 'https://cdn-icons-png.flaticon.com/512/3170/3170733.png';
 
   return (
     <div className="absolute inset-0 z-[110] flex items-end justify-center">
@@ -124,20 +124,20 @@ export const PickupActionModal = ({
         </div>
 
         <div className="flex-1 overflow-y-auto no-scrollbar">
-          {/* Restaurant Header */}
+          {/* Seller Header */}
           <div className="p-8 pb-6">
             <div className="flex items-start justify-between mb-6 pb-6 border-b border-gray-50">
               <div className="flex gap-4">
                 <div className="w-16 h-16 bg-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-black/5 overflow-hidden border border-gray-100 ring-4 ring-gray-50">
-                  <img src={restaurantLogo} alt="Logo" className="w-full h-full object-cover" />
+                  <img src={sellerLogo} alt="Logo" className="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <h3 className="text-gray-950 text-2xl font-black tracking-tight leading-none mb-1.5">{restaurantName}</h3>
+                  <h3 className="text-gray-950 text-2xl font-black tracking-tight leading-none mb-1.5">{sellerName}</h3>
                   <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2.5">Order #{order?.shortId || order?.orderId || order?._id?.slice(-6) || 'N/A'}</p>
                   <div className="flex items-center gap-2">
                     {isAtPickup ? (
                       <div className="bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                        <span className="text-emerald-600 text-[10px] font-black uppercase tracking-widest">At Restaurant √</span>
+                        <span className="text-emerald-600 text-[10px] font-black uppercase tracking-widest">At Seller √</span>
                       </div>
                     ) : (
                       <div className="bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
@@ -151,16 +151,16 @@ export const PickupActionModal = ({
               </div>
 
               <div className="flex gap-2.5">
-                {restaurantPhone && (
+                {sellerPhone && (
                   <button
-                    onClick={() => window.location.href = `tel:${restaurantPhone}`}
+                    onClick={() => window.location.href = `tel:${sellerPhone}`}
                     className="w-11 h-11 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 hover:bg-emerald-100 transition-colors active:scale-90"
                   >
                     <Phone className="w-5 h-5" />
                   </button>
                 )}
                 <button 
-                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurantAddress)}`, '_blank')}
+                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(sellerAddress)}`, '_blank')}
                   className="w-11 h-11 rounded-2xl bg-gray-950 flex items-center justify-center text-white shadow-xl hover:bg-gray-800 transition-colors active:scale-90"
                 >
                   <Navigation className="w-5 h-5" />
@@ -237,7 +237,7 @@ export const PickupActionModal = ({
               <p className={`text-center text-[10px] font-black uppercase tracking-[0.2em] mb-4 transition-colors ${
                 isWithinRange ? 'text-emerald-600' : 'text-orange-500 animate-pulse'
               }`}>
-                {isWithinRange ? 'Ready - Swipe to confirm arrival' : 'Get closer to restaurant'}
+                {isWithinRange ? 'Ready - Swipe to confirm arrival' : 'Get closer to seller'}
               </p>
               <ActionSlider 
                 key="action-reach"

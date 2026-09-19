@@ -40,17 +40,17 @@ Most of the rest already exists and needs extending, not rebuilding (see §1).
 | Customer website | **Exists** at `/food/user/*` | Move to the site root, make it responsive, add SEO basics |
 | iOS builds | Not done. APNs headers are already set in FCM | Build and sign all three apps for iOS (§3.11) |
 
-**Food leftovers to remove.** They are spread across the codebase: "food" appears about 2.6k times in the backend and 4k in the frontend, and "restaurant" about 4.7k and 10.5k times. The leftovers are:
+**Food leftovers to remove.** They are spread across the codebase: "food" appears about 2.6k times in the backend and 4k in the frontend, and "seller" about 4.7k and 10.5k times. The leftovers are:
 
 - Dining/table booking (`modules/food/dining`, Dining pages)
-- Veg/non-veg (`foodType`, `isVeg`, `pureVegRestaurant`)
+- Veg/non-veg (`foodType`, `isVeg`, `pureVegSeller`)
 - Addons
 - Cutlery
 - FSSAI as a mandatory field
 - Cuisines
 - Gourmet and Under-250 banners
 - Hyperpure page
-- `restaurantMenu`
+- `sellerMenu`
 - `/api/v1/food/*` paths
 - About 65 `food_*` collections
 - `Food*` model names and the `FOD-` order prefix
@@ -73,13 +73,13 @@ We rename the whole thing, but in stages so the apps already in the field keep w
 
 | Layer | From | To |
 |---|---|---|
-| Backend module folder | `src/modules/food/*` | `src/modules/commerce/*` (`restaurant/` → `seller/`) |
+| Backend module folder | `src/modules/food/*` | `src/modules/commerce/*` (`seller/` → `seller/`) |
 | API prefix | `/api/v1/food/...` | `/api/v1/...` with clean resource names (`/products`, `/sellers`, `/orders`) |
-| Model names | `FoodItem`, `FoodRestaurant`, `FoodOrder`, `FoodUser` | `Product`, `Seller`, `Order`, `User` |
+| Model names | `FoodItem`, `FoodSeller`, `FoodOrder`, `FoodUser` | `Product`, `Seller`, `Order`, `User` |
 | Collections | `food_*` | Unprefixed. Renamed by a migration script with `renameCollection`, reversible |
 | Order ids | `FOD-…` | `ORD-…` for new orders. Existing ids unchanged |
 | Frontend | `modules/Food`, `@food`, `/food/user/*` | `modules/Store`, `@store`; customer site at `/` |
-| Roles / JWT | `RESTAURANT` | `SELLER`. The old role is accepted as an alias for one release |
+| Roles / JWT | `SELLER` | `SELLER`. The old role is accepted as an alias for one release |
 
 **Compatibility:** the old `/api/v1/food/*` router stays mounted as an alias. It logs a deprecation header and is removed after the new apps are live in both stores. The migration runs first on a restored copy of production.
 
@@ -158,14 +158,14 @@ Tags: **[BE]** backend · **[AD]** admin web · **[SW]** seller web · **[CW]** 
 - [ ] Agree on the brand name, package ids and bundle ids for the three apps (iOS needs them early for provisioning).
 
 ### 3.2 Phase 1 — De-food and rename (weeks 1–2)
-- [ ] **[BE]** Move `modules/food` → `modules/commerce` and `restaurant` → `seller`. Rename models and refs (`ref: 'FoodRestaurant'` → `'Seller'`, and so on).
+- [ ] **[BE]** Move `modules/food` → `modules/commerce` and `seller` → `seller`. Rename models and refs (`ref: 'FoodSeller'` → `'Seller'`, and so on).
 - [ ] **[BE]** Write the collection-rename migration script, with a dry-run and a reverse mode. Update indexes.
-- [ ] **[BE]** Mount the new route tree at `/api/v1/*` and keep the `/api/v1/food/*` alias with a `Deprecation` header. Update `FLUTTER_API_SPEC.md`, `DELIVERY_API_SPEC.md`, `RESTAURANT_API_SPEC.md` (→ `SELLER_API_SPEC.md`) and `USER_APP_API.md`.
-- [ ] **[BE]** Remove dining, table booking, veg/non-veg, addons, cutlery, cuisines, gourmet/under-250/dining banners, `restaurantMenu` and the hyperpure routes. Make FSSAI an optional licence field, required only for grocery categories flagged `requiresFssai`.
-- [ ] **[BE]** Roles `RESTAURANT` → `SELLER`, with the old role accepted as an alias. Rename the socket rooms and notification sources.
+- [ ] **[BE]** Mount the new route tree at `/api/v1/*` and keep the `/api/v1/food/*` alias with a `Deprecation` header. Update `FLUTTER_API_SPEC.md`, `DELIVERY_API_SPEC.md`, `SELLER_API_SPEC.md` (→ `SELLER_API_SPEC.md`) and `USER_APP_API.md`.
+- [ ] **[BE]** Remove dining, table booking, veg/non-veg, addons, cutlery, cuisines, gourmet/under-250/dining banners, `sellerMenu` and the hyperpure routes. Make FSSAI an optional licence field, required only for grocery categories flagged `requiresFssai`.
+- [ ] **[BE]** Roles `SELLER` → `SELLER`, with the old role accepted as an alias. Rename the socket rooms and notification sources.
 - [ ] **[AD][SW][CW]** Rename `modules/Food` → `modules/Store`, the aliases and the routes. Move the customer site to `/`. Delete the dining, gourmet, Under250, Coffee and Hyperpure pages. Sweep the copy (continuing from the recent "say store" commits).
 - [ ] **[CA][SA][DA]** Point the apps at the new paths behind a config flag. Remove food screens and copy.
-- **Done when:** a `grep -ri "food\|restaurant\|dining\|veg"` over `src/` returns only the compatibility alias and migration code, and the smoke suite passes against the renamed database.
+- **Done when:** a `grep -ri "food\|seller\|dining\|veg"` over `src/` returns only the compatibility alias and migration code, and the smoke suite passes against the renamed database.
 
 ### 3.3 Phase 2a — Catalogue: attributes and variants (weeks 2–3)
 - [ ] **[BE]** `Attribute` / `AttributeSet` models and admin CRUD. Link attribute sets to categories.
@@ -182,7 +182,7 @@ Tags: **[BE]** backend · **[AD]** admin web · **[SW]** seller web · **[CW]** 
 - [ ] **[BE]** Route each portion to quick or standard (§2.2), with the delivery promise returned per portion.
 - [ ] **[BE]** A `ShippingProvider` interface with a Shiprocket adapter (or the client's courier): serviceability by pincode, rate, create shipment, label, pickup request, tracking webhook, cancel, and RTO. Add a `shipment` subdocument and the standard status flow.
 - [ ] **[BE]** Per-child cancel and refund with a partial gateway refund, and refund-to-coins as policy dictates.
-- [ ] **[BE]** Commission and settlement per child order (the existing `restaurantCommission` becomes `sellerCommission`). Add a commission rule per category or per seller, and courier cost in the settlement.
+- [ ] **[BE]** Commission and settlement per child order (the existing `sellerCommission` becomes `sellerCommission`). Add a commission rule per category or per seller, and courier cost in the settlement.
 - [ ] **[SW][SA]** Standard-order flow: accept, pack, "ready to ship" (books the courier and prints the label), then the tracking timeline.
 - [ ] **[AD]** Order-group view with its child orders. A shipments page: NDR (failed delivery attempts) and RTO queue, COD remittance reconciliation.
 - [ ] **[CW][CA]** Cart grouped by seller with a promise and fee for each group, checkout summary, order detail showing child orders and their tracking (live map for quick, courier timeline for standard).
@@ -345,5 +345,5 @@ Each week one of these slips moves launch by about a week.
 - Customer app (Android + iOS), seller app (Android + iOS), delivery app (Android + iOS) published.
 - Customer website on the root domain, responsive.
 - Admin panel covering every §7 SOW item, including coins, spin, AI settings and the new reports.
-- One backend with API specs updated and no `food`/`restaurant` naming outside the compatibility alias.
+- One backend with API specs updated and no `food`/`seller` naming outside the compatibility alias.
 - E2E scripts from §3.12 pass on staging; migration rehearsed; runbook handed over.

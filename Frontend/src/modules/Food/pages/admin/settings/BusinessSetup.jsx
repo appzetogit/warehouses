@@ -25,20 +25,20 @@ export default function BusinessSetup() {
   const [saving, setSaving] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
   const [faviconPreview, setFaviconPreview] = useState(null);
-  const [restaurantLogoPreview, setRestaurantLogoPreview] = useState(null);
-  const [restaurantFaviconPreview, setRestaurantFaviconPreview] = useState(null);
+  const [sellerLogoPreview, setSellerLogoPreview] = useState(null);
+  const [sellerFaviconPreview, setSellerFaviconPreview] = useState(null);
   const [deliveryLogoPreview, setDeliveryLogoPreview] = useState(null);
   const [deliveryFaviconPreview, setDeliveryFaviconPreview] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
   const [faviconFile, setFaviconFile] = useState(null);
-  const [restaurantLogoFile, setRestaurantLogoFile] = useState(null);
-  const [restaurantFaviconFile, setRestaurantFaviconFile] = useState(null);
+  const [sellerLogoFile, setSellerLogoFile] = useState(null);
+  const [sellerFaviconFile, setSellerFaviconFile] = useState(null);
   const [deliveryLogoFile, setDeliveryLogoFile] = useState(null);
   const [deliveryFaviconFile, setDeliveryFaviconFile] = useState(null);
   const logoInputRef = useRef(null);
   const faviconInputRef = useRef(null);
-  const restaurantLogoInputRef = useRef(null);
-  const restaurantFaviconInputRef = useRef(null);
+  const sellerLogoInputRef = useRef(null);
+  const sellerFaviconInputRef = useRef(null);
   const deliveryLogoInputRef = useRef(null);
   const deliveryFaviconInputRef = useRef(null);
 
@@ -115,11 +115,11 @@ export default function BusinessSetup() {
         if (settings.favicon?.url) {
           setFaviconPreview(settings.favicon.url);
         }
-        if (settings.restaurantLogo?.url) {
-          setRestaurantLogoPreview(settings.restaurantLogo.url);
+        if (settings.sellerLogo?.url) {
+          setSellerLogoPreview(settings.sellerLogo.url);
         }
-        if (settings.restaurantFavicon?.url) {
-          setRestaurantFaviconPreview(settings.restaurantFavicon.url);
+        if (settings.sellerFavicon?.url) {
+          setSellerFaviconPreview(settings.sellerFavicon.url);
         }
         if (settings.deliveryLogo?.url) {
           setDeliveryLogoPreview(settings.deliveryLogo.url);
@@ -221,11 +221,11 @@ export default function BusinessSetup() {
       if (faviconFile) {
         files.favicon = faviconFile;
       }
-      if (restaurantLogoFile) {
-        files.restaurantLogo = restaurantLogoFile;
+      if (sellerLogoFile) {
+        files.sellerLogo = sellerLogoFile;
       }
-      if (restaurantFaviconFile) {
-        files.restaurantFavicon = restaurantFaviconFile;
+      if (sellerFaviconFile) {
+        files.sellerFavicon = sellerFaviconFile;
       }
       if (deliveryLogoFile) {
         files.deliveryLogo = deliveryLogoFile;
@@ -250,13 +250,13 @@ export default function BusinessSetup() {
           setFaviconPreview(updatedSettings.favicon.url);
           setFaviconFile(null);
         }
-        if (updatedSettings.restaurantLogo?.url) {
-          setRestaurantLogoPreview(updatedSettings.restaurantLogo.url);
-          setRestaurantLogoFile(null);
+        if (updatedSettings.sellerLogo?.url) {
+          setSellerLogoPreview(updatedSettings.sellerLogo.url);
+          setSellerLogoFile(null);
         }
-        if (updatedSettings.restaurantFavicon?.url) {
-          setRestaurantFaviconPreview(updatedSettings.restaurantFavicon.url);
-          setRestaurantFaviconFile(null);
+        if (updatedSettings.sellerFavicon?.url) {
+          setSellerFaviconPreview(updatedSettings.sellerFavicon.url);
+          setSellerFaviconFile(null);
         }
         if (updatedSettings.deliveryLogo?.url) {
           setDeliveryLogoPreview(updatedSettings.deliveryLogo.url);
@@ -291,8 +291,8 @@ export default function BusinessSetup() {
     fetchBusinessSettings();
     setLogoFile(null);
     setFaviconFile(null);
-    setRestaurantLogoFile(null);
-    setRestaurantFaviconFile(null);
+    setSellerLogoFile(null);
+    setSellerFaviconFile(null);
     setDeliveryLogoFile(null);
     setDeliveryFaviconFile(null);
     if (logoInputRef.current) {
@@ -301,11 +301,11 @@ export default function BusinessSetup() {
     if (faviconInputRef.current) {
       faviconInputRef.current.value = "";
     }
-    if (restaurantLogoInputRef.current) {
-      restaurantLogoInputRef.current.value = "";
+    if (sellerLogoInputRef.current) {
+      sellerLogoInputRef.current.value = "";
     }
-    if (restaurantFaviconInputRef.current) {
-      restaurantFaviconInputRef.current.value = "";
+    if (sellerFaviconInputRef.current) {
+      sellerFaviconInputRef.current.value = "";
     }
     if (deliveryLogoInputRef.current) {
       deliveryLogoInputRef.current.value = "";
@@ -759,9 +759,9 @@ export default function BusinessSetup() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Restaurant Logo</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Seller Logo</label>
                 <input
-                  ref={restaurantLogoInputRef}
+                  ref={sellerLogoInputRef}
                   type="file"
                   accept="image/png,image/jpeg,image/jpg,image/webp"
                   onChange={(e) => {
@@ -777,27 +777,27 @@ export default function BusinessSetup() {
                       toast.error("File size exceeds 5MB limit.");
                       return;
                     }
-                    setRestaurantLogoFile(file);
+                    setSellerLogoFile(file);
                     const reader = new FileReader();
-                    reader.onloadend = () => setRestaurantLogoPreview(reader.result);
+                    reader.onloadend = () => setSellerLogoPreview(reader.result);
                     reader.readAsDataURL(file);
                   }}
                   className="hidden"
                 />
                 <div
-                  onClick={() => restaurantLogoInputRef.current?.click()}
+                  onClick={() => sellerLogoInputRef.current?.click()}
                   className="border border-dashed border-slate-300 rounded-lg bg-slate-50/60 h-28 flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors relative overflow-hidden"
                 >
-                  {restaurantLogoPreview ? (
+                  {sellerLogoPreview ? (
                     <>
-                      <img src={restaurantLogoPreview} alt="Restaurant logo preview" className="w-full h-full object-contain" />
+                      <img src={sellerLogoPreview} alt="Seller logo preview" className="w-full h-full object-contain" />
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setRestaurantLogoPreview(null);
-                          setRestaurantLogoFile(null);
-                          if (restaurantLogoInputRef.current) restaurantLogoInputRef.current.value = "";
+                          setSellerLogoPreview(null);
+                          setSellerLogoFile(null);
+                          if (sellerLogoInputRef.current) sellerLogoInputRef.current.value = "";
                         }}
                         className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                       >
@@ -807,15 +807,15 @@ export default function BusinessSetup() {
                   ) : (
                     <div className="text-center">
                       <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                      <p className="text-xs text-slate-400">Click to upload restaurant logo</p>
+                      <p className="text-xs text-slate-400">Click to upload seller logo</p>
                     </div>
                   )}
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Restaurant Favicon</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Seller Favicon</label>
                 <input
-                  ref={restaurantFaviconInputRef}
+                  ref={sellerFaviconInputRef}
                   type="file"
                   accept="image/png,image/jpeg,image/jpg,image/webp,image/x-icon"
                   onChange={(e) => {
@@ -831,27 +831,27 @@ export default function BusinessSetup() {
                       toast.error("File size exceeds 5MB limit.");
                       return;
                     }
-                    setRestaurantFaviconFile(file);
+                    setSellerFaviconFile(file);
                     const reader = new FileReader();
-                    reader.onloadend = () => setRestaurantFaviconPreview(reader.result);
+                    reader.onloadend = () => setSellerFaviconPreview(reader.result);
                     reader.readAsDataURL(file);
                   }}
                   className="hidden"
                 />
                 <div
-                  onClick={() => restaurantFaviconInputRef.current?.click()}
+                  onClick={() => sellerFaviconInputRef.current?.click()}
                   className="border border-dashed border-slate-300 rounded-lg bg-slate-50/60 h-28 flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors relative overflow-hidden"
                 >
-                  {restaurantFaviconPreview ? (
+                  {sellerFaviconPreview ? (
                     <>
-                      <img src={restaurantFaviconPreview} alt="Restaurant favicon preview" className="w-full h-full object-contain" />
+                      <img src={sellerFaviconPreview} alt="Seller favicon preview" className="w-full h-full object-contain" />
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setRestaurantFaviconPreview(null);
-                          setRestaurantFaviconFile(null);
-                          if (restaurantFaviconInputRef.current) restaurantFaviconInputRef.current.value = "";
+                          setSellerFaviconPreview(null);
+                          setSellerFaviconFile(null);
+                          if (sellerFaviconInputRef.current) sellerFaviconInputRef.current.value = "";
                         }}
                         className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                       >
@@ -861,7 +861,7 @@ export default function BusinessSetup() {
                   ) : (
                     <div className="text-center">
                       <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                      <p className="text-xs text-slate-400">Click to upload restaurant favicon</p>
+                      <p className="text-xs text-slate-400">Click to upload seller favicon</p>
                     </div>
                   )}
                 </div>

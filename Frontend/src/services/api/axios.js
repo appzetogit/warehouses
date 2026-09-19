@@ -25,11 +25,11 @@ const ADMIN_PERMISSION_PATH_MAP = [
   { prefix: "/food/admin/sub-admins", section: "sub_admin_management" },
   { prefix: "/food/admin/customers", section: "customer_management" },
   { prefix: "/food/admin/support-tickets", section: "customer_management" },
-  { prefix: "/food/admin/restaurants", section: "restaurant_management" },
-  { prefix: "/food/admin/restaurant-settings", section: "restaurant_management" },
-  { prefix: "/food/admin/restaurant-subscription-settings", section: "restaurant_management" },
-  { prefix: "/food/admin/restaurant-subscriptions", section: "restaurant_management" },
-  { prefix: "/food/admin/zones", section: "restaurant_management" },
+  { prefix: "/food/admin/sellers", section: "seller_management" },
+  { prefix: "/food/admin/seller-settings", section: "seller_management" },
+  { prefix: "/food/admin/seller-subscription-settings", section: "seller_management" },
+  { prefix: "/food/admin/seller-subscriptions", section: "seller_management" },
+  { prefix: "/food/admin/zones", section: "seller_management" },
   { prefix: "/food/admin/categories", section: "food_management" },
   { prefix: "/food/admin/addons", section: "food_management" },
   { prefix: "/food/admin/foods", section: "food_management" },
@@ -75,7 +75,7 @@ const resolveAdminSectionByApiPath = (url, method = "GET") => {
   const path = normalizePath(url).toLowerCase();
   const normalizedMethod = String(method || "GET").toUpperCase();
   if (path === "/food/admin/zones" && normalizedMethod === "GET") {
-    return "restaurant_management";
+    return "seller_management";
   }
   const match = ADMIN_PERMISSION_PATH_MAP.find((item) => path.startsWith(item.prefix));
   return match?.section || null;
@@ -146,17 +146,17 @@ function getModuleFromUrl(url = "") {
     normalized.includes("/delivery/")
   ) return "delivery";
   
-  // Restaurant detection - Catch all restaurant-specific functional and auth routes
+  // Seller detection - Catch all seller-specific functional and auth routes
   if (
-    normalized.includes("/food/restaurant/") || 
-    normalized.includes("/auth/restaurant") || 
-    normalized.includes("/restaurant/")
+    normalized.includes("/food/seller/") || 
+    normalized.includes("/auth/seller") || 
+    normalized.includes("/seller/")
   ) {
     // Exception: /sellers (plural) is usually a public user app route
-    if (normalized.includes("/sellers") && !normalized.includes("/food/restaurant/")) {
+    if (normalized.includes("/sellers") && !normalized.includes("/food/seller/")) {
        return "user";
     }
-    return "restaurant";
+    return "seller";
   }
   
   return "user";
@@ -252,24 +252,24 @@ apiClient.interceptors.request.use(
 
       if (!isAuthEndpoint && !isPublicAdminEndpoint) {
         const action = resolveActionByMethod(config?.method);
-        const isRestaurantListRead = normalizedPath === "/food/admin/restaurants" && action === "view";
-        const isRestaurantDetailRead =
-          /^\/food\/admin\/restaurants\/[^/]+$/.test(normalizedPath) && action === "view";
-        const isRestaurantAnalyticsRead =
-          /^\/food\/admin\/restaurants\/[^/]+\/analytics$/.test(normalizedPath) && action === "view";
+        const isSellerListRead = normalizedPath === "/food/admin/sellers" && action === "view";
+        const isSellerDetailRead =
+          /^\/food\/admin\/sellers\/[^/]+$/.test(normalizedPath) && action === "view";
+        const isSellerAnalyticsRead =
+          /^\/food\/admin\/sellers\/[^/]+\/analytics$/.test(normalizedPath) && action === "view";
         const isOrdersRead = normalizedPath === "/food/admin/orders" && action === "view";
         const isCustomersRead = normalizedPath === "/food/admin/customers" && action === "view";
         const isZonesRead = normalizedPath === "/food/admin/zones" && action === "view";
         const isZoneDetailRead =
           /^\/food\/admin\/zones\/[^/]+$/.test(normalizedPath) && action === "view";
 
-        // POS dropdown needs restaurant list read access.
-        if (isRestaurantListRead || isRestaurantDetailRead || isRestaurantAnalyticsRead) {
+        // POS dropdown needs seller list read access.
+        if (isSellerListRead || isSellerDetailRead || isSellerAnalyticsRead) {
           const adminUser = getAdminUser();
           const adminType = String(adminUser?.adminType || "").trim().toLowerCase();
           const isAllowed =
             adminType === "super_admin" ||
-            hasAdminAction(adminUser, "restaurant_management", "view") ||
+            hasAdminAction(adminUser, "seller_management", "view") ||
             hasAdminAction(adminUser, "point_of_sale", "view") ||
             hasAdminAction(adminUser, "report_management", "view") ||
             hasAdminAction(adminUser, "banner_management", "view");
@@ -287,7 +287,7 @@ apiClient.interceptors.request.use(
           const isAllowed =
             adminType === "super_admin" ||
             hasAdminAction(adminUser, "dashboard", "view") ||
-            hasAdminAction(adminUser, "restaurant_management", "view") ||
+            hasAdminAction(adminUser, "seller_management", "view") ||
             hasAdminAction(adminUser, "point_of_sale", "view") ||
             hasAdminAction(adminUser, "food_management", "view") ||
             hasAdminAction(adminUser, "delivery_management", "view") ||

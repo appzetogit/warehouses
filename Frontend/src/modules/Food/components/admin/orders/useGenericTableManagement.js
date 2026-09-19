@@ -97,7 +97,7 @@ export function useGenericTableManagement(data, title, searchFields = []) {
       
       const customerName = order.customerName || order.userName || sourceOrder.customerName || sourceOrder.userName || sourceOrder.userId?.name || 'N/A'
       const customerPhone = order.customerPhone || order.userNumber || sourceOrder.customerPhone || sourceOrder.userNumber || sourceOrder.userId?.phone || 'N/A'
-      const restaurantName = order.restaurant || order.restaurantName || sourceOrder.restaurantName || sourceOrder.restaurantId?.restaurantName || 'N/A'
+      const sellerName = order.seller || order.sellerName || sourceOrder.sellerName || sourceOrder.sellerId?.sellerName || 'N/A'
       const orderId = order.orderId || sourceOrder.orderId || sourceOrder._id || 'N/A'
       const items = sourceOrder.cart?.items || sourceOrder.items || []
       const totalAmount = Number(order.totalAmount || pricing.total || sourceOrder.totalAmount || 0) || 0
@@ -178,15 +178,15 @@ export function useGenericTableManagement(data, title, searchFields = []) {
       doc.text(`Phone: ${customerPhone}`, 14, startY)
       startY += 12
       
-      // Restaurant Information
+      // Seller Information
       doc.setFontSize(12)
       doc.setTextColor(30, 30, 30)
-      doc.text('Restaurant', 14, startY)
+      doc.text('Seller', 14, startY)
       startY += 8
       
       doc.setFontSize(10)
       doc.setTextColor(60, 60, 60)
-      doc.text(restaurantName, 14, startY)
+      doc.text(sellerName, 14, startY)
       startY += 10
       
       // Order Items Table

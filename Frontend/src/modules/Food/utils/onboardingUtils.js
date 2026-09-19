@@ -1,4 +1,4 @@
-import { api, restaurantAPI } from "@food/api"
+import { api, sellerAPI } from "@food/api"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -6,14 +6,14 @@ const debugError = (...args) => {}
 
 const getOnboardingStorageKey = () => {
     try {
-      const userStr = localStorage.getItem("restaurant_user")
+      const userStr = localStorage.getItem("seller_user")
       if (userStr) {
         const user = JSON.parse(userStr)
         const userId = user._id || user.id
-        if (userId) return `restaurant_onboarding_data_${userId}`
+        if (userId) return `seller_onboarding_data_${userId}`
       }
     } catch (e) {}
-    return "restaurant_onboarding_data"
+    return "seller_onboarding_data"
 }
 const ONBOARDING_STORAGE_KEY = getOnboardingStorageKey()
 
@@ -23,8 +23,8 @@ const isStepComplete = (stepData, stepNumber) => {
 
   if (stepNumber === 1) {
     return (
-      stepData.restaurantName &&
-      typeof stepData.pureVegRestaurant === "boolean" &&
+      stepData.sellerName &&
+      typeof stepData.pureVegSeller === "boolean" &&
       stepData.ownerName &&
       stepData.ownerEmail &&
       stepData.ownerPhone &&
@@ -77,99 +77,99 @@ const isStepComplete = (stepData, stepNumber) => {
   return false
 }
 
-const buildOnboardingLikeDataFromRestaurant = (restaurant) => {
-  const onboarding = restaurant?.onboarding || {}
+const buildOnboardingLikeDataFromSeller = (seller) => {
+  const onboarding = seller?.onboarding || {}
 
   const openingTime =
-    restaurant?.openingTime ||
-    restaurant?.deliveryTimings?.openingTime ||
+    seller?.openingTime ||
+    seller?.deliveryTimings?.openingTime ||
     onboarding?.step2?.deliveryTimings?.openingTime
   const closingTime =
-    restaurant?.closingTime ||
-    restaurant?.deliveryTimings?.closingTime ||
+    seller?.closingTime ||
+    seller?.deliveryTimings?.closingTime ||
     onboarding?.step2?.deliveryTimings?.closingTime
 
   return {
     completedSteps: onboarding.completedSteps,
     step1: onboarding.step1 || {
-      restaurantName: restaurant?.restaurantName || restaurant?.name,
-      pureVegRestaurant:
-        typeof restaurant?.pureVegRestaurant === "boolean"
-          ? restaurant.pureVegRestaurant
+      sellerName: seller?.sellerName || seller?.name,
+      pureVegSeller:
+        typeof seller?.pureVegSeller === "boolean"
+          ? seller.pureVegSeller
           : null,
-      ownerName: restaurant?.ownerName,
-      ownerEmail: restaurant?.ownerEmail || restaurant?.email,
-      ownerPhone: restaurant?.ownerPhone || restaurant?.phone,
-      primaryContactNumber: restaurant?.primaryContactNumber,
+      ownerName: seller?.ownerName,
+      ownerEmail: seller?.ownerEmail || seller?.email,
+      ownerPhone: seller?.ownerPhone || seller?.phone,
+      primaryContactNumber: seller?.primaryContactNumber,
       location:
-        restaurant?.location ||
-        (restaurant?.area || restaurant?.city || restaurant?.addressLine1
+        seller?.location ||
+        (seller?.area || seller?.city || seller?.addressLine1
           ? {
-              addressLine1: restaurant?.addressLine1,
-              addressLine2: restaurant?.addressLine2,
-              area: restaurant?.area,
-              city: restaurant?.city,
-              landmark: restaurant?.landmark,
+              addressLine1: seller?.addressLine1,
+              addressLine2: seller?.addressLine2,
+              area: seller?.area,
+              city: seller?.city,
+              landmark: seller?.landmark,
             }
           : null),
     },
     step2: onboarding.step2 || {
-      cuisines: restaurant?.cuisines,
+      cuisines: seller?.cuisines,
       deliveryTimings:
-        restaurant?.deliveryTimings ||
+        seller?.deliveryTimings ||
         (openingTime || closingTime ? { openingTime, closingTime } : null),
-      openDays: restaurant?.openDays,
-      menuImageUrls: restaurant?.menuImages,
-      profileImageUrl: restaurant?.profileImage,
+      openDays: seller?.openDays,
+      menuImageUrls: seller?.menuImages,
+      profileImageUrl: seller?.profileImage,
     },
     step3:
       onboarding.step3 ||
-      (restaurant?.panNumber ||
-      restaurant?.fssaiNumber ||
-      restaurant?.accountNumber ||
-      restaurant?.ifscCode
+      (seller?.panNumber ||
+      seller?.fssaiNumber ||
+      seller?.accountNumber ||
+      seller?.ifscCode
         ? {
             pan: {
-              panNumber: restaurant?.panNumber,
-              nameOnPan: restaurant?.nameOnPan,
-              image: restaurant?.panImage,
+              panNumber: seller?.panNumber,
+              nameOnPan: seller?.nameOnPan,
+              image: seller?.panImage,
             },
             gst: {
-              isRegistered: Boolean(restaurant?.gstRegistered),
-              gstNumber: restaurant?.gstNumber,
-              legalName: restaurant?.gstLegalName,
-              address: restaurant?.gstAddress,
-              image: restaurant?.gstImage,
+              isRegistered: Boolean(seller?.gstRegistered),
+              gstNumber: seller?.gstNumber,
+              legalName: seller?.gstLegalName,
+              address: seller?.gstAddress,
+              image: seller?.gstImage,
             },
             fssai: {
-              registrationNumber: restaurant?.fssaiNumber,
-              expiryDate: restaurant?.fssaiExpiry,
-              image: restaurant?.fssaiImage,
+              registrationNumber: seller?.fssaiNumber,
+              expiryDate: seller?.fssaiExpiry,
+              image: seller?.fssaiImage,
             },
             bank: {
-              accountNumber: restaurant?.accountNumber,
-              ifscCode: restaurant?.ifscCode,
-              accountHolderName: restaurant?.accountHolderName,
-              accountType: restaurant?.accountType,
+              accountNumber: seller?.accountNumber,
+              ifscCode: seller?.ifscCode,
+              accountHolderName: seller?.accountHolderName,
+              accountType: seller?.accountType,
             },
           }
         : null),
   }
 }
 
-export const isRestaurantOnboardingComplete = (restaurant) => {
-  if (!restaurant) return false
+export const isSellerOnboardingComplete = (seller) => {
+  if (!seller) return false
 
-  // Approved restaurants should never be forced into onboarding again.
-  if (restaurant?.status === "approved") {
+  // Approved sellers should never be forced into onboarding again.
+  if (seller?.status === "approved") {
     return true
   }
 
-  if (restaurant?.isActive === true) {
+  if (seller?.isActive === true) {
     return true
   }
 
-  const onboardingLikeData = buildOnboardingLikeDataFromRestaurant(restaurant)
+  const onboardingLikeData = buildOnboardingLikeDataFromSeller(seller)
   if (onboardingLikeData.completedSteps === 4) {
     return true
   }
@@ -182,15 +182,15 @@ export const isRestaurantOnboardingComplete = (restaurant) => {
     return true
   }
 
-  // Some older or migrated restaurant accounts have complete live profile data
+  // Some older or migrated seller accounts have complete live profile data
   // without a reliable onboarding.completedSteps value.
   const hasOperationalProfile =
-    Boolean(String(restaurant?.name || "").trim()) &&
-    Boolean(String(restaurant?.restaurantId || "").trim()) &&
-    Boolean(String(restaurant?.slug || "").trim()) &&
+    Boolean(String(seller?.name || "").trim()) &&
+    Boolean(String(seller?.sellerId || "").trim()) &&
+    Boolean(String(seller?.slug || "").trim()) &&
     step1Complete &&
     step2Complete &&
-    (restaurant?.approvedAt || restaurant?.rejectedAt || restaurant?.rejectionReason || restaurant?.isActive === false)
+    (seller?.approvedAt || seller?.rejectedAt || seller?.rejectionReason || seller?.isActive === false)
 
   if (hasOperationalProfile) {
     return true
@@ -203,7 +203,7 @@ export const isRestaurantOnboardingComplete = (restaurant) => {
 export const determineStepToShow = (data) => {
   if (!data) return 1
 
-  // If completedSteps is 4, onboarding is complete (admin-created restaurants)
+  // If completedSteps is 4, onboarding is complete (admin-created sellers)
   if (data.completedSteps === 4) {
     return null
   }
@@ -232,19 +232,19 @@ export const determineStepToShow = (data) => {
 // Check onboarding status from API and return the step to navigate to
 export const checkOnboardingStatus = async () => {
   try {
-    const restaurantResponse = await restaurantAPI.getMe()
-    const restaurant =
-      restaurantResponse?.data?.data?.user ||
-      restaurantResponse?.data?.data?.restaurant ||
-      restaurantResponse?.data?.restaurant ||
-      restaurantResponse?.data?.user ||
+    const sellerResponse = await sellerAPI.getMe()
+    const seller =
+      sellerResponse?.data?.data?.user ||
+      sellerResponse?.data?.data?.seller ||
+      sellerResponse?.data?.seller ||
+      sellerResponse?.data?.user ||
       null
 
-    if (restaurant && isRestaurantOnboardingComplete(restaurant)) {
+    if (seller && isSellerOnboardingComplete(seller)) {
       return null
     }
 
-    const res = await api.get("/restaurant/onboarding")
+    const res = await api.get("/seller/onboarding")
     const data = res?.data?.data?.onboarding
     if (data) {
       const stepToShow = determineStepToShow(data)

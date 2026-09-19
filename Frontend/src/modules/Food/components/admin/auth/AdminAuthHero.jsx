@@ -6,7 +6,7 @@ import QuickCommerceArt from "./QuickCommerceArt"
 /**
  * Left-hand hero on the admin auth screens.
  *
- * Reads as a grocery marketplace rather than a restaurant platform: the three
+ * Reads as a grocery marketplace rather than a seller platform: the three
  * figures below are the ones a quick-commerce operator actually watches —
  * delivery time, stock, and how many sellers are trading.
  */

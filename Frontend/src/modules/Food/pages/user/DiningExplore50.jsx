@@ -13,7 +13,7 @@ import { FaLocationDot } from "react-icons/fa6"
 // Using placeholder for upto 50 off banner
 const upto50off = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop"
 
-const popularRestaurants = [
+const popularSellers = [
   {
     id: 1,
     name: "IRIS",
@@ -130,8 +130,8 @@ export default function DiningExplore50() {
     })
   }
 
-  const filteredRestaurants = useMemo(() => {
-    let filtered = [...popularRestaurants]
+  const filteredSellers = useMemo(() => {
+    let filtered = [...popularSellers]
 
     if (activeFilters.has('delivery-under-30')) {
       filtered = filtered.filter(r => {
@@ -253,7 +253,7 @@ export default function DiningExplore50() {
                     setHeroSearch("")
                   }
                 }}
-                placeholder="Search for restaurants, cuisines, dishes..."
+                placeholder="Search for sellers, cuisines, dishes..."
                 className="w-full h-12 sm:h-14 md:h-16 pl-12 sm:pl-14 pr-12 sm:pr-14 rounded-xl border-2 border-gray-200 focus:border-[#EB590E] bg-white shadow-sm text-base sm:text-lg md:text-xl"
               />
               <Search className="absolute left-4 sm:left-5 md:left-6 top-1/2 -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-gray-400" />
@@ -270,12 +270,12 @@ export default function DiningExplore50() {
             </div>
           </div>
 
-          {/* Popular Restaurants Around You Section */}
+          {/* Popular Sellers Around You Section */}
           <div className="mb-6 mt-8 sm:mt-12">
             <div className="mb-6">
               <div className="flex items-center justify-center mb-2">
                 <h3 className="px-3 text-sm font-semibold text-gray-500 uppercase tracking-wide text-center">
-                  POPULAR RESTAURANTS AROUND YOU
+                  POPULAR SELLERS AROUND YOU
                 </h3>
               </div>
             </div>
@@ -329,38 +329,38 @@ export default function DiningExplore50() {
               </div>
             </section>
 
-            {/* Restaurant Cards */}
+            {/* Seller Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
-              {filteredRestaurants.map((restaurant, index) => {
-                const restaurantSlug = restaurant.name.toLowerCase().replace(/\s+/g, "-")
-                const favorite = isFavorite(restaurantSlug)
+              {filteredSellers.map((seller, index) => {
+                const sellerSlug = seller.name.toLowerCase().replace(/\s+/g, "-")
+                const favorite = isFavorite(sellerSlug)
 
                 const handleToggleFavorite = (e) => {
                   e.preventDefault()
                   e.stopPropagation()
                   if (favorite) {
-                    removeFavorite(restaurantSlug)
+                    removeFavorite(sellerSlug)
                   } else {
                     addFavorite({
-                      slug: restaurantSlug,
-                      name: restaurant.name,
-                      cuisine: restaurant.cuisine,
-                      rating: restaurant.rating,
-                      deliveryTime: restaurant.deliveryTime,
-                      distance: restaurant.distance,
-                      image: restaurant.image
+                      slug: sellerSlug,
+                      name: seller.name,
+                      cuisine: seller.cuisine,
+                      rating: seller.rating,
+                      deliveryTime: seller.deliveryTime,
+                      distance: seller.distance,
+                      image: seller.image
                     })
                   }
                 }
 
                 return (
-                  <Link key={restaurant.id} to={`/user/restaurants/${restaurantSlug}`}>
+                  <Link key={seller.id} to={`/user/sellers/${sellerSlug}`}>
                     <Card className="overflow-hidden gap-0 cursor-pointer border-0 group bg-white shadow-md hover:shadow-xl transition-all duration-300 py-0 rounded-2xl">
                       {/* Image Section */}
                       <div className="relative h-48 sm:h-56 md:h-60 w-full overflow-hidden rounded-t-2xl">
                         <img
-                          src={restaurant.image}
-                          alt={restaurant.name}
+                          src={seller.image}
+                          alt={seller.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
                             e.currentTarget.style.display = "none"
@@ -370,7 +370,7 @@ export default function DiningExplore50() {
                         {/* Featured Dish Badge - Top Left */}
                         <div className="absolute top-3 left-3">
                           <div className="bg-gray-800/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium">
-                            {restaurant.featuredDish} • ₹{restaurant.featuredPrice}
+                            {seller.featuredDish} • ₹{seller.featuredPrice}
                           </div>
                         </div>
 
@@ -393,7 +393,7 @@ export default function DiningExplore50() {
                               </p>
                               <div className="h-px bg-white/30 mb-2 w-24"></div>
                               <p className="text-white text-base sm:text-lg font-bold">
-                                {restaurant.offer}
+                                {seller.offer}
                               </p>
                             </div>
                           </div>
@@ -402,15 +402,15 @@ export default function DiningExplore50() {
 
                       {/* Content Section */}
                       <CardContent className="p-3 sm:p-4 pt-3 sm:pt-4">
-                        {/* Restaurant Name & Rating */}
+                        {/* Seller Name & Rating */}
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="flex-1 min-w-0">
                             <h3 className="text-lg sm:text-xl font-bold text-gray-900 line-clamp-1">
-                              {restaurant.name}
+                              {seller.name}
                             </h3>
                           </div>
                           <div className="flex-shrink-0 bg-green-600 text-white px-2 py-1 rounded-lg flex items-center gap-1">
-                            <span className="text-sm font-bold">{restaurant.rating}</span>
+                            <span className="text-sm font-bold">{seller.rating}</span>
                             <Star className="h-3 w-3 fill-white text-white" />
                           </div>
                         </div>
@@ -418,16 +418,16 @@ export default function DiningExplore50() {
                         {/* Delivery Time & Distance */}
                         <div className="flex items-center gap-1 text-sm text-gray-500 mb-2">
                           <Clock className="h-4 w-4" strokeWidth={1.5} />
-                          <span className="font-medium">{restaurant.deliveryTime}</span>
+                          <span className="font-medium">{seller.deliveryTime}</span>
                           <span className="mx-1">|</span>
-                          <span className="font-medium">{restaurant.distance}</span>
+                          <span className="font-medium">{seller.distance}</span>
                         </div>
 
                         {/* Offer Badge */}
-                        {restaurant.offer && (
+                        {seller.offer && (
                           <div className="flex items-center gap-2 text-sm">
                             <BadgePercent className="h-4 w-4 text-[#EB590E]" strokeWidth={2} />
-                            <span className="text-gray-700 font-medium">{restaurant.offer}</span>
+                            <span className="text-gray-700 font-medium">{seller.offer}</span>
                           </div>
                         )}
                       </CardContent>
@@ -440,7 +440,7 @@ export default function DiningExplore50() {
         </div>
       </div>
 
-      {/* Filter Modal - Same as DiningRestaurants page */}
+      {/* Filter Modal - Same as DiningSellers page */}
       {isFilterOpen && (
         <div className="fixed inset-0 z-[100]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
           {/* Backdrop */}
@@ -558,7 +558,7 @@ export default function DiningExplore50() {
                 {/* Rating Tab */}
                 {activeFilterTab === 'rating' && (
                   <div className="space-y-4 mb-8">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Restaurant Rating</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Seller Rating</h3>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => toggleFilter('rating-35-plus')}
@@ -691,7 +691,7 @@ export default function DiningExplore50() {
                   }`}
               >
                 {activeFilters.size > 0 || sortBy || selectedCuisine
-                  ? `Show ${filteredRestaurants.length} results`
+                  ? `Show ${filteredSellers.length} results`
                   : 'Show results'}
               </button>
             </div>

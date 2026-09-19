@@ -16,7 +16,7 @@ const PageLoader = () => <AppShellSkeleton />
 /**
  * FoodAppWrapper — Quick-spicy App. को /food prefix के साथ render करता है.
  * 
- * Quick-spicy की App.jsx में routes /restaurant, /usermain, /admin, /delivery
+ * Quick-spicy की App.jsx में routes /seller, /usermain, /admin, /delivery
  * जैसे hain (bina /food prefix ke). Yahan hum useLocation se /food ke baad wala
  * path nikalne ke baad FoodApp render karte hain. FoodApp internally BrowserRouter
  * nahi use karta (sirf Routes use karta hai), isliye ye directly kaam karta hai.
@@ -32,8 +32,8 @@ const FoodAppWrapper = () => {
 const RedirectToFood = () => {
   const location = useLocation();
   // We safely replace the exact current pathname with a /food prefixed pathname
-  // This effectively catches programmatic navigation to absolute paths like '/restaurant/login'
-  // and turns them into '/food/restaurant/login'
+  // This effectively catches programmatic navigation to absolute paths like '/seller/login'
+  // and turns them into '/food/seller/login'
   return <Navigate to={`/food${location.pathname}${location.search}`} replace />;
 };
 
@@ -64,10 +64,10 @@ const RootEntryRoute = () => {
 
 
 const AdminRouter = lazy(() => import('../modules/Food/components/admin/AdminRouter'))
-const SellerRouter = lazy(() => import('../modules/Food/components/restaurant/RestaurantRouter'))
+const SellerRouter = lazy(() => import('../modules/Food/components/seller/SellerRouter'))
 
 /**
- * Sends the old /food/restaurant/* addresses to /seller/*.
+ * Sends the old /food/seller/* addresses to /seller/*.
  *
  * A redirect rather than a second mount: two live copies of the panel would
  * mean two sessions, two sets of sockets, and a bug fixed in one of them. The
@@ -77,7 +77,7 @@ const SellerRouter = lazy(() => import('../modules/Food/components/restaurant/Re
 const RedirectToSeller = () => {
   const location = useLocation()
   const target =
-    location.pathname.replace(/^\/food\/restaurant/, '/seller') +
+    location.pathname.replace(/^\/food\/seller/, '/seller') +
     location.search +
     location.hash
   return <Navigate to={target} replace />
@@ -127,7 +127,7 @@ const AppRoutes = () => {
         }
       />
       {/* Where the panel used to live; bookmarks and old links still resolve. */}
-      <Route path="/food/restaurant/*" element={<RedirectToSeller />} />
+      <Route path="/food/seller/*" element={<RedirectToSeller />} />
 
       {/* Global Admin Portal - AdminRouter handles its own protection for sub-routes */}
       <Route path="/admin/*" element={<AdminRouter />} />
@@ -145,7 +145,7 @@ const AppRoutes = () => {
       
       {/* Dynamic intercept redirects for bare paths (accessed programmatically) */}
       <Route path="/user/*" element={<RedirectToFood />} />
-      <Route path="/restaurant/*" element={<RedirectToSeller />} />
+      <Route path="/seller/*" element={<RedirectToSeller />} />
       <Route path="/delivery/*" element={<RedirectToFood />} />
       <Route path="/usermain/*" element={<RedirectToFood />} />
       <Route path="/profile/*" element={<RedirectToFood />} />

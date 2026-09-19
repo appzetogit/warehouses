@@ -33,9 +33,9 @@ export const getSubscriptionBillingSummary = async (req, res, next) => {
     }
 };
 
-export const getRestaurantSubscriptionOverview = async (req, res, next) => {
+export const getSellerSubscriptionOverview = async (req, res, next) => {
     try {
-        const data = await billingService.getRestaurantSubscriptionOverviewAdmin(req.params.restaurantId);
+        const data = await billingService.getSellerSubscriptionOverviewAdmin(req.params.sellerId);
         return sendResponse(res, 200, 'Store subscription overview fetched', data);
     } catch (error) {
         next(error);

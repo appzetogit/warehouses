@@ -4,7 +4,7 @@ export const ADMIN_PERMISSION_SECTIONS = [
     'dashboard',
     'point_of_sale',
     'food_management',
-    'restaurant_management',
+    'seller_management',
     'order_management',
     'promotions_management',
     'referral_rewards',

@@ -18,7 +18,7 @@ const statsCards = [
   { id: 4, label: "Expiring Soon", value: 0, bg: "bg-amber-50" },
 ];
 
-const restaurantRows = [
+const sellerRows = [
   {
     id: 1,
     name: "Tasty Lunch",
@@ -45,7 +45,7 @@ const restaurantRows = [
   },
   {
     id: 3,
-    name: "Cheesy Restaurant",
+    name: "Cheesy Seller",
     icon: chefIcon,
     packageName: "Pro",
     price: "$ 1,199.00",
@@ -63,7 +63,7 @@ export default function SubscriberList() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState({
     si: true,
-    restaurantInfo: true,
+    sellerInfo: true,
     packageName: true,
     price: true,
     expDate: true,
@@ -75,7 +75,7 @@ export default function SubscriberList() {
   });
 
   const filteredRows = useMemo(() => {
-    return restaurantRows.filter((row) =>
+    return sellerRows.filter((row) =>
       row.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
     );
   }, [searchQuery]);
@@ -95,7 +95,7 @@ export default function SubscriberList() {
   const resetColumns = () => {
     setVisibleColumns({
       si: true,
-      restaurantInfo: true,
+      sellerInfo: true,
       packageName: true,
       price: true,
       expDate: true,
@@ -109,7 +109,7 @@ export default function SubscriberList() {
 
   const columnsConfig = {
     si: "Serial Number",
-    restaurantInfo: "Restaurant Info",
+    sellerInfo: "Seller Info",
     packageName: "Current Package Name",
     price: "Package Price",
     expDate: "Exp Date",
@@ -128,7 +128,7 @@ export default function SubscriberList() {
           <span role="img" aria-label="subscribed">
             ??
           </span>
-          <span>Subscribed Restaurant List</span>
+          <span>Subscribed Seller List</span>
         </h1>
 
         <div className="relative">
@@ -204,12 +204,12 @@ export default function SubscriberList() {
         </div>
       </div>
 
-      {/* Restaurant list card */}
+      {/* Seller list card */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200">
         <div className="px-4 py-3 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-slate-900">
-              Restaurant List
+              Seller List
             </h2>
             <span className="inline-flex items-center justify-center min-w-[24px] h-6 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">
               3
@@ -288,10 +288,10 @@ export default function SubscriberList() {
                     </div>
                   </th>
                 )}
-                {visibleColumns.restaurantInfo && (
+                {visibleColumns.sellerInfo && (
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                     <div className="flex items-center gap-2">
-                      <span>Restaurant Info</span>
+                      <span>Seller Info</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400 cursor-pointer hover:text-slate-600" />
                     </div>
                   </th>
@@ -372,7 +372,7 @@ export default function SubscriberList() {
                         <span className="text-sm font-medium text-slate-700">{index + 1}</span>
                       </td>
                     )}
-                    {visibleColumns.restaurantInfo && (
+                    {visibleColumns.sellerInfo && (
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center overflow-hidden border border-slate-200">

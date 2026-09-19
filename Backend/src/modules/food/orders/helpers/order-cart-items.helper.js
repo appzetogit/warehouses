@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { FoodItem } from '../../admin/models/food.model.js';
-import { FoodAddon } from '../../restaurant/models/foodAddon.model.js';
+import { FoodAddon } from '../../seller/models/foodAddon.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 
 function toObjectIds(ids = []) {
@@ -45,24 +45,24 @@ function resolveFoodItemPrice(foodDoc, rawItem) {
   };
 }
 
-export async function resolveOrderCartItems(restaurantId, rawItems = []) {
+export async function resolveOrderCartItems(sellerId, rawItems = []) {
   const items = Array.isArray(rawItems) ? rawItems : [];
   if (!items.length) throw new ValidationError('At least one item required');
 
-  const rId = new mongoose.Types.ObjectId(String(restaurantId));
+  const rId = new mongoose.Types.ObjectId(String(sellerId));
   const itemIds = toObjectIds(items.map((item) => item.itemId || item.id));
 
   const [foodDocs, addonDocs] = await Promise.all([
     itemIds.length
       ? FoodItem.find({
-          restaurantId: rId,
+          sellerId: rId,
           _id: { $in: itemIds },
           approvalStatus: 'approved',
         }).lean()
       : [],
     itemIds.length
       ? FoodAddon.find({
-          restaurantId: rId,
+          sellerId: rId,
           _id: { $in: itemIds },
           isDeleted: { $ne: true },
           approvalStatus: 'approved',
@@ -82,19 +82,19 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
   // These were dropped entirely: resolveFoodItemPrice only ever looked at
   // variants, so a customer who picked "Extra Cheese" was shown a total
   // including it and then billed without it, with nothing recorded on the
-  // order. The restaurant absorbed the difference.
+  // order. The seller absorbed the difference.
   //
-  // Looked up across the whole restaurant, not just the ids in the cart, since
+  // Looked up across the whole seller, not just the ids in the cart, since
   // an attached add-on's id never appears in items[].itemId.
-  const restaurantAddons = await FoodAddon.find({
-    restaurantId: rId,
+  const sellerAddons = await FoodAddon.find({
+    sellerId: rId,
     isDeleted: { $ne: true },
     approvalStatus: 'approved',
   }).lean();
 
   const attachableById = new Map();
   const attachableByName = new Map();
-  for (const doc of restaurantAddons) {
+  for (const doc of sellerAddons) {
     const published = doc?.published;
     if (!published?.name) continue;
     const entry = {
@@ -217,13 +217,13 @@ export async function resolveOrderCartItems(restaurantId, rawItems = []) {
     // not a missing product. Both used to say "no longer available", which sent
     // the customer looking for a stock problem that was never there.
     //
-    // An order carries one restaurantId, one delivery fee and one rider, so a
+    // An order carries one sellerId, one delivery fee and one rider, so a
     // basket spanning two sellers cannot be placed as it stands.
     // ponytail: reject and say so. Splitting into an order per seller is the
     // real answer, and it is a much bigger change -- separate fees, separate
     // dispatch, separate cancellation and refund per part.
-    const foreign = await FoodItem.findById(itemId).select('name restaurantId').lean();
-    if (foreign?._id && String(foreign.restaurantId) !== String(rId)) {
+    const foreign = await FoodItem.findById(itemId).select('name sellerId').lean();
+    if (foreign?._id && String(foreign.sellerId) !== String(rId)) {
       throw new ValidationError(
         `${foreign.name} is sold by a different seller. Please order from one seller at a time.`,
       );

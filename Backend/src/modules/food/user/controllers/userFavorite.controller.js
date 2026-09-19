@@ -12,11 +12,11 @@ export async function getFavoritesController(req, res, next) {
     }
 }
 
-export async function addFavoriteRestaurantController(req, res, next) {
+export async function addFavoriteSellerController(req, res, next) {
     try {
-        const data = await favoriteService.addFavoriteRestaurant(
+        const data = await favoriteService.addFavoriteSeller(
             me(req),
-            req.params.restaurantId
+            req.params.sellerId
         );
         return sendResponse(res, 200, 'Store added to favorites', data);
     } catch (err) {
@@ -24,11 +24,11 @@ export async function addFavoriteRestaurantController(req, res, next) {
     }
 }
 
-export async function removeFavoriteRestaurantController(req, res, next) {
+export async function removeFavoriteSellerController(req, res, next) {
     try {
-        const data = await favoriteService.removeFavoriteRestaurant(
+        const data = await favoriteService.removeFavoriteSeller(
             me(req),
-            req.params.restaurantId
+            req.params.sellerId
         );
         return sendResponse(res, 200, 'Store removed from favorites', data);
     } catch (err) {

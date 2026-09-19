@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { FoodUserFavorite } from '../models/userFavorite.model.js';
-import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../../seller/models/seller.model.js';
 import { FoodItem } from '../../admin/models/food.model.js';
 
 const toObjectId = (value, label) => {
@@ -16,7 +16,7 @@ const toObjectId = (value, label) => {
  * Everything this user has favourited.
  *
  * Returns the ids AND the populated entities in one call. The ids are what every
- * heart icon binds to, so they must be present even when the underlying restaurant
+ * heart icon binds to, so they must be present even when the underlying seller
  * or dish has since been deleted or unapproved — otherwise a heart would silently
  * un-fill and the user would think their tap was lost. The populated lists are what
  * the Favourites screen renders, and those legitimately omit anything no longer
@@ -30,21 +30,21 @@ export const getUserFavorites = async (userId) => {
         .sort({ createdAt: -1 })
         .lean();
 
-    const restaurantIds = rows
-        .filter((r) => r.entityType === 'restaurant')
+    const sellerIds = rows
+        .filter((r) => r.entityType === 'seller')
         .map((r) => String(r.entityId));
     const foodIds = rows
         .filter((r) => r.entityType === 'food')
         .map((r) => String(r.entityId));
 
-    const [restaurants, foods] = await Promise.all([
-        restaurantIds.length
-            ? FoodRestaurant.find({
-                  _id: { $in: restaurantIds },
+    const [sellers, foods] = await Promise.all([
+        sellerIds.length
+            ? FoodSeller.find({
+                  _id: { $in: sellerIds },
                   status: 'approved'
               })
                   .select(
-                      'restaurantName profileImage coverImage coverImages cuisines rating totalRatings area city location offer estimatedDeliveryTimeMinutes isAcceptingOrders'
+                      'sellerName profileImage coverImage coverImages cuisines rating totalRatings area city location offer estimatedDeliveryTimeMinutes isAcceptingOrders'
                   )
                   .lean()
             : [],
@@ -54,7 +54,7 @@ export const getUserFavorites = async (userId) => {
                   approvalStatus: 'approved'
               })
                   .select(
-                      'name description price otherPrice image images foodType restaurantId rating totalRatings isAvailable variants'
+                      'name description price otherPrice image images foodType sellerId rating totalRatings isAvailable variants'
                   )
                   .lean()
             : []
@@ -62,13 +62,13 @@ export const getUserFavorites = async (userId) => {
 
     // Preserve the newest-first order the ids came back in; $in does not guarantee it.
     const byId = (list) => new Map(list.map((d) => [String(d._id), d]));
-    const restaurantMap = byId(restaurants);
+    const sellerMap = byId(sellers);
     const foodMap = byId(foods);
 
     return {
-        restaurantIds,
+        sellerIds,
         foodIds,
-        restaurants: restaurantIds.map((id) => restaurantMap.get(id)).filter(Boolean),
+        sellers: sellerIds.map((id) => sellerMap.get(id)).filter(Boolean),
         foods: foodIds.map((id) => foodMap.get(id)).filter(Boolean)
     };
 };
@@ -103,11 +103,11 @@ const removeFavorite = async (userId, entityType, entityId) => {
     return { favorited: false, entityType, entityId: String(target) };
 };
 
-export const addFavoriteRestaurant = (userId, restaurantId) =>
-    addFavorite(userId, 'restaurant', restaurantId);
+export const addFavoriteSeller = (userId, sellerId) =>
+    addFavorite(userId, 'seller', sellerId);
 
-export const removeFavoriteRestaurant = (userId, restaurantId) =>
-    removeFavorite(userId, 'restaurant', restaurantId);
+export const removeFavoriteSeller = (userId, sellerId) =>
+    removeFavorite(userId, 'seller', sellerId);
 
 export const addFavoriteFood = (userId, foodId) => addFavorite(userId, 'food', foodId);
 

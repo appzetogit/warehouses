@@ -593,7 +593,7 @@ export default function AdminNavbar({ onMenuClick }) {
                               <div className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-500 group-hover:bg-white group-hover:text-black transition-colors">
                                 {result.type === 'Order' && <Package className="w-5 h-5" />}
                                 {result.type === 'User' && <User className="w-5 h-5" />}
-                                {result.type === 'Restaurant' && <Building2 className="w-5 h-5" />}
+                                {result.type === 'Seller' && <Building2 className="w-5 h-5" />}
                                 {result.type === 'Product' && <Utensils className="w-5 h-5" />}
                                 {result.type === 'Category' && <Grid className="w-5 h-5" />}
                                 {result.type === 'Addon' && <PlusCircle className="w-5 h-5" />}

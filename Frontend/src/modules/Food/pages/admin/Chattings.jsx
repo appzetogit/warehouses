@@ -9,7 +9,7 @@ export default function Chattings() {
 
   const filteredConversations = emptyConversations.filter(conv => {
     if (activeTab === "customer" && conv.type !== "customer") return false
-    if (activeTab === "restaurant" && conv.type !== "restaurant") return false
+    if (activeTab === "seller" && conv.type !== "seller") return false
     
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
@@ -54,14 +54,14 @@ export default function Chattings() {
                     Customer
                   </button>
                   <button
-                    onClick={() => setActiveTab("restaurant")}
+                    onClick={() => setActiveTab("seller")}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === "restaurant"
+                      activeTab === "seller"
                         ? "border-blue-600 text-blue-600"
                         : "border-transparent text-slate-600 hover:text-slate-900"
                     }`}
                   >
-                    Restaurant
+                    Seller
                   </button>
                 </div>
               </div>

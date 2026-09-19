@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { userAPI, restaurantAPI, deliveryAPI, adminAPI } from "@food/api";
+import { userAPI, sellerAPI, deliveryAPI, adminAPI } from "@food/api";
 import { initializeApp, getApp, getApps } from "firebase/app";
 import fallbackNotificationSound from "@food/assets/audio/alert.mp3";
 
@@ -47,7 +47,7 @@ function shouldIgnoreFcmRegistrationError(error) {
 }
 
 function normalizeModuleFromPath(pathname = window.location.pathname) {
-  if (pathname.includes("/restaurant") && !pathname.includes("/restaurants")) return "restaurant";
+  if (pathname.includes("/seller") && !pathname.includes("/sellers")) return "seller";
   if (pathname.includes("/delivery")) return "delivery";
   if (pathname.includes("/admin")) return "admin";
   return "user";
@@ -61,7 +61,7 @@ function hasModuleSession(moduleName = normalizeModuleFromPath()) {
 
 function hasAnyFoodModuleSession() {
   if (typeof window === "undefined") return false;
-  return ["user", "restaurant", "delivery", "admin"].some((moduleName) =>
+  return ["user", "seller", "delivery", "admin"].some((moduleName) =>
     Boolean(localStorage.getItem(`${moduleName}_accessToken`)),
   );
 }
@@ -90,8 +90,8 @@ function isRecord(value) {
 }
 
 function getPushSoundSources(moduleName = normalizeModuleFromPath()) {
-  // Delivery and restaurant should always use the alert tone for FCM pushes.
-  if (moduleName === "delivery" || moduleName === "restaurant") {
+  // Delivery and seller should always use the alert tone for FCM pushes.
+  if (moduleName === "delivery" || moduleName === "seller") {
     return [fallbackNotificationSound];
   }
   return [pushNotificationSoundPath, fallbackNotificationSound];
@@ -158,7 +158,7 @@ function normalizeNotificationText(value = "") {
 
   const repaired = repairMojibake(raw);
   const withoutModulePrefix = repaired
-    .replace(/^\s*(?:[\uD800-\uDBFF][\uDC00-\uDFFF]\s*)*\[(user|shop|restaurant|delivery|admin)\]\s*/i, "")
+    .replace(/^\s*(?:[\uD800-\uDBFF][\uDC00-\uDFFF]\s*)*\[(user|shop|seller|delivery|admin)\]\s*/i, "")
     .trim();
 
   const cleaned = withoutModulePrefix
@@ -378,15 +378,15 @@ async function playPushSound(payload = {}) {
     const moduleName = normalizeModuleFromPath();
     const eventType = String(payload?.data?.type || "").toLowerCase();
 
-    // Restaurant new-order ringtone is owned by restaurantAlertSession (loop until accept).
+    // Seller new-order ringtone is owned by sellerAlertSession (loop until accept).
     // Skip FCM one-shot beeps for those events to avoid duplicate / fighting audio.
-    if (moduleName === "restaurant") {
+    if (moduleName === "seller") {
       try {
-        const { isRestaurantAlertRinging } = await import("@food/utils/restaurantAlertSession");
-        if (eventType === "new_order" || isRestaurantAlertRinging()) {
-          pushDebugLog(PUSH_DEBUG_PREFIX, "Skipping FCM push sound; restaurant alert session owns ringtone", {
+        const { isSellerAlertRinging } = await import("@food/utils/sellerAlertSession");
+        if (eventType === "new_order" || isSellerAlertRinging()) {
+          pushDebugLog(PUSH_DEBUG_PREFIX, "Skipping FCM push sound; seller alert session owns ringtone", {
             eventType,
-            ringing: isRestaurantAlertRinging(),
+            ringing: isSellerAlertRinging(),
           });
           return;
         }
@@ -630,8 +630,8 @@ function setSavedToken(moduleName, token) {
 
 async function saveTokenByModule(moduleName, token, platform = "web") {
   pushDebugLog(PUSH_DEBUG_PREFIX, "saveTokenByModule starting", { moduleName, platform, tokenPreview: `${token?.slice(0, 10)}...` });
-  if (moduleName === "restaurant") {
-    await restaurantAPI.saveFcmToken(token, platform);
+  if (moduleName === "seller") {
+    await sellerAPI.saveFcmToken(token, platform);
     return;
   }
   if (moduleName === "delivery") {
@@ -1084,7 +1084,7 @@ export async function registerWebPushForCurrentModule(pathname = window.location
   }
 
   // Flutter WebView fallback: register native token when browser web push isn't available.
-  // This keeps restaurant/delivery FCM alerts working even when Web Push APIs are limited.
+  // This keeps seller/delivery FCM alerts working even when Web Push APIs are limited.
   await registerNativeWebViewFcmToken(moduleName);
   return null;
 }

@@ -15,7 +15,7 @@ const getOrderStatus = (order) => String(order?.orderStatus || order?.status || 
 const isCancelledOrder = (status, cancelledAt) =>
   status === "cancelled" ||
   status === "cancelled_by_user" ||
-  status === "cancelled_by_restaurant" ||
+  status === "cancelled_by_seller" ||
   status === "cancelled_by_admin" ||
   Boolean(cancelledAt)
 
@@ -57,10 +57,10 @@ const mapOrderStatus = (order) => {
   const statusMap = {
     'created': 'Ordered',
     'pending': 'Ordered',
-    'confirmed': 'Restaurant Accepted',
-    'preparing': 'Restaurant Accepted',
-    'ready_for_pickup': 'Restaurant Accepted',
-    'ready': 'Restaurant Accepted',
+    'confirmed': 'Seller Accepted',
+    'preparing': 'Seller Accepted',
+    'ready_for_pickup': 'Seller Accepted',
+    'ready': 'Seller Accepted',
     'picked_up': 'Order ID Accepted',
     'out_for_delivery': 'Order ID Accepted',
   }
@@ -103,15 +103,15 @@ const buildStatusHistory = (order) => {
     return history
   }
 
-  // Restaurant Accepted (confirmed)
+  // Seller Accepted (confirmed)
   if (tracking?.confirmed?.status && tracking?.confirmed?.timestamp) {
     history.push({
-      status: "Restaurant Accepted",
+      status: "Seller Accepted",
       timestamp: formatTimestamp(tracking.confirmed.timestamp)
     })
   } else if (status === 'confirmed' || status === 'preparing' || status === 'ready' || status === 'ready_for_pickup') {
     history.push({
-      status: "Restaurant Accepted",
+      status: "Seller Accepted",
       timestamp: formatTimestamp(order.updatedAt) || "N/A"
     })
   }
@@ -202,7 +202,7 @@ const buildStatusHistory = (order) => {
 // Transform backend order to frontend format
 const transformOrder = (order, index) => {
   const user = order?.userId && typeof order.userId === "object" ? order.userId : null
-  const restaurant = order?.restaurantId && typeof order.restaurantId === "object" ? order.restaurantId : null
+  const seller = order?.sellerId && typeof order.sellerId === "object" ? order.sellerId : null
   const deliveryFromDispatch =
     order?.dispatch?.deliveryPartnerId && typeof order.dispatch.deliveryPartnerId === "object"
       ? order.dispatch.deliveryPartnerId
@@ -249,7 +249,7 @@ const transformOrder = (order, index) => {
     orderId: order.orderId,
     userName: order.customerName || order.userName || user?.name || 'Unknown',
     userNumber: order.customerPhone || order.userNumber || user?.phone || order.deliveryAddress?.phone || 'N/A',
-    restaurantName: order.restaurantName || order.restaurant || restaurant?.restaurantName || 'Unknown Restaurant',
+    sellerName: order.sellerName || order.seller || seller?.sellerName || 'Unknown Seller',
     deliveryBoyName,
     deliveryBoyNumber,
     status: displayStatus,
@@ -266,7 +266,7 @@ export default function OrderDetectDelivery() {
     si: true,
     orderId: true,
     userInfo: true,
-    restaurantName: true,
+    sellerName: true,
     deliveryBoy: true,
     status: true,
     actions: true,
@@ -354,14 +354,14 @@ export default function OrderDetectDelivery() {
   } = useGenericTableManagement(
     orders,
     "Order Detect Delivery",
-    ["orderId", "userName", "userNumber", "restaurantName", "deliveryBoyName", "status"]
+    ["orderId", "userName", "userNumber", "sellerName", "deliveryBoyName", "status"]
   )
 
   // Statistics
   const stats = useMemo(() => {
     const total = filteredData.length
     const ordered = filteredData.filter(o => o.status === "Ordered").length
-    const restaurantAccepted = filteredData.filter(o => o.status === "Restaurant Accepted" || o.status === "Accepted").length
+    const sellerAccepted = filteredData.filter(o => o.status === "Seller Accepted" || o.status === "Accepted").length
     const rejected = filteredData.filter(o => o.status === "Rejected").length
     const deliveryBoyAssigned = filteredData.filter(o => o.status === "Delivery Boy Assigned").length
     const reachedPickup = filteredData.filter(o => o.status === "Delivery Boy Reached Pickup" || o.status === "Reached Pickup").length
@@ -369,7 +369,7 @@ export default function OrderDetectDelivery() {
     const reachedDrop = filteredData.filter(o => o.status === "Reached Drop").length
     const delivered = filteredData.filter(o => o.status === "Ordered Delivered").length
     
-    return { total, ordered, restaurantAccepted, rejected, deliveryBoyAssigned, reachedPickup, orderIdAccepted, reachedDrop, delivered }
+    return { total, ordered, sellerAccepted, rejected, deliveryBoyAssigned, reachedPickup, orderIdAccepted, reachedDrop, delivered }
   }, [filteredData])
 
   const resetColumns = () => {
@@ -377,7 +377,7 @@ export default function OrderDetectDelivery() {
       si: true,
       orderId: true,
       userInfo: true,
-      restaurantName: true,
+      sellerName: true,
       deliveryBoy: true,
       status: true,
       actions: true,
@@ -457,8 +457,8 @@ export default function OrderDetectDelivery() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500 mb-1">Restaurant Accepted</p>
-              <p className="text-2xl font-bold text-emerald-600">{stats.restaurantAccepted}</p>
+              <p className="text-sm text-slate-500 mb-1">Seller Accepted</p>
+              <p className="text-2xl font-bold text-emerald-600">{stats.sellerAccepted}</p>
             </div>
             <div className="p-3 bg-emerald-50 rounded-lg">
               <CheckCircle className="w-6 h-6 text-emerald-600" />
@@ -543,7 +543,7 @@ export default function OrderDetectDelivery() {
           si: "Serial Number",
           orderId: "Order ID",
           userInfo: "User Name & Number",
-          restaurantName: "Restaurant Name",
+          sellerName: "Seller Name",
           deliveryBoy: "Delivery Boy Name & Number",
           status: "Status",
           actions: "Actions",

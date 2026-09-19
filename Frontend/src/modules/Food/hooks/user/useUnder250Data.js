@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
-import { restaurantAPI } from "@food/api";
+import { sellerAPI } from "@food/api";
 
 export const useUnder250Data = (zoneId) => {
-  const [restaurants, setRestaurants] = useState([]);
+  const [sellers, setSellers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [banner, setBanner] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -11,10 +11,10 @@ export const useUnder250Data = (zoneId) => {
     try {
       setLoading(true);
       const [restRes] = await Promise.all([
-        restaurantAPI.getRestaurantsUnder250(zoneId),
+        sellerAPI.getSellersUnder250(zoneId),
       ]);
 
-      if (restRes.data?.success) setRestaurants(restRes.data.data.restaurants || []);
+      if (restRes.data?.success) setSellers(restRes.data.data.sellers || []);
       // Old backend endpoints (categories + under-250 banner) removed.
       setCategories([]);
       setBanner(null);
@@ -29,5 +29,5 @@ export const useUnder250Data = (zoneId) => {
     fetchData();
   }, [fetchData]);
 
-  return { restaurants, categories, banner, loading };
+  return { sellers, categories, banner, loading };
 };

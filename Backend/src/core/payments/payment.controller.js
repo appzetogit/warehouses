@@ -50,14 +50,14 @@ export const getUserWalletTransactionsController = async (req, res, next) => {
     }
 };
 
-// ─── Restaurant Endpoints ───
+// ─── Seller Endpoints ───
 
-export const getRestaurantWalletController = async (req, res, next) => {
+export const getSellerWalletController = async (req, res, next) => {
     try {
-        const restaurantId = req.user?.restaurantId || req.params.restaurantId;
+        const sellerId = req.user?.sellerId || req.params.sellerId;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
-        const data = await getWalletWithTransactions('restaurant', restaurantId, { page, limit });
+        const data = await getWalletWithTransactions('seller', sellerId, { page, limit });
         return sendResponse(res, 200, 'Store wallet fetched', data);
     } catch (err) {
         next(err);

@@ -5,7 +5,7 @@ import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
 import { Textarea } from "@food/components/ui/textarea"
 import { Card, CardContent } from "@food/components/ui/card"
-import { orderAPI, restaurantAPI, supportAPI, authAPI } from "@food/api"
+import { orderAPI, sellerAPI, supportAPI, authAPI } from "@food/api"
 import { toast } from "sonner"
 import { ArrowLeft, Building2, HelpCircle, ShoppingBag, ChevronRight } from "lucide-react"
 
@@ -13,9 +13,9 @@ export default function Support() {
   const [step, setStep] = useState("pick")
   const [type, setType] = useState("")
   const [orders, setOrders] = useState([])
-  const [restaurants, setRestaurants] = useState([])
+  const [sellers, setSellers] = useState([])
   const [selectedOrder, setSelectedOrder] = useState(null)
-  const [selectedRestaurant, setSelectedRestaurant] = useState(null)
+  const [selectedSeller, setSelectedSeller] = useState(null)
   const [issueType, setIssueType] = useState("")
   const [subject, setSubject] = useState("")
   const [description, setDescription] = useState("")
@@ -23,7 +23,7 @@ export default function Support() {
   const [tickets, setTickets] = useState([])
   const [loadingTickets, setLoadingTickets] = useState(false)
   const [orderSearch, setOrderSearch] = useState("")
-  const [restaurantSearch, setRestaurantSearch] = useState("")
+  const [sellerSearch, setSellerSearch] = useState("")
 
   useEffect(() => {
     setLoadingTickets(true)
@@ -41,7 +41,7 @@ export default function Support() {
   }, [])
 
   const orderIssues = ["Item missing", "Wrong item", "Not delivered", "Payment issue"]
-  const restaurantIssues = ["Bad service", "Wrong info", "Other"]
+  const sellerIssues = ["Bad service", "Wrong info", "Other"]
 
   const fetchOrders = async () => {
     try {
@@ -53,26 +53,26 @@ export default function Support() {
     }
   }
 
-  const fetchRestaurants = async () => {
+  const fetchSellers = async () => {
     try {
-      const res = await restaurantAPI.getRestaurants({ limit: 20, page: 1 })
-      const list = res?.data?.data?.restaurants || res?.data?.restaurants || []
-      setRestaurants(list)
+      const res = await sellerAPI.getSellers({ limit: 20, page: 1 })
+      const list = res?.data?.data?.sellers || res?.data?.sellers || []
+      setSellers(list)
     } catch {
-      toast.error("Failed to load restaurants")
+      toast.error("Failed to load sellers")
     }
   }
 
   const handlePick = (t) => {
     setType(t)
     setOrderSearch("")
-    setRestaurantSearch("")
+    setSellerSearch("")
     if (t === "order") {
       fetchOrders()
       setStep("choose_order")
-    } else if (t === "restaurant") {
-      fetchRestaurants()
-      setStep("choose_restaurant")
+    } else if (t === "seller") {
+      fetchSellers()
+      setStep("choose_seller")
     } else {
       setStep("other_form")
     }
@@ -89,7 +89,7 @@ export default function Support() {
       setStep("pick")
       setType("")
       setSelectedOrder(null)
-      setSelectedRestaurant(null)
+      setSelectedSeller(null)
       setIssueType("")
       setSubject("")
       setDescription("")
@@ -112,33 +112,33 @@ export default function Support() {
   }
 
   const getOrderLabel = (order) => {
-    const restaurantName = order?.restaurantName || order?.restaurant?.restaurantName || "Restaurant"
+    const sellerName = order?.sellerName || order?.seller?.sellerName || "Seller"
     const dateValue = order?.createdAt || order?.date
     const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString() : "No date"
     const amount = order?.pricing?.total ?? order?.total ?? 0
-    return `${restaurantName} • ${dateLabel} • ₹${amount}`
+    return `${sellerName} • ${dateLabel} • ₹${amount}`
   }
 
-  const getRestaurantLabel = (restaurant) => {
-    const name = restaurant?.restaurantName || restaurant?.name || "Restaurant"
-    const location = restaurant?.city || restaurant?.area || ""
+  const getSellerLabel = (seller) => {
+    const name = seller?.sellerName || seller?.name || "Seller"
+    const location = seller?.city || seller?.area || ""
     return `${name}${location ? ` • ${location}` : ""}`
   }
 
   const filteredOrders = orders.filter((order) => {
     const q = orderSearch.trim().toLowerCase()
     if (!q) return true
-    const restaurantName = (order?.restaurantName || order?.restaurant?.restaurantName || "").toLowerCase()
+    const sellerName = (order?.sellerName || order?.seller?.sellerName || "").toLowerCase()
     const orderId = String(order?._id || order?.id || "").toLowerCase()
-    return restaurantName.includes(q) || orderId.includes(q)
+    return sellerName.includes(q) || orderId.includes(q)
   })
 
-  const filteredRestaurants = restaurants.filter((restaurant) => {
-    const q = restaurantSearch.trim().toLowerCase()
+  const filteredSellers = sellers.filter((seller) => {
+    const q = sellerSearch.trim().toLowerCase()
     if (!q) return true
-    const name = String(restaurant?.restaurantName || restaurant?.name || "").toLowerCase()
-    const city = String(restaurant?.city || restaurant?.area || "").toLowerCase()
-    const id = String(restaurant?._id || restaurant?.id || "").toLowerCase()
+    const name = String(seller?.sellerName || seller?.name || "").toLowerCase()
+    const city = String(seller?.city || seller?.area || "").toLowerCase()
+    const id = String(seller?._id || seller?.id || "").toLowerCase()
     return name.includes(q) || city.includes(q) || id.includes(q)
   })
 
@@ -153,14 +153,14 @@ export default function Support() {
     }
   }
 
-  const handleRestaurantSearchChange = (value) => {
-    setRestaurantSearch(value)
+  const handleSellerSearchChange = (value) => {
+    setSellerSearch(value)
     const normalized = value.trim().toLowerCase()
     if (!normalized) return
-    const selected = filteredRestaurants.find((r) => getRestaurantLabel(r).toLowerCase() === normalized)
+    const selected = filteredSellers.find((r) => getSellerLabel(r).toLowerCase() === normalized)
     if (selected) {
-      setSelectedRestaurant(selected)
-      setStep("restaurant_issue")
+      setSelectedSeller(selected)
+      setStep("seller_issue")
     }
   }
 
@@ -235,12 +235,12 @@ export default function Support() {
                   <p className="text-xs text-slate-500 mt-1">Missing item, wrong item, delivery issue</p>
                 </button>
 
-                <button onClick={() => handlePick("restaurant")} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <button onClick={() => handlePick("seller")} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                   <div className="flex items-center justify-between">
                     <Building2 className="h-5 w-5 text-slate-700 dark:text-slate-200" />
                     <ChevronRight className="h-4 w-4 text-slate-400" />
                   </div>
-                  <p className="mt-3 font-semibold text-slate-900 dark:text-white">Restaurant Issue</p>
+                  <p className="mt-3 font-semibold text-slate-900 dark:text-white">Seller Issue</p>
                   <p className="text-xs text-slate-500 mt-1">Service, listing info, behavior report</p>
                 </button>
 
@@ -300,44 +300,44 @@ export default function Support() {
               </div>
             )}
 
-            {step === "choose_restaurant" && (
+            {step === "choose_seller" && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Select a restaurant</h3>
-                {restaurants.length > 0 ? (
+                <h3 className="font-semibold text-slate-900 dark:text-white">Select a seller</h3>
+                {sellers.length > 0 ? (
                   <div className="space-y-2">
                     <Input
-                      list="support-restaurant-options"
-                      value={restaurantSearch}
-                      onChange={(e) => handleRestaurantSearchChange(e.target.value)}
-                      placeholder="Select/search restaurant"
+                      list="support-seller-options"
+                      value={sellerSearch}
+                      onChange={(e) => handleSellerSearchChange(e.target.value)}
+                      placeholder="Select/search seller"
                     />
-                    <datalist id="support-restaurant-options">
-                      {filteredRestaurants.map((r) => (
-                        <option key={r._id || r.id} value={getRestaurantLabel(r)}>
-                          {getRestaurantLabel(r)}
+                    <datalist id="support-seller-options">
+                      {filteredSellers.map((r) => (
+                        <option key={r._id || r.id} value={getSellerLabel(r)}>
+                          {getSellerLabel(r)}
                         </option>
                       ))}
                     </datalist>
-                    {filteredRestaurants.length === 0 ? <p className="text-sm text-slate-500">No matching restaurants found</p> : null}
+                    {filteredSellers.length === 0 ? <p className="text-sm text-slate-500">No matching sellers found</p> : null}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500">No restaurants found</p>
+                  <p className="text-sm text-slate-500">No sellers found</p>
                 )}
                 <Button variant="outline" onClick={() => setStep("pick")}>Back</Button>
               </div>
             )}
 
-            {step === "restaurant_issue" && selectedRestaurant && (
+            {step === "seller_issue" && selectedSeller && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-slate-900 dark:text-white">Issue type</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {restaurantIssues.map((it) => (
+                  {sellerIssues.map((it) => (
                     <Button key={it} variant={issueType === it ? "default" : "outline"} onClick={() => setIssueType(it)}>{it}</Button>
                   ))}
                 </div>
                 <Textarea placeholder="Describe the issue (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
                 <div className="flex gap-2">
-                  <Button onClick={() => submitTicket({ type: "restaurant", restaurantId: selectedRestaurant._id || selectedRestaurant.id, issueType, description })} disabled={!issueType || submitting}>
+                  <Button onClick={() => submitTicket({ type: "seller", sellerId: selectedSeller._id || selectedSeller.id, issueType, description })} disabled={!issueType || submitting}>
                     {submitting ? "Submitting..." : "Submit Ticket"}
                   </Button>
                   <Button variant="outline" onClick={() => setStep("pick")}>Cancel</Button>

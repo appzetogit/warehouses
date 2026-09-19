@@ -59,7 +59,7 @@
 }
 
 
-/* Restaurant and Customer Markers */
+/* Seller and Customer Markers */
 .marker-pin {
   position: relative;
   display: flex;
@@ -67,12 +67,12 @@
   justify-content: center;
 }
 
-.restaurant-pin,
+.seller-pin,
 .customer-pin {
   filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.2));
 }
 
-.restaurant-marker,
+.seller-marker,
 .customer-marker {
   cursor: pointer;
 }

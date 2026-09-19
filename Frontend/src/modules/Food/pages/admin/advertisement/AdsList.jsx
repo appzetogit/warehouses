@@ -19,14 +19,14 @@ export default function AdsList() {
   const [selectedAd, setSelectedAd] = useState(null)
   const [filters, setFilters] = useState({
     status: "",
-    restaurant: "",
+    seller: "",
     priority: "",
   })
   const [visibleColumns, setVisibleColumns] = useState({
     si: true,
     adsId: true,
     adsTitle: true,
-    restaurantInfo: true,
+    sellerInfo: true,
     adsType: true,
     duration: true,
     status: true,
@@ -38,7 +38,7 @@ export default function AdsList() {
     si: "Serial Number",
     adsId: "Ads ID",
     adsTitle: "Ads Title",
-    restaurantInfo: "Restaurant Info",
+    sellerInfo: "Seller Info",
     adsType: "Ads Type",
     duration: "Duration",
     status: "Status",
@@ -57,7 +57,7 @@ export default function AdsList() {
       const query = searchQuery.toLowerCase().trim()
       result = result.filter(ad =>
         ad.adsId?.toLowerCase().includes(query) ||
-        ad.restaurantName?.toLowerCase().includes(query) ||
+        ad.sellerName?.toLowerCase().includes(query) ||
         ad.adsTitle?.toLowerCase().includes(query)
       )
     }
@@ -66,8 +66,8 @@ export default function AdsList() {
       result = result.filter(ad => ad.status === filters.status)
     }
 
-    if (filters.restaurant) {
-      result = result.filter(ad => ad.restaurantName === filters.restaurant)
+    if (filters.seller) {
+      result = result.filter(ad => ad.sellerName === filters.seller)
     }
 
     if (filters.priority) {
@@ -136,7 +136,7 @@ export default function AdsList() {
       si: true,
       adsId: true,
       adsTitle: true,
-      restaurantInfo: true,
+      sellerInfo: true,
       adsType: true,
       duration: true,
       status: true,
@@ -152,12 +152,12 @@ export default function AdsList() {
   const handleResetFilters = () => {
     setFilters({
       status: "",
-      restaurant: "",
+      seller: "",
       priority: "",
     })
   }
 
-  const restaurants = [...new Set(ads.map(ad => ad.restaurantName))].filter(Boolean)
+  const sellers = [...new Set(ads.map(ad => ad.sellerName))].filter(Boolean)
   const statuses = [...new Set(ads.map(ad => ad.status))].filter(Boolean)
 
   return (
@@ -193,14 +193,14 @@ export default function AdsList() {
             className="px-4 py-2.5 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
           >
             <option value="all">All Ads</option>
-            <option value="Restaurant Promotion">Restaurant Promotion</option>
+            <option value="Seller Promotion">Seller Promotion</option>
             <option value="Video promotion">Video promotion</option>
           </select>
 
           <div className="relative flex-1 sm:flex-initial min-w-[250px]">
             <input
               type="text"
-              placeholder="Search by ads ID or restaurant"
+              placeholder="Search by ads ID or seller"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-4 py-2.5 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
@@ -271,7 +271,7 @@ export default function AdsList() {
                 {visibleColumns.si && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">SI</th>}
                 {visibleColumns.adsId && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Ads ID</th>}
                 {visibleColumns.adsTitle && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Ads Title</th>}
-                {visibleColumns.restaurantInfo && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Restaurant Info</th>}
+                {visibleColumns.sellerInfo && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Seller Info</th>}
                 {visibleColumns.adsType && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Ads Type</th>}
                 {visibleColumns.duration && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Duration</th>}
                 {visibleColumns.status && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Status</th>}
@@ -313,15 +313,15 @@ export default function AdsList() {
                         <span className="text-sm font-medium text-slate-900">{ad.adsTitle}</span>
                       </td>
                     )}
-                    {visibleColumns.restaurantInfo && (
+                    {visibleColumns.sellerInfo && (
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
                             <Building2 className="w-5 h-5 text-orange-600" />
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-medium text-slate-900">{ad.restaurantName}</span>
-                            <span className="text-xs text-slate-500">{ad.restaurantEmail}</span>
+                            <span className="text-sm font-medium text-slate-900">{ad.sellerName}</span>
+                            <span className="text-xs text-slate-500">{ad.sellerEmail}</span>
                           </div>
                         </div>
                       </td>
@@ -427,16 +427,16 @@ export default function AdsList() {
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Restaurant
+                Seller
               </label>
               <select
-                value={filters.restaurant}
-                onChange={(e) => setFilters(prev => ({ ...prev, restaurant: e.target.value }))}
+                value={filters.seller}
+                onChange={(e) => setFilters(prev => ({ ...prev, seller: e.target.value }))}
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
-                <option value="">All Restaurants</option>
-                {restaurants.map(restaurant => (
-                  <option key={restaurant} value={restaurant}>{restaurant}</option>
+                <option value="">All Sellers</option>
+                {sellers.map(seller => (
+                  <option key={seller} value={seller}>{seller}</option>
                 ))}
               </select>
             </div>
@@ -501,12 +501,12 @@ export default function AdsList() {
                   <p className="text-sm text-slate-900">{selectedAd.adsTitle}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-700">Restaurant Name</p>
-                  <p className="text-sm text-slate-900">{selectedAd.restaurantName}</p>
+                  <p className="text-sm font-semibold text-slate-700">Seller Name</p>
+                  <p className="text-sm text-slate-900">{selectedAd.sellerName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-700">Restaurant Email</p>
-                  <p className="text-sm text-slate-900">{selectedAd.restaurantEmail}</p>
+                  <p className="text-sm font-semibold text-slate-700">Seller Email</p>
+                  <p className="text-sm text-slate-900">{selectedAd.sellerEmail}</p>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-700">Ads Type</p>

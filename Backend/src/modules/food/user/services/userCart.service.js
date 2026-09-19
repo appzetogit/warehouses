@@ -114,7 +114,7 @@ async function enrichStoredCartPricing(cart, storedPricing) {
         };
     }
 
-    if (!cart.restaurantId || !mongoose.Types.ObjectId.isValid(String(cart.restaurantId))) {
+    if (!cart.sellerId || !mongoose.Types.ObjectId.isValid(String(cart.sellerId))) {
         return storedPricing;
     }
 
@@ -122,7 +122,7 @@ async function enrichStoredCartPricing(cart, storedPricing) {
         const result = await calculateOrderPricing(
             cart.userId,
             {
-                restaurantId: cart.restaurantId,
+                sellerId: cart.sellerId,
                 items: mapCartItemsForPricing(cart.items),
             },
             { skipAvailabilityCheck: true },
@@ -178,8 +178,8 @@ export async function syncUserCart(userId, rawItems = [], rawPricing = null) {
         { userId: userObjectId },
         {
             userId: userObjectId,
-            restaurantId: String(rawFirst?.restaurantId || ''),
-            restaurantName: String(rawFirst?.restaurant || rawFirst?.restaurantName || ''),
+            sellerId: String(rawFirst?.sellerId || ''),
+            sellerName: String(rawFirst?.seller || rawFirst?.sellerName || ''),
             items: items.map((item) => ({
                 ...item,
             })),
@@ -215,12 +215,12 @@ export async function listUserCartsForAdmin(query = {}) {
     const filter = { 'items.0': { $exists: true } };
 
     if (search) {
-        const restaurantRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        const sellerRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         const userIds = await buildSearchUserIds(search);
 
         const orConditions = [
-            { restaurantName: restaurantRegex },
-            { restaurantId: restaurantRegex },
+            { sellerName: sellerRegex },
+            { sellerId: sellerRegex },
         ];
 
         if (Array.isArray(userIds) && userIds.length > 0) {
@@ -258,8 +258,8 @@ export async function listUserCartsForAdmin(query = {}) {
                 userPhone: user?.phone || '',
                 userEmail: user?.email || '',
                 userImage: user?.profileImage || '',
-                restaurantId: cart.restaurantId || '',
-                restaurantName: cart.restaurantName || '',
+                sellerId: cart.sellerId || '',
+                sellerName: cart.sellerName || '',
                 items: Array.isArray(cart.items) ? cart.items : [],
                 itemCount: Number(cart.itemCount) || 0,
                 subtotal: Number(cart.subtotal) || 0,
@@ -294,7 +294,7 @@ export async function getUserCartPricingForAdmin(cartId) {
         return normalizePricingSnapshot(enriched) || enriched;
     }
 
-    if (!cart.restaurantId || !mongoose.Types.ObjectId.isValid(String(cart.restaurantId))) {
+    if (!cart.sellerId || !mongoose.Types.ObjectId.isValid(String(cart.sellerId))) {
         const subtotal = Number(cart.subtotal) || 0;
         return {
             subtotal,
@@ -314,7 +314,7 @@ export async function getUserCartPricingForAdmin(cartId) {
     const result = await calculateOrderPricing(
         cart.userId,
         {
-            restaurantId: cart.restaurantId,
+            sellerId: cart.sellerId,
             items: mapCartItemsForPricing(cart.items),
             couponCode: cart.pricing?.couponCode || undefined,
             deliveryMode: cart.pricing?.deliveryMode === 'quick' ? 'quick' : 'basic',

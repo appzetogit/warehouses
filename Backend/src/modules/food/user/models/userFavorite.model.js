@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 /**
- * One favourited restaurant or dish.
+ * One favourited seller or dish.
  *
  * Stored as its own collection rather than arrays on FoodUser so a favourite can be
  * added or removed with a single atomic write, without reading and rewriting a list
@@ -18,7 +18,7 @@ const userFavoriteSchema = new mongoose.Schema(
 
         entityType: {
             type: String,
-            enum: ['restaurant', 'food'],
+            enum: ['seller', 'food'],
             required: true
         },
 

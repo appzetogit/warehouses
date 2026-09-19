@@ -1,27 +1,27 @@
-import { FoodGourmetRestaurant } from '../models/gourmetRestaurant.model.js';
-import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
-import { getPublicGourmetRestaurants } from '../services/gourmet.service.js';
+import { FoodGourmetSeller } from '../models/gourmetSeller.model.js';
+import { FoodSeller } from '../../seller/models/seller.model.js';
+import { getPublicGourmetSellers } from '../services/gourmet.service.js';
 
-/** GET /hero-banners/gourmet - list Gourmet (admin, all entries). Returns { success, data: { restaurants } } */
+/** GET /hero-banners/gourmet - list Gourmet (admin, all entries). Returns { success, data: { sellers } } */
 export const listGourmetAdmin = async (req, res, next) => {
     try {
-        const docs = await FoodGourmetRestaurant.find({}).sort({ priority: 1, createdAt: -1 }).lean();
-        const restaurantIds = [...new Set(docs.map((d) => d.restaurantId))];
-        const restaurants = await FoodRestaurant.find({ _id: { $in: restaurantIds } })
-            .select('restaurantName area city profileImage rating')
+        const docs = await FoodGourmetSeller.find({}).sort({ priority: 1, createdAt: -1 }).lean();
+        const sellerIds = [...new Set(docs.map((d) => d.sellerId))];
+        const sellers = await FoodSeller.find({ _id: { $in: sellerIds } })
+            .select('sellerName area city profileImage rating')
             .lean();
-        const restaurantMap = new Map(restaurants.map((r) => [r._id.toString(), r]));
+        const sellerMap = new Map(sellers.map((r) => [r._id.toString(), r]));
         const list = docs.map((d) => {
-            const r = restaurantMap.get(d.restaurantId?.toString());
+            const r = sellerMap.get(d.sellerId?.toString());
             return {
                 _id: d._id,
-                restaurantId: d.restaurantId,
+                sellerId: d.sellerId,
                 priority: d.priority,
                 order: d.priority,
                 isActive: d.isActive,
-                restaurant: r ? {
+                seller: r ? {
                     _id: r._id,
-                    name: r.restaurantName,
+                    name: r.sellerName,
                     rating: r.rating || 0,
                     profileImage: r.profileImage ? { url: r.profileImage } : null,
                     area: r.area,
@@ -32,46 +32,46 @@ export const listGourmetAdmin = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: 'Gourmet stores fetched',
-            data: { restaurants: list }
+            data: { sellers: list }
         });
     } catch (error) {
         next(error);
     }
 };
 
-/** POST /hero-banners/gourmet - add restaurant. Body: { restaurantId } */
+/** POST /hero-banners/gourmet - add seller. Body: { sellerId } */
 export const createGourmetAdmin = async (req, res, next) => {
     try {
-        const { restaurantId } = req.body || {};
-        if (!restaurantId) {
-            return res.status(400).json({ success: false, message: 'restaurantId is required' });
+        const { sellerId } = req.body || {};
+        if (!sellerId) {
+            return res.status(400).json({ success: false, message: 'sellerId is required' });
         }
-        const existing = await FoodGourmetRestaurant.findOne({ restaurantId });
+        const existing = await FoodGourmetSeller.findOne({ sellerId });
         if (existing) {
             return res.status(400).json({ success: false, message: 'Store already in Gourmet' });
         }
-        const count = await FoodGourmetRestaurant.countDocuments();
-        const doc = await FoodGourmetRestaurant.create({ restaurantId, priority: count });
-        const list = await getPublicGourmetRestaurants();
-        const restaurants = (list || []).map((d) => ({
+        const count = await FoodGourmetSeller.countDocuments();
+        const doc = await FoodGourmetSeller.create({ sellerId, priority: count });
+        const list = await getPublicGourmetSellers();
+        const sellers = (list || []).map((d) => ({
             _id: d._id,
-            restaurantId: d.restaurantId,
+            sellerId: d.sellerId,
             priority: d.priority,
             order: d.priority,
             isActive: d.isActive,
-            restaurant: d.restaurant ? {
-                _id: d.restaurant._id,
-                name: d.restaurant.name,
-                rating: d.restaurant.rating || 0,
-                profileImage: d.restaurant.profileImage,
-                area: d.restaurant.area,
-                city: d.restaurant.city
+            seller: d.seller ? {
+                _id: d.seller._id,
+                name: d.seller.name,
+                rating: d.seller.rating || 0,
+                profileImage: d.seller.profileImage,
+                area: d.seller.area,
+                city: d.seller.city
             } : null
         })).filter((r) => r && r._id);
         res.status(201).json({
             success: true,
             message: 'Store added to Gourmet',
-            data: { restaurants, item: doc.toObject() }
+            data: { sellers, item: doc.toObject() }
         });
     } catch (error) {
         next(error);
@@ -82,7 +82,7 @@ export const createGourmetAdmin = async (req, res, next) => {
 export const deleteGourmetAdmin = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const doc = await FoodGourmetRestaurant.findByIdAndDelete(id);
+        const doc = await FoodGourmetSeller.findByIdAndDelete(id);
         if (!doc) {
             return res.status(404).json({ success: false, message: 'Gourmet entry not found' });
         }
@@ -100,7 +100,7 @@ export const updateGourmetOrderAdmin = async (req, res, next) => {
         if (Number.isNaN(order)) {
             return res.status(400).json({ success: false, message: 'order must be a number' });
         }
-        const doc = await FoodGourmetRestaurant.findByIdAndUpdate(id, { priority: order }, { new: true });
+        const doc = await FoodGourmetSeller.findByIdAndUpdate(id, { priority: order }, { new: true });
         if (!doc) {
             return res.status(404).json({ success: false, message: 'Gourmet entry not found' });
         }
@@ -114,7 +114,7 @@ export const updateGourmetOrderAdmin = async (req, res, next) => {
 export const toggleGourmetStatusAdmin = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const doc = await FoodGourmetRestaurant.findById(id);
+        const doc = await FoodGourmetSeller.findById(id);
         if (!doc) {
             return res.status(404).json({ success: false, message: 'Gourmet entry not found' });
         }

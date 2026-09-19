@@ -118,7 +118,7 @@ export default function Category() {
     const query = String(searchQuery || "").trim().toLowerCase()
     if (!query) return categories
     return categories.filter((category) => {
-      const creator = category?.createdByRestaurant?.name || category?.restaurant?.name || ""
+      const creator = category?.createdBySeller?.name || category?.seller?.name || ""
       return (
         String(category?.name || "").toLowerCase().includes(query) ||
         String(category?.foodTypeScope || "").toLowerCase().includes(query) ||
@@ -265,7 +265,7 @@ export default function Category() {
 
   const handleMakeGlobal = async (category) => {
     if (!ensureActionAccess("edit")) return
-    if (!window.confirm(`Make "${category?.name}" global for every restaurant?`)) return
+    if (!window.confirm(`Make "${category?.name}" global for every seller?`)) return
 
     try {
       const response = await adminAPI.makeCategoryGlobal(String(category?.id || category?._id))
@@ -397,8 +397,8 @@ export default function Category() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Categories</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">
-              Restaurant-created categories now move through approval, rejection, and optional globalization before every
-              restaurant can use them.
+              Seller-created categories now move through approval, rejection, and optional globalization before every
+              seller can use them.
             </p>
           </div>
 
@@ -483,9 +483,9 @@ export default function Category() {
               ) : (
                 filteredCategories.map((category) => {
                   const categoryId = resolveCategoryId(category)
-                  const creatorName = category?.createdByRestaurant?.name || category?.restaurant?.name || "Admin"
+                  const creatorName = category?.createdBySeller?.name || category?.seller?.name || "Admin"
                   const approvalStatus = category?.approvalStatus || "pending"
-                  const isRestaurantCategory = Boolean(category?.createdByRestaurantId || category?.restaurantId)
+                  const isSellerCategory = Boolean(category?.createdBySellerId || category?.sellerId)
                   const zoneText = zoneLabel(category?.zoneId)
 
                   return (
@@ -517,7 +517,7 @@ export default function Category() {
                           <p className="text-xs text-slate-400">
                             {category?.isGlobal ? "Global category" : "Private to creator"}
                           </p>
-                          {category?.isGlobal && isRestaurantCategory && (
+                          {category?.isGlobal && isSellerCategory && (
                             <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-semibold text-sky-700">
                               <Globe className="mr-1 h-3.5 w-3.5" />
                               Shared
@@ -568,7 +568,7 @@ export default function Category() {
                                 Approve
                               </button>
                             )}
-                            {isRestaurantCategory && approvalStatus !== "rejected" && (
+                            {isSellerCategory && approvalStatus !== "rejected" && (
                               <button
                                 onClick={() => handleReject(category)}
                                 className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
@@ -576,7 +576,7 @@ export default function Category() {
                                 Reject
                               </button>
                             )}
-                            {isRestaurantCategory && !category?.isGlobal && approvalStatus === "approved" && (
+                            {isSellerCategory && !category?.isGlobal && approvalStatus === "approved" && (
                               <button
                                 onClick={() => handleMakeGlobal(category)}
                                 className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
@@ -629,7 +629,7 @@ export default function Category() {
                       <div>
                         <h2 className="text-xl font-bold text-slate-900">{editingCategory ? "Edit Category" : "Add Category"}</h2>
                         <p className="text-xs text-slate-500">
-                          Admin categories are approved immediately. Restaurant-created categories can also be updated here.
+                          Admin categories are approved immediately. Seller-created categories can also be updated here.
                         </p>
                       </div>
                       <button onClick={resetModal} className="rounded-lg p-1 hover:bg-slate-100">

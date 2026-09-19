@@ -9,7 +9,7 @@ import { ensureValidAccessToken, isModuleAuthenticated } from "@food/utils/auth"
  * If the access token expired but a refresh token is still valid, silently
  * refreshes before rendering — avoids forcing re-login after a few days idle.
  *
- * Note: the postpaid subscription model never blocks restaurant access —
+ * Note: the postpaid subscription model never blocks seller access —
  * dues are billed at month end and settled by the admin, so no payment
  * gate exists here anymore.
  */

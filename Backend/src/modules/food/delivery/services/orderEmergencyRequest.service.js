@@ -44,8 +44,8 @@ const serializeRequest = (request) => {
         deliveryPartner: value.deliveryPartnerId && typeof value.deliveryPartnerId === 'object'
             ? value.deliveryPartnerId
             : undefined,
-        restaurant: value.restaurantId && typeof value.restaurantId === 'object'
-            ? value.restaurantId
+        seller: value.sellerId && typeof value.sellerId === 'object'
+            ? value.sellerId
             : undefined
     };
 };
@@ -60,8 +60,8 @@ const populateRequest = (query) => query
         select: 'name phone email vehicleType vehicleNumber'
     })
     .populate({
-        path: 'restaurantId',
-        select: 'restaurantName name phone address area city location'
+        path: 'sellerId',
+        select: 'sellerName name phone address area city location'
     })
     .populate({
         path: 'resolvedBy',
@@ -178,7 +178,7 @@ async function deassignOrderForRedispatch({
     const io = getIO();
     if (io) {
         io.to(rooms.delivery(assignedPartnerId)).emit('order_deassigned', payload);
-        io.to(rooms.restaurant(order.restaurantId)).emit(
+        io.to(rooms.seller(order.sellerId)).emit(
             'order_status_update',
             { ...payload, dispatchStatus: 'unassigned' }
         );
@@ -191,7 +191,7 @@ async function deassignOrderForRedispatch({
     await notifyOwnersSafely(
         [
             { ownerType: 'DELIVERY_PARTNER', ownerId: assignedPartnerId },
-            { ownerType: 'RESTAURANT', ownerId: order.restaurantId },
+            { ownerType: 'SELLER', ownerId: order.sellerId },
             { ownerType: 'USER', ownerId: order.userId }
         ],
         {
@@ -272,7 +272,7 @@ export async function createOrderEmergencyRequest(deliveryPartnerId, payload = {
         const created = await DeliveryOrderEmergencyRequest.create({
             orderId: order._id,
             deliveryPartnerId: partnerObjectId,
-            restaurantId: order.restaurantId,
+            sellerId: order.sellerId,
             reason,
             activeKey: String(order._id),
             status: 'open'

@@ -1,4 +1,4 @@
-const RESTAURANT_TIMEZONE =
+const SELLER_TIMEZONE =
   process.env.RESTAURANT_TIMEZONE?.trim() || 'Asia/Kolkata';
 
 const DAY_NAMES = [
@@ -14,11 +14,11 @@ const DAY_NAMES = [
 const getPartValue = (parts, type) =>
   parts.find((part) => part.type === type)?.value ?? null;
 
-export const getRestaurantTimezone = () => RESTAURANT_TIMEZONE;
+export const getSellerTimezone = () => SELLER_TIMEZONE;
 
-export const getRestaurantLocalTimeParts = (
+export const getSellerLocalTimeParts = (
   date = new Date(),
-  timeZone = RESTAURANT_TIMEZONE,
+  timeZone = SELLER_TIMEZONE,
 ) => {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,

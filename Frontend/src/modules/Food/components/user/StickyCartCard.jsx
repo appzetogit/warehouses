@@ -38,12 +38,12 @@ export default function StickyCartCard() {
     }
   }, [])
 
-  // Get restaurant info from first cart item or use default
-  const restaurantName = cart[0]?.restaurant || "Restaurant"
-  const restaurantImage = cart[0]?.image || "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=200&h=200&fit=crop"
+  // Get seller info from first cart item or use default
+  const sellerName = cart[0]?.seller || "Seller"
+  const sellerImage = cart[0]?.image || "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=200&h=200&fit=crop"
 
-  // Create restaurant slug from restaurant name
-  const restaurantSlug = restaurantName.toLowerCase().replace(/\s+/g, "-")
+  // Create seller slug from seller name
+  const sellerSlug = sellerName.toLowerCase().replace(/\s+/g, "-")
 
   // Calculate total price
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity * 83), 0)
@@ -96,19 +96,19 @@ export default function StickyCartCard() {
           <div className="max-w-7xl md:max-w-none mx-auto md:mx-0 pointer-events-auto">
             <div className="bg-white dark:bg-[#0a0a0a] dark:text-white rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden md:max-w-md md:w-[400px]">
               <div className="flex items-center gap-3 p-3 md:p-4">
-                {/* Restaurant Image */}
+                {/* Seller Image */}
                 <div className="flex-shrink-0">
                   <img
-                    src={restaurantImage}
-                    alt={restaurantName}
+                    src={sellerImage}
+                    alt={sellerName}
                     className="w-14 h-14 md:w-16 md:h-16 rounded-lg object-cover"
                   />
                 </div>
 
-                {/* Restaurant Info */}
-                <Link to={`/user/restaurants/${restaurantSlug}`} className="flex-1 min-w-0">
+                {/* Seller Info */}
+                <Link to={`/user/sellers/${sellerSlug}`} className="flex-1 min-w-0">
                   <h3 className="font-bold text-gray-900 dark:text-gray-200 text-base md:text-lg mb-0.5 line-clamp-1">
-                    {restaurantName}
+                    {sellerName}
                   </h3>
                   <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 text-sm md:text-base">
                     <span>View Menu</span>

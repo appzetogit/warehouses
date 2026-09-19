@@ -133,7 +133,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
   const location = useLocation()
   const [searchQuery, setSearchQuery] = useState("")
   const [badges, setBadges] = useState({})
-  const [restaurantSubscriptionEnabled, setRestaurantSubscriptionEnabled] = useState(true)
+  const [sellerSubscriptionEnabled, setSellerSubscriptionEnabled] = useState(true)
   const [codControlEnabled, setCodControlEnabled] = useState(true)
   const [adminAccessSectionEnabled, setAdminAccessSectionEnabled] = useState(true)
   const [rootLandingAndUnregisteredControlEnabled, setRootLandingAndUnregisteredControlEnabled] = useState(true)
@@ -202,12 +202,12 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       try {
         const res = await adminAPI.getFeatureSettings()
         const rows = Array.isArray(res?.data?.data) ? res.data.data : []
-        const feature = rows.find((row) => row.key === "restaurant_subscription")
+        const feature = rows.find((row) => row.key === "seller_subscription")
         const codFeature = rows.find((row) => row.key === "cod_control")
         const adminAccessFeature = rows.find((row) => row.key === "admin_access_section")
         const rootAndUnregisteredFeature = rows.find((row) => row.key === "root_landing_and_unregistered_control")
         if (feature) {
-          setRestaurantSubscriptionEnabled((prev) =>
+          setSellerSubscriptionEnabled((prev) =>
             parseFeatureEnabled(feature.isEnabled, prev)
           )
         }
@@ -234,8 +234,8 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
 
     const handleFeatureUpdate = async (event) => {
       const detail = event?.detail || {}
-      if (detail.key === "restaurant_subscription") {
-        setRestaurantSubscriptionEnabled((prev) =>
+      if (detail.key === "seller_subscription") {
+        setSellerSubscriptionEnabled((prev) =>
           parseFeatureEnabled(detail.isEnabled, prev)
         )
       }
@@ -322,7 +322,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
               const filteredSubItems = item.subItems
                 .filter((sub) => {
                   if (!sub?.path) return false
-                  if ((sub.path === subscriptionSettingsPath || sub.path === subscriptionHistoryPath) && !restaurantSubscriptionEnabled) return false
+                  if ((sub.path === subscriptionSettingsPath || sub.path === subscriptionHistoryPath) && !sellerSubscriptionEnabled) return false
                   if (sub.path === offlinePaymentsPath && !codControlEnabled) return false
                   if (sub.path === "/admin/store/sellers/unregistered" && !rootLandingAndUnregisteredControlEnabled) return false
                   const permissionSection = resolvePermissionSectionByPath(sub.path)
@@ -350,7 +350,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       if (section?.type !== "section") return true
       return Array.isArray(section.items) && section.items.length > 0
     })
-  }, [adminAccessSectionEnabled, adminUser, canViewFeatureSettings, codControlEnabled, restaurantSubscriptionEnabled, rootLandingAndUnregisteredControlEnabled])
+  }, [adminAccessSectionEnabled, adminUser, canViewFeatureSettings, codControlEnabled, sellerSubscriptionEnabled, rootLandingAndUnregisteredControlEnabled])
 
   const getBadgeCount = (label = "", path = "") => {
     const l = label.toLowerCase()
@@ -358,12 +358,12 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
 
     if (l.includes("food approval")) return badges.foodApprovals
     if (l === "foods") return badges.foods
-    if (l === "restaurants" || l.includes("new joining request")) return badges.restaurants
-    if (l.includes("restaurant complaints")) return badges.restaurantComplaints
+    if (l === "sellers" || l.includes("new joining request")) return badges.sellers
+    if (l.includes("seller complaints")) return badges.sellerComplaints
     if (p.includes("orders/pending")) return badges.orders
     if (p.includes("offline-payments")) return badges.offlinePayments
     if (l.includes("support tickets")) return l.includes("delivery") ? badges.deliverySupportTickets : badges.userSupportTickets
-    if (l.includes("withdrawal")) return l.includes("delivery") ? badges.deliveryWithdrawals : badges.restaurantWithdrawals
+    if (l.includes("withdrawal")) return l.includes("delivery") ? badges.deliveryWithdrawals : badges.sellerWithdrawals
     if (l.includes("emergency help")) return badges.emergencyHelp
     if (l.includes("earning addon history")) return badges.earningAddons
     if (l.includes("safety emergency reports")) return badges.safetyReports

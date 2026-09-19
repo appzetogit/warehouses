@@ -1,40 +1,40 @@
-import { FoodGourmetRestaurant } from '../models/gourmetRestaurant.model.js';
-import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
+import { FoodGourmetSeller } from '../models/gourmetSeller.model.js';
+import { FoodSeller } from '../../seller/models/seller.model.js';
 import mongoose from 'mongoose';
 
-export const getPublicGourmetRestaurants = async (zoneId) => {
-    const docs = await FoodGourmetRestaurant.find({ isActive: true })
+export const getPublicGourmetSellers = async (zoneId) => {
+    const docs = await FoodGourmetSeller.find({ isActive: true })
         .sort({ priority: 1, createdAt: -1 })
         .lean();
 
-    const restaurantIds = docs.map((d) => d.restaurantId);
+    const sellerIds = docs.map((d) => d.sellerId);
     
-    const query = { _id: { $in: restaurantIds }, status: 'approved' };
+    const query = { _id: { $in: sellerIds }, status: 'approved' };
     if (zoneId && mongoose.Types.ObjectId.isValid(zoneId)) {
         query.zoneId = new mongoose.Types.ObjectId(zoneId);
     }
 
-    const restaurants = await FoodRestaurant.find(query)
-        .select('restaurantName area city profileImage rating cuisines slug pureVegRestaurant location estimatedDeliveryTime zoneId')
+    const sellers = await FoodSeller.find(query)
+        .select('sellerName area city profileImage rating cuisines slug pureVegSeller location estimatedDeliveryTime zoneId')
         .lean();
 
-    const restaurantMap = new Map(restaurants.map((r) => [r._id.toString(), r]));
+    const sellerMap = new Map(sellers.map((r) => [r._id.toString(), r]));
 
     return docs.map((item) => {
-        const r = restaurantMap.get(item.restaurantId.toString());
+        const r = sellerMap.get(item.sellerId.toString());
         return {
             ...item,
-            restaurant: r ? {
+            seller: r ? {
                 _id: r._id,
-                name: r.restaurantName,
-                restaurantName: r.restaurantName,
+                name: r.sellerName,
+                sellerName: r.sellerName,
                 rating: r.rating || 0,
                 profileImage: r.profileImage ? { url: r.profileImage } : null,
                 area: r.area,
                 city: r.city,
                 cuisines: r.cuisines || [],
                 slug: r.slug,
-                pureVegRestaurant: r.pureVegRestaurant,
+                pureVegSeller: r.pureVegSeller,
                 location: r.location,
                 estimatedDeliveryTime: r.estimatedDeliveryTime,
                 zoneId: r.zoneId

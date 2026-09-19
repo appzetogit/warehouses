@@ -77,7 +77,7 @@ async function main() {
   const orphans = await FoodItem.find({
     $or: [{ categoryId: { $exists: false } }, { categoryId: null }],
   })
-    .select('_id name categoryName restaurantId')
+    .select('_id name categoryName sellerId')
     .lean();
 
   console.log(`products without a category: ${orphans.length}`);
@@ -105,7 +105,7 @@ async function main() {
       const parent = byName.get(PARENT_OF[wantedName].toLowerCase());
       if (APPLY) {
         category = await FoodCategory.findOneAndUpdate(
-          { name: wantedName, restaurantId: { $exists: false } },
+          { name: wantedName, sellerId: { $exists: false } },
           {
             $set: {
               name: wantedName,

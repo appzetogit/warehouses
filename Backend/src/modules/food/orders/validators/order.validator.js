@@ -22,7 +22,7 @@ const orderItemSchema = z.object({
      *
      * Ids or names, as strings or objects, because the shipped apps send names
      * while a corrected client sends ids. Nothing here is trusted for price:
-     * resolveOrderCartItems looks each one up against the restaurant's
+     * resolveOrderCartItems looks each one up against the seller's
      * published add-ons and ignores anything it cannot identify.
      */
     addons: z
@@ -81,7 +81,7 @@ const pricingSchema = z.object({
 export function validateCalculateOrderDto(body) {
     const schema = z.object({
         items: z.array(orderItemSchema).min(1, 'At least one item required'),
-        restaurantId: z.string().min(1, 'Restaurant id required'),
+        sellerId: z.string().min(1, 'Seller id required'),
         deliveryAddressId: z.string().optional(),
         zoneId: z.string().optional(),
         couponCode: z.string().optional(),
@@ -113,8 +113,8 @@ export function validateCreateOrderDto(body) {
     const schema = z.object({
         items: z.array(orderItemSchema).min(1, 'At least one item required'),
         address: addressSchema,
-        restaurantId: z.string().min(1, 'Restaurant id required'),
-        restaurantName: z.string().optional(),
+        sellerId: z.string().min(1, 'Seller id required'),
+        sellerName: z.string().optional(),
         customerName: z.string().optional(),
         customerPhone: z.string().optional(),
         pricing: pricingSchema,
@@ -176,7 +176,7 @@ export function validateOrderStatusDto(body) {
             'ready_for_pickup',
             'picked_up',
             'delivered',
-            'cancelled_by_restaurant'
+            'cancelled_by_seller'
         ]),
         note: z.string().optional()
     });
@@ -211,11 +211,11 @@ export function validateDispatchSettingsDto(body) {
 
 export function validateOrderRatingsDto(body) {
     const schema = z.object({
-        restaurantRating: z.number().min(1).max(5),
+        sellerRating: z.number().min(1).max(5),
         deliveryPartnerRating: z.number().min(1).max(5).optional(),
-        restaurantComment: z.string().max(500).optional(),
+        sellerComment: z.string().max(500).optional(),
         deliveryPartnerComment: z.string().max(500).optional(),
-        // Per-dish ratings. Optional, so a customer can rate the restaurant
+        // Per-dish ratings. Optional, so a customer can rate the seller
         // without being forced to score every item.
         itemRatings: z
             .array(

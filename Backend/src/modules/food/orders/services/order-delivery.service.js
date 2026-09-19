@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { FoodOrder } from '../models/order.model.js';
-import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../../seller/models/seller.model.js';
 import { FoodTransaction } from '../models/foodTransaction.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
 import { FoodDeliveryWallet } from '../../delivery/models/deliveryWallet.model.js';
@@ -39,7 +39,7 @@ const DELIVERY_ORDER_BASE_SELECT = [
   'order_id',
   'orderId',
   'userId',
-  'restaurantId',
+  'sellerId',
   'deliveryAddress',
   'customerName',
   'customerPhone',
@@ -66,16 +66,16 @@ const DELIVERY_USER_POPULATE = {
   select: 'name phone email',
 };
 
-const DELIVERY_RESTAURANT_POPULATE = {
-  path: 'restaurantId',
+const DELIVERY_SELLER_POPULATE = {
+  path: 'sellerId',
   // The image fields let the rider visually identify the premises at pickup. All four
-  // are included because the restaurant model carries two separate pairs and onboarding
+  // are included because the seller model carries two separate pairs and onboarding
   // does not consistently fill the same one: coverImage is the single hero (documented
   // as falling back to coverImages[0]), and galleryImages/menuImages are distinct
-  // arrays. Selecting only one pair returns empty for restaurants that filled the other.
+  // arrays. Selecting only one pair returns empty for sellers that filled the other.
   // phone/ownerPhone back the tap-to-call button; location gives the exact pin.
   select:
-    'restaurantName name phone ownerPhone location addressLine1 area city state pincode landmark profileImage coverImage coverImages galleryImages menuImages',
+    'sellerName name phone ownerPhone location addressLine1 area city state pincode landmark profileImage coverImage coverImages galleryImages menuImages',
 };
 
 const DELIVERY_TRANSACTION_SELECT = 'orderId payment paymentMethod pricing amounts status';
@@ -109,7 +109,7 @@ function emitOrderUpdate(order, deliveryPartnerId) {
         'order_status_update',
         payload,
       );
-      io.to(rooms.restaurant(order.restaurantId)).emit(
+      io.to(rooms.seller(order.sellerId)).emit(
         'order_status_update',
         payload,
       );
@@ -153,7 +153,7 @@ function emitOrderUpdate(order, deliveryPartnerId) {
     if (userTitle) {
       void notifyOwnersSafely(
         [
-          { ownerType: 'RESTAURANT', ownerId: order.restaurantId },
+          { ownerType: 'SELLER', ownerId: order.sellerId },
           { ownerType: 'USER', ownerId: order.userId },
         ],
         {
@@ -216,7 +216,7 @@ export async function getCurrentTripDelivery(deliveryPartnerId) {
     },
   })
     .select(DELIVERY_ORDER_BASE_SELECT)
-    .populate(DELIVERY_RESTAURANT_POPULATE)
+    .populate(DELIVERY_SELLER_POPULATE)
     .populate({ path: 'userId', select: 'name phone' })
     .sort({ updatedAt: -1 })
     .lean();
@@ -272,7 +272,7 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
     .sort({ createdAt: -1 })
     .limit(queryLimit)
     .populate(DELIVERY_USER_POPULATE)
-    .populate(DELIVERY_RESTAURANT_POPULATE)
+    .populate(DELIVERY_SELLER_POPULATE)
     .lean();
 
   const orderIds = docs.map((doc) => doc?._id).filter(Boolean);
@@ -316,7 +316,7 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
         : false;
 
       let distanceKm = null;
-      const coords = order?.restaurantId?.location?.coordinates;
+      const coords = order?.sellerId?.location?.coordinates;
       if (hasPartnerGps && Array.isArray(coords) && coords.length >= 2) {
         const [rLng, rLat] = coords;
         const d = haversineKm(
@@ -337,7 +337,7 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
       // No partner GPS: only show orders already offered to this rider (safe vs global leak).
       if (!hasPartnerGps) return offeredToMe;
 
-      // Missing/unresolvable restaurant coords: same offered-only rule.
+      // Missing/unresolvable seller coords: same offered-only rule.
       if (distanceKm == null) return offeredToMe;
 
       if (distanceKm <= MAX_OFFER_KM) return true;
@@ -358,7 +358,7 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
       return da - db;
     });
 
-    // Surface the rider → restaurant distance already computed for filtering. The socket
+    // Surface the rider → seller distance already computed for filtering. The socket
     // offer (new_order_available) carries pickupDistanceKm, so REST must too — otherwise a
     // rider polling (or opening the app fresh) sees the earning without the travel distance.
     enriched = kept.map(({ order, distanceKm }) => ({
@@ -418,7 +418,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
   const acceptedStatuses = ['created', 'confirmed', 'preparing', 'ready_for_pickup', 'picked_up'];
   const cancellableStatuses = [
     'cancelled_by_user',
-    'cancelled_by_restaurant',
+    'cancelled_by_seller',
     'cancelled_by_admin',
   ];
 
@@ -437,7 +437,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
     const requestedOrderKey = String(requestedOrder?._id || '');
 
     if (activeOrderKey && requestedOrderKey && activeOrderKey === requestedOrderKey) {
-      const acceptedOrder = await FoodOrder.findOne(identity).populate('restaurantId userId');
+      const acceptedOrder = await FoodOrder.findOne(identity).populate('sellerId userId');
       return acceptedOrder ? sanitizeOrderForDeliveryPartner(acceptedOrder) : null;
     }
 
@@ -498,7 +498,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
       },
     },
     { new: true },
-  ).populate('restaurantId userId');
+  ).populate('sellerId userId');
 
   if (!order) {
     const existing = await FoodOrder.findOne(identity)
@@ -520,7 +520,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
       String(existing.dispatch?.deliveryPartnerId || '') === String(deliveryPartnerId)
     ) {
       const acceptedOrder = await FoodOrder.findOne(identity)
-        .populate('restaurantId userId');
+        .populate('sellerId userId');
       return acceptedOrder
         ? sanitizeOrderForDeliveryPartner(acceptedOrder)
         : null;
@@ -539,7 +539,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
 
   void (async () => {
     try {
-      const rest = order.restaurantId;
+      const rest = order.sellerId;
       const userLoc = order.deliveryAddress?.location?.coordinates;
       const restLoc = rest?.location?.coordinates;
 
@@ -578,8 +578,8 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
               lng: restLoc[0],
               boy_lat: restLoc[1],
               boy_lng: restLoc[0],
-              restaurant_lat: restLoc[1],
-              restaurant_lng: restLoc[0],
+              seller_lat: restLoc[1],
+              seller_lng: restLoc[0],
               customer_lat: userLoc[1],
               customer_lng: userLoc[0],
               status: 'accepted',
@@ -634,7 +634,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
           dispatchStatus: order.dispatch?.status,
         };
         io.to(rooms.delivery(deliveryPartnerId)).emit('order_status_update', payload);
-        io.to(rooms.restaurant(order.restaurantId)).emit('order_status_update', payload);
+        io.to(rooms.seller(order.sellerId)).emit('order_status_update', payload);
         io.to(rooms.user(order.userId)).emit('order_status_update', payload);
 
         for (const pid of losingPartnerIds) {
@@ -679,7 +679,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
       await notifyOwnersSafely(
         [
           { ownerType: 'USER', ownerId: order.userId },
-          { ownerType: 'RESTAURANT', ownerId: order.restaurantId },
+          { ownerType: 'SELLER', ownerId: order.sellerId },
           { ownerType: 'DELIVERY_PARTNER', ownerId: deliveryPartnerId },
         ],
         {
@@ -813,19 +813,19 @@ export async function confirmReachedPickupDelivery(orderId, deliveryPartnerId) {
   emitOrderUpdate(order, deliveryPartnerId);
 
   try {
-    const restaurant = await FoodRestaurant.findById(order.restaurantId)
-      .select('restaurantName')
+    const seller = await FoodSeller.findById(order.sellerId)
+      .select('sellerName')
       .lean();
     const partner = await FoodDeliveryPartner.findById(deliveryPartnerId)
       .select('name')
       .lean();
 
     await notifyOwnersSafely(
-      [{ ownerType: 'RESTAURANT', ownerId: order.restaurantId }],
+      [{ ownerType: 'SELLER', ownerId: order.sellerId }],
       {
         title: 'Rider arrived!',
         body: `${partner?.name || 'The delivery partner'} has arrived at ${
-          restaurant?.restaurantName || 'your restaurant'
+          seller?.sellerName || 'your seller'
         } to pick up Order .`,
         // #${order._id.toString()}
         data: {
@@ -838,7 +838,7 @@ export async function confirmReachedPickupDelivery(orderId, deliveryPartnerId) {
     );
   } catch (error) {
     logger.error(
-      `Error notifying restaurant about rider arrival for ${order._id}: ${
+      `Error notifying seller about rider arrival for ${order._id}: ${
         error?.message || error
       }`,
     );
@@ -1209,7 +1209,7 @@ export async function updateOrderStatusDelivery(orderId, deliveryPartnerId, orde
  * Driving route from the rider's current position to the next stop, for the active-trip map.
  *
  * `target` picks the destination; when omitted it is inferred from the trip phase — the
- * restaurant before pickup, the customer after. `orderId` accepts either the display id or
+ * seller before pickup, the customer after. `orderId` accepts either the display id or
  * the Mongo _id. Returns empty-but-valid fields rather than throwing when Directions has
  * nothing to give, so the client can degrade instead of erroring.
  */
@@ -1218,8 +1218,8 @@ async function loadOrderForRoute(orderId) {
   if (!identity) throw new ValidationError('Order id required');
 
   const order = await FoodOrder.findOne(identity)
-    .select('userId dispatch deliveryState deliveryAddress restaurantId lastRiderLocation orderStatus')
-    .populate('restaurantId', 'location addressLine1 restaurantName')
+    .select('userId dispatch deliveryState deliveryAddress sellerId lastRiderLocation orderStatus')
+    .populate('sellerId', 'location addressLine1 sellerName')
     // Deliberately NOT populating dispatch.deliveryPartnerId: the rider ownership
     // check below compares it with String(), which a populated document would turn
     // into "[object Object]" and reject every rider. computeOrderRoute looks the
@@ -1243,7 +1243,7 @@ export async function getOrderRouteForDelivery(orderId, deliveryPartnerId, query
  * Customer-facing twin of the rider's route endpoint.
  *
  * The tracking map previously drew the RTDB polyline, which is computed ONCE at
- * accept time as restaurant→customer and never re-cut. So before pickup it drew a
+ * accept time as seller→customer and never re-cut. So before pickup it drew a
  * route the rider isn't on, and after pickup it never followed them. The rider app
  * looks correct precisely because it calls the route endpoint with a live origin,
  * so this gives the customer the same thing.
@@ -1301,13 +1301,13 @@ async function computeOrderRoute(order, query = {}) {
   const pickedUp =
     Boolean(order.deliveryState?.pickedUpAt) ||
     ['picked_up', 'reached_drop'].includes(String(order.orderStatus || ''));
-  const target = ['restaurant', 'customer'].includes(String(query.target || ''))
+  const target = ['seller', 'customer'].includes(String(query.target || ''))
     ? String(query.target)
     : pickedUp
       ? 'customer'
-      : 'restaurant';
+      : 'seller';
 
-  const restCoords = order.restaurantId?.location?.coordinates;
+  const restCoords = order.sellerId?.location?.coordinates;
   const custCoords = order.deliveryAddress?.location?.coordinates;
   const pick = target === 'customer' ? custCoords : restCoords;
   const destination =

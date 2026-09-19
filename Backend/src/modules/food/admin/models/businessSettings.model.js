@@ -20,11 +20,11 @@ const businessSettingsSchema = new mongoose.Schema(
             url: { type: String, default: '' },
             publicId: { type: String, default: '' }
         },
-        restaurantLogo: {
+        sellerLogo: {
             url: { type: String, default: '' },
             publicId: { type: String, default: '' }
         },
-        restaurantFavicon: {
+        sellerFavicon: {
             url: { type: String, default: '' },
             publicId: { type: String, default: '' }
         },
@@ -41,7 +41,7 @@ const businessSettingsSchema = new mongoose.Schema(
                 themeColor: { type: String, default: '#FA0272' },
                 fontFamily: { type: String, default: 'Poppins' }
             },
-            restaurant: {
+            seller: {
                 themeColor: { type: String, default: '#2563EB' },
                 fontFamily: { type: String, default: 'Poppins' }
             },

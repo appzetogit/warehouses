@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { FoodOrder, FoodSettings } from '../models/order.model.js';
-import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../../seller/models/seller.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
 import { FoodDeliveryWallet } from '../../delivery/models/deliveryWallet.model.js';
 import { FoodDeliveryCashLimit } from '../../admin/models/deliveryCashLimit.model.js';
@@ -22,7 +22,7 @@ import { fetchDrivingRoute } from '../utils/googleMaps.js';
 import { parseGeoPoint } from '../../shared/geo.utils.js';
 
 /**
- * Resolve restaurant â†’ customer road distance once per dispatch broadcast.
+ * Resolve seller â†’ customer road distance once per dispatch broadcast.
  * Falls back to pricing Haversine when Directions is unavailable.
  */
 async function enrichPayloadWithTripRoadDistance(order, payload) {
@@ -41,17 +41,17 @@ async function enrichPayloadWithTripRoadDistance(order, payload) {
     };
   }
 
-  const restaurantPoint =
-    parseGeoPoint(order?.restaurantId) ||
-    parseGeoPoint(order?.restaurantId?.location);
+  const sellerPoint =
+    parseGeoPoint(order?.sellerId) ||
+    parseGeoPoint(order?.sellerId?.location);
   const customerPoint = parseGeoPoint(order?.deliveryAddress);
 
-  if (!restaurantPoint || !customerPoint) {
+  if (!sellerPoint || !customerPoint) {
     return payload;
   }
 
   try {
-    const route = await fetchDrivingRoute(restaurantPoint, customerPoint);
+    const route = await fetchDrivingRoute(sellerPoint, customerPoint);
     if (route.distanceKm != null) {
       const tripDurationMins =
         route.durationSeconds != null
@@ -109,7 +109,7 @@ export function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt)
   const earning = s(payload?.riderEarning ?? 0);
   const distance = s(payload?.tripDistanceKm ?? '');
   const bodyLines = [
-    payload?.restaurantName ? `Pickup: ${s(payload.restaurantName)}` : '',
+    payload?.sellerName ? `Pickup: ${s(payload.sellerName)}` : '',
     payload?.customerAddress ? `Drop: ${s(payload.customerAddress)}` : '',
     distance ? `${distance} km` : '',
     `Earning: Rs.${earning}`,
@@ -122,7 +122,7 @@ export function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt)
     // This push is data-only, so FCM omits the notification block and
     // message.notification is null on the device. An app reading
     // message.notification.title therefore renders a blank notification â€” which
-    // reads as a broken push rather than a missing field. The restaurant app hit
+    // reads as a broken push rather than a missing field. The seller app hit
     // exactly this. These give the rider app ready-made strings straight from
     // message.data.
     title: 'New order available!',
@@ -130,8 +130,8 @@ export function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt)
     orderId: s(order?._id),
     orderMongoId: s(order?._id),
     orderDisplayId: s(order?.order_id || order?._id),
-    restaurantName: s(payload?.restaurantName),
-    restaurantAddress: s(payload?.restaurantAddress),
+    sellerName: s(payload?.sellerName),
+    sellerAddress: s(payload?.sellerAddress),
     customerAddress: s(payload?.customerAddress),
     tripDistanceKm: s(payload?.tripDistanceKm ?? ''),
     tripDurationMins: s(payload?.tripDurationMins ?? ''),
@@ -149,7 +149,7 @@ export function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt)
     // than one that opens short. Sending both lets the app prefer the deadline
     // and fall back to this when the deadline is already in the past.
     acceptTimeoutSeconds: s(Math.round(DRIVER_ACCEPT_WINDOW_MS / 1000)),
-    pickupAddress: s(payload?.restaurantAddress),
+    pickupAddress: s(payload?.sellerAddress),
     dropAddress: s(payload?.customerAddress),
     price: s(payload?.earnings ?? payload?.riderEarning ?? 0),
     distance: s(payload?.tripDistanceKm ?? ''),
@@ -166,9 +166,9 @@ export function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt)
     // The coordinates in particular let the app draw the pickup/drop pins and
     // a straight-line preview before the app is even opened.
     orderNumber: s(order?.order_id || ''),
-    restaurantImage: s(payload?.restaurantCoverImage || ''),
-    pickupLat: s(payload?.restaurantLocation?.latitude ?? ''),
-    pickupLng: s(payload?.restaurantLocation?.longitude ?? ''),
+    sellerImage: s(payload?.sellerCoverImage || ''),
+    pickupLat: s(payload?.sellerLocation?.latitude ?? ''),
+    pickupLng: s(payload?.sellerLocation?.longitude ?? ''),
     dropLat: s(payload?.customerLocation?.latitude ?? ''),
     dropLng: s(payload?.customerLocation?.longitude ?? ''),
     customerName: s(payload?.customerName || order?.customerName || ''),
@@ -255,20 +255,20 @@ function orderCollectsCash(order) {
 }
 
 async function listNearbyOnlineDeliveryPartners(
-  restaurantId,
+  sellerId,
   { maxKm = 15, limit = 25 } = {},
 ) {
-  const rId = (restaurantId?._id || restaurantId).toString();
-  const restaurant = await FoodRestaurant.findById(rId)
+  const rId = (sellerId?._id || sellerId).toString();
+  const seller = await FoodSeller.findById(rId)
     .select("location")
     .lean();
 
-  if (!restaurant?.location?.coordinates?.length) {
-    // Without restaurant coords we cannot safely match riders by zone/proximity.
-    return { restaurant: null, partners: [] };
+  if (!seller?.location?.coordinates?.length) {
+    // Without seller coords we cannot safely match riders by zone/proximity.
+    return { seller: null, partners: [] };
   }
 
-  const [rLng, rLat] = restaurant.location.coordinates;
+  const [rLng, rLat] = seller.location.coordinates;
   const allOnline = await FoodDeliveryPartner.find({
     availabilityStatus: "online",
   })
@@ -283,13 +283,13 @@ async function listNearbyOnlineDeliveryPartners(
   // This was 10 minutes, which silently starved the whole offer path: Android Doze
   // suppresses the app's background location upload, the rider's GPS goes stale, so
   // they're excluded from the offer, so no push is sent to wake the app, so the GPS
-  // stays stale. A rider sitting outside the restaurant with the app backgrounded
+  // stays stale. A rider sitting outside the seller with the app backgrounded
   // would never be told about a new order.
   //
   // Excluding them was never what stopped cross-city offers â€” the distanceKm <= maxKm
   // gate below does that. The original bug was that missing-GPS riders were being
   // scored as distanceKm: 999, which BYPASSED the gate. Coordinates that are half an
-  // hour old and 3 km from the restaurant are still a far better candidate than
+  // hour old and 3 km from the seller are still a far better candidate than
   // offering the order to nobody.
   const STALE_GPS_MS = Number(process.env.DISPATCH_STALE_GPS_MS) || 45 * 60 * 1000;
 
@@ -317,7 +317,7 @@ async function listNearbyOnlineDeliveryPartners(
   if (droppedStale > 0) {
     logger.warn(
       `[Dispatch] ${droppedStale}/${allOnline.length} online riders skipped for missing/stale GPS ` +
-        `(restaurant ${rId}, maxKm ${maxKm}). ${scored.length} eligible.`,
+        `(seller ${rId}, maxKm ${maxKm}). ${scored.length} eligible.`,
     );
   }
 
@@ -378,14 +378,14 @@ export async function tryAutoAssign(orderId, options = {}) {
       $set: { 'dispatch.dispatchingAt': new Date() }
     },
     { new: true }
-  ).populate(['restaurantId', 'userId']);
+  ).populate(['sellerId', 'userId']);
 
   if (!order) {
     logger.info(`tryAutoAssign: Skip for ${orderId} (already dispatching, accepted, or multi-attempt lock active).`);
     return null;
   }
 
-  // Decoupling: Ensure order is accepted by restaurant before dispatching to delivery boys
+  // Decoupling: Ensure order is accepted by seller before dispatching to delivery boys
   const DISPATCHABLE_STATUSES = ['confirmed', 'preparing', 'ready_for_pickup', 'ready', 'reached_pickup', 'picked_up', 'reached_drop'];
   if (!DISPATCHABLE_STATUSES.includes(order.orderStatus)) {
     logger.info(`tryAutoAssign: Skip for ${orderId} (status ${order.orderStatus} not dispatchable yet).`);
@@ -419,7 +419,7 @@ export async function tryAutoAssign(orderId, options = {}) {
     const maxKm = radiusBands[Math.min(Math.max(attempt, 1), radiusBands.length) - 1];
 
     const searchOptions = { maxKm, limit: 15 };
-    const { partners } = await listNearbyOnlineDeliveryPartners(order.restaurantId, searchOptions);
+    const { partners } = await listNearbyOnlineDeliveryPartners(order.sellerId, searchOptions);
     const busyPartnerIds = await getBusyDeliveryPartnerIds();
 
     // TIERED ALERT LOGIC
@@ -479,7 +479,7 @@ export async function tryAutoAssign(orderId, options = {}) {
         return true;
       });
       if (reofferEligible.length > 0) {
-        const basePayload = buildDeliverySocketPayload(order, order.restaurantId);
+        const basePayload = buildDeliverySocketPayload(order, order.sellerId);
         const payload = await enrichPayloadWithTripRoadDistance(order, basePayload);
         const acceptanceDeadlineAt = new Date(Date.now() + DRIVER_ACCEPT_WINDOW_MS);
 
@@ -532,11 +532,11 @@ export async function tryAutoAssign(orderId, options = {}) {
     }
 
     const io = getIO();
-    const basePayload = buildDeliverySocketPayload(order, order.restaurantId);
+    const basePayload = buildDeliverySocketPayload(order, order.sellerId);
     const payload = await enrichPayloadWithTripRoadDistance(order, basePayload);
 
     // BROADCAST: Notify all eligible riders
-    // tripDistanceKm = restaurant â†” customer (road); pickupDistanceKm = rider â†’ restaurant (ranking only)
+    // tripDistanceKm = seller â†” customer (road); pickupDistanceKm = rider â†’ seller (ranking only)
     logger.info(`Broadcasting order ${order._id} to ${eligible.length} riders. tripDistanceKm=${payload.tripDistanceKm}`);
     const acceptanceDeadlineAt = new Date(Date.now() + DRIVER_ACCEPT_WINDOW_MS);
     for (const p of eligible) {
@@ -664,11 +664,11 @@ export async function processDispatchTimeout(orderId, partnerId) {
 }
 
 
-export async function resendDeliveryNotificationRestaurant(orderId, restaurantId) {
+export async function resendDeliveryNotificationSeller(orderId, sellerId) {
   const identity = buildOrderIdentityFilter(orderId);
   const order = await FoodOrder.findOne({
     ...identity,
-    restaurantId: new mongoose.Types.ObjectId(restaurantId),
+    sellerId: new mongoose.Types.ObjectId(sellerId),
   });
 
   if (!order) throw new NotFoundError('Order not found');

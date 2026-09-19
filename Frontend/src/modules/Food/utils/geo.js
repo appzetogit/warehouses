@@ -138,11 +138,11 @@ export function calculateDistanceKm(fromEntity, toEntity) {
 }
 
 /**
- * User ↔ restaurant display distance (same Haversine as delivery new-order).
+ * User ↔ seller display distance (same Haversine as delivery new-order).
  * Returns { km, label } or null.
  */
-export function getUserRestaurantDistance(userLocation, restaurantLocation) {
-  const km = calculateDistanceKm(userLocation, restaurantLocation)
+export function getUserSellerDistance(userLocation, sellerLocation) {
+  const km = calculateDistanceKm(userLocation, sellerLocation)
   if (km == null) return null
   const label =
     km >= 1 ? `${km.toFixed(1)} km` : `${Math.round(km * 1000)} m`
@@ -168,7 +168,7 @@ export function normalizeLocationForPricing(address) {
   }
 }
 
-export function normalizeRestaurantLocation(location) {
+export function normalizeSellerLocation(location) {
   if (!location || typeof location !== "object") return location
 
   const point = parseGeoPoint(location)

@@ -12,7 +12,7 @@ export {
 
 /**
  * Calculates distance between two coordinates in kilometers using Haversine formula.
- * Prefer `getUserRestaurantDistance` / `calculateDistanceKm` from `@food/utils/geo`
+ * Prefer `getUserSellerDistance` / `calculateDistanceKm` from `@food/utils/geo`
  * when entities may have GeoJSON coordinates.
  */
 export const calculateDistance = (lat1, lng1, lat2, lng2) => {

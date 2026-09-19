@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 /**
- * Settlement — batch payout request for restaurants /delivery partners.
+ * Settlement — batch payout request for sellers /delivery partners.
  * Admin creates a settlement from accumulated wallet balance;
  * once processed (bank transfer done), the record is marked processed.
  */
@@ -9,7 +9,7 @@ const settlementSchema = new mongoose.Schema(
     {
         entityType: {
             type: String,
-            enum: ['restaurant', 'deliveryBoy'],
+            enum: ['seller', 'deliveryBoy'],
             required: true,
             index: true
         },

@@ -37,11 +37,11 @@ const formatSubscriptionPaymentLabel = (eventType = '') => {
 }
 
 export default function PointOfSale() {
-  const [restaurants, setRestaurants] = useState([])
-  const [selectedRestaurant, setSelectedRestaurant] = useState('')
+  const [sellers, setSellers] = useState([])
+  const [selectedSeller, setSelectedSeller] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
-  const [restaurantData, setRestaurantData] = useState(null)
+  const [sellerData, setSellerData] = useState(null)
   const [paymentSummary, setPaymentSummary] = useState(null)
   const [subscriptionSummary, setSubscriptionSummary] = useState(EMPTY_SUBSCRIPTION_SUMMARY)
   const [showSearchResults, setShowSearchResults] = useState(false)
@@ -49,48 +49,48 @@ export default function PointOfSale() {
   const [pickerFilter, setPickerFilter] = useState('')
   const pickerDropdownRef = useRef(null)
 
-  const getRestaurantName = (restaurant) => {
+  const getSellerName = (seller) => {
     return String(
-      restaurant?.restaurantName ||
-      restaurant?.name ||
-      restaurant?.restaurant?.name ||
-      restaurant?.restaurant?.restaurantName ||
+      seller?.sellerName ||
+      seller?.name ||
+      seller?.seller?.name ||
+      seller?.seller?.sellerName ||
       '',
     ).trim()
   }
 
-  const getRestaurantCode = (restaurant) => {
+  const getSellerCode = (seller) => {
     return String(
-      restaurant?.restaurantId ||
-      restaurant?.restaurantCode ||
-      restaurant?.restaurant?.restaurantId ||
-      restaurant?._id ||
+      seller?.sellerId ||
+      seller?.sellerCode ||
+      seller?.seller?.sellerId ||
+      seller?._id ||
       '',
     ).trim()
   }
 
-  const normalizeRestaurants = (rawList) => {
+  const normalizeSellers = (rawList) => {
     if (!Array.isArray(rawList)) return []
 
     return rawList
-      .map((restaurant) => {
+      .map((seller) => {
         const id = String(
-          restaurant?._id ||
-          restaurant?.id ||
-          restaurant?.restaurant?._id ||
-          restaurant?.restaurantId ||
+          seller?._id ||
+          seller?.id ||
+          seller?.seller?._id ||
+          seller?.sellerId ||
           '',
         ).trim()
         if (!id) return null
 
-        const resolvedName = getRestaurantName(restaurant) || `Restaurant ${id.slice(-6)}`
-        const resolvedCode = getRestaurantCode(restaurant) || `REST${id.slice(-6).padStart(6, '0')}`
+        const resolvedName = getSellerName(seller) || `Seller ${id.slice(-6)}`
+        const resolvedCode = getSellerCode(seller) || `REST${id.slice(-6).padStart(6, '0')}`
 
         return {
-          ...restaurant,
+          ...seller,
           _id: id,
           name: resolvedName,
-          restaurantId: resolvedCode,
+          sellerId: resolvedCode,
         }
       })
       .filter(Boolean)
@@ -103,7 +103,7 @@ export default function PointOfSale() {
     notDeliveredOrders: 0,
     explicitlyCancelledOrders: 0,
     inProgressOrders: 0,
-    cancelledByRestaurant: 0,
+    cancelledBySeller: 0,
     cancelledByAdmin: 0,
     cancelledByUser: 0,
     completedOrders: 0,
@@ -113,8 +113,8 @@ export default function PointOfSale() {
     yearlyProfit: 0,
     averageOrderValue: 0,
     totalRevenue: 0,
-    restaurantEarning: 0,
-    restaurantProfit: 0,
+    sellerEarning: 0,
+    sellerProfit: 0,
     monthlyOrders: 0,
     yearlyOrders: 0,
     averageMonthlyProfit: 0,
@@ -128,9 +128,9 @@ export default function PointOfSale() {
     inProgressRate: 0
   })
 
-  // Fetch restaurants list
+  // Fetch sellers list
   useEffect(() => {
-    fetchRestaurants()
+    fetchSellers()
   }, [])
 
   useEffect(() => {
@@ -147,12 +147,12 @@ export default function PointOfSale() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showPickerDropdown])
 
-  // Fetch restaurant analytics when restaurant is selected
+  // Fetch seller analytics when seller is selected
   useEffect(() => {
-    if (selectedRestaurant) {
-      fetchRestaurantAnalytics(selectedRestaurant)
+    if (selectedSeller) {
+      fetchSellerAnalytics(selectedSeller)
     } else {
-      setRestaurantData(null)
+      setSellerData(null)
       setPaymentSummary(null)
       setSubscriptionSummary(EMPTY_SUBSCRIPTION_SUMMARY)
       setAnalyticsData({
@@ -161,7 +161,7 @@ export default function PointOfSale() {
         notDeliveredOrders: 0,
         explicitlyCancelledOrders: 0,
         inProgressOrders: 0,
-        cancelledByRestaurant: 0,
+        cancelledBySeller: 0,
         cancelledByAdmin: 0,
         cancelledByUser: 0,
         completedOrders: 0,
@@ -171,8 +171,8 @@ export default function PointOfSale() {
         yearlyProfit: 0,
         averageOrderValue: 0,
         totalRevenue: 0,
-        restaurantEarning: 0,
-        restaurantProfit: 0,
+        sellerEarning: 0,
+        sellerProfit: 0,
         monthlyOrders: 0,
         yearlyOrders: 0,
         averageMonthlyProfit: 0,
@@ -186,60 +186,60 @@ export default function PointOfSale() {
         inProgressRate: 0
       })
     }
-  }, [selectedRestaurant])
+  }, [selectedSeller])
 
-  const fetchRestaurants = async () => {
+  const fetchSellers = async () => {
     try {
       setLoading(true)
-      const response = await adminAPI.getApprovedRestaurants({
+      const response = await adminAPI.getApprovedSellers({
         limit: 1000,
         page: 1,
       })
 
       const body = response?.data
       const data = body?.data
-      const rawRestaurants = Array.isArray(data?.restaurants)
-        ? data.restaurants
+      const rawSellers = Array.isArray(data?.sellers)
+        ? data.sellers
         : Array.isArray(data)
           ? data
-          : Array.isArray(body?.restaurants)
-            ? body.restaurants
+          : Array.isArray(body?.sellers)
+            ? body.sellers
             : []
 
       if (body?.success !== false) {
-        setRestaurants(normalizeRestaurants(rawRestaurants))
+        setSellers(normalizeSellers(rawSellers))
       } else {
-        setRestaurants([])
+        setSellers([])
       }
     } catch (error) {
-      debugError('Error fetching restaurants:', error)
-      setRestaurants([])
+      debugError('Error fetching sellers:', error)
+      setSellers([])
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchRestaurantAnalytics = async (restaurantId) => {
+  const fetchSellerAnalytics = async (sellerId) => {
     try {
       setLoading(true)
       
-      // Validate restaurantId
-      if (!restaurantId) {
-        debugError('Restaurant ID is required')
+      // Validate sellerId
+      if (!sellerId) {
+        debugError('Seller ID is required')
         return
       }
       
-      debugLog('Fetching analytics for restaurant:', restaurantId)
+      debugLog('Fetching analytics for seller:', sellerId)
       
-      // Fetch comprehensive restaurant analytics from backend
-      const analyticsResponse = await adminAPI.getRestaurantAnalytics(restaurantId)
+      // Fetch comprehensive seller analytics from backend
+      const analyticsResponse = await adminAPI.getSellerAnalytics(sellerId)
       
       debugLog('Analytics response:', analyticsResponse)
       
       if (analyticsResponse?.data?.success && analyticsResponse.data.data) {
-        const { restaurant, analytics, paymentSummary: apiPaymentSummary, subscriptionSummary: apiSubscriptionSummary } = analyticsResponse.data.data
+        const { seller, analytics, paymentSummary: apiPaymentSummary, subscriptionSummary: apiSubscriptionSummary } = analyticsResponse.data.data
         
-        setRestaurantData(restaurant)
+        setSellerData(seller)
         setPaymentSummary(apiPaymentSummary || null)
         setSubscriptionSummary({
           ...EMPTY_SUBSCRIPTION_SUMMARY,
@@ -252,7 +252,7 @@ export default function PointOfSale() {
           notDeliveredOrders: Number(analytics.notDeliveredOrders) || 0,
           explicitlyCancelledOrders: Number(analytics.explicitlyCancelledOrders ?? analytics.cancelledOrders) || 0,
           inProgressOrders: Number(analytics.inProgressOrders) || 0,
-          cancelledByRestaurant: Number(analytics.cancelledByRestaurant) || 0,
+          cancelledBySeller: Number(analytics.cancelledBySeller) || 0,
           cancelledByAdmin: Number(analytics.cancelledByAdmin) || 0,
           cancelledByUser: Number(analytics.cancelledByUser) || 0,
           completedOrders: Number(analytics.completedOrders) || 0,
@@ -262,14 +262,14 @@ export default function PointOfSale() {
           yearlyProfit: analytics.yearlyProfit || 0,
           averageOrderValue: analytics.averageOrderValue || 0,
           totalRevenue: analytics.totalRevenue || 0,
-          restaurantEarning: analytics.restaurantEarning || 0,
-          restaurantProfit: analytics.restaurantProfit || 0,
+          sellerEarning: analytics.sellerEarning || 0,
+          sellerProfit: analytics.sellerProfit || 0,
           monthlyOrders: analytics.monthlyOrders || 0,
           yearlyOrders: analytics.yearlyOrders || 0,
           averageMonthlyProfit: analytics.averageMonthlyProfit || 0,
           averageYearlyProfit: analytics.averageYearlyProfit || 0,
           status: analytics.status || 'inactive',
-          joinDate: analytics.joinDate || restaurant.createdAt || new Date(),
+          joinDate: analytics.joinDate || seller.createdAt || new Date(),
           totalCustomers: analytics.totalCustomers || 0,
           repeatCustomers: analytics.repeatCustomers || 0,
           cancellationRate: analytics.cancellationRate || 0,
@@ -286,7 +286,7 @@ export default function PointOfSale() {
           notDeliveredOrders: 0,
           explicitlyCancelledOrders: 0,
           inProgressOrders: 0,
-          cancelledByRestaurant: 0,
+          cancelledBySeller: 0,
           cancelledByAdmin: 0,
           cancelledByUser: 0,
           completedOrders: 0,
@@ -296,8 +296,8 @@ export default function PointOfSale() {
           yearlyProfit: 0,
           averageOrderValue: 0,
           totalRevenue: 0,
-          restaurantEarning: 0,
-          restaurantProfit: 0,
+          sellerEarning: 0,
+          sellerProfit: 0,
           monthlyOrders: 0,
           yearlyOrders: 0,
           averageMonthlyProfit: 0,
@@ -312,19 +312,19 @@ export default function PointOfSale() {
         })
       }
     } catch (error) {
-      debugError('Error fetching restaurant analytics:', error)
+      debugError('Error fetching seller analytics:', error)
       debugError('Error details:', {
         message: error?.message,
         response: error?.response?.data,
         status: error?.response?.status,
-        restaurantId: selectedRestaurant
+        sellerId: selectedSeller
       })
       
       // Show user-friendly error message
       if (error?.response?.status === 404) {
-        debugWarn('Restaurant not found')
+        debugWarn('Seller not found')
       } else if (error?.response?.status === 400) {
-        debugWarn('Invalid restaurant ID')
+        debugWarn('Invalid seller ID')
       } else {
         debugWarn('Failed to fetch analytics. Please try again.')
       }
@@ -338,7 +338,7 @@ export default function PointOfSale() {
         notDeliveredOrders: 0,
         explicitlyCancelledOrders: 0,
         inProgressOrders: 0,
-        cancelledByRestaurant: 0,
+        cancelledBySeller: 0,
         cancelledByAdmin: 0,
         cancelledByUser: 0,
         completedOrders: 0,
@@ -348,8 +348,8 @@ export default function PointOfSale() {
         yearlyProfit: 0,
         averageOrderValue: 0,
         totalRevenue: 0,
-        restaurantEarning: 0,
-        restaurantProfit: 0,
+        sellerEarning: 0,
+        sellerProfit: 0,
         monthlyOrders: 0,
         yearlyOrders: 0,
         averageMonthlyProfit: 0,
@@ -367,30 +367,30 @@ export default function PointOfSale() {
     }
   }
 
-  const filteredRestaurants = restaurants.filter(restaurant => {
+  const filteredSellers = sellers.filter(seller => {
     if (!searchQuery.trim()) return true
     const query = searchQuery.toLowerCase()
     return (
-      restaurant.name?.toLowerCase().includes(query) ||
-      restaurant.restaurantId?.toLowerCase().includes(query) ||
-      restaurant._id?.toLowerCase().includes(query)
+      seller.name?.toLowerCase().includes(query) ||
+      seller.sellerId?.toLowerCase().includes(query) ||
+      seller._id?.toLowerCase().includes(query)
     )
   })
 
-  const pickerFilteredRestaurants = restaurants.filter((restaurant) => {
+  const pickerFilteredSellers = sellers.filter((seller) => {
     if (!pickerFilter.trim()) return true
     const query = pickerFilter.toLowerCase()
     return (
-      restaurant.name?.toLowerCase().includes(query) ||
-      restaurant.restaurantId?.toLowerCase().includes(query) ||
-      restaurant._id?.toLowerCase().includes(query)
+      seller.name?.toLowerCase().includes(query) ||
+      seller.sellerId?.toLowerCase().includes(query) ||
+      seller._id?.toLowerCase().includes(query)
     )
   })
 
-  // Handle restaurant selection from search
-  const handleRestaurantSelect = (restaurantId) => {
-    setSelectedRestaurant(restaurantId)
-    const selected = restaurants.find(r => r._id === restaurantId)
+  // Handle seller selection from search
+  const handleSellerSelect = (sellerId) => {
+    setSelectedSeller(sellerId)
+    const selected = sellers.find(r => r._id === sellerId)
     if (selected) {
       setSearchQuery(selected.name)
     }
@@ -407,7 +407,7 @@ export default function PointOfSale() {
     
     // If search is cleared, clear selection
     if (!value.trim()) {
-      setSelectedRestaurant('')
+      setSelectedSeller('')
       setShowSearchResults(false)
     }
   }
@@ -420,9 +420,9 @@ export default function PointOfSale() {
     return num?.toLocaleString('en-IN') || '0'
   }
 
-  const getSelectedRestaurantName = () => {
-    const restaurant = restaurants.find(r => r._id === selectedRestaurant)
-    return restaurant?.name || 'Select Restaurant'
+  const getSelectedSellerName = () => {
+    const seller = sellers.find(r => r._id === selectedSeller)
+    return seller?.name || 'Select Seller'
   }
 
   return (
@@ -431,16 +431,16 @@ export default function PointOfSale() {
         
         {/* Header Section */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#334257] mb-2">Restaurant POS Analytics & Benefits</h1>
-          <p className="text-sm text-[#8a94aa]">Track restaurant performance, order earnings, and subscription billing</p>
+          <h1 className="text-2xl font-bold text-[#334257] mb-2">Seller POS Analytics & Benefits</h1>
+          <p className="text-sm text-[#8a94aa]">Track seller performance, order earnings, and subscription billing</p>
                 </div>
 
-        {/* Restaurant Selection Card */}
+        {/* Seller Selection Card */}
         <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-6 mb-6">
           <div className="flex flex-col gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#334257] mb-2">
-                Search Restaurant by Name or ID <span className="text-red-500">*</span>
+                Search Seller by Name or ID <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
@@ -457,29 +457,29 @@ export default function PointOfSale() {
                     // Delay to allow click on results
                     setTimeout(() => setShowSearchResults(false), 200)
                   }}
-                  placeholder="Type restaurant name or ID to search..."
+                  placeholder="Type seller name or ID to search..."
                   className="w-full h-11 pl-10 pr-3 rounded-md border border-[#e3e6ef] bg-white text-sm text-[#4a5671] focus:outline-none focus:ring-1 focus:ring-[#006fbd]"
                 />
                 
                 {/* Search Results Dropdown */}
-                {showSearchResults && filteredRestaurants.length > 0 && (
+                {showSearchResults && filteredSellers.length > 0 && (
                   <div className="absolute z-50 w-full mt-1 bg-white border border-[#e3e6ef] rounded-md shadow-lg max-h-60 overflow-y-auto">
-                    {filteredRestaurants.map(restaurant => (
+                    {filteredSellers.map(seller => (
                       <button
-                        key={restaurant._id}
+                        key={seller._id}
                         type="button"
                         onMouseDown={(e) => {
                           e.preventDefault()
-                          handleRestaurantSelect(restaurant._id)
+                          handleSellerSelect(seller._id)
                         }}
                         className="w-full px-4 py-3 text-left hover:bg-[#f9fafc] cursor-pointer border-b border-[#e3e6ef] last:border-b-0 transition-colors"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-[#334257]">{restaurant.name}</p>
-                            <p className="text-xs text-[#8a94aa]">ID: {restaurant.restaurantId || restaurant._id}</p>
+                            <p className="text-sm font-medium text-[#334257]">{seller.name}</p>
+                            <p className="text-xs text-[#8a94aa]">ID: {seller.sellerId || seller._id}</p>
                           </div>
-                          {selectedRestaurant === restaurant._id && (
+                          {selectedSeller === seller._id && (
                             <div className="w-2 h-2 bg-[#006fbd] rounded-full"></div>
                           )}
                         </div>
@@ -489,20 +489,20 @@ export default function PointOfSale() {
                 )}
                 
                 {/* No Results Message */}
-                {showSearchResults && searchQuery.trim() && filteredRestaurants.length === 0 && (
+                {showSearchResults && searchQuery.trim() && filteredSellers.length === 0 && (
                   <div className="absolute z-50 w-full mt-1 bg-white border border-[#e3e6ef] rounded-md shadow-lg p-4">
-                    <p className="text-sm text-[#8a94aa] text-center">No restaurants found matching "{searchQuery}"</p>
+                    <p className="text-sm text-[#8a94aa] text-center">No sellers found matching "{searchQuery}"</p>
                   </div>
                 )}
                   </div>
-              {selectedRestaurant && (
+              {selectedSeller && (
                 <p className="text-xs text-green-600 mt-2">
-                  Selected: {getSelectedRestaurantName()}
+                  Selected: {getSelectedSellerName()}
                 </p>
               )}
         </div>
 
-            {/* Restaurant Picker */}
+            {/* Seller Picker */}
             <div>
               <label className="block text-sm font-medium text-[#334257] mb-2">
                 Or Select from Dropdown
@@ -522,16 +522,16 @@ export default function PointOfSale() {
                       <Store className="w-4 h-4 text-[#006fbd]" />
                     </div>
                     <div className="min-w-0">
-                      <p className={`font-medium truncate ${selectedRestaurant ? 'text-[#334257]' : 'text-[#8a94aa]'}`}>
-                        {selectedRestaurant ? getSelectedRestaurantName() : 'Choose a restaurant'}
+                      <p className={`font-medium truncate ${selectedSeller ? 'text-[#334257]' : 'text-[#8a94aa]'}`}>
+                        {selectedSeller ? getSelectedSellerName() : 'Choose a seller'}
                       </p>
-                      {selectedRestaurant ? (
+                      {selectedSeller ? (
                         <p className="text-xs text-[#8a94aa] truncate mt-0.5">
-                          ID: {restaurants.find((r) => r._id === selectedRestaurant)?.restaurantId || selectedRestaurant}
+                          ID: {sellers.find((r) => r._id === selectedSeller)?.sellerId || selectedSeller}
                         </p>
                       ) : (
                         <p className="text-xs text-[#8a94aa] mt-0.5">
-                          {restaurants.length} approved restaurant{restaurants.length === 1 ? '' : 's'} available
+                          {sellers.length} approved seller{sellers.length === 1 ? '' : 's'} available
                         </p>
                       )}
                     </div>
@@ -557,21 +557,21 @@ export default function PointOfSale() {
                         />
                       </div>
                       <p className="text-[11px] font-medium text-[#8a94aa] mt-2 uppercase tracking-wide">
-                        {pickerFilteredRestaurants.length} result{pickerFilteredRestaurants.length === 1 ? '' : 's'}
+                        {pickerFilteredSellers.length} result{pickerFilteredSellers.length === 1 ? '' : 's'}
                       </p>
                     </div>
 
                     <div className="max-h-72 overflow-y-auto overscroll-contain">
-                      {loading && restaurants.length === 0 ? (
-                        <div className="px-4 py-8 text-center text-sm text-[#8a94aa]">Loading restaurants...</div>
-                      ) : pickerFilteredRestaurants.length > 0 ? (
-                        pickerFilteredRestaurants.map((restaurant) => {
-                          const isSelected = selectedRestaurant === restaurant._id
+                      {loading && sellers.length === 0 ? (
+                        <div className="px-4 py-8 text-center text-sm text-[#8a94aa]">Loading sellers...</div>
+                      ) : pickerFilteredSellers.length > 0 ? (
+                        pickerFilteredSellers.map((seller) => {
+                          const isSelected = selectedSeller === seller._id
                           return (
                             <button
-                              key={restaurant._id}
+                              key={seller._id}
                               type="button"
-                              onClick={() => handleRestaurantSelect(restaurant._id)}
+                              onClick={() => handleSellerSelect(seller._id)}
                               className={`w-full px-4 py-3 text-left transition-colors border-b border-[#eef1f6] last:border-b-0 ${
                                 isSelected
                                   ? 'bg-[#006fbd]/8 hover:bg-[#006fbd]/10'
@@ -586,9 +586,9 @@ export default function PointOfSale() {
                                     <Store className="w-4 h-4" />
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="text-sm font-semibold text-[#334257] truncate">{restaurant.name}</p>
+                                    <p className="text-sm font-semibold text-[#334257] truncate">{seller.name}</p>
                                     <p className="text-xs text-[#8a94aa] truncate">
-                                      ID: {restaurant.restaurantId || restaurant._id}
+                                      ID: {seller.sellerId || seller._id}
                                     </p>
                                   </div>
                                 </div>
@@ -603,7 +603,7 @@ export default function PointOfSale() {
                         })
                       ) : (
                         <div className="px-4 py-8 text-center">
-                          <p className="text-sm font-medium text-[#334257]">No restaurants found</p>
+                          <p className="text-sm font-medium text-[#334257]">No sellers found</p>
                           <p className="text-xs text-[#8a94aa] mt-1">Try a different search term</p>
                         </div>
                       )}
@@ -616,15 +616,15 @@ export default function PointOfSale() {
                 </div>
 
         {/* Analytics Dashboard */}
-        {selectedRestaurant && !loading ? (
+        {selectedSeller && !loading ? (
           <div className="space-y-6">
-            {/* Restaurant Header Info */}
+            {/* Seller Header Info */}
             <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-[#334257] mb-1">{getSelectedRestaurantName()}</h2>
+                  <h2 className="text-xl font-bold text-[#334257] mb-1">{getSelectedSellerName()}</h2>
                   <p className="text-sm text-[#8a94aa]">
-                    Restaurant ID: {restaurants.find(r => r._id === selectedRestaurant)?.restaurantId || selectedRestaurant}
+                    Seller ID: {sellers.find(r => r._id === selectedSeller)?.sellerId || selectedSeller}
                   </p>
                 </div>
                 <div className={`px-4 py-2 rounded-full text-sm font-semibold ${
@@ -663,7 +663,7 @@ export default function PointOfSale() {
                 <h3 className="text-sm font-medium text-[#8a94aa] mb-1">Cancelled Orders</h3>
                 <p className="text-2xl font-bold text-[#334257]">{formatNumber(analyticsData.cancelledOrders)}</p>
                 <p className="text-xs text-[#8a94aa] mt-2">
-                  Restaurant: {formatNumber(analyticsData.cancelledByRestaurant)} | Admin: {formatNumber(analyticsData.cancelledByAdmin)} | User: {formatNumber(analyticsData.cancelledByUser)}
+                  Seller: {formatNumber(analyticsData.cancelledBySeller)} | Admin: {formatNumber(analyticsData.cancelledByAdmin)} | User: {formatNumber(analyticsData.cancelledByUser)}
                 </p>
                 </div>
 
@@ -782,7 +782,7 @@ export default function PointOfSale() {
             {/* Detailed Financial Breakdown */}
             <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-6">
               <h3 className="text-lg font-semibold text-[#334257] mb-1">Financial Breakdown</h3>
-              <p className="text-xs text-[#8a94aa] mb-4">Order earnings plus current subscription billing status for this restaurant.</p>
+              <p className="text-xs text-[#8a94aa] mb-4">Order earnings plus current subscription billing status for this seller.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
@@ -794,12 +794,12 @@ export default function PointOfSale() {
                     <span className="text-base font-semibold text-[#334257]">{formatCurrency(analyticsData.totalRevenue)}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Restaurant Share (from orders)</span>
-                    <span className="text-base font-semibold text-green-600">{formatCurrency(analyticsData.restaurantEarning)}</span>
+                    <span className="text-sm text-[#8a94aa]">Seller Share (from orders)</span>
+                    <span className="text-base font-semibold text-green-600">{formatCurrency(analyticsData.sellerEarning)}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Restaurant Profit</span>
-                    <span className="text-base font-semibold text-emerald-700">{formatCurrency(analyticsData.restaurantProfit)}</span>
+                    <span className="text-sm text-[#8a94aa]">Seller Profit</span>
+                    <span className="text-base font-semibold text-emerald-700">{formatCurrency(analyticsData.sellerProfit)}</span>
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -836,9 +836,9 @@ export default function PointOfSale() {
               </div>
             </div>
 
-            {/* Restaurant Payments (from FoodTransaction ledger) */}
+            {/* Seller Payments (from FoodTransaction ledger) */}
             <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-6">
-              <h3 className="text-lg font-semibold text-[#334257] mb-1">Restaurant Payments (Completed Orders)</h3>
+              <h3 className="text-lg font-semibold text-[#334257] mb-1">Seller Payments (Completed Orders)</h3>
               <p className="text-xs text-[#8a94aa] mb-4">
                 Order payout breakdown from the transaction ledger. Subscription payments are shown separately on the right.
               </p>
@@ -869,8 +869,8 @@ export default function PointOfSale() {
                     <span className="text-sm font-semibold text-[#334257]">{formatCurrency(paymentSummary?.adminDiscountShare || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Restaurant Bear Discount</span>
-                    <span className="text-sm font-semibold text-[#334257]">{formatCurrency(paymentSummary?.restaurantDiscountShare || 0)}</span>
+                    <span className="text-sm text-[#8a94aa]">Seller Bear Discount</span>
+                    <span className="text-sm font-semibold text-[#334257]">{formatCurrency(paymentSummary?.sellerDiscountShare || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="text-sm font-semibold text-[#334257]">Total Order Value</span>
@@ -950,8 +950,8 @@ export default function PointOfSale() {
                     </div>
                   )}
                   <div className="flex justify-between items-center py-2 border-b border-[#e3e6ef]">
-                    <span className="text-sm text-[#8a94aa]">Restaurant share (orders)</span>
-                    <span className="text-sm font-semibold text-green-700">{formatCurrency(paymentSummary?.restaurantShare || 0)}</span>
+                    <span className="text-sm text-[#8a94aa]">Seller share (orders)</span>
+                    <span className="text-sm font-semibold text-green-700">{formatCurrency(paymentSummary?.sellerShare || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-[#e3e6ef]">
                     <span className="text-sm text-[#8a94aa]">Rider Share</span>
@@ -995,13 +995,13 @@ export default function PointOfSale() {
                 </div>
               </div>
 
-              {/* Restaurant Details */}
+              {/* Seller Details */}
               <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-orange-100 rounded-lg">
                     <Package className="w-5 h-5 text-orange-600" />
                   </div>
-                  <h3 className="text-base font-semibold text-[#334257]">Restaurant Details</h3>
+                  <h3 className="text-base font-semibold text-[#334257]">Seller Details</h3>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
@@ -1048,7 +1048,7 @@ export default function PointOfSale() {
                   <p className="text-2xl font-bold text-red-600">{formatNumber(analyticsData.cancelledOrders)}</p>
                   <p className="text-xs text-[#8a94aa] mt-1">Cancelled</p>
                   <p className="text-[10px] text-[#8a94aa] mt-1">
-                    R: {formatNumber(analyticsData.cancelledByRestaurant)} | A: {formatNumber(analyticsData.cancelledByAdmin)} | U: {formatNumber(analyticsData.cancelledByUser)}
+                    R: {formatNumber(analyticsData.cancelledBySeller)} | A: {formatNumber(analyticsData.cancelledByAdmin)} | U: {formatNumber(analyticsData.cancelledByUser)}
                   </p>
                 </div>
                 <div className="text-center p-4 bg-orange-50 rounded-lg">
@@ -1062,19 +1062,19 @@ export default function PointOfSale() {
               </div>
             </div>
           </div>
-        ) : selectedRestaurant && loading ? (
+        ) : selectedSeller && loading ? (
           <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#006fbd] mx-auto mb-4"></div>
-            <p className="text-sm text-[#8a94aa]">Loading restaurant analytics...</p>
+            <p className="text-sm text-[#8a94aa]">Loading seller analytics...</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-12 text-center">
             <div className="w-16 h-16 rounded-full border-2 border-dashed border-[#d1d7e6] flex items-center justify-center mx-auto mb-4">
               <Search className="w-8 h-8 text-[#8a94aa]" />
             </div>
-            <p className="text-base font-medium text-[#334257] mb-2">Select a Restaurant</p>
+            <p className="text-base font-medium text-[#334257] mb-2">Select a Seller</p>
             <p className="text-sm text-[#8a94aa] max-w-md mx-auto">
-              Please select a restaurant from the dropdown above to view detailed analytics, order earnings, and subscription billing.
+              Please select a seller from the dropdown above to view detailed analytics, order earnings, and subscription billing.
             </p>
           </div>
         )}

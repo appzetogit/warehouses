@@ -109,7 +109,7 @@ export async function notifyOwnerSafely(target, payload) {
 export const TERMINAL_ORDER_STATUSES = [
   'delivered',
   'cancelled_by_user',
-  'cancelled_by_restaurant',
+  'cancelled_by_seller',
   'cancelled_by_admin',
 ];
 
@@ -188,15 +188,15 @@ export function normalizeOrderForClient(orderDoc) {
   const cancellationStatus = String(cancellationEntry?.to || "").toLowerCase();
   let cancelledBy = "";
   if (cancellationStatus === "cancelled_by_user") cancelledBy = "customer";
-  else if (cancellationStatus === "cancelled_by_restaurant")
-    cancelledBy = "restaurant";
+  else if (cancellationStatus === "cancelled_by_seller")
+    cancelledBy = "seller";
   else if (cancellationStatus === "cancelled_by_admin") cancelledBy = "admin";
   else if (String(cancellationEntry?.byRole || "").toUpperCase() === "USER")
     cancelledBy = "customer";
   else if (
-    String(cancellationEntry?.byRole || "").toUpperCase() === "RESTAURANT"
+    String(cancellationEntry?.byRole || "").toUpperCase() === "SELLER"
   )
-    cancelledBy = "restaurant";
+    cancelledBy = "seller";
   else if (String(cancellationEntry?.byRole || "").toUpperCase() === "ADMIN")
     cancelledBy = "admin";
 
@@ -212,7 +212,7 @@ export function normalizeOrderForClient(orderDoc) {
       order?.deliveryState?.deliveredAt || order?.deliveredAt || null,
     deliveryPartnerId:
       order?.dispatch?.deliveryPartnerId || order?.deliveryPartnerId || null,
-    rating: order?.ratings?.restaurant?.rating ?? order?.rating ?? null,
+    rating: order?.ratings?.seller?.rating ?? order?.rating ?? null,
     deliveryState: {
       ...(order?.deliveryState || {}),
       currentLocation: order?.lastRiderLocation?.coordinates?.length >= 2 ? {
@@ -249,7 +249,7 @@ export const PACKING_MINUTES = Number(process.env.PACKING_MINUTES) || 3;
  */
 export function buildLiveEta(order) {
   const status = String(order?.orderStatus || '');
-  if (['delivered', 'cancelled_by_user', 'cancelled_by_restaurant', 'cancelled_by_admin'].includes(status)) {
+  if (['delivered', 'cancelled_by_user', 'cancelled_by_seller', 'cancelled_by_admin'].includes(status)) {
     return { minutes: null, distanceKm: null, source: 'completed', target: null };
   }
 
@@ -258,9 +258,9 @@ export function buildLiveEta(order) {
     : null;
 
   const pickedUp = Boolean(order?.deliveryState?.pickedUpAt) || ['picked_up', 'reached_drop'].includes(status);
-  // Before pickup the rider is heading to the restaurant; after, to the customer.
-  const dest = pickedUp ? parseGeoPoint(order?.deliveryAddress) : parseGeoPoint(order?.restaurantId);
-  const target = pickedUp ? 'customer' : 'restaurant';
+  // Before pickup the rider is heading to the seller; after, to the customer.
+  const dest = pickedUp ? parseGeoPoint(order?.deliveryAddress) : parseGeoPoint(order?.sellerId);
+  const target = pickedUp ? 'customer' : 'seller';
 
   if (rider && dest) {
     const straight = geoHaversineKm(rider.lat, rider.lng, dest.lat, dest.lng);
@@ -340,10 +340,10 @@ export async function applyAggregateRating(model, entityId, newRating) {
   await doc.save();
 }
 
-export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
+export function buildDeliverySocketPayload(orderDoc, sellerDoc = null) {
   const order = orderDoc?.toObject ? orderDoc.toObject() : orderDoc || {};
-  const restaurant = restaurantDoc || order?.restaurantId || null;
-  const restaurantLocation = restaurant?.location || {};
+  const seller = sellerDoc || order?.sellerId || null;
+  const sellerLocation = seller?.location || {};
   const deliveryAddress = order?.deliveryAddress || {};
   const customerAddressParts = [
     deliveryAddress.street,
@@ -356,12 +356,12 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
     .filter(Boolean);
 
   // Prefer robust geo parse (GeoJSON [lng,lat], lat/lng, nested location)
-  const restaurantPoint =
-    parseGeoPoint(restaurant) ||
-    parseGeoPoint(restaurantLocation) ||
+  const sellerPoint =
+    parseGeoPoint(seller) ||
+    parseGeoPoint(sellerLocation) ||
     parseGeoPoint({
-      lat: restaurantLocation?.latitude ?? restaurantLocation?.lat,
-      lng: restaurantLocation?.longitude ?? restaurantLocation?.lng,
+      lat: sellerLocation?.latitude ?? sellerLocation?.lat,
+      lng: sellerLocation?.longitude ?? sellerLocation?.lng,
     });
   const customerPoint =
     parseGeoPoint(deliveryAddress) ||
@@ -371,13 +371,13 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
       lng: deliveryAddress?.longitude ?? deliveryAddress?.lng,
     });
 
-  const restaurantLat = restaurantPoint?.lat;
-  const restaurantLng = restaurantPoint?.lng;
+  const sellerLat = sellerPoint?.lat;
+  const sellerLng = sellerPoint?.lng;
   const customerLat = customerPoint?.lat;
   const customerLng = customerPoint?.lng;
 
   // Prefer road distance when already computed; fall back to pricing Haversine.
-  // Never use pickupDistanceKm (rider → restaurant) here — this is restaurant ↔ customer.
+  // Never use pickupDistanceKm (rider → seller) here — this is seller ↔ customer.
   const tripDistanceKmRaw =
     order?.tripDistanceKm ??
     order?.pricing?.roadDistanceKm ??
@@ -386,15 +386,15 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
     ? Number(Number(tripDistanceKmRaw).toFixed(2))
     : null;
 
-  // If still missing, compute Haversine restaurant → customer so UI never shows blank/wrong.
+  // If still missing, compute Haversine seller → customer so UI never shows blank/wrong.
   if (
     tripDistanceKm == null &&
-    Number.isFinite(restaurantLat) &&
-    Number.isFinite(restaurantLng) &&
+    Number.isFinite(sellerLat) &&
+    Number.isFinite(sellerLng) &&
     Number.isFinite(customerLat) &&
     Number.isFinite(customerLng)
   ) {
-    const hv = haversineKm(restaurantLat, restaurantLng, customerLat, customerLng);
+    const hv = haversineKm(sellerLat, sellerLng, customerLat, customerLng);
     if (Number.isFinite(hv)) {
       tripDistanceKm = Number(Number(hv).toFixed(2));
     }
@@ -424,41 +424,41 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
     total: order?.pricing?.total,
     payment: order?.payment,
     paymentMethod: order?.payment?.method,
-    restaurantId:
-      order?.restaurantId?._id?.toString?.() ||
-      order?.restaurantId?.toString?.() ||
-      order?.restaurantId,
-    restaurantName: restaurant?.restaurantName || order?.restaurantName,
-    restaurantAddress:
-      restaurantLocation?.address ||
-      restaurantLocation?.formattedAddress ||
-      restaurant?.addressLine1 ||
+    sellerId:
+      order?.sellerId?._id?.toString?.() ||
+      order?.sellerId?.toString?.() ||
+      order?.sellerId,
+    sellerName: seller?.sellerName || order?.sellerName,
+    sellerAddress:
+      sellerLocation?.address ||
+      sellerLocation?.formattedAddress ||
+      seller?.addressLine1 ||
       "",
-    restaurantPhone: restaurant?.phone || restaurant?.ownerPhone || "",
+    sellerPhone: seller?.phone || seller?.ownerPhone || "",
     // Ready-to-launch dialer URI — the app can pass this straight to url_launcher.
-    restaurantCallUri: buildTelUri(restaurant?.phone || restaurant?.ownerPhone),
+    sellerCallUri: buildTelUri(seller?.phone || seller?.ownerPhone),
     // Photos of the premises so the rider can recognise the shop on arrival.
-    restaurantCoverImage:
-      restaurant?.coverImage || (Array.isArray(restaurant?.coverImages) ? restaurant.coverImages[0] : '') || '',
-    restaurantGalleryImages: Array.isArray(restaurant?.galleryImages) ? restaurant.galleryImages : [],
-    restaurantLandmark: restaurant?.landmark || "",
-    restaurantLocation: {
-      latitude: Number.isFinite(restaurantLat) ? restaurantLat : undefined,
-      longitude: Number.isFinite(restaurantLng) ? restaurantLng : undefined,
-      lat: Number.isFinite(restaurantLat) ? restaurantLat : undefined,
-      lng: Number.isFinite(restaurantLng) ? restaurantLng : undefined,
+    sellerCoverImage:
+      seller?.coverImage || (Array.isArray(seller?.coverImages) ? seller.coverImages[0] : '') || '',
+    sellerGalleryImages: Array.isArray(seller?.galleryImages) ? seller.galleryImages : [],
+    sellerLandmark: seller?.landmark || "",
+    sellerLocation: {
+      latitude: Number.isFinite(sellerLat) ? sellerLat : undefined,
+      longitude: Number.isFinite(sellerLng) ? sellerLng : undefined,
+      lat: Number.isFinite(sellerLat) ? sellerLat : undefined,
+      lng: Number.isFinite(sellerLng) ? sellerLng : undefined,
       coordinates:
-        Number.isFinite(restaurantLat) && Number.isFinite(restaurantLng)
-          ? [restaurantLng, restaurantLat]
+        Number.isFinite(sellerLat) && Number.isFinite(sellerLng)
+          ? [sellerLng, sellerLat]
           : undefined,
       address:
-        restaurantLocation?.address ||
-        restaurantLocation?.formattedAddress ||
-        restaurant?.addressLine1 ||
+        sellerLocation?.address ||
+        sellerLocation?.formattedAddress ||
+        seller?.addressLine1 ||
         "",
-      area: restaurantLocation?.area || restaurant?.area || "",
-      city: restaurantLocation?.city || restaurant?.city || "",
-      state: restaurantLocation?.state || restaurant?.state || "",
+      area: sellerLocation?.area || seller?.area || "",
+      city: sellerLocation?.city || seller?.city || "",
+      state: sellerLocation?.state || seller?.state || "",
     },
     deliveryAddress: order?.deliveryAddress,
     customerLocation: {
@@ -471,7 +471,7 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
           ? [customerLng, customerLat]
           : undefined,
     },
-    // Restaurant ↔ customer trip distance (NOT rider pickup distance)
+    // Seller ↔ customer trip distance (NOT rider pickup distance)
     tripDistanceKm,
     tripDurationMins,
     distanceKm: tripDistanceKm,
@@ -496,21 +496,21 @@ export function buildDeliverySocketPayload(orderDoc, restaurantDoc = null) {
   };
 }
 
-export function canExposeOrderToRestaurant(orderLike) {
+export function canExposeOrderToSeller(orderLike) {
   if (String(orderLike?.orderStatus || "").toLowerCase() === "pending_payment") return false;
   const method = String(orderLike?.payment?.method || "").toLowerCase();
   const status = String(orderLike?.payment?.status || "").toLowerCase();
   // razorpay_qr is a pay-at-delivery flow like cash: the rider collects via QR at the
-  // door, so the restaurant must see and prepare it even though nothing is captured yet.
-  // Omitting it hid those orders from the restaurant list while still dispatching them,
+  // door, so the seller must see and prepare it even though nothing is captured yet.
+  // Omitting it hid those orders from the seller list while still dispatching them,
   // so they silently auto-cancelled at the acceptance deadline.
   if (["cash", "wallet", "razorpay_qr"].includes(method)) return true;
   return ["paid", "authorized", "captured", "settled"].includes(status);
 }
 
-export async function notifyRestaurantNewOrder(orderDoc) {
+export async function notifySellerNewOrder(orderDoc) {
   try {
-    if (!orderDoc || !canExposeOrderToRestaurant(orderDoc)) return;
+    if (!orderDoc || !canExposeOrderToSeller(orderDoc)) return;
 
     const io = getIO();
     if (io) {
@@ -520,18 +520,18 @@ export async function notifyRestaurantNewOrder(orderDoc) {
         orderId: orderDoc.order_id || orderDoc._id?.toString?.(),
       };
       logger.info(
-        `[RestaurantOrders] Emitting new_order to ${rooms.restaurant(orderDoc.restaurantId)} for order ${orderDoc._id?.toString?.() || ''}`,
+        `[SellerOrders] Emitting new_order to ${rooms.seller(orderDoc.sellerId)} for order ${orderDoc._id?.toString?.() || ''}`,
       );
-      io.to(rooms.restaurant(orderDoc.restaurantId)).emit("new_order", payload);
+      io.to(rooms.seller(orderDoc.sellerId)).emit("new_order", payload);
     }
 
-    // Atomic claim: only the caller that flips restaurantNotifiedAt from null actually
+    // Atomic claim: only the caller that flips sellerNotifiedAt from null actually
     // sends the push. Mongo guarantees a single winner even under a concurrent race, so a
-    // retried webhook or duplicate code path can never ring the restaurant twice. The
+    // retried webhook or duplicate code path can never ring the seller twice. The
     // socket emit above stays unguarded — it is just a UI refresh and is idempotent.
     const claimed = await FoodOrder.findOneAndUpdate(
-      { _id: orderDoc._id, restaurantNotifiedAt: null },
-      { $set: { restaurantNotifiedAt: new Date() } },
+      { _id: orderDoc._id, sellerNotifiedAt: null },
+      { $set: { sellerNotifiedAt: new Date() } },
     );
     if (!claimed) return;
 
@@ -543,7 +543,7 @@ export async function notifyRestaurantNewOrder(orderDoc) {
       ? orderDoc.items.map((it) => `${it.quantity}x ${it.name}`).join(", ")
       : "";
     // deliveryAddressSchema has street/additionalDetails/city — there is no `address`
-    // or `area` field on it, so reading those yielded undefined and the restaurant
+    // or `area` field on it, so reading those yielded undefined and the seller
     // only ever saw the city.
     const addressStr = orderDoc.deliveryAddress
       ? [
@@ -570,12 +570,12 @@ export async function notifyRestaurantNewOrder(orderDoc) {
     // notification block silently removed the buttons, because Android renders
     // such a message and never wakes the handler that would have added them.
     await notifyOwnersActionableAlert(
-      [{ ownerType: "RESTAURANT", ownerId: orderDoc.restaurantId }],
+      [{ ownerType: "SELLER", ownerId: orderDoc.sellerId }],
       {
         title: "New order received",
         body: bodyText,
         androidTag: `order_${orderDoc._id?.toString?.() || ""}`,
-        // The channel the restaurant app actually creates. The service default
+        // The channel the seller app actually creates. The service default
         // is the rider app's new-order channel, which does not exist here —
         // Android silently demotes an unknown channel to low importance, so the
         // alert would arrive without sound or a heads-up even once it displayed.
@@ -587,7 +587,7 @@ export async function notifyRestaurantNewOrder(orderDoc) {
           orderId: orderDoc._id.toString(),
           orderMongoId: orderDoc._id?.toString?.() || "",
           orderDisplayId: str(orderDoc.order_id || orderDoc._id),
-          link: `/restaurant/orders/${orderDoc._id?.toString?.() || ""}`,
+          link: `/seller/orders/${orderDoc._id?.toString?.() || ""}`,
           // Everything the notification needs to render without a follow-up API
           // call, which matters when the device is locked or the app was killed.
           customerName: str(orderDoc.customerName),
@@ -607,7 +607,7 @@ export async function notifyRestaurantNewOrder(orderDoc) {
 
 export const CANCELLED_ORDER_STATUSES = [
   "cancelled_by_user",
-  "cancelled_by_restaurant",
+  "cancelled_by_seller",
   "cancelled_by_admin",
 ];
 
@@ -653,7 +653,7 @@ export const STATUS_PRIORITY = {
   reached_drop: 70,
   delivered: 80,
   cancelled_by_user: 100,
-  cancelled_by_restaurant: 100,
+  cancelled_by_seller: 100,
   cancelled_by_admin: 100,
 };
 

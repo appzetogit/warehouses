@@ -16,30 +16,30 @@ import { Label } from "@food/components/ui/label"
 // Sample product data - in a real app, this would come from an API
 const productsData = {
   // Featured Dishes
-  1: { id: 1, name: "Margherita Pizza", restaurant: "Pizza Corner", restaurantSlug: "pizza-corner", price: 12.99, image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Classic Italian pizza with fresh tomato sauce, mozzarella cheese, and basil leaves. Made with our signature wood-fired crust.", category: "Pizza", ingredients: ["Tomato sauce", "Mozzarella cheese", "Fresh basil", "Olive oil"], preparationTime: "15-20 min", calories: 280, foodType: "Veg", isVeg: true },
-  2: { id: 2, name: "Classic Burger", restaurant: "Burger Paradise", restaurantSlug: "burger-paradise", price: 9.99, image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Juicy beef patty with fresh lettuce, tomato, onion, and our special sauce. Served on a toasted bun.", category: "Burgers", ingredients: ["Beef patty", "Lettuce", "Tomato", "Onion", "Special sauce", "Bun"], preparationTime: "10-15 min", calories: 520, foodType: "Non-Veg", isVeg: false },
-  3: { id: 3, name: "Salmon Sushi Roll", restaurant: "Sushi Master", restaurantSlug: "sushi-master", price: 15.99, image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Fresh salmon with creamy avocado, wrapped in nori and sushi rice. Served with soy sauce and wasabi.", category: "Sushi", ingredients: ["Fresh salmon", "Avocado", "Nori", "Sushi rice", "Soy sauce", "Wasabi"], preparationTime: "20-25 min", calories: 320, foodType: "Non-Veg", isVeg: false },
-  4: { id: 4, name: "Chicken Tacos", restaurant: "Taco Fiesta", restaurantSlug: "taco-fiesta", price: 8.99, image: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&h=400&fit=crop&q=80", rating: 4.6, description: "Soft shell tacos with grilled chicken, fresh vegetables, and our signature salsa. Served with lime wedges.", category: "Tacos", ingredients: ["Grilled chicken", "Lettuce", "Tomato", "Onion", "Cheese", "Salsa", "Lime"], preparationTime: "12-15 min", calories: 380, foodType: "Non-Veg", isVeg: false },
-  5: { id: 5, name: "Chicken Biryani", restaurant: "Spice Garden", restaurantSlug: "spice-garden", price: 14.99, image: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Fragrant basmati rice cooked with tender chicken pieces, aromatic spices, and herbs. Served with raita and pickle.", category: "Indian", ingredients: ["Basmati rice", "Chicken", "Onions", "Spices", "Yogurt", "Herbs"], preparationTime: "30-35 min", calories: 650, foodType: "Non-Veg", isVeg: false },
-  6: { id: 6, name: "Pad Thai", restaurant: "Thai Express", restaurantSlug: "thai-express", price: 13.99, image: "https://images.unsplash.com/photo-1559314809-0d155b1c5b8e?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Stir-fried rice noodles with shrimp, tofu, bean sprouts, and peanuts in a tangy tamarind sauce.", category: "Thai", ingredients: ["Rice noodles", "Shrimp", "Tofu", "Bean sprouts", "Peanuts", "Tamarind sauce"], preparationTime: "18-22 min", calories: 420, foodType: "Non-Veg", isVeg: false },
-  7: { id: 7, name: "Grilled Salmon", restaurant: "Ocean Breeze", restaurantSlug: "ocean-breeze", price: 18.99, image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Fresh Atlantic salmon grilled to perfection with lemon butter sauce. Served with seasonal vegetables and rice.", category: "Seafood", ingredients: ["Atlantic salmon", "Lemon", "Butter", "Herbs", "Seasonal vegetables", "Rice"], preparationTime: "25-30 min", calories: 480, foodType: "Non-Veg", isVeg: false },
-  8: { id: 8, name: "BBQ Ribs", restaurant: "Smokehouse", restaurantSlug: "smokehouse", price: 16.99, image: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Slow-cooked pork ribs smothered in our signature BBQ sauce. Served with coleslaw and cornbread.", category: "BBQ", ingredients: ["Pork ribs", "BBQ sauce", "Coleslaw", "Cornbread"], preparationTime: "35-40 min", calories: 720, foodType: "Non-Veg", isVeg: false },
+  1: { id: 1, name: "Margherita Pizza", seller: "Pizza Corner", sellerSlug: "pizza-corner", price: 12.99, image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Classic Italian pizza with fresh tomato sauce, mozzarella cheese, and basil leaves. Made with our signature wood-fired crust.", category: "Pizza", ingredients: ["Tomato sauce", "Mozzarella cheese", "Fresh basil", "Olive oil"], preparationTime: "15-20 min", calories: 280, foodType: "Veg", isVeg: true },
+  2: { id: 2, name: "Classic Burger", seller: "Burger Paradise", sellerSlug: "burger-paradise", price: 9.99, image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Juicy beef patty with fresh lettuce, tomato, onion, and our special sauce. Served on a toasted bun.", category: "Burgers", ingredients: ["Beef patty", "Lettuce", "Tomato", "Onion", "Special sauce", "Bun"], preparationTime: "10-15 min", calories: 520, foodType: "Non-Veg", isVeg: false },
+  3: { id: 3, name: "Salmon Sushi Roll", seller: "Sushi Master", sellerSlug: "sushi-master", price: 15.99, image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Fresh salmon with creamy avocado, wrapped in nori and sushi rice. Served with soy sauce and wasabi.", category: "Sushi", ingredients: ["Fresh salmon", "Avocado", "Nori", "Sushi rice", "Soy sauce", "Wasabi"], preparationTime: "20-25 min", calories: 320, foodType: "Non-Veg", isVeg: false },
+  4: { id: 4, name: "Chicken Tacos", seller: "Taco Fiesta", sellerSlug: "taco-fiesta", price: 8.99, image: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&h=400&fit=crop&q=80", rating: 4.6, description: "Soft shell tacos with grilled chicken, fresh vegetables, and our signature salsa. Served with lime wedges.", category: "Tacos", ingredients: ["Grilled chicken", "Lettuce", "Tomato", "Onion", "Cheese", "Salsa", "Lime"], preparationTime: "12-15 min", calories: 380, foodType: "Non-Veg", isVeg: false },
+  5: { id: 5, name: "Chicken Biryani", seller: "Spice Garden", sellerSlug: "spice-garden", price: 14.99, image: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Fragrant basmati rice cooked with tender chicken pieces, aromatic spices, and herbs. Served with raita and pickle.", category: "Indian", ingredients: ["Basmati rice", "Chicken", "Onions", "Spices", "Yogurt", "Herbs"], preparationTime: "30-35 min", calories: 650, foodType: "Non-Veg", isVeg: false },
+  6: { id: 6, name: "Pad Thai", seller: "Thai Express", sellerSlug: "thai-express", price: 13.99, image: "https://images.unsplash.com/photo-1559314809-0d155b1c5b8e?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Stir-fried rice noodles with shrimp, tofu, bean sprouts, and peanuts in a tangy tamarind sauce.", category: "Thai", ingredients: ["Rice noodles", "Shrimp", "Tofu", "Bean sprouts", "Peanuts", "Tamarind sauce"], preparationTime: "18-22 min", calories: 420, foodType: "Non-Veg", isVeg: false },
+  7: { id: 7, name: "Grilled Salmon", seller: "Ocean Breeze", sellerSlug: "ocean-breeze", price: 18.99, image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Fresh Atlantic salmon grilled to perfection with lemon butter sauce. Served with seasonal vegetables and rice.", category: "Seafood", ingredients: ["Atlantic salmon", "Lemon", "Butter", "Herbs", "Seasonal vegetables", "Rice"], preparationTime: "25-30 min", calories: 480, foodType: "Non-Veg", isVeg: false },
+  8: { id: 8, name: "BBQ Ribs", seller: "Smokehouse", sellerSlug: "smokehouse", price: 16.99, image: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Slow-cooked pork ribs smothered in our signature BBQ sauce. Served with coleslaw and cornbread.", category: "BBQ", ingredients: ["Pork ribs", "BBQ sauce", "Coleslaw", "Cornbread"], preparationTime: "35-40 min", calories: 720, foodType: "Non-Veg", isVeg: false },
   // Quick Bites
-  9: { id: 9, name: "Chicken Wings", restaurant: "Burger Paradise", restaurantSlug: "burger-paradise", price: 8.99, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Crispy fried chicken wings tossed in your choice of sauce. Served with celery sticks and blue cheese dip.", category: "Appetizers", ingredients: ["Chicken wings", "Hot sauce", "Butter", "Celery", "Blue cheese"], preparationTime: "15-18 min", calories: 450 },
-  10: { id: 10, name: "French Fries", restaurant: "Burger Paradise", restaurantSlug: "burger-paradise", price: 4.99, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Golden crispy fries made from premium potatoes. Served hot with ketchup.", category: "Sides", ingredients: ["Potatoes", "Salt", "Oil"], preparationTime: "8-10 min", calories: 320 },
-  11: { id: 11, name: "Onion Rings", restaurant: "Burger Paradise", restaurantSlug: "burger-paradise", price: 5.99, image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop&q=80", rating: 4.6, description: "Crispy battered onion rings, perfectly golden and crunchy. Served with dipping sauce.", category: "Sides", ingredients: ["Onions", "Batter", "Oil"], preparationTime: "10-12 min", calories: 280 },
-  12: { id: 12, name: "Mozzarella Sticks", restaurant: "Pizza Corner", restaurantSlug: "pizza-corner", price: 6.99, image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Golden fried mozzarella sticks with a crispy exterior and gooey center. Served with marinara sauce.", category: "Appetizers", ingredients: ["Mozzarella cheese", "Breadcrumbs", "Marinara sauce"], preparationTime: "8-10 min", calories: 350 },
-  13: { id: 13, name: "Nachos", restaurant: "Taco Fiesta", restaurantSlug: "taco-fiesta", price: 7.99, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Crispy tortilla chips loaded with melted cheese, jalapeos, and your choice of toppings.", category: "Appetizers", ingredients: ["Tortilla chips", "Cheese", "Jalapeos", "Sour cream", "Salsa"], preparationTime: "10-12 min", calories: 420 },
-  14: { id: 14, name: "Garlic Bread", restaurant: "Pizza Corner", restaurantSlug: "pizza-corner", price: 4.49, image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Fresh baked bread brushed with garlic butter and herbs. Perfect as a side or appetizer.", category: "Sides", ingredients: ["Bread", "Garlic", "Butter", "Herbs"], preparationTime: "5-8 min", calories: 220 },
+  9: { id: 9, name: "Chicken Wings", seller: "Burger Paradise", sellerSlug: "burger-paradise", price: 8.99, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Crispy fried chicken wings tossed in your choice of sauce. Served with celery sticks and blue cheese dip.", category: "Appetizers", ingredients: ["Chicken wings", "Hot sauce", "Butter", "Celery", "Blue cheese"], preparationTime: "15-18 min", calories: 450 },
+  10: { id: 10, name: "French Fries", seller: "Burger Paradise", sellerSlug: "burger-paradise", price: 4.99, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Golden crispy fries made from premium potatoes. Served hot with ketchup.", category: "Sides", ingredients: ["Potatoes", "Salt", "Oil"], preparationTime: "8-10 min", calories: 320 },
+  11: { id: 11, name: "Onion Rings", seller: "Burger Paradise", sellerSlug: "burger-paradise", price: 5.99, image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop&q=80", rating: 4.6, description: "Crispy battered onion rings, perfectly golden and crunchy. Served with dipping sauce.", category: "Sides", ingredients: ["Onions", "Batter", "Oil"], preparationTime: "10-12 min", calories: 280 },
+  12: { id: 12, name: "Mozzarella Sticks", seller: "Pizza Corner", sellerSlug: "pizza-corner", price: 6.99, image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Golden fried mozzarella sticks with a crispy exterior and gooey center. Served with marinara sauce.", category: "Appetizers", ingredients: ["Mozzarella cheese", "Breadcrumbs", "Marinara sauce"], preparationTime: "8-10 min", calories: 350 },
+  13: { id: 13, name: "Nachos", seller: "Taco Fiesta", sellerSlug: "taco-fiesta", price: 7.99, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Crispy tortilla chips loaded with melted cheese, jalapeos, and your choice of toppings.", category: "Appetizers", ingredients: ["Tortilla chips", "Cheese", "Jalapeos", "Sour cream", "Salsa"], preparationTime: "10-12 min", calories: 420 },
+  14: { id: 14, name: "Garlic Bread", seller: "Pizza Corner", sellerSlug: "pizza-corner", price: 4.49, image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Fresh baked bread brushed with garlic butter and herbs. Perfect as a side or appetizer.", category: "Sides", ingredients: ["Bread", "Garlic", "Butter", "Herbs"], preparationTime: "5-8 min", calories: 220 },
   // Trending Now
-  15: { id: 15, name: "Spicy Ramen", restaurant: "Noodle House", restaurantSlug: "noodle-house", price: 11.99, image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Rich and spicy ramen broth with tender noodles, soft-boiled egg, and fresh vegetables.", category: "Noodles", ingredients: ["Ramen noodles", "Broth", "Egg", "Vegetables", "Spices"], preparationTime: "20-25 min", calories: 480 },
-  16: { id: 16, name: "BBQ Chicken Pizza", restaurant: "Pizza Corner", restaurantSlug: "pizza-corner", price: 13.99, image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Wood-fired pizza with BBQ sauce, grilled chicken, red onions, and mozzarella cheese.", category: "Pizza", ingredients: ["BBQ sauce", "Grilled chicken", "Red onions", "Mozzarella cheese"], preparationTime: "15-20 min", calories: 380 },
-  17: { id: 17, name: "Sushi Platter", restaurant: "Sushi Master", restaurantSlug: "sushi-master", price: 19.99, image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Assorted sushi platter with salmon, tuna, and California rolls. Served with soy sauce, wasabi, and pickled ginger.", category: "Sushi", ingredients: ["Salmon", "Tuna", "Avocado", "Rice", "Nori", "Soy sauce"], preparationTime: "25-30 min", calories: 450 },
-  18: { id: 18, name: "Loaded Burger", restaurant: "Burger Paradise", restaurantSlug: "burger-paradise", price: 10.99, image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Double beef patty with bacon, cheese, lettuce, tomato, onion, and special sauce. Served with fries.", category: "Burgers", ingredients: ["Double beef patty", "Bacon", "Cheese", "Lettuce", "Tomato", "Onion", "Special sauce"], preparationTime: "12-15 min", calories: 680 },
+  15: { id: 15, name: "Spicy Ramen", seller: "Noodle House", sellerSlug: "noodle-house", price: 11.99, image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Rich and spicy ramen broth with tender noodles, soft-boiled egg, and fresh vegetables.", category: "Noodles", ingredients: ["Ramen noodles", "Broth", "Egg", "Vegetables", "Spices"], preparationTime: "20-25 min", calories: 480 },
+  16: { id: 16, name: "BBQ Chicken Pizza", seller: "Pizza Corner", sellerSlug: "pizza-corner", price: 13.99, image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Wood-fired pizza with BBQ sauce, grilled chicken, red onions, and mozzarella cheese.", category: "Pizza", ingredients: ["BBQ sauce", "Grilled chicken", "Red onions", "Mozzarella cheese"], preparationTime: "15-20 min", calories: 380 },
+  17: { id: 17, name: "Sushi Platter", seller: "Sushi Master", sellerSlug: "sushi-master", price: 19.99, image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Assorted sushi platter with salmon, tuna, and California rolls. Served with soy sauce, wasabi, and pickled ginger.", category: "Sushi", ingredients: ["Salmon", "Tuna", "Avocado", "Rice", "Nori", "Soy sauce"], preparationTime: "25-30 min", calories: 450 },
+  18: { id: 18, name: "Loaded Burger", seller: "Burger Paradise", sellerSlug: "burger-paradise", price: 10.99, image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Double beef patty with bacon, cheese, lettuce, tomato, onion, and special sauce. Served with fries.", category: "Burgers", ingredients: ["Double beef patty", "Bacon", "Cheese", "Lettuce", "Tomato", "Onion", "Special sauce"], preparationTime: "12-15 min", calories: 680 },
 }
 
-// Restaurant data
-const restaurantsData = {
+// Seller data
+const sellersData = {
   "pizza-corner": { name: "Pizza Corner", cuisine: "Italian", rating: 4.7, deliveryTime: "15-20 min", distance: "0.5 km", priceRange: "$$", address: "321 Elm Street, New York, NY 10004", phone: "+1 (555) 456-7890" },
   "burger-paradise": { name: "Burger Paradise", cuisine: "American", rating: 4.6, deliveryTime: "20-25 min", distance: "0.8 km", priceRange: "$", address: "456 Oak Avenue, New York, NY 10002", phone: "+1 (555) 234-5678" },
   "sushi-master": { name: "Sushi Master", cuisine: "Japanese", rating: 4.9, deliveryTime: "30-35 min", distance: "2.1 km", priceRange: "$$$", address: "789 Cherry Lane, New York, NY 10003", phone: "+1 (555) 345-6789" },
@@ -107,7 +107,7 @@ export default function ProductDetail() {
   const [replyStates, setReplyStates] = useState({})
   const [replies, setReplies] = useState({})
 
-  const restaurant = product ? restaurantsData[product.restaurantSlug] : null
+  const seller = product ? sellersData[product.sellerSlug] : null
   const inCart = product ? isInCart(product.id) : false
   const cartItem = product ? getCartItem(product.id) : null
   const orders = getAllOrders()
@@ -136,7 +136,7 @@ export default function ProductDetail() {
       }
       const result = addToCart(cartItem, null, { quantity })
       if (result?.ok === false && !result.needsConfirmation) {
-        alert(result.error || "Cannot add item from different restaurant. Please clear cart first.")
+        alert(result.error || "Cannot add item from different seller. Please clear cart first.")
       }
     }
   }
@@ -344,7 +344,7 @@ export default function ProductDetail() {
               <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground flex-wrap">
                 <Link to="/user" className="hover:text-primary-orange transition-colors">Home</Link>
                 <span>/</span>
-                <span className="text-foreground font-medium truncate">{restaurant?.name || "Restaurant"}</span>
+                <span className="text-foreground font-medium truncate">{seller?.name || "Seller"}</span>
                 <span>/</span>
                 <span className="text-foreground font-medium truncate">{product.name}</span>
               </div>
@@ -425,31 +425,31 @@ export default function ProductDetail() {
             </div>
           </ScrollReveal>
 
-          {/* Restaurant Info */}
-          {restaurant && (
+          {/* Seller Info */}
+          {seller && (
             <ScrollReveal delay={0.1}>
               <div className="space-y-3 md:space-y-4 pb-4 md:pb-6 border-b">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg md:text-xl lg:text-2xl font-bold">
-                      {restaurant.name}
+                      {seller.name}
                     </h3>
-                    <p className="text-sm md:text-base text-muted-foreground">{restaurant.cuisine}</p>
+                    <p className="text-sm md:text-base text-muted-foreground">{seller.cuisine}</p>
                   </div>
-                  <Badge className="bg-primary-orange text-white text-sm md:text-base">{restaurant.priceRange}</Badge>
+                  <Badge className="bg-primary-orange text-white text-sm md:text-base">{seller.priceRange}</Badge>
                 </div>
                 <div className="flex items-center gap-4 md:gap-6 flex-wrap text-sm md:text-base">
                   <div className="flex items-center gap-1.5">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{restaurant.rating}</span>
+                    <span className="font-semibold">{seller.rating}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{restaurant.deliveryTime}</span>
+                    <span>{seller.deliveryTime}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{restaurant.distance}</span>
+                    <span>{seller.distance}</span>
                   </div>
                 </div>
               </div>

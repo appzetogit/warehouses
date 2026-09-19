@@ -4,8 +4,8 @@ Skeleton loading is centralized in `@food/components/ui/loading-skeletons`.
 
 Primary presets:
 - `AppShellSkeleton`: route transitions and lazy-loaded shells
-- `RestaurantGridSkeleton`: restaurant/card listing pages
-- `RestaurantDetailSkeleton`: restaurant detail and menu entry states
+- `SellerGridSkeleton`: seller/card listing pages
+- `SellerDetailSkeleton`: seller detail and menu entry states
 - `OrdersDashboardSkeleton`: table-heavy admin/order screens
 - `WalletSkeleton`: wallet/balance pages
 - `ContentPageSkeleton`: policy/profile/about-style content pages

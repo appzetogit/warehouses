@@ -9,7 +9,7 @@ export default function CollectCash() {
   const [formData, setFormData] = useState({
     type: "Deliveryman",
     method: "",
-    restaurant: "",
+    seller: "",
     deliveryman: "",
     amount: "",
     reference: "",
@@ -57,7 +57,7 @@ export default function CollectCash() {
     const errors = {}
     if (!formData.method) errors.method = "Payment method is required."
     if (!formData.amount || parseFloat(formData.amount) <= 0) errors.amount = "Amount is required and must be greater than 0."
-    if (formData.type === "Restaurant" && !formData.restaurant) errors.restaurant = "Restaurant is required."
+    if (formData.type === "Seller" && !formData.seller) errors.seller = "Seller is required."
     if (formData.type === "Deliveryman" && !formData.deliveryman) errors.deliveryman = "Deliveryman is required."
     return errors
   }
@@ -75,7 +75,7 @@ export default function CollectCash() {
     setTimeout(() => {
       const newTransaction = {
         sl: transactions.length + 1,
-        collectedFrom: formData.type === "Restaurant" ? "Hungry Puppets" : formData.deliveryman === "jhon-doe" ? "Jhon Doe" : "Leslie Alexander",
+        collectedFrom: formData.type === "Seller" ? "Hungry Puppets" : formData.deliveryman === "jhon-doe" ? "Jhon Doe" : "Leslie Alexander",
         userType: formData.type,
         collectedAt: new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }),
         collectedAmount: parseFloat(formData.amount),
@@ -93,7 +93,7 @@ export default function CollectCash() {
     setFormData({
       type: "Deliveryman",
       method: "",
-      restaurant: "",
+      seller: "",
       deliveryman: "",
       amount: "",
       reference: "",
@@ -168,7 +168,7 @@ export default function CollectCash() {
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 >
                   <option value="Deliveryman">Deliveryman</option>
-                  <option value="Restaurant">Restaurant</option>
+                  <option value="Seller">Seller</option>
                 </select>
               </div>
 
@@ -188,22 +188,22 @@ export default function CollectCash() {
                 {formErrors.method && <p className="text-red-500 text-xs mt-1">{formErrors.method}</p>}
               </div>
 
-              {formData.type === "Restaurant" && (
+              {formData.type === "Seller" && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Restaurant <span className="text-red-500">*</span>
+                    Seller <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={formData.restaurant}
-                    onChange={(e) => handleInputChange("restaurant", e.target.value)}
+                    value={formData.seller}
+                    onChange={(e) => handleInputChange("seller", e.target.value)}
                     className={`w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                      formErrors.restaurant ? "border-red-500" : "border-slate-300"
+                      formErrors.seller ? "border-red-500" : "border-slate-300"
                     }`}
                   >
-                    <option value="">Select Restaurant</option>
+                    <option value="">Select Seller</option>
                     <option value="hungry-puppets">Hungry Puppets</option>
                   </select>
-                  {formErrors.restaurant && <p className="text-red-500 text-xs mt-1">{formErrors.restaurant}</p>}
+                  {formErrors.seller && <p className="text-red-500 text-xs mt-1">{formErrors.seller}</p>}
                 </div>
               )}
 

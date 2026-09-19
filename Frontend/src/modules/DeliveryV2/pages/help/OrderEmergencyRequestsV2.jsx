@@ -139,10 +139,10 @@ export const OrderEmergencyRequestsV2 = () => {
                     Order #{getOrderId(activeOrder)}
                   </p>
                   <p className="text-xs font-semibold text-gray-600">
-                    {activeOrder?.restaurantId?.restaurantName ||
-                      activeOrder?.restaurantId?.name ||
-                      activeOrder?.restaurantName ||
-                      "Restaurant"}
+                    {activeOrder?.sellerId?.sellerName ||
+                      activeOrder?.sellerId?.name ||
+                      activeOrder?.sellerName ||
+                      "Seller"}
                   </p>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-orange-600">
                     {orderStatus.replaceAll("_", " ")}

@@ -88,8 +88,8 @@ const parseLandingSettings = (response) => {
   const settings = response?.data?.data || {};
   return {
     exploreMoreHeading: settings.exploreMoreHeading || "Explore More",
-    recommendedRestaurantIds: settings.recommendedRestaurantIds || [],
-    recommendedRestaurants: settings.recommendedRestaurants || [],
+    recommendedSellerIds: settings.recommendedSellerIds || [],
+    recommendedSellers: settings.recommendedSellers || [],
   };
 };
 

@@ -77,23 +77,23 @@ function StyledSelect({ value, options, onChange, ariaLabel }) {
   )
 }
 
-function RestaurantMultiSelect({ restaurants, value, onChange, error }) {
+function SellerMultiSelect({ sellers, value, onChange, error }) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState("")
   const rootRef = useRef(null)
   const selectedIds = Array.isArray(value) ? value : []
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
-  const selectedRestaurants = useMemo(
-    () => restaurants.filter((restaurant) => selectedSet.has(String(restaurant._id))),
-    [restaurants, selectedSet],
+  const selectedSellers = useMemo(
+    () => sellers.filter((seller) => selectedSet.has(String(seller._id))),
+    [sellers, selectedSet],
   )
-  const filteredRestaurants = useMemo(() => {
+  const filteredSellers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    if (!normalizedQuery) return restaurants
-    return restaurants.filter((restaurant) =>
-      String(restaurant.name || "").toLowerCase().includes(normalizedQuery),
+    if (!normalizedQuery) return sellers
+    return sellers.filter((seller) =>
+      String(seller.name || "").toLowerCase().includes(normalizedQuery),
     )
-  }, [query, restaurants])
+  }, [query, sellers])
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -105,8 +105,8 @@ function RestaurantMultiSelect({ restaurants, value, onChange, error }) {
     return () => document.removeEventListener("mousedown", handleOutsideClick)
   }, [])
 
-  const toggleRestaurant = (restaurantId) => {
-    const id = String(restaurantId)
+  const toggleSeller = (sellerId) => {
+    const id = String(sellerId)
     onChange(selectedSet.has(id)
       ? selectedIds.filter((selectedId) => selectedId !== id)
       : [...selectedIds, id])
@@ -124,8 +124,8 @@ function RestaurantMultiSelect({ restaurants, value, onChange, error }) {
       >
         <span className={selectedIds.length ? "font-medium text-slate-700" : "text-slate-400"}>
           {selectedIds.length
-            ? `${selectedIds.length} restaurant${selectedIds.length === 1 ? "" : "s"} selected`
-            : "Choose restaurants"}
+            ? `${selectedIds.length} seller${selectedIds.length === 1 ? "" : "s"} selected`
+            : "Choose sellers"}
         </span>
         <ChevronDown className={`h-4 w-4 text-slate-400 transition ${isOpen ? "rotate-180" : ""}`} />
       </button>
@@ -139,21 +139,21 @@ function RestaurantMultiSelect({ restaurants, value, onChange, error }) {
                 type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search restaurants..."
+                placeholder="Search sellers..."
                 className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 autoFocus
               />
             </div>
           </div>
           <div className="max-h-64 overflow-y-auto p-1.5">
-            {filteredRestaurants.length > 0 ? filteredRestaurants.map((restaurant) => {
-              const id = String(restaurant._id)
+            {filteredSellers.length > 0 ? filteredSellers.map((seller) => {
+              const id = String(seller._id)
               const selected = selectedSet.has(id)
               return (
                 <button
                   key={id}
                   type="button"
-                  onClick={() => toggleRestaurant(id)}
+                  onClick={() => toggleSeller(id)}
                   className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition ${
                     selected ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-50"
                   }`}
@@ -163,27 +163,27 @@ function RestaurantMultiSelect({ restaurants, value, onChange, error }) {
                   }`}>
                     {selected && <Check className="h-3.5 w-3.5" />}
                   </span>
-                  <span className="truncate font-medium">{restaurant.name || "Unnamed restaurant"}</span>
+                  <span className="truncate font-medium">{seller.name || "Unnamed seller"}</span>
                 </button>
               )
             }) : (
-              <p className="px-3 py-6 text-center text-sm text-slate-500">No restaurants found</p>
+              <p className="px-3 py-6 text-center text-sm text-slate-500">No sellers found</p>
             )}
           </div>
         </div>
       )}
 
-      {selectedRestaurants.length > 0 && (
+      {selectedSellers.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {selectedRestaurants.map((restaurant) => {
-            const id = String(restaurant._id)
+          {selectedSellers.map((seller) => {
+            const id = String(seller._id)
             return (
               <span key={id} className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-                {restaurant.name}
+                {seller.name}
                 <button
                   type="button"
-                  onClick={() => toggleRestaurant(id)}
-                  aria-label={`Remove ${restaurant.name}`}
+                  onClick={() => toggleSeller(id)}
+                  aria-label={`Remove ${seller.name}`}
                   className="rounded-full p-0.5 hover:bg-blue-100"
                 >
                   <X className="h-3 w-3" />
@@ -200,7 +200,7 @@ function RestaurantMultiSelect({ restaurants, value, onChange, error }) {
 export default function Coupons() {
   const [searchQuery, setSearchQuery] = useState("")
   const [offers, setOffers] = useState([])
-  const [restaurants, setRestaurants] = useState([])
+  const [sellers, setSellers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isAddOpen, setIsAddOpen] = useState(false)
@@ -215,8 +215,8 @@ export default function Coupons() {
     discountType: "percentage",
     discountValue: "",
     customerScope: "all",
-    restaurantScope: "all",
-    restaurantIds: [],
+    sellerScope: "all",
+    sellerIds: [],
     endDate: "",
     startDate: "",
     minOrderValue: "",
@@ -225,7 +225,7 @@ export default function Coupons() {
     perUserLimit: "",
     isFirstOrderOnly: false,
     adminBearPercentage: "100",
-    restaurantBearPercentage: "0",
+    sellerBearPercentage: "0",
   })
 
   const fetchOffers = useCallback(async () => {
@@ -252,26 +252,26 @@ export default function Coupons() {
   }, [fetchOffers])
 
   useEffect(() => {
-    const fetchRestaurants = async () => {
+    const fetchSellers = async () => {
       try {
-        const response = await adminAPI.getRestaurants({ page: 1, limit: 200 })
+        const response = await adminAPI.getSellers({ page: 1, limit: 200 })
         if (response?.data?.success) {
-          const list = response?.data?.data?.restaurants || []
-          // Backend returns `restaurantName`; normalize to `name` for this dropdown without affecting other pages.
+          const list = response?.data?.data?.sellers || []
+          // Backend returns `sellerName`; normalize to `name` for this dropdown without affecting other pages.
           const normalized = Array.isArray(list)
             ? list.map((r) => ({
               ...r,
-              name: r?.name || r?.restaurantName || "",
+              name: r?.name || r?.sellerName || "",
             }))
             : []
-          setRestaurants(normalized)
+          setSellers(normalized)
         }
       } catch (err) {
-        debugError("Error fetching restaurants:", err)
+        debugError("Error fetching sellers:", err)
       }
     }
 
-    fetchRestaurants()
+    fetchSellers()
   }, [])
 
   const todayYMD = () => {
@@ -295,15 +295,15 @@ export default function Coupons() {
     if (f.usageLimit !== "" && Number(f.usageLimit) < 1) e.usageLimit = "Usage limit must be at least 1"
     if (f.perUserLimit !== "" && Number(f.perUserLimit) < 1) e.perUserLimit = "Per user limit must be at least 1"
     const adminBear = Number(f.adminBearPercentage)
-    const restaurantBear = Number(f.restaurantBearPercentage)
+    const sellerBear = Number(f.sellerBearPercentage)
     if (!Number.isFinite(adminBear) || adminBear < 0 || adminBear > 100) e.adminBearPercentage = "Enter 0 to 100"
-    if (!Number.isFinite(restaurantBear) || restaurantBear < 0 || restaurantBear > 100) e.restaurantBearPercentage = "Enter 0 to 100"
-    if (Number.isFinite(adminBear) && Number.isFinite(restaurantBear) && Math.round((adminBear + restaurantBear) * 100) / 100 !== 100) {
+    if (!Number.isFinite(sellerBear) || sellerBear < 0 || sellerBear > 100) e.sellerBearPercentage = "Enter 0 to 100"
+    if (Number.isFinite(adminBear) && Number.isFinite(sellerBear) && Math.round((adminBear + sellerBear) * 100) / 100 !== 100) {
       e.adminBearPercentage = "Both shares must total 100%"
-      e.restaurantBearPercentage = "Both shares must total 100%"
+      e.sellerBearPercentage = "Both shares must total 100%"
     }
-    if (f.restaurantScope === "selected" && (!Array.isArray(f.restaurantIds) || f.restaurantIds.length === 0)) {
-      e.restaurantIds = "Select at least one restaurant"
+    if (f.sellerScope === "selected" && (!Array.isArray(f.sellerIds) || f.sellerIds.length === 0)) {
+      e.sellerIds = "Select at least one seller"
     }
     const start = f.startDate ? new Date(`${f.startDate}T00:00:00`) : null
     const end = f.endDate ? new Date(`${f.endDate}T00:00:00`) : null
@@ -337,9 +337,9 @@ export default function Coupons() {
         return
       }
     }
-    if (field === "restaurantScope" && value === "all") {
+    if (field === "sellerScope" && value === "all") {
       setFormData((prev) => {
-        const next = { ...prev, restaurantScope: value, restaurantIds: [] }
+        const next = { ...prev, sellerScope: value, sellerIds: [] }
         validateForm(next)
         return next
       })
@@ -347,13 +347,13 @@ export default function Coupons() {
       if (submitSuccess) setSubmitSuccess("")
       return
     }
-    if (field === "adminBearPercentage" || field === "restaurantBearPercentage") {
+    if (field === "adminBearPercentage" || field === "sellerBearPercentage") {
       const numeric = Number(value)
       const next = { ...formData, [field]: value }
       if (Number.isFinite(numeric) && numeric >= 0 && numeric <= 100) {
         const counterpart = String(Math.round((100 - numeric) * 100) / 100)
-        if (field === "adminBearPercentage") next.restaurantBearPercentage = counterpart
-        if (field === "restaurantBearPercentage") next.adminBearPercentage = counterpart
+        if (field === "adminBearPercentage") next.sellerBearPercentage = counterpart
+        if (field === "sellerBearPercentage") next.adminBearPercentage = counterpart
       }
       setFormData(next)
       validateForm(next)
@@ -394,8 +394,8 @@ export default function Coupons() {
       discountType: "percentage",
       discountValue: "",
       customerScope: "all",
-      restaurantScope: "all",
-      restaurantIds: [],
+      sellerScope: "all",
+      sellerIds: [],
       endDate: "",
       startDate: "",
       minOrderValue: "",
@@ -404,7 +404,7 @@ export default function Coupons() {
       perUserLimit: "",
       isFirstOrderOnly: false,
       adminBearPercentage: "100",
-      restaurantBearPercentage: "0",
+      sellerBearPercentage: "0",
     })
   }
 
@@ -429,8 +429,8 @@ export default function Coupons() {
       return
     }
 
-    if (formData.restaurantScope === "selected" && formData.restaurantIds.length === 0) {
-      setSubmitError("Please select at least one restaurant")
+    if (formData.sellerScope === "selected" && formData.sellerIds.length === 0) {
+      setSubmitError("Please select at least one seller")
       return
     }
 
@@ -441,8 +441,8 @@ export default function Coupons() {
         discountType: formData.discountType,
         discountValue: parsedDiscountValue,
         customerScope: formData.customerScope,
-        restaurantScope: formData.restaurantScope,
-        restaurantIds: formData.restaurantScope === "selected" ? formData.restaurantIds : undefined,
+        sellerScope: formData.sellerScope,
+        sellerIds: formData.sellerScope === "selected" ? formData.sellerIds : undefined,
         endDate: formData.endDate || undefined,
         startDate: formData.startDate || undefined,
         minOrderValue: formData.minOrderValue !== "" ? Number(formData.minOrderValue) : undefined,
@@ -451,7 +451,7 @@ export default function Coupons() {
         perUserLimit: formData.perUserLimit !== "" ? Number(formData.perUserLimit) : undefined,
         isFirstOrderOnly: Boolean(formData.isFirstOrderOnly),
         adminBearPercentage: Number(formData.adminBearPercentage),
-        restaurantBearPercentage: Number(formData.restaurantBearPercentage),
+        sellerBearPercentage: Number(formData.sellerBearPercentage),
       }
       await adminAPI.createAdminOffer(payload)
 
@@ -508,7 +508,7 @@ export default function Coupons() {
     
     const query = searchQuery.toLowerCase().trim()
     return offers.filter(offer =>
-      offer.restaurantName?.toLowerCase().includes(query) ||
+      offer.sellerName?.toLowerCase().includes(query) ||
       offer.dishName?.toLowerCase().includes(query) ||
       offer.couponCode?.toLowerCase().includes(query)
     )
@@ -520,7 +520,7 @@ export default function Coupons() {
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-4">
-            <h1 className="text-2xl font-bold text-slate-900">Restaurant Offers & Coupons</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Seller Offers & Coupons</h1>
             <button
               type="button"
               onClick={() => {
@@ -596,14 +596,14 @@ export default function Coupons() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Restaurant Scope</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Seller Scope</label>
                   <StyledSelect
-                    value={formData.restaurantScope}
-                    onChange={(value) => handleFormChange("restaurantScope", value)}
-                    ariaLabel="Restaurant scope"
+                    value={formData.sellerScope}
+                    onChange={(value) => handleFormChange("sellerScope", value)}
+                    ariaLabel="Seller scope"
                     options={[
-                      { value: "all", label: "All Restaurants" },
-                      { value: "selected", label: "Selected Restaurants" },
+                      { value: "all", label: "All Sellers" },
+                      { value: "selected", label: "Selected Sellers" },
                     ]}
                   />
                 </div>
@@ -677,18 +677,18 @@ export default function Coupons() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Restaurant Bear (%)</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Seller Bear (%)</label>
                 <input
                   type="number"
                   min="0"
                   max="100"
                   step="0.01"
-                  value={formData.restaurantBearPercentage}
-                  onChange={(e) => handleFormChange("restaurantBearPercentage", e.target.value)}
+                  value={formData.sellerBearPercentage}
+                  onChange={(e) => handleFormChange("sellerBearPercentage", e.target.value)}
                   placeholder="e.g. 30"
-                  className={`w-full px-3 py-2.5 text-sm rounded-lg border ${errors.restaurantBearPercentage ? "border-red-500" : "border-slate-300"} bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                  className={`w-full px-3 py-2.5 text-sm rounded-lg border ${errors.sellerBearPercentage ? "border-red-500" : "border-slate-300"} bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                 />
-                {errors.restaurantBearPercentage && <p className="mt-1 text-xs text-red-600">{errors.restaurantBearPercentage}</p>}
+                {errors.sellerBearPercentage && <p className="mt-1 text-xs text-red-600">{errors.sellerBearPercentage}</p>}
               </div>
 
               <div>
@@ -730,16 +730,16 @@ export default function Coupons() {
                 <label htmlFor="isFirstOrderOnly" className="text-sm text-slate-700">First order only</label>
               </div>
 
-                {formData.restaurantScope === "selected" && (
+                {formData.sellerScope === "selected" && (
                   <div className="md:col-span-2 lg:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Select Restaurants</label>
-                    <RestaurantMultiSelect
-                      restaurants={restaurants}
-                      value={formData.restaurantIds}
-                      onChange={(restaurantIds) => handleFormChange("restaurantIds", restaurantIds)}
-                      error={errors.restaurantIds}
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Select Sellers</label>
+                    <SellerMultiSelect
+                      sellers={sellers}
+                      value={formData.sellerIds}
+                      onChange={(sellerIds) => handleFormChange("sellerIds", sellerIds)}
+                      error={errors.sellerIds}
                     />
-                    {errors.restaurantIds && <p className="mt-1 text-xs text-red-600">{errors.restaurantIds}</p>}
+                    {errors.sellerIds && <p className="mt-1 text-xs text-red-600">{errors.sellerIds}</p>}
                   </div>
                 )}
               </div>
@@ -767,7 +767,7 @@ export default function Coupons() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by restaurant name, dish name, or coupon code..."
+              placeholder="Search by seller name, dish name, or coupon code..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -809,7 +809,7 @@ export default function Coupons() {
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">SI</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Restaurant</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Seller</th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Dish</th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Coupon Code</th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Customer Scope</th>
@@ -832,7 +832,7 @@ export default function Coupons() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-medium text-slate-900">
-                          {offer.restaurantScope === "all" || offer.restaurantName === "All Restaurants" ? "All Restaurants" : offer.restaurantName}
+                          {offer.sellerScope === "all" || offer.sellerName === "All Sellers" ? "All Sellers" : offer.sellerName}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -864,7 +864,7 @@ export default function Coupons() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-xs text-slate-700 leading-5">
                           <p>Admin: {Number(offer.adminBearPercentage ?? 100)}%</p>
-                          <p>Restaurant: {Number(offer.restaurantBearPercentage ?? 0)}%</p>
+                          <p>Seller: {Number(offer.sellerBearPercentage ?? 0)}%</p>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

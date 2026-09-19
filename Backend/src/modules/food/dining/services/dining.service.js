@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
-import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../../seller/models/seller.model.js';
 import { FoodDiningCategory } from '../models/diningCategory.model.js';
-import { FoodDiningRestaurant } from '../models/diningRestaurant.model.js';
+import { FoodDiningSeller } from '../models/diningSeller.model.js';
 
 const slugify = (value) =>
     String(value || '')
@@ -20,13 +20,13 @@ const toObjectIdArray = (values) =>
         )
     ).map((value) => new mongoose.Types.ObjectId(value));
 
-async function syncRestaurantDiningSettings(restaurantId, diningDoc) {
+async function syncSellerDiningSettings(sellerId, diningDoc) {
     const primaryCategory = diningDoc?.primaryCategoryId
         ? await FoodDiningCategory.findById(diningDoc.primaryCategoryId).select('slug').lean()
         : null;
 
-    await FoodRestaurant.findByIdAndUpdate(
-        restaurantId,
+    await FoodSeller.findByIdAndUpdate(
+        sellerId,
         {
             $set: {
                 diningSettings: {
@@ -40,16 +40,16 @@ async function syncRestaurantDiningSettings(restaurantId, diningDoc) {
     );
 }
 
-async function syncCategoryRestaurantLinks(restaurantId, categoryIds) {
+async function syncCategorySellerLinks(sellerId, categoryIds) {
     await FoodDiningCategory.updateMany(
-        { restaurantIds: restaurantId, _id: { $nin: categoryIds } },
-        { $pull: { restaurantIds: restaurantId } }
+        { sellerIds: sellerId, _id: { $nin: categoryIds } },
+        { $pull: { sellerIds: sellerId } }
     );
 
     if (categoryIds.length > 0) {
         await FoodDiningCategory.updateMany(
             { _id: { $in: categoryIds } },
-            { $addToSet: { restaurantIds: restaurantId } }
+            { $addToSet: { sellerIds: sellerId } }
         );
     }
 }
@@ -62,44 +62,44 @@ function mapCategory(doc) {
         imageUrl: doc.imageUrl || '',
         isActive: doc.isActive !== false,
         sortOrder: doc.sortOrder || 0,
-        restaurantCount: Array.isArray(doc.restaurantIds) ? doc.restaurantIds.length : 0,
+        sellerCount: Array.isArray(doc.sellerIds) ? doc.sellerIds.length : 0,
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt
     };
 }
 
-function getRestaurantZone(restaurant) {
+function getSellerZone(seller) {
     return (
-        restaurant?.location?.area ||
-        restaurant?.location?.city ||
-        restaurant?.area ||
-        restaurant?.city ||
+        seller?.location?.area ||
+        seller?.location?.city ||
+        seller?.area ||
+        seller?.city ||
         'N/A'
     );
 }
 
-function getRestaurantImage(restaurant) {
-    const coverImage = Array.isArray(restaurant?.coverImages)
-        ? restaurant.coverImages
+function getSellerImage(seller) {
+    const coverImage = Array.isArray(seller?.coverImages)
+        ? seller.coverImages
             .map((image) => (typeof image === 'string' ? image : image?.url || ''))
             .find(Boolean)
         : '';
     if (coverImage) return coverImage;
 
-    const menuImage = Array.isArray(restaurant?.menuImages)
-        ? restaurant.menuImages
+    const menuImage = Array.isArray(seller?.menuImages)
+        ? seller.menuImages
             .map((image) => (typeof image === 'string' ? image : image?.url || ''))
             .find(Boolean)
         : '';
     if (menuImage) return menuImage;
 
-    const value = restaurant?.profileImage;
+    const value = seller?.profileImage;
     if (!value) return '';
     if (typeof value === 'string') return value;
     return value?.url || '';
 }
 
-function mapDiningRestaurant(restaurant, diningDoc, categoriesById) {
+function mapDiningSeller(seller, diningDoc, categoriesById) {
     const categoryIds = (diningDoc?.categoryIds || []).map((id) => String(id));
     const categories = categoryIds
         .map((id) => categoriesById.get(id))
@@ -115,27 +115,27 @@ function mapDiningRestaurant(restaurant, diningDoc, categoriesById) {
     const primaryCategory = categories.find((category) => String(category._id) === primaryCategoryId) || categories[0] || null;
 
     return {
-        _id: restaurant._id,
-        id: restaurant._id,
-        name: restaurant.restaurantName || restaurant.name || 'N/A',
-        restaurantName: restaurant.restaurantName || restaurant.name || 'N/A',
-        ownerName: restaurant.ownerName || 'N/A',
-        ownerPhone: restaurant.ownerPhone || restaurant.phone || 'N/A',
-        pureVegRestaurant: diningDoc?.pureVegRestaurant === true || restaurant?.pureVegRestaurant === true,
-        zone: getRestaurantZone(restaurant),
-        city: restaurant?.location?.city || restaurant?.city || '',
-        status: restaurant.status,
-        isActive: restaurant.status === 'approved',
-        rating: Number(restaurant.rating || 0),
-        logo: getRestaurantImage(restaurant),
+        _id: seller._id,
+        id: seller._id,
+        name: seller.sellerName || seller.name || 'N/A',
+        sellerName: seller.sellerName || seller.name || 'N/A',
+        ownerName: seller.ownerName || 'N/A',
+        ownerPhone: seller.ownerPhone || seller.phone || 'N/A',
+        pureVegSeller: diningDoc?.pureVegSeller === true || seller?.pureVegSeller === true,
+        zone: getSellerZone(seller),
+        city: seller?.location?.city || seller?.city || '',
+        status: seller.status,
+        isActive: seller.status === 'approved',
+        rating: Number(seller.rating || 0),
+        logo: getSellerImage(seller),
         categories,
         categoryIds,
         primaryCategoryId: primaryCategory?._id || null,
         diningSettings: {
             isEnabled: Boolean(diningDoc?.isEnabled),
             maxGuests: Math.max(1, Number(diningDoc?.maxGuests) || 6),
-            pureVegRestaurant: diningDoc?.pureVegRestaurant === true || restaurant?.pureVegRestaurant === true,
-            diningType: primaryCategory?.slug || restaurant?.diningSettings?.diningType || ''
+            pureVegSeller: diningDoc?.pureVegSeller === true || seller?.pureVegSeller === true,
+            diningType: primaryCategory?.slug || seller?.diningSettings?.diningType || ''
         }
     };
 }
@@ -203,9 +203,9 @@ export async function updateDiningCategory(id, body = {}) {
 
     await doc.save();
 
-    const linkedDiningDocs = await FoodDiningRestaurant.find({ categoryIds: doc._id }).select('_id restaurantId').lean();
+    const linkedDiningDocs = await FoodDiningSeller.find({ categoryIds: doc._id }).select('_id sellerId').lean();
     await Promise.all(linkedDiningDocs.map(async (item) => {
-        await syncRestaurantDiningSettings(item.restaurantId, await FoodDiningRestaurant.findById(item._id).lean());
+        await syncSellerDiningSettings(item.sellerId, await FoodDiningSeller.findById(item._id).lean());
     }));
 
     return mapCategory(doc.toObject());
@@ -218,57 +218,57 @@ export async function deleteDiningCategory(id) {
     if (!category) return null;
 
     const categoryId = new mongoose.Types.ObjectId(id);
-    const diningDocs = await FoodDiningRestaurant.find({ categoryIds: categoryId });
+    const diningDocs = await FoodDiningSeller.find({ categoryIds: categoryId });
 
     for (const doc of diningDocs) {
         doc.categoryIds = (doc.categoryIds || []).filter((value) => String(value) !== id);
         if (doc.primaryCategoryId && String(doc.primaryCategoryId) === id) {
             doc.primaryCategoryId = doc.categoryIds[0] || null;
         }
-        if (typeof doc.pureVegRestaurant !== 'boolean') {
-            const sourceRestaurant = await FoodRestaurant.findById(doc.restaurantId).select('pureVegRestaurant').lean();
-            doc.pureVegRestaurant = sourceRestaurant?.pureVegRestaurant === true;
+        if (typeof doc.pureVegSeller !== 'boolean') {
+            const sourceSeller = await FoodSeller.findById(doc.sellerId).select('pureVegSeller').lean();
+            doc.pureVegSeller = sourceSeller?.pureVegSeller === true;
         }
         await doc.save();
-        await syncRestaurantDiningSettings(doc.restaurantId, doc);
+        await syncSellerDiningSettings(doc.sellerId, doc);
     }
 
     return { id };
 }
 
-export async function listDiningRestaurantsAdmin() {
-    const [restaurants, diningDocs, categories] = await Promise.all([
-        FoodRestaurant.find({})
+export async function listDiningSellersAdmin() {
+    const [sellers, diningDocs, categories] = await Promise.all([
+        FoodSeller.find({})
             .sort({ createdAt: -1 })
-            .select('restaurantName ownerName ownerPhone profileImage coverImages menuImages location area city status rating pureVegRestaurant diningSettings')
+            .select('sellerName ownerName ownerPhone profileImage coverImages menuImages location area city status rating pureVegSeller diningSettings')
             .lean(),
-        FoodDiningRestaurant.find({})
-            .select('restaurantId categoryIds primaryCategoryId isEnabled maxGuests pureVegRestaurant')
+        FoodDiningSeller.find({})
+            .select('sellerId categoryIds primaryCategoryId isEnabled maxGuests pureVegSeller')
             .lean(),
         FoodDiningCategory.find({}).select('name slug imageUrl').lean()
     ]);
 
     const categoriesById = new Map(categories.map((category) => [String(category._id), category]));
-    const diningByRestaurantId = new Map(diningDocs.map((doc) => [String(doc.restaurantId), doc]));
+    const diningBySellerId = new Map(diningDocs.map((doc) => [String(doc.sellerId), doc]));
 
-    const items = restaurants.map((restaurant) =>
-        mapDiningRestaurant(restaurant, diningByRestaurantId.get(String(restaurant._id)), categoriesById)
+    const items = sellers.map((seller) =>
+        mapDiningSeller(seller, diningBySellerId.get(String(seller._id)), categoriesById)
     );
 
-    return { restaurants: items };
+    return { sellers: items };
 }
 
-export async function updateDiningRestaurant(restaurantId, body = {}) {
-    if (!mongoose.Types.ObjectId.isValid(restaurantId)) return null;
+export async function updateDiningSeller(sellerId, body = {}) {
+    if (!mongoose.Types.ObjectId.isValid(sellerId)) return null;
 
-    const restaurant = await FoodRestaurant.findById(restaurantId).lean();
-    if (!restaurant) return null;
+    const seller = await FoodSeller.findById(sellerId).lean();
+    if (!seller) return null;
 
-    let diningDoc = await FoodDiningRestaurant.findOne({ restaurantId });
+    let diningDoc = await FoodDiningSeller.findOne({ sellerId });
     if (!diningDoc) {
-        diningDoc = new FoodDiningRestaurant({
-            restaurantId,
-            pureVegRestaurant: restaurant.pureVegRestaurant === true
+        diningDoc = new FoodDiningSeller({
+            sellerId,
+            pureVegSeller: seller.pureVegSeller === true
         });
     }
 
@@ -290,15 +290,15 @@ export async function updateDiningRestaurant(restaurantId, body = {}) {
     if (body.maxGuests !== undefined) {
         diningDoc.maxGuests = Math.max(1, parseInt(body.maxGuests, 10) || 6);
     }
-    if (body.pureVegRestaurant !== undefined) {
-        if (typeof body.pureVegRestaurant === 'boolean') {
-            diningDoc.pureVegRestaurant = body.pureVegRestaurant;
-        } else if (typeof body.pureVegRestaurant === 'string') {
-            const normalized = body.pureVegRestaurant.trim().toLowerCase();
+    if (body.pureVegSeller !== undefined) {
+        if (typeof body.pureVegSeller === 'boolean') {
+            diningDoc.pureVegSeller = body.pureVegSeller;
+        } else if (typeof body.pureVegSeller === 'string') {
+            const normalized = body.pureVegSeller.trim().toLowerCase();
             if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
-                diningDoc.pureVegRestaurant = true;
+                diningDoc.pureVegSeller = true;
             } else if (normalized === 'false' || normalized === '0' || normalized === 'no') {
-                diningDoc.pureVegRestaurant = false;
+                diningDoc.pureVegSeller = false;
             }
         }
     }
@@ -315,18 +315,18 @@ export async function updateDiningRestaurant(restaurantId, body = {}) {
     if (!primaryCategoryIsAllowed) {
         diningDoc.primaryCategoryId = validCategoryIds[0] || null;
     }
-    if (typeof diningDoc.pureVegRestaurant !== 'boolean') {
-        diningDoc.pureVegRestaurant = restaurant.pureVegRestaurant === true;
+    if (typeof diningDoc.pureVegSeller !== 'boolean') {
+        diningDoc.pureVegSeller = seller.pureVegSeller === true;
     }
 
     await diningDoc.save();
-    await syncCategoryRestaurantLinks(restaurant._id, validCategoryIds);
-    await syncRestaurantDiningSettings(restaurant._id, diningDoc);
+    await syncCategorySellerLinks(seller._id, validCategoryIds);
+    await syncSellerDiningSettings(seller._id, diningDoc);
 
     const categories = await FoodDiningCategory.find({}).select('name slug imageUrl').lean();
     const categoriesById = new Map(categories.map((category) => [String(category._id), category]));
 
-    return mapDiningRestaurant(restaurant, diningDoc.toObject(), categoriesById);
+    return mapDiningSeller(seller, diningDoc.toObject(), categoriesById);
 }
 
 export async function listDiningCategoriesPublic() {
@@ -336,19 +336,19 @@ export async function listDiningCategoriesPublic() {
     return categories.map(mapCategory);
 }
 
-export async function listDiningRestaurantsPublic(query = {}) {
+export async function listDiningSellersPublic(query = {}) {
     const categoryValue = String(query.category || '').trim();
     const cityValue = String(query.city || '').trim();
 
-    // 1. Build the base filter for FoodRestaurant
-    const restaurantFilter = {
+    // 1. Build the base filter for FoodSeller
+    const sellerFilter = {
         'diningSettings.isEnabled': true,
         status: 'approved'
     };
 
     // 2. Apply city filter if provided
     if (cityValue) {
-        restaurantFilter.$or = [
+        sellerFilter.$or = [
             { city: { $regex: cityValue, $options: 'i' } },
             { 'location.city': { $regex: cityValue, $options: 'i' } }
         ];
@@ -366,43 +366,43 @@ export async function listDiningRestaurantsPublic(query = {}) {
         if (!category) {
             return [];
         }
-        restaurantFilter._id = { $in: category.restaurantIds || [] };
+        sellerFilter._id = { $in: category.sellerIds || [] };
     }
 
-    // 4. Fetch restaurants
-    const restaurants = await FoodRestaurant.find(restaurantFilter)
-        .select('restaurantName restaurantNameNormalized ownerName ownerPhone profileImage coverImages menuImages cuisines location area city status rating diningSettings estimatedDeliveryTime estimatedDeliveryTimeMinutes featuredDish featuredPrice offer openingTime closingTime openDays isAcceptingOrders costForTwo pureVegRestaurant')
+    // 4. Fetch sellers
+    const sellers = await FoodSeller.find(sellerFilter)
+        .select('sellerName sellerNameNormalized ownerName ownerPhone profileImage coverImages menuImages cuisines location area city status rating diningSettings estimatedDeliveryTime estimatedDeliveryTimeMinutes featuredDish featuredPrice offer openingTime closingTime openDays isAcceptingOrders costForTwo pureVegSeller')
         .lean();
 
-    if (restaurants.length === 0) {
+    if (sellers.length === 0) {
         return [];
     }
 
-    const restaurantIds = restaurants.map(r => r._id);
+    const sellerIds = sellers.map(r => r._id);
 
-    // 5. Fetch dining metadata from FoodDiningRestaurant for these restaurants
-    const diningMetadata = await FoodDiningRestaurant.find({
-        restaurantId: { $in: restaurantIds }
+    // 5. Fetch dining metadata from FoodDiningSeller for these sellers
+    const diningMetadata = await FoodDiningSeller.find({
+        sellerId: { $in: sellerIds }
     })
     .populate('categoryIds', 'name slug imageUrl')
     .lean();
 
     const metadataMap = new Map();
     diningMetadata.forEach(m => {
-        metadataMap.set(String(m.restaurantId), m);
+        metadataMap.set(String(m.sellerId), m);
     });
 
     // 6. Map combined results
-    return restaurants.map((r) => {
+    return sellers.map((r) => {
         const meta = metadataMap.get(String(r._id));
         return {
             ...r,
-            restaurant: r,
+            seller: r,
             categories: meta?.categoryIds || [],
             diningSettings: {
                 isEnabled: true,
                 maxGuests: Math.max(1, Number(meta?.maxGuests || r.diningSettings?.maxGuests) || 6),
-                pureVegRestaurant: r.pureVegRestaurant === true || meta?.pureVegRestaurant === true,
+                pureVegSeller: r.pureVegSeller === true || meta?.pureVegSeller === true,
                 diningType: meta?.categoryIds?.[0]?.slug || r.diningSettings?.diningType || 'family-dining'
             }
         };

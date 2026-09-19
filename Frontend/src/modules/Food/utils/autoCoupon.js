@@ -136,7 +136,7 @@ function writeJson(key, value) {
   }
 }
 
-export function syncCartPreferenceKeys(restaurantId, cartSignature) {
+export function syncCartPreferenceKeys(sellerId, cartSignature) {
   const optOut = readJson(OPT_OUT_KEY)
   if (optOut && optOut.cartSignature !== cartSignature) {
     writeJson(OPT_OUT_KEY, null)
@@ -147,29 +147,29 @@ export function syncCartPreferenceKeys(restaurantId, cartSignature) {
   }
 }
 
-export function isManualCouponOptOut(restaurantId, cartSignature) {
+export function isManualCouponOptOut(sellerId, cartSignature) {
   const data = readJson(OPT_OUT_KEY)
   if (!data) return false
-  return data.restaurantId === String(restaurantId) && data.cartSignature === cartSignature
+  return data.sellerId === String(sellerId) && data.cartSignature === cartSignature
 }
 
-export function markManualCouponOptOut(restaurantId, cartSignature) {
+export function markManualCouponOptOut(sellerId, cartSignature) {
   writeJson(OPT_OUT_KEY, {
-    restaurantId: String(restaurantId),
+    sellerId: String(sellerId),
     cartSignature,
     at: Date.now(),
   })
 }
 
-export function isUserSelectedCoupon(restaurantId, cartSignature) {
+export function isUserSelectedCoupon(sellerId, cartSignature) {
   const data = readJson(USER_SELECTED_KEY)
   if (!data) return false
-  return data.restaurantId === String(restaurantId) && data.cartSignature === cartSignature
+  return data.sellerId === String(sellerId) && data.cartSignature === cartSignature
 }
 
-export function markUserSelectedCoupon(restaurantId, cartSignature, code) {
+export function markUserSelectedCoupon(sellerId, cartSignature, code) {
   writeJson(USER_SELECTED_KEY, {
-    restaurantId: String(restaurantId),
+    sellerId: String(sellerId),
     cartSignature,
     code: String(code || "").toUpperCase(),
     at: Date.now(),

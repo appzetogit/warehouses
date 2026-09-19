@@ -15,7 +15,7 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
 import { FoodOrder } from '../src/modules/food/orders/models/order.model.js';
-import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
 import {
     reserveStockForItems,
     restoreOrderStock,
@@ -40,12 +40,12 @@ async function main() {
     }
     console.log(`connected -> ${mongoose.connection.name}\n`);
 
-    const seller = await FoodRestaurant.findOne({ status: 'approved' }).select('_id').lean();
+    const seller = await FoodSeller.findOne({ status: 'approved' }).select('_id').lean();
     if (!seller) { console.error('no seller found; run the seeder first'); process.exit(1); }
 
     const mk = async (name, stockQty) =>
         FoodItem.create({
-            restaurantId: seller._id, name: `${TAG} ${name}`, description: TAG,
+            sellerId: seller._id, name: `${TAG} ${name}`, description: TAG,
             price: 100, stockQty, isAvailable: true, approvalStatus: 'approved', foodType: 'Veg',
         });
 
@@ -98,7 +98,7 @@ async function main() {
         const d = await mk('restock', 10);
         await reserveStockForItems([{ itemId: String(d._id), quantity: 4 }]);
         const order = await FoodOrder.create({
-            userId: new mongoose.Types.ObjectId(), restaurantId: seller._id,
+            userId: new mongoose.Types.ObjectId(), sellerId: seller._id,
             items: [{ itemId: String(d._id), name: `${TAG} restock`, price: 100, quantity: 4 }],
             // Required by the schema, and coordinates are required by the 2dsphere
             // index on the address. Irrelevant to stock, but the row will not insert

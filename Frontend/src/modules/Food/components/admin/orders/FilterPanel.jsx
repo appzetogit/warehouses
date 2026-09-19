@@ -7,7 +7,7 @@ export default function FilterPanel({
   setFilters,
   onApply,
   onReset,
-  restaurantOptions = [],
+  sellerOptions = [],
 }) {
   if (!isOpen) return null
 
@@ -124,20 +124,20 @@ export default function FilterPanel({
             </div>
           </div>
 
-          {restaurantOptions.length > 0 && (
+          {sellerOptions.length > 0 && (
             <div className="pt-2 border-t border-slate-100">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Restaurant
+                Seller
               </label>
               <select
-                value={filters.restaurantId || ""}
-                onChange={(e) => setFilters((prev) => ({ ...prev, restaurantId: e.target.value }))}
+                value={filters.sellerId || ""}
+                onChange={(e) => setFilters((prev) => ({ ...prev, sellerId: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white"
               >
-                <option value="">All Restaurants</option>
-                {restaurantOptions.map((restaurant) => (
-                  <option key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
+                <option value="">All Sellers</option>
+                {sellerOptions.map((seller) => (
+                  <option key={seller.id} value={seller.id}>
+                    {seller.name}
                   </option>
                 ))}
               </select>

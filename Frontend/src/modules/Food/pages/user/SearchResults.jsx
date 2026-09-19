@@ -4,13 +4,13 @@ import { ArrowLeft, Star, Clock, Search, SlidersHorizontal, ChevronDown, Bookmar
 import { Card, CardContent } from "@food/components/ui/card"
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
-import { RestaurantGridSkeleton } from "@food/components/ui/loading-skeletons"
+import { SellerGridSkeleton } from "@food/components/ui/loading-skeletons"
 import FloatingHomeDock from "@food/components/user/FloatingHomeDock"
 import { useProfile } from "@food/context/ProfileContext"
 import { useDeliveryLocation } from "@food/context/DeliveryLocationContext"
-import { restaurantAPI, adminAPI } from "@food/api"
+import { sellerAPI, adminAPI } from "@food/api"
 import { useDelayedLoading } from "@food/hooks/useDelayedLoading"
-import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability"
+import { getSellerAvailabilityStatus } from "@food/utils/sellerAvailability"
 
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -39,14 +39,14 @@ export default function SearchResults() {
   const [favorites, setFavorites] = useState(new Set())
   const categoryScrollRef = useRef(null)
   const menuEnrichmentRequestRef = useRef(0)
-  const [restaurantsData, setRestaurantsData] = useState([])
-  const [loadingRestaurants, setLoadingRestaurants] = useState(true)
+  const [sellersData, setSellersData] = useState([])
+  const [loadingSellers, setLoadingSellers] = useState(true)
   const [categories, setCategories] = useState([
     { id: 'all', name: "All", image: "" }
   ])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [categoryKeywords, setCategoryKeywords] = useState({})
-  const showRestaurantSkeleton = useDelayedLoading(loadingRestaurants)
+  const showSellerSkeleton = useDelayedLoading(loadingSellers)
   const deferredQuery = useDeferredValue(query)
   const [availabilityTick, setAvailabilityTick] = useState(Date.now())
 
@@ -69,10 +69,10 @@ export default function SearchResults() {
     }
   }, []);
   const slugify = (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
-  const uniqueRestaurants = (list) => {
+  const uniqueSellers = (list) => {
     const seen = new Set()
-    return list.filter((restaurant) => {
-      const key = restaurant?.id || restaurant?.restaurantId || slugify(restaurant?.name)
+    return list.filter((seller) => {
+      const key = seller?.id || seller?.sellerId || slugify(seller?.name)
       if (!key || seen.has(key)) return false
       seen.add(key)
       return true
@@ -197,35 +197,35 @@ export default function SearchResults() {
     return null
   }
 
-  // Fetch restaurants from API
+  // Fetch sellers from API
   useEffect(() => {
-    const fetchRestaurants = async () => {
+    const fetchSellers = async () => {
       try {
-        setLoadingRestaurants(true)
-        debugLog('?? Fetching restaurants from API...')
-        // Optional: Add zoneId if available (for sorting/filtering, but show all restaurants)
+        setLoadingSellers(true)
+        debugLog('?? Fetching sellers from API...')
+        // Optional: Add zoneId if available (for sorting/filtering, but show all sellers)
         const params = {}
         if (zoneId) {
           params.zoneId = zoneId
         }
-        const response = await restaurantAPI.getRestaurants(params)
+        const response = await sellerAPI.getSellers(params)
 
         debugLog('?? Full API Response:', response)
         debugLog('?? Response Data:', response?.data)
 
-        if (response.data && response.data.success && response.data.data && response.data.data.restaurants) {
-          const restaurantsArray = response.data.data.restaurants
-          debugLog(`? Got ${restaurantsArray.length} restaurants from API`)
+        if (response.data && response.data.success && response.data.data && response.data.data.sellers) {
+          const sellersArray = response.data.data.sellers
+          debugLog(`? Got ${sellersArray.length} sellers from API`)
 
           // Check if we have actual data or just defaults
-          if (restaurantsArray.length > 0) {
-            debugLog('?? First restaurant sample:', {
-              id: restaurantsArray[0]._id || restaurantsArray[0].restaurantId,
-              name: restaurantsArray[0].name,
-              rating: restaurantsArray[0].rating,
-              offer: restaurantsArray[0].offer,
-              featuredDish: restaurantsArray[0].featuredDish,
-              featuredPrice: restaurantsArray[0].featuredPrice,
+          if (sellersArray.length > 0) {
+            debugLog('?? First seller sample:', {
+              id: sellersArray[0]._id || sellersArray[0].sellerId,
+              name: sellersArray[0].name,
+              rating: sellersArray[0].rating,
+              offer: sellersArray[0].offer,
+              featuredDish: sellersArray[0].featuredDish,
+              featuredPrice: sellersArray[0].featuredPrice,
             })
           }
 
@@ -259,24 +259,24 @@ export default function SearchResults() {
             return false
           }
 
-          // First transform restaurants without menu data - USE ONLY BACKEND DATA
-          // Filter out restaurants with only default/mock data
-          const restaurantsWithIds = restaurantsArray
-            .filter((restaurant) => {
-              // Only include restaurants with real data (not just defaults)
-              // At minimum, restaurant should have a name and either images or menu
-              const hasName = restaurant.name && restaurant.name.trim().length > 0
-              const hasRealImage = restaurant.profileImage?.url ||
-                (restaurant.coverImages && restaurant.coverImages.length > 0) ||
-                (restaurant.menuImages && restaurant.menuImages.length > 0)
+          // First transform sellers without menu data - USE ONLY BACKEND DATA
+          // Filter out sellers with only default/mock data
+          const sellersWithIds = sellersArray
+            .filter((seller) => {
+              // Only include sellers with real data (not just defaults)
+              // At minimum, seller should have a name and either images or menu
+              const hasName = seller.name && seller.name.trim().length > 0
+              const hasRealImage = seller.profileImage?.url ||
+                (seller.coverImages && seller.coverImages.length > 0) ||
+                (seller.menuImages && seller.menuImages.length > 0)
 
               return hasName && hasRealImage
             })
-            .map((restaurant) => {
+            .map((seller) => {
               // Use backend data directly - filter out default values
-              let deliveryTime = restaurant.estimatedDeliveryTime || null
-              let distance = restaurant.distance || null
-              let offer = restaurant.offer || null
+              let deliveryTime = seller.estimatedDeliveryTime || null
+              let distance = seller.distance || null
+              let offer = seller.offer || null
 
               // Filter out default values
               if (isDefaultValue(deliveryTime, 'deliveryTime')) {
@@ -289,17 +289,17 @@ export default function SearchResults() {
                 offer = null
               }
 
-              const cuisine = restaurant.cuisines && restaurant.cuisines.length > 0
-                ? restaurant.cuisines.join(", ")
+              const cuisine = seller.cuisines && seller.cuisines.length > 0
+                ? seller.cuisines.join(", ")
                 : null
 
               // Get images from backend only
-              const coverImages = restaurant.coverImages && restaurant.coverImages.length > 0
-                ? restaurant.coverImages.map(img => img.url || img).filter(Boolean)
+              const coverImages = seller.coverImages && seller.coverImages.length > 0
+                ? seller.coverImages.map(img => img.url || img).filter(Boolean)
                 : []
 
-              const fallbackImages = restaurant.menuImages && restaurant.menuImages.length > 0
-                ? restaurant.menuImages.map(img => img.url || img).filter(Boolean)
+              const fallbackImages = seller.menuImages && seller.menuImages.length > 0
+                ? seller.menuImages.map(img => img.url || img).filter(Boolean)
                 : []
 
               // Use backend images only - no fallback placeholder
@@ -307,13 +307,13 @@ export default function SearchResults() {
                 ? coverImages
                 : (fallbackImages.length > 0
                   ? fallbackImages
-                  : (restaurant.profileImage?.url ? [restaurant.profileImage.url] : []))
+                  : (seller.profileImage?.url ? [seller.profileImage.url] : []))
 
               const image = allImages[0] || null // Will be handled in UI
-              const restaurantId = restaurant.restaurantId || restaurant._id
+              const sellerId = seller.sellerId || seller._id
 
-              let featuredDish = restaurant.featuredDish || null
-              let featuredPrice = restaurant.featuredPrice || null
+              let featuredDish = seller.featuredDish || null
+              let featuredPrice = seller.featuredPrice || null
 
               // Filter out default featured price
               if (featuredPrice && isDefaultValue(featuredPrice, 'featuredPrice')) {
@@ -321,46 +321,46 @@ export default function SearchResults() {
               }
 
               return {
-                id: restaurantId,
-                name: restaurant.name,
+                id: sellerId,
+                name: seller.name,
                 cuisine: cuisine,
-                rating: restaurant.rating || null, // Use backend rating or null
+                rating: seller.rating || null, // Use backend rating or null
                 deliveryTime: deliveryTime,
                 distance: distance,
                 image: image,
                 images: allImages,
-                priceRange: restaurant.priceRange || null,
+                priceRange: seller.priceRange || null,
                 featuredDish: featuredDish, // Will be set from menu if available
                 featuredPrice: featuredPrice, // Will be set from menu if available
                 offer: offer, // Use backend offer or null (defaults filtered out)
-                slug: restaurant.slug || restaurant.name?.toLowerCase().replace(/\s+/g, '-'),
-                restaurantId: restaurantId,
+                slug: seller.slug || seller.name?.toLowerCase().replace(/\s+/g, '-'),
+                sellerId: sellerId,
                 hasPaneer: false, // Will be updated after menu fetch
                 category: 'all',
               }
             })
 
           startTransition(() => {
-            setRestaurantsData(restaurantsWithIds)
+            setSellersData(sellersWithIds)
           })
 
           const enrichmentRequestId = ++menuEnrichmentRequestRef.current
 
           void (async () => {
-            const transformedRestaurants = []
+            const transformedSellers = []
 
-            for (let index = 0; index < restaurantsWithIds.length; index += 4) {
-              const batchRestaurants = restaurantsWithIds.slice(index, index + 4)
+            for (let index = 0; index < sellersWithIds.length; index += 4) {
+              const batchSellers = sellersWithIds.slice(index, index + 4)
               const batchResults = await Promise.all(
-                batchRestaurants.map(async (restaurant) => {
+                batchSellers.map(async (seller) => {
                   try {
-                    const menuResponse = await restaurantAPI.getMenuByRestaurantId(restaurant.restaurantId)
+                    const menuResponse = await sellerAPI.getMenuBySellerId(seller.sellerId)
                     if (menuResponse.data && menuResponse.data.success && menuResponse.data.data && menuResponse.data.data.menu) {
                       const menu = menuResponse.data.data.menu
                       const hasPaneer = checkCategoryInMenu(menu, 'paneer-tikka')
 
-                      let featuredDish = restaurant.featuredDish
-                      let featuredPrice = restaurant.featuredPrice
+                      let featuredDish = seller.featuredDish
+                      let featuredPrice = seller.featuredPrice
 
                       if (!featuredDish || !featuredPrice) {
                         for (const section of (menu.sections || [])) {
@@ -380,7 +380,7 @@ export default function SearchResults() {
                       }
 
                       return {
-                        ...restaurant,
+                        ...seller,
                         menu: menu,
                         hasPaneer: hasPaneer,
                         featuredDish: featuredDish || null,
@@ -389,11 +389,11 @@ export default function SearchResults() {
                       }
                     }
                   } catch (error) {
-                    debugWarn(`Failed to fetch menu for restaurant ${restaurant.restaurantId}:`, error)
+                    debugWarn(`Failed to fetch menu for seller ${seller.sellerId}:`, error)
                   }
 
                   return {
-                    ...restaurant,
+                    ...seller,
                     menu: null,
                     hasPaneer: false,
                     categoryMatches: {},
@@ -402,25 +402,25 @@ export default function SearchResults() {
               )
 
               if (enrichmentRequestId !== menuEnrichmentRequestRef.current) return
-              transformedRestaurants.push(...batchResults)
+              transformedSellers.push(...batchResults)
             }
 
-            debugLog(`? Final transformed restaurants: ${transformedRestaurants.length}`)
+            debugLog(`? Final transformed sellers: ${transformedSellers.length}`)
             startTransition(() => {
-              setRestaurantsData(transformedRestaurants)
+              setSellersData(transformedSellers)
             })
 
             const sectionStatsMap = new Map()
-            transformedRestaurants.forEach((restaurant) => {
-              const sections = restaurant?.menu?.sections
+            transformedSellers.forEach((seller) => {
+              const sections = seller?.menu?.sections
               if (!Array.isArray(sections)) return
-              const seenInRestaurant = new Set()
+              const seenInSeller = new Set()
               sections.forEach((section) => {
                 const rawName = String(section?.name || '').trim()
                 if (!rawName) return
                 const key = slugify(rawName)
-                if (!key || seenInRestaurant.has(key)) return
-                seenInRestaurant.add(key)
+                if (!key || seenInSeller.has(key)) return
+                seenInSeller.add(key)
 
                 const existing = sectionStatsMap.get(key) || { name: rawName, count: 0 }
                 existing.count += 1
@@ -433,8 +433,8 @@ export default function SearchResults() {
                 .map(([slug, stats]) => [slug, stats.name])
 
               const getCategoryImageFromMenus = (slug, categoryName) => {
-                for (const restaurant of transformedRestaurants) {
-                  const menuSections = Array.isArray(restaurant?.menu?.sections) ? restaurant.menu.sections : []
+                for (const seller of transformedSellers) {
+                  const menuSections = Array.isArray(seller?.menu?.sections) ? seller.menu.sections : []
                   for (const section of menuSections) {
                     const sectionSlug = slugify(section?.name || "")
                     if (sectionSlug !== slug && String(section?.name || "").trim().toLowerCase() !== String(categoryName || "").trim().toLowerCase()) {
@@ -452,9 +452,9 @@ export default function SearchResults() {
                       if (subImageItem?.image) return subImageItem.image
                     }
 
-                    if (restaurant?.image) return restaurant.image
-                    if (Array.isArray(restaurant?.images) && restaurant.images.length > 0) {
-                      return restaurant.images[0]
+                    if (seller?.image) return seller.image
+                    if (Array.isArray(seller?.images) && seller.images.length > 0) {
+                      return seller.images[0]
                     }
                   }
                 }
@@ -485,25 +485,25 @@ export default function SearchResults() {
             }
           })()
         } else {
-          debugWarn('?? No restaurants in API response. Response structure:', {
+          debugWarn('?? No sellers in API response. Response structure:', {
             hasData: !!response.data,
             hasSuccess: response.data?.success,
             hasDataField: !!response.data?.data,
-            hasRestaurants: !!response.data?.data?.restaurants,
+            hasSellers: !!response.data?.data?.sellers,
             fullResponse: response.data
           })
-          setRestaurantsData([])
+          setSellersData([])
         }
       } catch (error) {
-        debugError('? Error fetching restaurants:', error)
+        debugError('? Error fetching sellers:', error)
         debugError('? Error response:', error.response?.data)
-        setRestaurantsData([])
+        setSellersData([])
       } finally {
-        setLoadingRestaurants(false)
+        setLoadingSellers(false)
       }
     }
 
-    fetchRestaurants()
+    fetchSellers()
   }, [zoneId, isOutOfService])
 
   // Update search query when URL changes
@@ -575,10 +575,10 @@ export default function SearchResults() {
     }
   }
 
-  // Filter restaurants based on search query, selected category, and filters
+  // Filter sellers based on search query, selected category, and filters
   const filteredRecommended = useMemo(() => {
     // Use ONLY backend data - no hardcoded fallback
-    const sourceData = restaurantsData.length > 0 ? restaurantsData : []
+    const sourceData = sellersData.length > 0 ? sellersData : []
     let filtered = [...sourceData]
 
     // Filter by search query
@@ -595,7 +595,7 @@ export default function SearchResults() {
     // Filter by category - Dynamic filtering based on menu items
     if (selectedCategory && selectedCategory !== 'all') {
       filtered = filtered.filter(r => {
-        // If restaurant has menu data, check menu for category items
+        // If seller has menu data, check menu for category items
         if (r.menu) {
           const hasCategoryItem = checkCategoryInMenu(r.menu, selectedCategory)
           if (hasCategoryItem) {
@@ -610,8 +610,8 @@ export default function SearchResults() {
           return false
         }
 
-        // Fallback for hardcoded data or restaurants without menu
-        // Check if restaurant matches category (hardcoded data)
+        // Fallback for hardcoded data or sellers without menu
+        // Check if seller matches category (hardcoded data)
         if (r.category === selectedCategory) {
           return true
         }
@@ -637,12 +637,12 @@ export default function SearchResults() {
           if (matches) return true
         }
 
-        // If no match found, don't show restaurant for this category
+        // If no match found, don't show seller for this category
         return false
       })
     } else if (!deferredQuery.trim()) {
-      // Show all restaurants when no category selected (category is 'all')
-      // Don't filter - show all restaurants
+      // Show all sellers when no category selected (category is 'all')
+      // Don't filter - show all sellers
     }
 
     // Apply filters
@@ -660,20 +660,20 @@ export default function SearchResults() {
       filtered = filtered.filter(r => r.offer && r.offer.includes('50%'))
     }
 
-    // Switch 99 filter - exclude closed restaurants
+    // Switch 99 filter - exclude closed sellers
     if (activeFilters.has('under-250')) {
       filtered = filtered.filter(r => {
-        const availability = getRestaurantAvailabilityStatus(r, new Date(availabilityTick));
+        const availability = getSellerAvailabilityStatus(r, new Date(availabilityTick));
         return r.featuredPrice && r.featuredPrice <= 99 && availability.isOpen;
       })
     }
 
-    return uniqueRestaurants(filtered)
-  }, [deferredQuery, selectedCategory, activeFilters, restaurantsData, categoryKeywords, loadingCategories, availabilityTick])
+    return uniqueSellers(filtered)
+  }, [deferredQuery, selectedCategory, activeFilters, sellersData, categoryKeywords, loadingCategories, availabilityTick])
 
-  const filteredAllRestaurants = useMemo(() => {
+  const filteredAllSellers = useMemo(() => {
     // Use ONLY backend data - no hardcoded fallback
-    const sourceData = restaurantsData.length > 0 ? restaurantsData : []
+    const sourceData = sellersData.length > 0 ? sellersData : []
     let filtered = [...sourceData]
 
     // Filter by search query - Search in name, cuisine, featured dish
@@ -708,7 +708,7 @@ export default function SearchResults() {
     // Filter by category - Dynamic filtering based on menu items
     if (selectedCategory && selectedCategory !== 'all') {
       filtered = filtered.filter(r => {
-        // If restaurant has menu data, check menu for category items
+        // If seller has menu data, check menu for category items
         if (r.menu) {
           const hasCategoryItem = checkCategoryInMenu(r.menu, selectedCategory)
           if (hasCategoryItem) {
@@ -723,8 +723,8 @@ export default function SearchResults() {
           return false
         }
 
-        // Fallback for hardcoded data or restaurants without menu
-        // Check if restaurant matches category (hardcoded data)
+        // Fallback for hardcoded data or sellers without menu
+        // Check if seller matches category (hardcoded data)
         if (r.category === selectedCategory) {
           return true
         }
@@ -750,12 +750,12 @@ export default function SearchResults() {
           if (matches) return true
         }
 
-        // If no match found, don't show restaurant for this category
+        // If no match found, don't show seller for this category
         return false
       })
     } else if (!deferredQuery.trim()) {
-      // Show all restaurants when no category selected (category is 'all')
-      // Don't filter - show all restaurants
+      // Show all sellers when no category selected (category is 'all')
+      // Don't filter - show all sellers
     }
 
     // Apply filters
@@ -769,10 +769,10 @@ export default function SearchResults() {
     if (activeFilters.has('rating-4-plus')) {
       filtered = filtered.filter(r => r.rating && r.rating >= 4.0)
     }
-    // Switch 99 filter - exclude closed restaurants (already handled above but ensuring consistency if logic differs)
+    // Switch 99 filter - exclude closed sellers (already handled above but ensuring consistency if logic differs)
     if (activeFilters.has('under-250')) {
       filtered = filtered.filter(r => {
-        const availability = getRestaurantAvailabilityStatus(r, new Date(availabilityTick));
+        const availability = getSellerAvailabilityStatus(r, new Date(availabilityTick));
         return r.featuredPrice && r.featuredPrice <= 99 && availability.isOpen;
       })
     }
@@ -780,16 +780,16 @@ export default function SearchResults() {
       filtered = filtered.filter(r => r.offer && r.offer.includes('50%'))
     }
 
-    return uniqueRestaurants(filtered)
-  }, [deferredQuery, selectedCategory, activeFilters, restaurantsData, categoryKeywords, loadingCategories, availabilityTick])
+    return uniqueSellers(filtered)
+  }, [deferredQuery, selectedCategory, activeFilters, sellersData, categoryKeywords, loadingCategories, availabilityTick])
 
   const recommendedIds = useMemo(
-    () => new Set(filteredRecommended.slice(0, 6).map((restaurant) => restaurant.id)),
+    () => new Set(filteredRecommended.slice(0, 6).map((seller) => seller.id)),
     [filteredRecommended]
   )
-  const nonRepeatedAllRestaurants = useMemo(
-    () => filteredAllRestaurants.filter((restaurant) => !recommendedIds.has(restaurant.id)),
-    [filteredAllRestaurants, recommendedIds]
+  const nonRepeatedAllSellers = useMemo(
+    () => filteredAllSellers.filter((seller) => !recommendedIds.has(seller.id)),
+    [filteredAllSellers, recommendedIds]
   )
 
   // Check if should show grayscale (user out of service)
@@ -812,7 +812,7 @@ export default function SearchResults() {
             <form onSubmit={handleSearch} className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
               <Input
-                placeholder="Restaurant name or a dish..."
+                placeholder="Seller name or a dish..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-10 h-11 rounded-lg border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-[#2a2a2a] focus:border-gray-500 dark:focus:border-gray-600 text-sm dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
@@ -918,31 +918,31 @@ export default function SearchResults() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 lg:py-10 space-y-6 md:space-y-8 lg:space-y-10">
         {/* Loading State */}
-        {showRestaurantSkeleton && <RestaurantGridSkeleton count={4} compact />}
+        {showSellerSkeleton && <SellerGridSkeleton count={4} compact />}
 
         {/* RECOMMENDED FOR YOU Section */}
-        {!showRestaurantSkeleton && filteredRecommended.length > 0 && (
+        {!showSellerSkeleton && filteredRecommended.length > 0 && (
           <section>
             <h2 className="text-xs sm:text-sm font-semibold text-gray-400 dark:text-gray-500 tracking-widest uppercase mb-4">
               RECOMMENDED FOR YOU
             </h2>
 
-            {/* Small Restaurant Cards - Horizontal Scroll */}
+            {/* Small Seller Cards - Horizontal Scroll */}
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 lg:gap-5">
-              {filteredRecommended.slice(0, 6).map((restaurant) => {
+              {filteredRecommended.slice(0, 6).map((seller) => {
                 return (
                   <Link
-                    key={restaurant.id}
-                    to={`/user/restaurants/${restaurant.slug || restaurant.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    key={seller.id}
+                    to={`/user/sellers/${seller.slug || seller.name.toLowerCase().replace(/\s+/g, '-')}`}
                     className="block"
                   >
                     <div className={`group ${shouldShowGrayscale ? 'grayscale opacity-75' : ''}`}>
                       {/* Image Container */}
                       <div className="relative aspect-square rounded-xl overflow-hidden mb-2 bg-gray-200 dark:bg-gray-800">
-                        {restaurant.image ? (
+                        {seller.image ? (
                           <img
-                            src={restaurant.image}
-                            alt={restaurant.name}
+                            src={seller.image}
+                            alt={seller.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => {
                               e.target.style.display = 'none'
@@ -954,31 +954,31 @@ export default function SearchResults() {
                           </div>
                         )}
                         {/* Offer Badge - Only show if offer exists */}
-                        {restaurant.offer && (
+                        {seller.offer && (
                           <div className="absolute top-1.5 left-1.5 bg-gradient-to-r from-[#EB590E] to-[#D94F0C] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">
-                            {restaurant.offer}
+                            {seller.offer}
                           </div>
                         )}
                       </div>
 
                       {/* Rating Badge - Only show if rating exists */}
-                      {restaurant.rating && (
+                      {seller.rating && (
                         <div className="flex items-center gap-1 mb-1">
                           <div className="bg-green-600 text-white text-[11px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                            {restaurant.rating}
+                            {seller.rating}
                             <Star className="h-2.5 w-2.5 fill-white" />
                           </div>
                         </div>
                       )}
 
-                      {/* Restaurant Info */}
+                      {/* Seller Info */}
                       <h3 className="font-semibold text-gray-900 dark:text-white text-xs line-clamp-1">
-                        {restaurant.name}
+                        {seller.name}
                       </h3>
-                      {restaurant.deliveryTime && (
+                      {seller.deliveryTime && (
                         <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-[10px]">
                           <Clock className="h-2.5 w-2.5" />
-                          <span>{restaurant.deliveryTime}</span>
+                          <span>{seller.deliveryTime}</span>
                         </div>
                       )}
                     </div>
@@ -989,28 +989,28 @@ export default function SearchResults() {
           </section>
         )}
 
-        {/* ALL RESTAURANTS Section */}
+        {/* ALL SELLERS Section */}
         <section>
           <h2 className="text-xs sm:text-sm font-semibold text-gray-400 dark:text-gray-500 tracking-widest uppercase mb-4">
-            ALL RESTAURANTS
+            ALL SELLERS
           </h2>
 
-          {/* Large Restaurant Cards */}
+          {/* Large Seller Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 lg:gap-6">
-            {nonRepeatedAllRestaurants.map((restaurant) => {
-              const restaurantSlug = restaurant.name.toLowerCase().replace(/\s+/g, "-")
-              const isFavorite = favorites.has(restaurant.id)
+            {nonRepeatedAllSellers.map((seller) => {
+              const sellerSlug = seller.name.toLowerCase().replace(/\s+/g, "-")
+              const isFavorite = favorites.has(seller.id)
 
               return (
-                <Link key={restaurant.id} to={`/user/restaurants/${restaurant.slug || restaurantSlug}`} className="h-full flex">
+                <Link key={seller.id} to={`/user/sellers/${seller.slug || sellerSlug}`} className="h-full flex">
                   <Card className={`overflow-hidden cursor-pointer border-0 dark:border-gray-800 group bg-white dark:bg-[#1a1a1a] shadow-md hover:shadow-xl transition-all duration-300 py-0 rounded-md flex flex-col h-full w-full ${shouldShowGrayscale ? 'grayscale opacity-75' : ''
                     }`}>
                     {/* Image Section */}
                     <div className="relative h-44 sm:h-52 md:h-60 lg:h-64 xl:h-72 w-full overflow-hidden rounded-t-md flex-shrink-0 bg-gray-200 dark:bg-gray-800">
-                      {restaurant.image ? (
+                      {seller.image ? (
                         <img
-                          src={restaurant.image}
-                          alt={restaurant.name}
+                          src={seller.image}
+                          alt={seller.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
                             e.target.style.display = 'none'
@@ -1026,17 +1026,17 @@ export default function SearchResults() {
                       {(() => {
                         let displayText = null
 
-                        // If category is selected and restaurant has menu, show category-specific dish
-                        if (selectedCategory && selectedCategory !== 'all' && restaurant.menu) {
-                          const categoryDish = getCategoryDishFromMenu(restaurant.menu, selectedCategory)
-                          if (categoryDish && restaurant.featuredPrice) {
-                            displayText = `${categoryDish} • ₹${restaurant.featuredPrice}`
+                        // If category is selected and seller has menu, show category-specific dish
+                        if (selectedCategory && selectedCategory !== 'all' && seller.menu) {
+                          const categoryDish = getCategoryDishFromMenu(seller.menu, selectedCategory)
+                          if (categoryDish && seller.featuredPrice) {
+                            displayText = `${categoryDish} • ₹${seller.featuredPrice}`
                           }
                         }
 
                         // Fallback to featured dish
-                        if (!displayText && restaurant.featuredDish && restaurant.featuredPrice) {
-                          displayText = `${restaurant.featuredDish} • ₹${restaurant.featuredPrice}`
+                        if (!displayText && seller.featuredDish && seller.featuredPrice) {
+                          displayText = `${seller.featuredDish} • ₹${seller.featuredPrice}`
                         }
 
                         return displayText ? (
@@ -1049,7 +1049,7 @@ export default function SearchResults() {
                       })()}
 
                       {/* Ad Badge */}
-                      {restaurant.isAd && (
+                      {seller.isAd && (
                         <div className="absolute top-3 right-14 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded">
                           Ad
                         </div>
@@ -1063,7 +1063,7 @@ export default function SearchResults() {
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
-                          toggleFavorite(restaurant.id)
+                          toggleFavorite(seller.id)
                         }}
                       >
                         <Bookmark className={`h-5 w-5 ${isFavorite ? "fill-gray-800 dark:fill-gray-200 text-gray-800 dark:text-gray-200" : "text-gray-600 dark:text-gray-400"}`} strokeWidth={2} />
@@ -1072,44 +1072,44 @@ export default function SearchResults() {
 
                     {/* Content Section */}
                     <CardContent className="p-3 sm:p-4 lg:p-5 flex flex-col flex-grow">
-                      {/* Restaurant Name & Rating */}
+                      {/* Seller Name & Rating */}
                       <div className="flex items-start justify-between gap-2 mb-2 lg:mb-3">
                         <div className="flex-1 min-w-0">
                           <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white line-clamp-1 lg:line-clamp-2">
-                            {restaurant.name}
+                            {seller.name}
                           </h3>
                         </div>
-                        {restaurant.rating && (
+                        {seller.rating && (
                           <div className="flex-shrink-0 bg-green-600 text-white px-2 py-1 lg:px-3 lg:py-1.5 rounded-lg flex items-center gap-1">
-                            <span className="text-sm lg:text-base font-bold">{restaurant.rating}</span>
+                            <span className="text-sm lg:text-base font-bold">{seller.rating}</span>
                             <Star className="h-3 w-3 lg:h-4 lg:w-4 fill-white text-white" />
                           </div>
                         )}
                       </div>
 
                       {/* Delivery Time & Distance - Only show if data exists */}
-                      {(restaurant.deliveryTime || restaurant.distance) && (
+                      {(seller.deliveryTime || seller.distance) && (
                         <div className="flex items-center gap-1 text-sm lg:text-base text-gray-500 dark:text-gray-400 mb-2 lg:mb-3">
-                          {restaurant.deliveryTime && (
+                          {seller.deliveryTime && (
                             <>
                               <Clock className="h-4 w-4 lg:h-5 lg:w-5" strokeWidth={1.5} />
-                              <span className="font-medium">{restaurant.deliveryTime}</span>
+                              <span className="font-medium">{seller.deliveryTime}</span>
                             </>
                           )}
-                          {restaurant.deliveryTime && restaurant.distance && (
+                          {seller.deliveryTime && seller.distance && (
                             <span className="mx-1">|</span>
                           )}
-                          {restaurant.distance && (
-                            <span className="font-medium">{restaurant.distance}</span>
+                          {seller.distance && (
+                            <span className="font-medium">{seller.distance}</span>
                           )}
                         </div>
                       )}
 
                       {/* Offer Badge */}
-                      {restaurant.offer && (
+                      {seller.offer && (
                         <div className="flex items-center gap-2 text-sm lg:text-base mt-auto">
                           <BadgePercent className="h-4 w-4 lg:h-5 lg:w-5 text-[#EB590E] dark:text-[#EB590E]" strokeWidth={2} />
-                          <span className="text-gray-700 dark:text-gray-300 font-medium">{restaurant.offer}</span>
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">{seller.offer}</span>
                         </div>
                       )}
                     </CardContent>
@@ -1119,12 +1119,12 @@ export default function SearchResults() {
             })}
 
             {/* Empty State */}
-            {nonRepeatedAllRestaurants.length === 0 && (
+            {nonRepeatedAllSellers.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-gray-500 dark:text-gray-400">
                   {query
-                    ? `No restaurants found for "${query}"`
-                    : "No restaurants found with selected filters"}
+                    ? `No sellers found for "${query}"`
+                    : "No sellers found with selected filters"}
                 </p>
                 <Button
                   variant="outline"

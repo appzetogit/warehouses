@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { X, Search, Clock, Loader2, Mic } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
-import { restaurantAPI } from "@food/api"
+import { sellerAPI } from "@food/api"
 
 const SEARCH_HISTORY_KEY = "user_recent_searches_v1"
 
@@ -57,7 +57,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
     const fetchDishesFromDB = async () => {
       setLoadingFoods(true)
       try {
-        const dishesRes = await restaurantAPI.getPublicDishes({ limit: 800 })
+        const dishesRes = await sellerAPI.getPublicDishes({ limit: 800 })
         const dishes =
           dishesRes?.data?.data?.dishes ||
           dishesRes?.data?.dishes ||
@@ -164,7 +164,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
                 ref={inputRef}
                 value={searchValue}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search for food, restaurants..."
+                placeholder="Search for food, sellers..."
                 className="pl-12 pr-12 h-12 w-full bg-white dark:bg-[#1a1a1a] border-gray-100 dark:border-gray-800 focus:border-[#FA0272] dark:focus:border-[#FA0272] rounded-full text-lg dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
               <button
@@ -273,7 +273,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
                     {searchValue.trim() ? `No results found for "${searchValue}"` : "No dishes found in database"}
                   </p>
                   <p className="text-sm sm:text-base text-gray-500 dark:text-gray-500 mt-2">
-                    {searchValue.trim() ? "Try a different search term" : "Add menu items in restaurant menus to show here"}
+                    {searchValue.trim() ? "Try a different search term" : "Add menu items in seller menus to show here"}
                   </p>
                 </>
               )}
@@ -311,7 +311,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
 
           <div className="mt-24 text-center">
             <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Speak Now</h2>
-            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for dishes or restaurants...</p>
+            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for dishes or sellers...</p>
           </div>
 
           <Button

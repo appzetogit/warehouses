@@ -23,7 +23,7 @@ const normalizeNotificationText = (value = "") => {
   const repaired = repairMojibake(raw);
 
   const withoutModulePrefix = repaired
-    .replace(/^\s*(?:[\uD800-\uDBFF][\uDC00-\uDFFF]\s*)*\[(user|shop|restaurant|delivery|admin)\]\s*/i, "")
+    .replace(/^\s*(?:[\uD800-\uDBFF][\uDC00-\uDFFF]\s*)*\[(user|shop|seller|delivery|admin)\]\s*/i, "")
     .trim();
 
   const cleaned = withoutModulePrefix

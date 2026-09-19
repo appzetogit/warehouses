@@ -20,7 +20,7 @@ before(async () => {
     await FoodOrder.collection.insertOne({
         _id: orderId,
         userId: customer,
-        restaurantId: seller,
+        sellerId: seller,
         dispatch: { deliveryPartnerId: rider }
     });
 
@@ -47,7 +47,7 @@ const call = (path, who, method = 'GET') =>
 test('admin finance routes are admin-only', async () => {
     const someone = new mongoose.Types.ObjectId();
     assert.equal(await call('/admin/wallet', `USER:${someone}`), 403);
-    assert.equal(await call('/admin/settlements', `RESTAURANT:${seller}`, 'POST'), 403);
+    assert.equal(await call('/admin/settlements', `SELLER:${seller}`, 'POST'), 403);
     assert.equal(await call('/admin/settlements/x/process', `DELIVERY_PARTNER:${rider}`, 'POST'), 403);
     assert.equal(await call('/admin/refunds', `USER:${someone}`), 403);
     assert.equal(await call('/admin/refunds', 'ADMIN:admin1'), 200);
@@ -55,10 +55,10 @@ test('admin finance routes are admin-only', async () => {
 
 test("a seller or rider reads only their own wallet", async () => {
     const otherSeller = new mongoose.Types.ObjectId();
-    assert.equal(await call(`/restaurant/${seller}/wallet`, `RESTAURANT:${seller}`), 200);
-    assert.equal(await call(`/restaurant/${otherSeller}/wallet`, `RESTAURANT:${seller}`), 403);
-    assert.equal(await call(`/restaurant/${seller}/wallet`, `USER:${customer}`), 403);
-    assert.equal(await call(`/restaurant/${seller}/wallet`, 'ADMIN:admin1'), 200);
+    assert.equal(await call(`/seller/${seller}/wallet`, `SELLER:${seller}`), 200);
+    assert.equal(await call(`/seller/${otherSeller}/wallet`, `SELLER:${seller}`), 403);
+    assert.equal(await call(`/seller/${seller}/wallet`, `USER:${customer}`), 403);
+    assert.equal(await call(`/seller/${seller}/wallet`, 'ADMIN:admin1'), 200);
 
     assert.equal(await call(`/delivery/${rider}/wallet`, `DELIVERY_PARTNER:${rider}`), 200);
     assert.equal(await call(`/delivery/${rider}/wallet`, `USER:${customer}`), 403);
@@ -67,7 +67,7 @@ test("a seller or rider reads only their own wallet", async () => {
 test("an order's money trail is visible only to its parties", async () => {
     for (const path of ['payments', 'transactions', 'refunds']) {
         assert.equal(await call(`/orders/${orderId}/${path}`, `USER:${customer}`), 200);
-        assert.equal(await call(`/orders/${orderId}/${path}`, `RESTAURANT:${seller}`), 200);
+        assert.equal(await call(`/orders/${orderId}/${path}`, `SELLER:${seller}`), 200);
         assert.equal(await call(`/orders/${orderId}/${path}`, `DELIVERY_PARTNER:${rider}`), 200);
         assert.equal(await call(`/orders/${orderId}/${path}`, 'ADMIN:admin1'), 200);
         assert.equal(await call(`/orders/${orderId}/${path}`, `USER:${new mongoose.Types.ObjectId()}`), 404);

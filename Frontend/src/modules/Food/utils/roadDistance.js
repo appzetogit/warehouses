@@ -1,6 +1,6 @@
 /**
  * Road (driving) distances via Google Maps JS.
- * User home / restaurant details must match delivery new-order Rest→User,
+ * User home / seller details must match delivery new-order Rest→User,
  * which is road distance (~7.7) not Haversine straight-line (~6.9).
  */
 

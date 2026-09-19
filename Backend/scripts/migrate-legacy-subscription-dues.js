@@ -1,10 +1,10 @@
 /**
  * One-time migration: carries forward pre-redesign subscription dues
- * (restaurant.subscriptionDueAmount) into the new postpaid billing ledger
- * as a labeled 'legacy' invoice per restaurant.
+ * (seller.subscriptionDueAmount) into the new postpaid billing ledger
+ * as a labeled 'legacy' invoice per seller.
  *
- * Idempotent: the unique {restaurantId, billingMonth} index prevents duplicates.
- * Legacy restaurant fields are left untouched (frozen for audit).
+ * Idempotent: the unique {sellerId, billingMonth} index prevents duplicates.
+ * Legacy seller fields are left untouched (frozen for audit).
  *
  * Usage:
  *   node scripts/migrate-legacy-subscription-dues.js             (dry run — reports only)
@@ -13,31 +13,31 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { connectDB, disconnectDB } from '../src/config/db.js';
-import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
-import { FoodSubscriptionInvoice } from '../src/modules/food/restaurant/models/subscriptionInvoice.model.js';
-import { FoodSubscriptionTransaction } from '../src/modules/food/restaurant/models/subscriptionTransaction.model.js';
+import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
+import { FoodSubscriptionInvoice } from '../src/modules/food/seller/models/subscriptionInvoice.model.js';
+import { FoodSubscriptionTransaction } from '../src/modules/food/seller/models/subscriptionTransaction.model.js';
 
 const isLive = process.argv.includes('--live');
 
 const main = async () => {
     await connectDB();
     try {
-        const restaurants = await FoodRestaurant.find({ subscriptionDueAmount: { $gt: 0 } })
-            .select('restaurantName subscriptionPlan subscriptionAmount subscriptionPaidAmount subscriptionDueAmount subscriptionStatus subscriptionValidTill subscriptionAutoDeductedAmount onboardingFeePaid')
+        const sellers = await FoodSeller.find({ subscriptionDueAmount: { $gt: 0 } })
+            .select('sellerName subscriptionPlan subscriptionAmount subscriptionPaidAmount subscriptionDueAmount subscriptionStatus subscriptionValidTill subscriptionAutoDeductedAmount onboardingFeePaid')
             .lean();
 
-        console.log(`[migrate-legacy-dues] ${isLive ? 'LIVE' : 'DRY RUN'} — ${restaurants.length} restaurants with legacy dues`);
+        console.log(`[migrate-legacy-dues] ${isLive ? 'LIVE' : 'DRY RUN'} — ${sellers.length} sellers with legacy dues`);
 
         let created = 0;
         let skipped = 0;
         let totalCarried = 0;
 
-        for (const restaurant of restaurants) {
-            const due = Math.round((Number(restaurant.subscriptionDueAmount) || 0) * 100) / 100;
+        for (const seller of sellers) {
+            const due = Math.round((Number(seller.subscriptionDueAmount) || 0) * 100) / 100;
             if (due <= 0) continue;
 
             const existing = await FoodSubscriptionInvoice.findOne({
-                restaurantId: restaurant._id,
+                sellerId: seller._id,
                 billingMonth: 'legacy',
             }).select('_id').lean();
 
@@ -46,13 +46,13 @@ const main = async () => {
                 continue;
             }
 
-            console.log(`  ${restaurant.restaurantName || restaurant._id}: ₹${due}`);
+            console.log(`  ${seller.sellerName || seller._id}: ₹${due}`);
             totalCarried += due;
 
             if (!isLive) continue;
 
             const invoice = await FoodSubscriptionInvoice.create({
-                restaurantId: restaurant._id,
+                sellerId: seller._id,
                 billingMonth: 'legacy',
                 periodStart: null,
                 periodEnd: null,
@@ -71,7 +71,7 @@ const main = async () => {
             });
 
             await FoodSubscriptionTransaction.create({
-                restaurantId: restaurant._id,
+                sellerId: seller._id,
                 invoiceId: invoice._id,
                 billingMonth: 'legacy',
                 type: 'legacy_carryforward',
@@ -82,14 +82,14 @@ const main = async () => {
                 remarks: 'Pre-migration subscription due carried forward',
                 metadata: {
                     legacySnapshot: {
-                        subscriptionPlan: restaurant.subscriptionPlan || '',
-                        subscriptionAmount: restaurant.subscriptionAmount || 0,
-                        subscriptionPaidAmount: restaurant.subscriptionPaidAmount || 0,
-                        subscriptionDueAmount: restaurant.subscriptionDueAmount || 0,
-                        subscriptionStatus: restaurant.subscriptionStatus || '',
-                        subscriptionValidTill: restaurant.subscriptionValidTill || null,
-                        subscriptionAutoDeductedAmount: restaurant.subscriptionAutoDeductedAmount || 0,
-                        onboardingFeePaid: Boolean(restaurant.onboardingFeePaid),
+                        subscriptionPlan: seller.subscriptionPlan || '',
+                        subscriptionAmount: seller.subscriptionAmount || 0,
+                        subscriptionPaidAmount: seller.subscriptionPaidAmount || 0,
+                        subscriptionDueAmount: seller.subscriptionDueAmount || 0,
+                        subscriptionStatus: seller.subscriptionStatus || '',
+                        subscriptionValidTill: seller.subscriptionValidTill || null,
+                        subscriptionAutoDeductedAmount: seller.subscriptionAutoDeductedAmount || 0,
+                        onboardingFeePaid: Boolean(seller.onboardingFeePaid),
                     },
                 },
             });

@@ -180,8 +180,8 @@ export const getUserRefundHistory = async (userId, query = {}) => {
 
     const [docs, total, wallet] = await Promise.all([
         FoodOrder.find(filter)
-            .select('order_id orderId pricing payment orderStatus cancellationReason updatedAt createdAt restaurantId')
-            .populate('restaurantId', 'restaurantName profileImage')
+            .select('order_id orderId pricing payment orderStatus cancellationReason updatedAt createdAt sellerId')
+            .populate('sellerId', 'sellerName profileImage')
             .sort({ updatedAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit)
@@ -201,7 +201,7 @@ export const getUserRefundHistory = async (userId, query = {}) => {
         return {
             orderId: String(o._id),
             orderDisplayId: o.order_id || String(o._id),
-            restaurantName: o.restaurantId?.restaurantName || '',
+            sellerName: o.sellerId?.sellerName || '',
             amount,
             // 'processed' once the money is back with the customer.
             status: String(r.status && r.status !== 'none' ? r.status : (o.payment?.status === 'refunded' ? 'processed' : 'pending')),

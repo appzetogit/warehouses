@@ -27,7 +27,7 @@ import { exportReportsToCSV, exportReportsToExcel, exportReportsToPDF, exportRep
 export default function CampaignOrderReport() {
   const [filters, setFilters] = useState({
     campaign: "All Campaignes",
-    restaurant: "All restaurants",
+    seller: "All sellers",
     customer: "All customers",
     time: "All Time",
     fromDate: "",
@@ -45,7 +45,7 @@ export default function CampaignOrderReport() {
       const query = searchQuery.toLowerCase().trim()
       result = result.filter(order =>
         order.orderId.toLowerCase().includes(query) ||
-        order.restaurant.toLowerCase().includes(query) ||
+        order.seller.toLowerCase().includes(query) ||
         order.customerName.toLowerCase().includes(query)
       )
     }
@@ -54,8 +54,8 @@ export default function CampaignOrderReport() {
       // Filter by campaign if needed
     }
 
-    if (filters.restaurant !== "All restaurants") {
-      result = result.filter(o => o.restaurant === filters.restaurant)
+    if (filters.seller !== "All sellers") {
+      result = result.filter(o => o.seller === filters.seller)
     }
 
     if (filters.customer !== "All customers") {
@@ -73,7 +73,7 @@ export default function CampaignOrderReport() {
     const headers = [
       { key: "sl", label: "SI" },
       { key: "orderId", label: "Order ID" },
-      { key: "restaurant", label: "Restaurant" },
+      { key: "seller", label: "Seller" },
       { key: "customerName", label: "Customer Name" },
       { key: "orderAmount", label: "Order Amount" },
       { key: "paymentMethod", label: "Payment Method" },
@@ -94,7 +94,7 @@ export default function CampaignOrderReport() {
   const handleResetFilters = () => {
     setFilters({
       campaign: "All Campaignes",
-      restaurant: "All restaurants",
+      seller: "All sellers",
       customer: "All customers",
       time: "All Time",
       fromDate: "",
@@ -102,7 +102,7 @@ export default function CampaignOrderReport() {
     })
   }
 
-  const activeFiltersCount = (filters.campaign !== "All Campaignes" ? 1 : 0) + (filters.restaurant !== "All restaurants" ? 1 : 0) + (filters.customer !== "All customers" ? 1 : 0) + (filters.time !== "All Time" ? 1 : 0)
+  const activeFiltersCount = (filters.campaign !== "All Campaignes" ? 1 : 0) + (filters.seller !== "All sellers" ? 1 : 0) + (filters.customer !== "All customers" ? 1 : 0) + (filters.time !== "All Time" ? 1 : 0)
 
   const getStatusBadge = (status) => {
     const statusColors = {
@@ -148,16 +148,16 @@ export default function CampaignOrderReport() {
 
               <div className="relative flex-1 min-w-[180px]">
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Restaurant
+                  Seller
                 </label>
                 <select
-                  value={filters.restaurant}
-                  onChange={(e) => setFilters(prev => ({ ...prev, restaurant: e.target.value }))}
+                  value={filters.seller}
+                  onChange={(e) => setFilters(prev => ({ ...prev, seller: e.target.value }))}
                   className="w-full px-3 py-2 pr-8 text-xs rounded-lg border border-slate-300 bg-white text-slate-700 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="All restaurants">All restaurants</option>
+                  <option value="All sellers">All sellers</option>
                   <option value="Hungry Puppets">Hungry Puppets</option>
-                  <option value="Café Monarch">Café Monarch</option>
+                  <option value="Cafï¿½ Monarch">Cafï¿½ Monarch</option>
                 </select>
                 <ChevronDown className="absolute right-2 bottom-2.5 w-4 h-4 text-slate-500 pointer-events-none" />
               </div>
@@ -351,7 +351,7 @@ export default function CampaignOrderReport() {
               <div className="relative flex-1 sm:flex-initial min-w-[220px]">
                 <input
                   type="text"
-                  placeholder="Search by Order ID, Restaurant, Customer"
+                  placeholder="Search by Order ID, Seller, Customer"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-3 pr-9 py-2 w-full text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -409,7 +409,7 @@ export default function CampaignOrderReport() {
                     Order Id
                   </th>
                   <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
-                    Restaurant
+                    Seller
                   </th>
                   <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
                     Customer Name
@@ -438,7 +438,7 @@ export default function CampaignOrderReport() {
                       <span className="text-xs font-medium text-slate-700">{order.orderId}</span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
-                      <span className="text-xs text-slate-700">{order.restaurant}</span>
+                      <span className="text-xs text-slate-700">{order.seller}</span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <span className={`text-xs ${order.customerNameError ? "text-red-600 font-medium" : "text-slate-700"}`}>

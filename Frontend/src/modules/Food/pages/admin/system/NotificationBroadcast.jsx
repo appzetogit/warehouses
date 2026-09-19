@@ -5,7 +5,7 @@ import { adminAPI } from "@food/api";
 const TARGET_OPTIONS = [
   { value: "ALL", label: "All" },
   { value: "USER", label: "Users" },
-  { value: "RESTAURANT", label: "Restaurants" },
+  { value: "SELLER", label: "Sellers" },
   { value: "DELIVERY", label: "Delivery Partners" },
   { value: "CUSTOM", label: "Particular Persons" },
 ];
@@ -14,7 +14,7 @@ const getRows = (response) => {
   const payload = response?.data?.data;
   return (
     payload?.items ||
-    payload?.restaurants ||
+    payload?.sellers ||
     payload?.partners ||
     payload?.customers ||
     payload?.users ||
@@ -72,9 +72,9 @@ export default function NotificationBroadcast() {
   const loadRecipients = async () => {
     try {
       setRecipientLoading(true);
-      const [customersRes, restaurantsRes, deliveryRes] = await Promise.all([
+      const [customersRes, sellersRes, deliveryRes] = await Promise.all([
         adminAPI.getCustomers({ page: 1, limit: 500 }),
-        adminAPI.getRestaurants({ page: 1, limit: 500 }),
+        adminAPI.getSellers({ page: 1, limit: 500 }),
         adminAPI.getDeliveryPartners({ page: 1, limit: 500 }),
       ]);
 
@@ -85,10 +85,10 @@ export default function NotificationBroadcast() {
         subLabel: [item?.phone, item?.email].filter(Boolean).join(" • "),
       }));
 
-      const restaurants = normalizeRecipients(restaurantsRes, "RESTAURANT", (item, ownerType) => ({
+      const sellers = normalizeRecipients(sellersRes, "SELLER", (item, ownerType) => ({
         ownerType,
         ownerId: String(item?._id || item?.id || ""),
-        label: String(item?.restaurantName || item?.ownerName || "Restaurant").trim(),
+        label: String(item?.sellerName || item?.ownerName || "Seller").trim(),
         subLabel: [item?.ownerPhone, item?.ownerEmail].filter(Boolean).join(" • "),
       }));
 
@@ -99,7 +99,7 @@ export default function NotificationBroadcast() {
         subLabel: [item?.phone, item?.email].filter(Boolean).join(" • "),
       }));
 
-      setAllRecipients([...customers, ...restaurants, ...deliveryPartners]);
+      setAllRecipients([...customers, ...sellers, ...deliveryPartners]);
     } catch {
       setAllRecipients([]);
     } finally {
@@ -254,7 +254,7 @@ export default function NotificationBroadcast() {
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search users, restaurants, or delivery partners"
+                  placeholder="Search users, sellers, or delivery partners"
                   className="w-full text-sm bg-transparent outline-none"
                 />
               </div>

@@ -9,7 +9,7 @@ export default function SubscriptionReport() {
   const [searchQuery, setSearchQuery] = useState("")
   const [subscriptions, setSubscriptions] = useState(emptySubscriptionReports)
   const [filters, setFilters] = useState({
-    restaurant: "All restaurants",
+    seller: "All sellers",
     package: "All packages",
     all: "All",
     time: "All Time",
@@ -26,12 +26,12 @@ export default function SubscriptionReport() {
       const query = searchQuery.toLowerCase().trim()
       result = result.filter(subscription =>
         subscription.transactionId.toLowerCase().includes(query) ||
-        subscription.restaurantName.toLowerCase().includes(query)
+        subscription.sellerName.toLowerCase().includes(query)
       )
     }
 
-    if (filters.restaurant !== "All restaurants") {
-      result = result.filter(s => s.restaurantName === filters.restaurant)
+    if (filters.seller !== "All sellers") {
+      result = result.filter(s => s.sellerName === filters.seller)
     }
 
     if (filters.package !== "All packages") {
@@ -56,7 +56,7 @@ export default function SubscriptionReport() {
       { key: "sl", label: "SI" },
       { key: "transactionId", label: "Transaction ID" },
       { key: "transactionDate", label: "Transaction Date" },
-      { key: "restaurantName", label: "Restaurant Name" },
+      { key: "sellerName", label: "Seller Name" },
       { key: "packageName", label: "Package Name" },
       { key: "duration", label: "Duration" },
       { key: "pricing", label: "Pricing" },
@@ -77,7 +77,7 @@ export default function SubscriptionReport() {
 
   const handleResetFilters = () => {
     setFilters({
-      restaurant: "All restaurants",
+      seller: "All sellers",
       package: "All packages",
       all: "All",
       time: "All Time",
@@ -86,7 +86,7 @@ export default function SubscriptionReport() {
     })
   }
 
-  const activeFiltersCount = (filters.restaurant !== "All restaurants" ? 1 : 0) + (filters.package !== "All packages" ? 1 : 0) + (filters.all !== "All" ? 1 : 0) + (filters.time !== "All Time" ? 1 : 0)
+  const activeFiltersCount = (filters.seller !== "All sellers" ? 1 : 0) + (filters.package !== "All packages" ? 1 : 0) + (filters.all !== "All" ? 1 : 0) + (filters.time !== "All Time" ? 1 : 0)
 
   return (
     <div className="p-4 lg:p-6 bg-slate-50 min-h-screen overflow-x-hidden">
@@ -103,16 +103,16 @@ export default function SubscriptionReport() {
             <div className="flex flex-wrap gap-4 flex-1">
               <div className="relative">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Restaurant
+                  Seller
                 </label>
                 <select
-                  value={filters.restaurant}
-                  onChange={(e) => setFilters(prev => ({ ...prev, restaurant: e.target.value }))}
+                  value={filters.seller}
+                  onChange={(e) => setFilters(prev => ({ ...prev, seller: e.target.value }))}
                   className="w-full sm:w-48 px-4 py-2.5 pr-8 text-sm rounded-lg border border-slate-300 bg-white text-slate-700 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="All restaurants">All restaurants</option>
+                  <option value="All sellers">All sellers</option>
                   <option value="Cheese Burger">Cheese Burger</option>
-                  <option value="Cheesy Restaurant">Cheesy Restaurant</option>
+                  <option value="Cheesy Seller">Cheesy Seller</option>
                   <option value="TEST">TEST</option>
                   <option value="Frying Nemo">Frying Nemo</option>
                   <option value="Tasty Lunch">Tasty Lunch</option>
@@ -245,7 +245,7 @@ export default function SubscriptionReport() {
               <div className="relative flex-1 sm:flex-initial min-w-[250px]">
                 <input
                   type="text"
-                  placeholder="Search by ID or Restaurant"
+                  placeholder="Search by ID or Seller"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-4 pr-10 py-2.5 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -316,7 +316,7 @@ export default function SubscriptionReport() {
                   </th>
                   <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
-                      <span>Restaurant Name</span>
+                      <span>Seller Name</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
@@ -376,7 +376,7 @@ export default function SubscriptionReport() {
                         <span className="text-xs text-slate-700">{subscription.transactionDate}</span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="text-xs text-slate-700">{subscription.restaurantName}</span>
+                        <span className="text-xs text-slate-700">{subscription.sellerName}</span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="text-xs text-slate-700">{subscription.packageName}</span>

@@ -14,7 +14,7 @@ import {
   RotateCcw,
   FileText,
 } from "lucide-react"
-import { orderAPI, restaurantAPI } from "@food/api"
+import { orderAPI, sellerAPI } from "@food/api"
 import { useCart } from "@food/context/CartContext"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@food/utils/businessSettings"
@@ -31,7 +31,7 @@ export default function UserOrderDetails() {
   const { replaceCart } = useCart()
   const { orderId } = useParams()
   const [order, setOrder] = useState(null)
-  const [restaurant, setRestaurant] = useState(null)
+  const [seller, setSeller] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -54,18 +54,18 @@ export default function UserOrderDetails() {
 
         setOrder(orderData)
 
-        // If restaurantId is just a string (not populated), fetch restaurant details separately
-        const restaurantId = orderData.restaurantId
-        if (restaurantId && typeof restaurantId === 'string' && !orderData.restaurant) {
+        // If sellerId is just a string (not populated), fetch seller details separately
+        const sellerId = orderData.sellerId
+        if (sellerId && typeof sellerId === 'string' && !orderData.seller) {
           try {
-            const restaurantResponse = await restaurantAPI.getRestaurantById(restaurantId)
-            if (restaurantResponse?.data?.success && restaurantResponse.data.data?.restaurant) {
-              setRestaurant(restaurantResponse.data.data.restaurant)
-            } else if (restaurantResponse?.data?.restaurant) {
-              setRestaurant(restaurantResponse.data.restaurant)
+            const sellerResponse = await sellerAPI.getSellerById(sellerId)
+            if (sellerResponse?.data?.success && sellerResponse.data.data?.seller) {
+              setSeller(sellerResponse.data.data.seller)
+            } else if (sellerResponse?.data?.seller) {
+              setSeller(sellerResponse.data.seller)
             }
-          } catch (restaurantError) {
-            debugWarn("Failed to fetch restaurant details:", restaurantError)
+          } catch (sellerError) {
+            debugWarn("Failed to fetch seller details:", sellerError)
             // Don't show error toast, just log it - order details can still be shown
           }
         }
@@ -119,17 +119,17 @@ export default function UserOrderDetails() {
   }
 
   const orderIdDisplay = order.orderId || order._id || orderId
-  // Use fetched restaurant data if available, otherwise use order.restaurantId or order.restaurant
-  const restaurantObj = restaurant || order.restaurantId || order.restaurant || {}
-  const restaurantName =
-    order.restaurantName || restaurantObj.restaurantName || restaurantObj.name || "Restaurant"
+  // Use fetched seller data if available, otherwise use order.sellerId or order.seller
+  const sellerObj = seller || order.sellerId || order.seller || {}
+  const sellerName =
+    order.sellerName || sellerObj.sellerName || sellerObj.name || "Seller"
 
-  // Build restaurant address (try restaurant fields first, then fall back)
-  const restaurantLocation = (() => {
-    const loc = restaurantObj.location || {}
+  // Build seller address (try seller fields first, then fall back)
+  const sellerLocation = (() => {
+    const loc = sellerObj.location || {}
 
-    // Priority 1: direct address on restaurant object
-    if (restaurantObj.address) return restaurantObj.address
+    // Priority 1: direct address on seller object
+    if (sellerObj.address) return sellerObj.address
 
     // Priority 2: formattedAddress from location
     if (loc.formattedAddress) return loc.formattedAddress
@@ -159,8 +159,8 @@ export default function UserOrderDetails() {
       if (parts.length) return parts.join(", ")
     }
 
-    // Priority 5: order-level restaurantAddress if present
-    if (order.restaurantAddress) return order.restaurantAddress
+    // Priority 5: order-level sellerAddress if present
+    if (order.sellerAddress) return order.sellerAddress
 
     // Don't fallback to user delivery address - show empty or "Address not available"
     return "Address not available"
@@ -214,20 +214,20 @@ export default function UserOrderDetails() {
       ? orderPayTotal + (displayCompareItemTotal - itemSubtotal)
       : orderPayTotal
 
-  // Restaurant phone (multiple fallbacks) - use fetched restaurant data first
-  const restaurantPhone =
-    restaurantObj.primaryContactNumber ||
-    restaurantObj.phone ||
-    restaurantObj.contactNumber ||
-    order.restaurantPhone ||
+  // Seller phone (multiple fallbacks) - use fetched seller data first
+  const sellerPhone =
+    sellerObj.primaryContactNumber ||
+    sellerObj.phone ||
+    sellerObj.contactNumber ||
+    order.sellerPhone ||
     ""
 
-  const handleCallRestaurant = () => {
-    if (!restaurantPhone) {
-      toast.error("Restaurant phone number not available")
+  const handleCallSeller = () => {
+    if (!sellerPhone) {
+      toast.error("Seller phone number not available")
       return
     }
-    window.location.href = `tel:${restaurantPhone}`
+    window.location.href = `tel:${sellerPhone}`
   }
 
   const handleDownloadSummary = async () => {
@@ -280,20 +280,20 @@ export default function UserOrderDetails() {
       doc.text(addressLines, 60, yPos)
       yPos += addressLines.length * 7
 
-      // Restaurant Name
+      // Seller Name
       doc.setFont('helvetica', 'bold')
-      doc.text('Restaurant Name:', 20, yPos)
+      doc.text('Seller Name:', 20, yPos)
       doc.setFont('helvetica', 'normal')
-      doc.text(restaurantName, 60, yPos)
+      doc.text(sellerName, 60, yPos)
       yPos += 7
 
-      // Restaurant Address
+      // Seller Address
       doc.setFont('helvetica', 'bold')
-      doc.text('Restaurant Address:', 20, yPos)
+      doc.text('Seller Address:', 20, yPos)
       doc.setFont('helvetica', 'normal')
-      const restaurantAddressLines = doc.splitTextToSize(restaurantLocation || 'N/A', 130)
-      doc.text(restaurantAddressLines, 60, yPos)
-      yPos += restaurantAddressLines.length * 7 + 5
+      const sellerAddressLines = doc.splitTextToSize(sellerLocation || 'N/A', 130)
+      doc.text(sellerAddressLines, 60, yPos)
+      yPos += sellerAddressLines.length * 7 + 5
 
       // Items table
       const tableData = items.map(item => [
@@ -339,14 +339,14 @@ export default function UserOrderDetails() {
   }
 
   const handleReorder = (currentOrder) => {
-    const restaurantTarget =
-      restaurantObj.slug ||
-      restaurantObj._id ||
-      restaurantObj.restaurantId ||
-      (typeof currentOrder?.restaurantId === "string" ? currentOrder.restaurantId : currentOrder?.restaurantId?._id)
+    const sellerTarget =
+      sellerObj.slug ||
+      sellerObj._id ||
+      sellerObj.sellerId ||
+      (typeof currentOrder?.sellerId === "string" ? currentOrder.sellerId : currentOrder?.sellerId?._id)
 
-    if (!restaurantTarget || !items.length) {
-      toast.error("Order items or restaurant information not available")
+    if (!sellerTarget || !items.length) {
+      toast.error("Order items or seller information not available")
       return
     }
 
@@ -360,8 +360,8 @@ export default function UserOrderDetails() {
           name: item.name || item.foodName || "Item",
           price: Number(item.price) || 0,
           image: item.image || "",
-          restaurant: restaurantName,
-          restaurantId: restaurantObj._id || restaurantObj.restaurantId || currentOrder?.restaurantId,
+          seller: sellerName,
+          sellerId: sellerObj._id || sellerObj.sellerId || currentOrder?.sellerId,
           description: item.description || "",
           isVeg: item.isVeg !== false,
           quantity: Math.max(1, Number(item.quantity || item.qty) || 1),
@@ -377,7 +377,7 @@ export default function UserOrderDetails() {
 
     replaceCart(reorderItems)
     toast.success("Items added to cart")
-    navigate(`/food/user/restaurants/${restaurantTarget}`)
+    navigate(`/food/user/sellers/${sellerTarget}`)
   }
 
   return (
@@ -412,7 +412,7 @@ export default function UserOrderDetails() {
           </div>
         </div>
 
-        {/* Restaurant Info Card */}
+        {/* Seller Info Card */}
         <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -420,23 +420,23 @@ export default function UserOrderDetails() {
                 src={
                   // Prefer the food image from the first ordered item
                   (Array.isArray(items) && items[0]?.image) ||
-                  restaurantObj.profileImage?.url ||
-                  restaurantObj.profileImage ||
-                  order.restaurantImage ||
+                  sellerObj.profileImage?.url ||
+                  sellerObj.profileImage ||
+                  order.sellerImage ||
                   "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80"
                 }
-                alt={restaurantName}
+                alt={sellerName}
                 className="w-10 h-10 rounded-lg object-cover"
               />
               <div>
-                <h3 className="font-semibold text-gray-800 dark:text-white">{restaurantName}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{restaurantLocation}</p>
+                <h3 className="font-semibold text-gray-800 dark:text-white">{sellerName}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{sellerLocation}</p>
               </div>
             </div>
 
             <button
               type="button"
-              onClick={handleCallRestaurant}
+              onClick={handleCallSeller}
               className="w-8 h-8 rounded-full border border-gray-200 dark:border-zinc-700 flex items-center justify-center text-[#EB590E] hover:bg-orange-50 dark:hover:bg-orange-950/30"
             >
               <Phone className="w-4 h-4" />
@@ -679,7 +679,7 @@ export default function UserOrderDetails() {
         </button>
       </div>
 
-      {/* Restaurant Complaint Button - Below Order Details */}
+      {/* Seller Complaint Button - Below Order Details */}
       {order && (
         <div className="p-4 pb-24">
           <button
@@ -709,7 +709,7 @@ export default function UserOrderDetails() {
             className="w-full bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-400 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
           >
             <FileText className="w-4 h-4" />
-            Restaurant Complaint
+            Seller Complaint
           </button>
         </div>
       )}

@@ -12,19 +12,19 @@ import { useProfile } from "@food/context/ProfileContext"
 import { useOrders } from "@food/context/OrdersContext"
 import { useLocation as useUserLocation } from "@food/hooks/useLocation"
 import { useZone } from "@food/hooks/useZone"
-import { orderAPI, restaurantAPI, adminAPI, userAPI, API_ENDPOINTS } from "@food/api"
+import { orderAPI, sellerAPI, adminAPI, userAPI, API_ENDPOINTS } from "@food/api"
 import { API_BASE_URL } from "@food/api/config"
 import { initRazorpayPayment } from "@food/utils/razorpay"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@food/utils/businessSettings"
 import { getCachedFeeSettings, loadCorePublicAppConfig } from "@food/services/publicAppConfig"
 import { useCompanyName } from "@food/hooks/useCompanyName"
-import { getRestaurantAvailabilityStatus } from "@food/utils/restaurantAvailability"
+import { getSellerAvailabilityStatus } from "@food/utils/sellerAvailability"
 import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
 import {
   calculateDistanceKm,
   normalizeLocationForPricing,
-  normalizeRestaurantLocation,
+  normalizeSellerLocation,
 } from "@food/utils/geo"
 import {
   fetchDrivingDistanceKm,
@@ -139,7 +139,7 @@ const clearCartInstructionStorage = () => {
 
 const resolveFallbackDeliveryFee = ({
   feeSettings = {},
-  restaurantData = null,
+  sellerData = null,
   defaultAddress = null,
   distanceKmOverride = null,
 }) => {
@@ -155,7 +155,7 @@ const resolveFallbackDeliveryFee = ({
 
   const distanceKm = Number.isFinite(Number(distanceKmOverride))
     ? Number(distanceKmOverride)
-    : calculateDistanceKm(restaurantData, defaultAddress)
+    : calculateDistanceKm(sellerData, defaultAddress)
   if (Number.isFinite(distanceKm) && ranges.length > 0) {
       const sortedRanges = ranges.sort((a, b) => Number(a.min) - Number(b.min))
       for (let i = 0; i < sortedRanges.length; i += 1) {
@@ -179,12 +179,12 @@ const resolveFallbackDeliveryFee = ({
   return Number.isFinite(flat) && flat >= 0 ? flat : 0
 }
 
-const normalizeRestaurantForPricing = (restaurant) => {
-  if (!restaurant || typeof restaurant !== "object") return restaurant
-  if (!restaurant.location) return restaurant
+const normalizeSellerForPricing = (seller) => {
+  if (!seller || typeof seller !== "object") return seller
+  if (!seller.location) return seller
   return {
-    ...restaurant,
-    location: normalizeRestaurantLocation(restaurant.location),
+    ...seller,
+    location: normalizeSellerLocation(seller.location),
   }
 }
 
@@ -193,7 +193,7 @@ const buildEffectiveCartPricing = ({
   pricing = null,
   feeSettings = {},
   defaultAddress = null,
-  restaurantData = null,
+  sellerData = null,
   appliedCoupon = null,
   deliveryMode = "basic",
   roadDistanceKm = null,
@@ -204,7 +204,7 @@ const buildEffectiveCartPricing = ({
 
   const fallbackDeliveryFee = resolveFallbackDeliveryFee({
     feeSettings,
-    restaurantData,
+    sellerData,
     defaultAddress,
     distanceKmOverride: roadDistanceKm,
   })
@@ -312,7 +312,7 @@ export default function Cart() {
     );
   }
 
-  const { cart, updateQuantity, addToCart, getCartCount, clearCart, cleanCartForRestaurant, replaceCart } = cartContext;
+  const { cart, updateQuantity, addToCart, getCartCount, clearCart, cleanCartForSeller, replaceCart } = cartContext;
   const { getDefaultAddress, getDefaultPaymentMethod, setDefaultAddress, addresses, paymentMethods, userProfile, vegMode } = useProfile()
   const { createOrder } = useOrders()
   const { location: currentLocation, loading: currentLocationLoading } = useUserLocation() // Get live location address
@@ -385,9 +385,9 @@ export default function Cart() {
     })
   }, [showOrderSuccess])
 
-  // Restaurant and pricing state
-  const [restaurantData, setRestaurantData] = useState(null)
-  const [loadingRestaurant, setLoadingRestaurant] = useState(false)
+  // Seller and pricing state
+  const [sellerData, setSellerData] = useState(null)
+  const [loadingSeller, setLoadingSeller] = useState(false)
   const [pricing, setPricing] = useState(null)
   const [loadingPricing, setLoadingPricing] = useState(false)
   // Same Google road Rest→User distance as Home / delivery (overrides Haversine 6.9).
@@ -411,12 +411,12 @@ export default function Cart() {
   useEffect(() => {
     const onAutoCouponState = (event) => {
       const detail = event?.detail || {}
-      const resolvedRestaurantId =
-        restaurantData?.restaurantId || restaurantData?._id || cart[0]?.restaurantId
+      const resolvedSellerId =
+        sellerData?.sellerId || sellerData?._id || cart[0]?.sellerId
       const cartSignature = getCartSignature(cart)
 
-      if (!resolvedRestaurantId || !cart.length) return
-      if (isManualCouponOptOut(resolvedRestaurantId, cartSignature)) return
+      if (!resolvedSellerId || !cart.length) return
+      if (isManualCouponOptOut(resolvedSellerId, cartSignature)) return
 
       if (detail.action === "clear") {
         if (appliedCouponRef.current?.autoApplied) {
@@ -448,7 +448,7 @@ export default function Cart() {
 
     window.addEventListener(AUTO_COUPON_STATE_EVENT, onAutoCouponState)
     return () => window.removeEventListener(AUTO_COUPON_STATE_EVENT, onAutoCouponState)
-  }, [cart, restaurantData])
+  }, [cart, sellerData])
 
   const suggestedAddons = useMemo(() => {
     if (!Array.isArray(addons) || addons.length === 0) return []
@@ -512,21 +512,21 @@ export default function Cart() {
     return Number.isNaN(scheduleDate.getTime()) ? null : scheduleDate
   }, [isScheduled, scheduledDate, scheduledTime])
 
-  const cartRestaurantAvailability = useMemo(() => {
-    if (!restaurantData) return { isOpen: false, reason: "loading" }
+  const cartSellerAvailability = useMemo(() => {
+    if (!sellerData) return { isOpen: false, reason: "loading" }
     const targetDate = scheduledOrderAt || new Date(availabilityTick)
-    return getRestaurantAvailabilityStatus(restaurantData, targetDate)
-  }, [restaurantData, availabilityTick, scheduledOrderAt])
+    return getSellerAvailabilityStatus(sellerData, targetDate)
+  }, [sellerData, availabilityTick, scheduledOrderAt])
 
-  const canPlaceOrder = Boolean(restaurantData) && cartRestaurantAvailability.isOpen === true
+  const canPlaceOrder = Boolean(sellerData) && cartSellerAvailability.isOpen === true
 
 
   const availableTimeSlots = useMemo(() => {
-    if (!isScheduled || !scheduledDate || !restaurantData) return []
+    if (!isScheduled || !scheduledDate || !sellerData) return []
 
     try {
       const targetDate = new Date(scheduledDate)
-      const status = getRestaurantAvailabilityStatus(restaurantData, targetDate)
+      const status = getSellerAvailabilityStatus(sellerData, targetDate)
 
       let openingHour = 9
       let closingHour = 22
@@ -570,7 +570,7 @@ export default function Cart() {
     } catch {
       return []
     }
-  }, [isScheduled, scheduledDate, restaurantData])
+  }, [isScheduled, scheduledDate, sellerData])
 
   // Reset scheduledTime if it's no longer valid in the new slots
   useEffect(() => {
@@ -785,23 +785,23 @@ export default function Cart() {
     }
   }, [savedAddress, selectedAddressId, deliveryAddressMode])
 
-  // Get restaurant ID from cart or restaurant data
-  // Priority: restaurantData > cart[0].restaurantId
-  // DO NOT use cart[0].restaurant as slug fallback - it creates wrong slugs
-  const restaurantId = cart.length > 0
-    ? (restaurantData?._id || restaurantData?.restaurantId || cart[0]?.restaurantId || null)
+  // Get seller ID from cart or seller data
+  // Priority: sellerData > cart[0].sellerId
+  // DO NOT use cart[0].seller as slug fallback - it creates wrong slugs
+  const sellerId = cart.length > 0
+    ? (sellerData?._id || sellerData?.sellerId || cart[0]?.sellerId || null)
     : null
 
-  // Stable restaurant ID for addons fetch (memoized to prevent dependency array issues)
-  // Prefer restaurantData IDs (more reliable) over slug from cart
-  const restaurantIdForAddons = useMemo(() => {
-    // Only use restaurantData if it's loaded, otherwise wait
-    if (restaurantData) {
-      return restaurantData._id || restaurantData.restaurantId || null
+  // Stable seller ID for addons fetch (memoized to prevent dependency array issues)
+  // Prefer sellerData IDs (more reliable) over slug from cart
+  const sellerIdForAddons = useMemo(() => {
+    // Only use sellerData if it's loaded, otherwise wait
+    if (sellerData) {
+      return sellerData._id || sellerData.sellerId || null
     }
-    // If restaurantData is not loaded yet, return null to wait
+    // If sellerData is not loaded yet, return null to wait
     return null
-  }, [restaurantData])
+  }, [sellerData])
 
 
 
@@ -837,210 +837,210 @@ export default function Cart() {
     }
   }, [showPlacingOrder, showOrderSuccess])
 
-  // Fetch restaurant data when cart has items
+  // Fetch seller data when cart has items
   useEffect(() => {
-    const fetchRestaurantData = async () => {
+    const fetchSellerData = async () => {
       if (cart.length === 0) {
-        setRestaurantData(null)
+        setSellerData(null)
         return
       }
 
-      // If we already have restaurantData, don't fetch again
-      if (restaurantData) {
+      // If we already have sellerData, don't fetch again
+      if (sellerData) {
         return
       }
 
-      setLoadingRestaurant(true)
+      setLoadingSeller(true)
 
-      // Strategy 1: Try using restaurantId from cart if available
-      if (cart[0]?.restaurantId) {
+      // Strategy 1: Try using sellerId from cart if available
+      if (cart[0]?.sellerId) {
         try {
-          const cartRestaurantId = cart[0].restaurantId;
-          const cartRestaurantName = cart[0].restaurant;
+          const cartSellerId = cart[0].sellerId;
+          const cartSellerName = cart[0].seller;
 
-          debugLog("?? Fetching restaurant data by restaurantId from cart:", cartRestaurantId)
-          const response = await restaurantAPI.getRestaurantById(cartRestaurantId)
-          const data = response?.data?.data?.restaurant || response?.data?.restaurant
+          debugLog("?? Fetching seller data by sellerId from cart:", cartSellerId)
+          const response = await sellerAPI.getSellerById(cartSellerId)
+          const data = response?.data?.data?.seller || response?.data?.seller
 
           if (data) {
-            // CRITICAL: Validate that fetched restaurant matches cart items
-            const fetchedRestaurantId = data.restaurantId || data._id?.toString();
-            const fetchedRestaurantName = data.name;
+            // CRITICAL: Validate that fetched seller matches cart items
+            const fetchedSellerId = data.sellerId || data._id?.toString();
+            const fetchedSellerName = data.name;
 
-            // Check if restaurantId matches
-            const restaurantIdMatches =
-              fetchedRestaurantId === cartRestaurantId ||
-              data._id?.toString() === cartRestaurantId ||
-              data.restaurantId === cartRestaurantId;
+            // Check if sellerId matches
+            const sellerIdMatches =
+              fetchedSellerId === cartSellerId ||
+              data._id?.toString() === cartSellerId ||
+              data.sellerId === cartSellerId;
 
-            // Check if restaurant name matches (if available in cart)
-            const restaurantNameMatches =
-              !cartRestaurantName ||
-              fetchedRestaurantName?.toLowerCase().trim() === cartRestaurantName.toLowerCase().trim();
+            // Check if seller name matches (if available in cart)
+            const sellerNameMatches =
+              !cartSellerName ||
+              fetchedSellerName?.toLowerCase().trim() === cartSellerName.toLowerCase().trim();
 
-            if (!restaurantIdMatches) {
-              debugError('? CRITICAL: Fetched restaurant ID does not match cart restaurantId!', {
-                cartRestaurantId: cartRestaurantId,
-                fetchedRestaurantId: fetchedRestaurantId,
+            if (!sellerIdMatches) {
+              debugError('? CRITICAL: Fetched seller ID does not match cart sellerId!', {
+                cartSellerId: cartSellerId,
+                fetchedSellerId: fetchedSellerId,
                 fetched_id: data._id?.toString(),
-                fetched_restaurantId: data.restaurantId,
-                cartRestaurantName: cartRestaurantName,
-                fetchedRestaurantName: fetchedRestaurantName
+                fetched_sellerId: data.sellerId,
+                cartSellerName: cartSellerName,
+                fetchedSellerName: fetchedSellerName
               });
-              // Don't set restaurantData if IDs don't match - this prevents wrong restaurant assignment
-              setLoadingRestaurant(false);
+              // Don't set sellerData if IDs don't match - this prevents wrong seller assignment
+              setLoadingSeller(false);
               return;
             }
 
-            if (!restaurantNameMatches) {
-              debugWarn('?? WARNING: Restaurant name mismatch:', {
-                cartRestaurantName: cartRestaurantName,
-                fetchedRestaurantName: fetchedRestaurantName
+            if (!sellerNameMatches) {
+              debugWarn('?? WARNING: Seller name mismatch:', {
+                cartSellerName: cartSellerName,
+                fetchedSellerName: fetchedSellerName
               });
               // Still proceed but log warning
             }
 
-            debugLog("? Restaurant data loaded from cart restaurantId:", {
+            debugLog("? Seller data loaded from cart sellerId:", {
               _id: data._id,
-              restaurantId: data.restaurantId,
+              sellerId: data.sellerId,
               name: data.name,
-              cartRestaurantId: cartRestaurantId,
-              cartRestaurantName: cartRestaurantName
+              cartSellerId: cartSellerId,
+              cartSellerName: cartSellerName
             })
-            setRestaurantData(normalizeRestaurantForPricing(data))
-            setLoadingRestaurant(false)
+            setSellerData(normalizeSellerForPricing(data))
+            setLoadingSeller(false)
             return
           }
         } catch (error) {
-          debugWarn("?? Failed to fetch by cart restaurantId, trying fallback...", error)
+          debugWarn("?? Failed to fetch by cart sellerId, trying fallback...", error)
         }
       }
 
-      // Strategy 2: If no restaurantId in cart, search by restaurant name
-      if (cart[0]?.restaurant && !restaurantData) {
+      // Strategy 2: If no sellerId in cart, search by seller name
+      if (cart[0]?.seller && !sellerData) {
         try {
-          debugLog("?? Searching restaurant by name:", cart[0].restaurant)
-          const searchResponse = await restaurantAPI.getRestaurants({ limit: 100 })
-          const restaurants = searchResponse?.data?.data?.restaurants || searchResponse?.data?.data || []
-          debugLog("?? Fetched", restaurants.length, "restaurants for name search")
+          debugLog("?? Searching seller by name:", cart[0].seller)
+          const searchResponse = await sellerAPI.getSellers({ limit: 100 })
+          const sellers = searchResponse?.data?.data?.sellers || searchResponse?.data?.data || []
+          debugLog("?? Fetched", sellers.length, "sellers for name search")
 
           // Try exact match first
-          let matchingRestaurant = restaurants.find(r =>
-            r.name?.toLowerCase().trim() === cart[0].restaurant?.toLowerCase().trim()
+          let matchingSeller = sellers.find(r =>
+            r.name?.toLowerCase().trim() === cart[0].seller?.toLowerCase().trim()
           )
 
           // If no exact match, try partial match
-          if (!matchingRestaurant) {
+          if (!matchingSeller) {
             debugLog("?? No exact match, trying partial match...")
-            matchingRestaurant = restaurants.find(r =>
-              r.name?.toLowerCase().includes(cart[0].restaurant?.toLowerCase().trim()) ||
-              cart[0].restaurant?.toLowerCase().trim().includes(r.name?.toLowerCase())
+            matchingSeller = sellers.find(r =>
+              r.name?.toLowerCase().includes(cart[0].seller?.toLowerCase().trim()) ||
+              cart[0].seller?.toLowerCase().trim().includes(r.name?.toLowerCase())
             )
           }
 
-          if (matchingRestaurant) {
-            // CRITICAL: Validate that the found restaurant matches cart items
-            const cartRestaurantName = cart[0]?.restaurant?.toLowerCase().trim();
-            const foundRestaurantName = matchingRestaurant.name?.toLowerCase().trim();
+          if (matchingSeller) {
+            // CRITICAL: Validate that the found seller matches cart items
+            const cartSellerName = cart[0]?.seller?.toLowerCase().trim();
+            const foundSellerName = matchingSeller.name?.toLowerCase().trim();
 
-            if (cartRestaurantName && foundRestaurantName && cartRestaurantName !== foundRestaurantName) {
-              debugError("? CRITICAL: Restaurant name mismatch!", {
-                cartRestaurantName: cart[0]?.restaurant,
-                foundRestaurantName: matchingRestaurant.name,
-                cartRestaurantId: cart[0]?.restaurantId,
-                foundRestaurantId: matchingRestaurant.restaurantId || matchingRestaurant._id
+            if (cartSellerName && foundSellerName && cartSellerName !== foundSellerName) {
+              debugError("? CRITICAL: Seller name mismatch!", {
+                cartSellerName: cart[0]?.seller,
+                foundSellerName: matchingSeller.name,
+                cartSellerId: cart[0]?.sellerId,
+                foundSellerId: matchingSeller.sellerId || matchingSeller._id
               });
-              // Don't set restaurantData if names don't match - this prevents wrong restaurant assignment
-              setLoadingRestaurant(false);
+              // Don't set sellerData if names don't match - this prevents wrong seller assignment
+              setLoadingSeller(false);
               return;
             }
 
-            debugLog("? Found restaurant by name:", {
-              name: matchingRestaurant.name,
-              _id: matchingRestaurant._id,
-              restaurantId: matchingRestaurant.restaurantId,
-              slug: matchingRestaurant.slug,
-              cartRestaurantName: cart[0]?.restaurant
+            debugLog("? Found seller by name:", {
+              name: matchingSeller.name,
+              _id: matchingSeller._id,
+              sellerId: matchingSeller.sellerId,
+              slug: matchingSeller.slug,
+              cartSellerName: cart[0]?.seller
             })
-            setRestaurantData(normalizeRestaurantForPricing(matchingRestaurant))
-            setLoadingRestaurant(false)
+            setSellerData(normalizeSellerForPricing(matchingSeller))
+            setLoadingSeller(false)
             return
           } else {
-            debugWarn("?? Restaurant not found even by name search. Searched in", restaurants.length, "restaurants")
-            if (restaurants.length > 0) {
-              debugLog("?? Available restaurant names:", restaurants.map(r => r.name).slice(0, 10))
+            debugWarn("?? Seller not found even by name search. Searched in", sellers.length, "sellers")
+            if (sellers.length > 0) {
+              debugLog("?? Available seller names:", sellers.map(r => r.name).slice(0, 10))
             }
           }
         } catch (searchError) {
-          debugWarn("?? Error searching restaurants by name:", searchError)
+          debugWarn("?? Error searching sellers by name:", searchError)
         }
       }
 
       // If all strategies fail, set to null
-      setRestaurantData(null)
-      setLoadingRestaurant(false)
+      setSellerData(null)
+      setLoadingSeller(false)
     }
 
-    fetchRestaurantData()
-  }, [cart.length, cart[0]?.restaurantId, cart[0]?.restaurant])
+    fetchSellerData()
+  }, [cart.length, cart[0]?.sellerId, cart[0]?.seller])
 
-  // Keep restaurant online/offline status fresh while user stays on cart
+  // Keep seller online/offline status fresh while user stays on cart
   useEffect(() => {
-    const cartRestaurantId = cart[0]?.restaurantId
-    if (!cartRestaurantId || cart.length === 0) return
+    const cartSellerId = cart[0]?.sellerId
+    if (!cartSellerId || cart.length === 0) return
 
-    const refreshRestaurantStatus = async () => {
+    const refreshSellerStatus = async () => {
       try {
-        const response = await restaurantAPI.getRestaurantById(cartRestaurantId)
-        const data = response?.data?.data?.restaurant || response?.data?.restaurant
-        if (data) setRestaurantData(normalizeRestaurantForPricing(data))
+        const response = await sellerAPI.getSellerById(cartSellerId)
+        const data = response?.data?.data?.seller || response?.data?.seller
+        if (data) setSellerData(normalizeSellerForPricing(data))
       } catch (error) {
-        debugWarn("Failed to refresh restaurant status:", error)
+        debugWarn("Failed to refresh seller status:", error)
       }
     }
 
-    refreshRestaurantStatus()
-    const intervalId = setInterval(refreshRestaurantStatus, 60000)
-    const handleFocus = () => refreshRestaurantStatus()
+    refreshSellerStatus()
+    const intervalId = setInterval(refreshSellerStatus, 60000)
+    const handleFocus = () => refreshSellerStatus()
     window.addEventListener("focus", handleFocus)
 
     return () => {
       clearInterval(intervalId)
       window.removeEventListener("focus", handleFocus)
     }
-  }, [cart.length, cart[0]?.restaurantId])
+  }, [cart.length, cart[0]?.sellerId])
 
-  // Fetch approved addons for the restaurant
+  // Fetch approved addons for the seller
   useEffect(() => {
     const fetchAddonsWithId = async (idToUse) => {
 
       debugLog("?? Addons fetch - Using ID:", {
-        restaurantData: restaurantData ? {
-          _id: restaurantData._id,
-          restaurantId: restaurantData.restaurantId,
-          name: restaurantData.name
+        sellerData: sellerData ? {
+          _id: sellerData._id,
+          sellerId: sellerData.sellerId,
+          name: sellerData.name
         } : 'Not loaded',
-        cartRestaurantId: restaurantId,
+        cartSellerId: sellerId,
         idToUse: idToUse
       })
 
       // Convert to string for validation
       const idString = String(idToUse)
-      debugLog("?? Restaurant ID string:", idString, "Type:", typeof idString, "Length:", idString.length)
+      debugLog("?? Seller ID string:", idString, "Type:", typeof idString, "Length:", idString.length)
 
-      // Validate ID format (should be ObjectId or restaurantId format)
+      // Validate ID format (should be ObjectId or sellerId format)
       const isValidIdFormat = /^[a-zA-Z0-9\-_]+$/.test(idString) && idString.length >= 3
 
       if (!isValidIdFormat) {
-        debugWarn("?? Restaurant ID format invalid:", idString)
+        debugWarn("?? Seller ID format invalid:", idString)
         setAddons([])
         return
       }
 
       try {
         setLoadingAddons(true)
-        debugLog("?? Fetching addons for restaurant ID:", idString)
-        const response = await restaurantAPI.getAddonsByRestaurantId(idString)
+        debugLog("?? Fetching addons for seller ID:", idString)
+        const response = await sellerAPI.getAddonsBySellerId(idString)
         debugLog("? Addons API response received:", response?.data)
         debugLog("?? Response structure:", {
           success: response?.data?.success,
@@ -1061,8 +1061,8 @@ export default function Cart() {
 
         setAddons(data.map(addon => ({
           ...addon,
-          isVeg: addon.isVeg ?? (restaurantData?.pureVegRestaurant === true),
-          foodType: addon.foodType || (restaurantData?.pureVegRestaurant ? "Veg" : "Non-Veg")
+          isVeg: addon.isVeg ?? (sellerData?.pureVegSeller === true),
+          foodType: addon.foodType || (sellerData?.pureVegSeller ? "Veg" : "Non-Veg")
         })))
       } catch (error) {
         // Log error for debugging
@@ -1075,7 +1075,7 @@ export default function Cart() {
         })
         // Silently handle network errors and 404 errors
         // Network errors (ERR_NETWORK) happen when backend is not running - this is OK for development
-        // 404 errors mean restaurant might not have addons or restaurant not found - also OK
+        // 404 errors mean seller might not have addons or seller not found - also OK
         if (error.code !== 'ERR_NETWORK' && error.response?.status !== 404) {
           debugError("Error fetching addons:", error)
         }
@@ -1092,38 +1092,38 @@ export default function Cart() {
         return
       }
 
-      // Wait for restaurantData to be loaded (including fallback search)
-      if (loadingRestaurant) {
-        debugLog("? Waiting for restaurantData to load (including fallback search)...")
+      // Wait for sellerData to be loaded (including fallback search)
+      if (loadingSeller) {
+        debugLog("? Waiting for sellerData to load (including fallback search)...")
         return
       }
 
-      // Must have restaurantData to fetch addons
-      if (!restaurantData) {
-        debugWarn("?? No restaurantData available for addons fetch")
+      // Must have sellerData to fetch addons
+      if (!sellerData) {
+        debugWarn("?? No sellerData available for addons fetch")
         setAddons([])
         return
       }
 
-      // Use restaurantData ID (most reliable)
-      const idToUse = restaurantData._id || restaurantData.restaurantId
+      // Use sellerData ID (most reliable)
+      const idToUse = sellerData._id || sellerData.sellerId
       if (!idToUse) {
-        debugWarn("?? No valid restaurant ID in restaurantData")
+        debugWarn("?? No valid seller ID in sellerData")
         setAddons([])
         return
       }
 
-      debugLog("? Using restaurantData ID for addons:", idToUse)
+      debugLog("? Using sellerData ID for addons:", idToUse)
       fetchAddonsWithId(idToUse)
     }
 
     fetchAddons()
-  }, [restaurantData, cart.length, loadingRestaurant])
+  }, [sellerData, cart.length, loadingSeller])
 
   // Fetch coupons for items in cart
   useEffect(() => {
     const fetchCouponsForCartItems = async () => {
-      if (cart.length === 0 || !restaurantId) {
+      if (cart.length === 0 || !sellerId) {
         setAvailableCoupons([])
         return
       }
@@ -1144,7 +1144,7 @@ export default function Cart() {
 
         try {
           debugLog(`[CART-COUPONS] Fetching coupons for itemId: ${couponItemId}, name: ${cartItem.name}`)
-          const response = await restaurantAPI.getCouponsByItemIdPublic(restaurantId, couponItemId, subtotal)
+          const response = await sellerAPI.getCouponsByItemIdPublic(sellerId, couponItemId, subtotal)
 
           if (response?.data?.success && response?.data?.data?.coupons) {
             const coupons = response.data.data.coupons
@@ -1187,7 +1187,7 @@ export default function Cart() {
     }
 
     fetchCouponsForCartItems()
-  }, [cart, restaurantId])
+  }, [cart, sellerId])
 
   // Calculate pricing from backend whenever cart, address, or coupon changes
   useEffect(() => {
@@ -1212,12 +1212,12 @@ export default function Cart() {
           isVeg: item.isVeg !== false
         }))
 
-        const resolvedRestaurantId = restaurantData?.restaurantId || restaurantData?._id || restaurantId || undefined
+        const resolvedSellerId = sellerData?.sellerId || sellerData?._id || sellerId || undefined
         const resolvedCouponCode = appliedCoupon?.code || couponCode || undefined
 
         const calculatePayload = {
           items,
-          restaurantId: resolvedRestaurantId,
+          sellerId: resolvedSellerId,
           deliveryAddress: pricingAddress,
           couponCode: resolvedCouponCode,
           deliveryMode,
@@ -1305,7 +1305,7 @@ export default function Cart() {
     }
 
     calculatePricing()
-  }, [cart, pricingAddress, appliedCoupon, couponCode, restaurantId, restaurantData, scheduledOrderAt, replaceCart, deliveryMode])
+  }, [cart, pricingAddress, appliedCoupon, couponCode, sellerId, sellerData, scheduledOrderAt, replaceCart, deliveryMode])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -1320,7 +1320,7 @@ export default function Cart() {
         pricing,
         feeSettings,
         defaultAddress: pricingAddress,
-        restaurantData,
+        sellerData,
         appliedCoupon,
         deliveryMode,
         roadDistanceKm:
@@ -1335,12 +1335,12 @@ export default function Cart() {
     } catch {
       // ignore storage errors
     }
-  }, [cart, pricing, feeSettings, pricingAddress, restaurantData, appliedCoupon, deliveryMode, roadDistanceKm])
+  }, [cart, pricing, feeSettings, pricingAddress, sellerData, appliedCoupon, deliveryMode, roadDistanceKm])
 
   // Selected address Rest→User road distance (same source as Home / delivery).
   useEffect(() => {
     let cancelled = false
-    if (!restaurantData || !pricingAddress) {
+    if (!sellerData || !pricingAddress) {
       setRoadDistanceKm(null)
       return undefined
     }
@@ -1353,7 +1353,7 @@ export default function Cart() {
     }
 
     const run = async () => {
-      const km = await fetchDrivingDistanceKm(restaurantData, pricingAddress)
+      const km = await fetchDrivingDistanceKm(sellerData, pricingAddress)
       if (!cancelled && Number.isFinite(Number(km))) {
         setRoadDistanceKm(Number(km))
       }
@@ -1363,7 +1363,7 @@ export default function Cart() {
       cancelled = true
     }
   }, [
-    restaurantData,
+    sellerData,
     pricingAddress,
     pricing?.distanceKm,
     pricing?.roadDistanceKm,
@@ -1372,13 +1372,13 @@ export default function Cart() {
   // Address sheet labels: batch road distances for saved addresses.
   useEffect(() => {
     let cancelled = false
-    if (!restaurantData || !Array.isArray(addresses) || addresses.length === 0) {
+    if (!sellerData || !Array.isArray(addresses) || addresses.length === 0) {
       setAddressRoadKmById({})
       return undefined
     }
 
     const run = async () => {
-      const kms = await fetchDrivingDistancesMatrix(restaurantData, addresses)
+      const kms = await fetchDrivingDistancesMatrix(sellerData, addresses)
       if (cancelled || !Array.isArray(kms)) return
       const next = {}
       addresses.forEach((address, index) => {
@@ -1392,7 +1392,7 @@ export default function Cart() {
     return () => {
       cancelled = true
     }
-  }, [restaurantData, addresses])
+  }, [sellerData, addresses])
 
   // Fetch wallet balance
   useEffect(() => {
@@ -1467,7 +1467,7 @@ export default function Cart() {
         pricing,
         feeSettings,
         defaultAddress: pricingAddress,
-        restaurantData,
+        sellerData,
         appliedCoupon,
         deliveryMode,
         roadDistanceKm:
@@ -1477,7 +1477,7 @@ export default function Cart() {
               ? Number(pricing.roadDistanceKm)
               : roadDistanceKm,
       }),
-    [cart, pricing, feeSettings, pricingAddress, restaurantData, appliedCoupon, deliveryMode, roadDistanceKm],
+    [cart, pricing, feeSettings, pricingAddress, sellerData, appliedCoupon, deliveryMode, roadDistanceKm],
   )
   const subtotal = effectivePricing.subtotal
   const deliveryFee = effectivePricing.deliveryFee
@@ -1512,8 +1512,8 @@ export default function Cart() {
   const selectedPaymentLabel =
     selectedPaymentMethod === "wallet" ? "Wallet" : "Online Payment"
 
-  const headerDeliveryTime = deliveryMode === "quick" ? "20-25 mins" : (restaurantData?.estimatedDeliveryTime || "35-40 mins")
-  const basicDeliveryTime = restaurantData?.estimatedDeliveryTime || "35-40 mins"
+  const headerDeliveryTime = deliveryMode === "quick" ? "20-25 mins" : (sellerData?.estimatedDeliveryTime || "35-40 mins")
+  const basicDeliveryTime = sellerData?.estimatedDeliveryTime || "35-40 mins"
   const quickDeliveryTime = "20-25 mins"
   const headerAddressLabel = defaultAddress ? getDisplayAddressLabel(defaultAddress.label) : "Select address"
   const headerAddressText = defaultAddress
@@ -1525,7 +1525,7 @@ export default function Cart() {
     const cached = addressId ? addressRoadKmById[String(addressId)] : null
     const km = Number.isFinite(Number(cached))
       ? Number(cached)
-      : calculateDistanceKm(restaurantData, address)
+      : calculateDistanceKm(sellerData, address)
     if (!Number.isFinite(km)) return null
     return formatDistanceLabel(km)
   }
@@ -1546,16 +1546,16 @@ export default function Cart() {
     setShowAddressSheet(false)
   }
 
-  // Restaurant name from data or cart
-  const restaurantName = restaurantData?.name || restaurantData?.restaurantName || cart[0]?.restaurant || "Restaurant"
+  // Seller name from data or cart
+  const sellerName = sellerData?.name || sellerData?.sellerName || cart[0]?.seller || "Seller"
 
   const handleShare = async () => {
-    const restaurantNameStr = restaurantName || companyName || "this restaurant"
+    const sellerNameStr = sellerName || companyName || "this seller"
     const shareUrl = window.location.href
-    const shareText = `Check out what I'm ordering from ${restaurantNameStr}! ${shareUrl}`
+    const shareText = `Check out what I'm ordering from ${sellerNameStr}! ${shareUrl}`
 
     const payload = {
-      title: `My Cart at ${restaurantNameStr}`,
+      title: `My Cart at ${sellerNameStr}`,
       text: shareText,
       url: shareUrl,
     }
@@ -1659,10 +1659,10 @@ export default function Cart() {
   }
 
   const handleBack = () => {
-    // Priority: slug > restaurantId (both work for the restaurant details route)
-    const idOrSlug = restaurantData?.slug || restaurantId
+    // Priority: slug > sellerId (both work for the seller details route)
+    const idOrSlug = sellerData?.slug || sellerId
     if (idOrSlug) {
-      navigate(`/food/user/restaurants/${idOrSlug}`)
+      navigate(`/food/user/sellers/${idOrSlug}`)
     } else {
       goBack()
     }
@@ -1774,7 +1774,7 @@ export default function Cart() {
 
         const response = await orderAPI.calculateOrder({
           items,
-          restaurantId: restaurantData?.restaurantId || restaurantData?._id || restaurantId || null,
+          sellerId: sellerData?.sellerId || sellerData?._id || sellerId || null,
           deliveryAddress: pricingAddress,
           couponCode: coupon.code,
           deliveryMode,
@@ -1791,7 +1791,7 @@ export default function Cart() {
         setCouponCode(coupon.code)
         setManualCouponCode(coupon.code)
         markUserSelectedCoupon(
-          restaurantData?.restaurantId || restaurantData?._id || restaurantId || cart[0]?.restaurantId,
+          sellerData?.sellerId || sellerData?._id || sellerId || cart[0]?.sellerId,
           getCartSignature(cart),
           coupon.code,
         )
@@ -1841,7 +1841,7 @@ export default function Cart() {
 
       const response = await orderAPI.calculateOrder({
         items,
-        restaurantId: restaurantData?.restaurantId || restaurantData?._id || restaurantId || null,
+        sellerId: sellerData?.sellerId || sellerData?._id || sellerId || null,
         deliveryAddress: pricingAddress,
         couponCode: inputCode,
         deliveryMode,
@@ -1874,7 +1874,7 @@ export default function Cart() {
       )
       setManualCouponCode(inputCode)
       markUserSelectedCoupon(
-        restaurantData?.restaurantId || restaurantData?._id || restaurantId || cart[0]?.restaurantId,
+        sellerData?.sellerId || sellerData?._id || sellerId || cart[0]?.sellerId,
         getCartSignature(cart),
         inputCode,
       )
@@ -1888,10 +1888,10 @@ export default function Cart() {
 
 
   const handleRemoveCoupon = async () => {
-    const resolvedRestaurantId =
-      restaurantData?.restaurantId || restaurantData?._id || restaurantId || cart[0]?.restaurantId
-    if (resolvedRestaurantId) {
-      markManualCouponOptOut(resolvedRestaurantId, getCartSignature(cart))
+    const resolvedSellerId =
+      sellerData?.sellerId || sellerData?._id || sellerId || cart[0]?.sellerId
+    if (resolvedSellerId) {
+      markManualCouponOptOut(resolvedSellerId, getCartSignature(cart))
     }
 
     setAppliedCoupon(null)
@@ -1916,7 +1916,7 @@ export default function Cart() {
 
         const response = await orderAPI.calculateOrder({
           items,
-          restaurantId: restaurantData?.restaurantId || restaurantData?._id || restaurantId || null,
+          sellerId: sellerData?.sellerId || sellerData?._id || sellerId || null,
           deliveryAddress: pricingAddress,
           couponCode: null,
           deliveryMode,
@@ -1958,7 +1958,7 @@ export default function Cart() {
     }
 
     if (!canPlaceOrder) {
-      toast.error("Restaurant is currently offline. Please try again later.")
+      toast.error("Seller is currently offline. Please try again later.")
       return
     }
 
@@ -1995,78 +1995,78 @@ export default function Cart() {
       debugLog("?? Making request to:", fullUrl)
       debugLog("?? Authentication token present:", !!localStorage.getItem('accessToken') || !!localStorage.getItem('user_accessToken'))
 
-      // CRITICAL: Validate restaurant ID before placing order
-      // Ensure we're using the correct restaurant from restaurantData (most reliable)
-      const finalRestaurantId = restaurantData?.restaurantId || restaurantData?._id || null;
-      const finalRestaurantName = restaurantData?.name || null;
+      // CRITICAL: Validate seller ID before placing order
+      // Ensure we're using the correct seller from sellerData (most reliable)
+      const finalSellerId = sellerData?.sellerId || sellerData?._id || null;
+      const finalSellerName = sellerData?.name || null;
 
-      if (!finalRestaurantId) {
-        debugError('? CRITICAL: Cannot place order - Restaurant ID is missing!');
+      if (!finalSellerId) {
+        debugError('? CRITICAL: Cannot place order - Seller ID is missing!');
         debugError('?? Debug info:', {
-          restaurantData: restaurantData ? {
-            _id: restaurantData._id,
-            restaurantId: restaurantData.restaurantId,
-            name: restaurantData.name
+          sellerData: sellerData ? {
+            _id: sellerData._id,
+            sellerId: sellerData.sellerId,
+            name: sellerData.name
           } : 'Not loaded',
-          cartRestaurantId: restaurantId,
-          cartRestaurantName: cart[0]?.restaurant,
+          cartSellerId: sellerId,
+          cartSellerName: cart[0]?.seller,
           cartItems: cart.map(item => ({
             id: item.id,
             name: item.name,
-            restaurant: item.restaurant,
-            restaurantId: item.restaurantId
+            seller: item.seller,
+            sellerId: item.sellerId
           }))
         });
-        alert('Error: Restaurant information is missing. Please refresh the page and try again.');
+        alert('Error: Seller information is missing. Please refresh the page and try again.');
         setIsPlacingOrder(false);
         return;
       }
 
-      // CRITICAL: Validate that ALL cart items belong to the SAME restaurant
-      const cartRestaurantIds = cart
-        .map(item => item.restaurantId)
+      // CRITICAL: Validate that ALL cart items belong to the SAME seller
+      const cartSellerIds = cart
+        .map(item => item.sellerId)
         .filter(Boolean)
         .map(id => String(id).trim()); // Normalize to string and trim
 
-      const cartRestaurantNames = cart
-        .map(item => item.restaurant)
+      const cartSellerNames = cart
+        .map(item => item.seller)
         .filter(Boolean)
         .map(name => name.trim().toLowerCase()); // Normalize names
 
       // Get unique values (after normalization)
-      const uniqueRestaurantIds = [...new Set(cartRestaurantIds)];
-      const uniqueRestaurantNames = [...new Set(cartRestaurantNames)];
+      const uniqueSellerIds = [...new Set(cartSellerIds)];
+      const uniqueSellerNames = [...new Set(cartSellerNames)];
 
-      // Check if cart has items from multiple restaurants
-      // Note: If restaurant names match, allow even if IDs differ (same restaurant, different ID format)
-      if (uniqueRestaurantNames.length > 1) {
-        // Different restaurant names = definitely different restaurants
-        debugError('? CRITICAL ERROR: Cart contains items from multiple restaurants!', {
-          restaurantIds: uniqueRestaurantIds,
-          restaurantNames: uniqueRestaurantNames,
+      // Check if cart has items from multiple sellers
+      // Note: If seller names match, allow even if IDs differ (same seller, different ID format)
+      if (uniqueSellerNames.length > 1) {
+        // Different seller names = definitely different sellers
+        debugError('? CRITICAL ERROR: Cart contains items from multiple sellers!', {
+          sellerIds: uniqueSellerIds,
+          sellerNames: uniqueSellerNames,
           cartItems: cart.map(item => ({
             id: item.id,
             name: item.name,
-            restaurant: item.restaurant,
-            restaurantId: item.restaurantId
+            seller: item.seller,
+            sellerId: item.sellerId
           }))
         });
 
-        // Automatically clean cart to keep items from the restaurant matching restaurantData
-        if (finalRestaurantId && finalRestaurantName) {
-          debugLog('?? Auto-cleaning cart to keep items from:', finalRestaurantName);
-          cleanCartForRestaurant(finalRestaurantId, finalRestaurantName);
-          toast.error('Cart contained items from different restaurants. Items from other restaurants have been removed.');
+        // Automatically clean cart to keep items from the seller matching sellerData
+        if (finalSellerId && finalSellerName) {
+          debugLog('?? Auto-cleaning cart to keep items from:', finalSellerName);
+          cleanCartForSeller(finalSellerId, finalSellerName);
+          toast.error('Cart contained items from different sellers. Items from other sellers have been removed.');
         } else {
-          // If restaurantData is not available, keep items from first restaurant in cart
-          const firstRestaurantId = cart[0]?.restaurantId;
-          const firstRestaurantName = cart[0]?.restaurant;
-          if (firstRestaurantId && firstRestaurantName) {
-            debugLog('?? Auto-cleaning cart to keep items from first restaurant:', firstRestaurantName);
-            cleanCartForRestaurant(firstRestaurantId, firstRestaurantName);
-            toast.error('Cart contained items from different restaurants. Items from other restaurants have been removed.');
+          // If sellerData is not available, keep items from first seller in cart
+          const firstSellerId = cart[0]?.sellerId;
+          const firstSellerName = cart[0]?.seller;
+          if (firstSellerId && firstSellerName) {
+            debugLog('?? Auto-cleaning cart to keep items from first seller:', firstSellerName);
+            cleanCartForSeller(firstSellerId, firstSellerName);
+            toast.error('Cart contained items from different sellers. Items from other sellers have been removed.');
           } else {
-            toast.error('Cart contains items from different restaurants. Please clear cart and try again.');
+            toast.error('Cart contains items from different sellers. Please clear cart and try again.');
           }
         }
 
@@ -2074,81 +2074,81 @@ export default function Cart() {
         return;
       }
 
-      // If restaurant names match but IDs differ, that's OK (same restaurant, different ID format)
+      // If seller names match but IDs differ, that's OK (same seller, different ID format)
       // But log a warning in development
-      if (uniqueRestaurantIds.length > 1 && uniqueRestaurantNames.length === 1) {
+      if (uniqueSellerIds.length > 1 && uniqueSellerNames.length === 1) {
         if (process.env.NODE_ENV === 'development') {
-          debugWarn('?? Cart items have different restaurant IDs but same name. This is OK if IDs are in different formats.', {
-            restaurantIds: uniqueRestaurantIds,
-            restaurantName: uniqueRestaurantNames[0]
+          debugWarn('?? Cart items have different seller IDs but same name. This is OK if IDs are in different formats.', {
+            sellerIds: uniqueSellerIds,
+            sellerName: uniqueSellerNames[0]
           });
         }
       }
 
-      // Validate that cart items' restaurantId matches the restaurantData
-      if (cartRestaurantIds.length > 0) {
-        const cartRestaurantId = cartRestaurantIds[0];
+      // Validate that cart items' sellerId matches the sellerData
+      if (cartSellerIds.length > 0) {
+        const cartSellerId = cartSellerIds[0];
 
-        // Check if cart restaurantId matches restaurantData
-        const restaurantIdMatches =
-          cartRestaurantId === finalRestaurantId ||
-          cartRestaurantId === restaurantData?._id?.toString() ||
-          cartRestaurantId === restaurantData?.restaurantId;
+        // Check if cart sellerId matches sellerData
+        const sellerIdMatches =
+          cartSellerId === finalSellerId ||
+          cartSellerId === sellerData?._id?.toString() ||
+          cartSellerId === sellerData?.sellerId;
 
-        if (!restaurantIdMatches) {
-          debugError('? CRITICAL ERROR: Cart restaurantId does not match restaurantData!', {
-            cartRestaurantId: cartRestaurantId,
-            finalRestaurantId: finalRestaurantId,
-            restaurantDataId: restaurantData?._id?.toString(),
-            restaurantDataRestaurantId: restaurantData?.restaurantId,
-            restaurantDataName: restaurantData?.name,
-            cartRestaurantName: cartRestaurantNames[0]
+        if (!sellerIdMatches) {
+          debugError('? CRITICAL ERROR: Cart sellerId does not match sellerData!', {
+            cartSellerId: cartSellerId,
+            finalSellerId: finalSellerId,
+            sellerDataId: sellerData?._id?.toString(),
+            sellerDataSellerId: sellerData?.sellerId,
+            sellerDataName: sellerData?.name,
+            cartSellerName: cartSellerNames[0]
           });
-          alert(`Error: Cart items belong to "${cartRestaurantNames[0] || 'Unknown Restaurant'}" but restaurant data doesn't match. Please refresh the page and try again.`);
+          alert(`Error: Cart items belong to "${cartSellerNames[0] || 'Unknown Seller'}" but seller data doesn't match. Please refresh the page and try again.`);
           setIsPlacingOrder(false);
           return;
         }
       }
 
-      // Validate restaurant name matches
-      if (cartRestaurantNames.length > 0 && finalRestaurantName) {
-        const cartRestaurantName = cartRestaurantNames[0];
-        if (cartRestaurantName.toLowerCase().trim() !== finalRestaurantName.toLowerCase().trim()) {
-          debugError('? CRITICAL ERROR: Restaurant name mismatch!', {
-            cartRestaurantName: cartRestaurantName,
-            finalRestaurantName: finalRestaurantName
+      // Validate seller name matches
+      if (cartSellerNames.length > 0 && finalSellerName) {
+        const cartSellerName = cartSellerNames[0];
+        if (cartSellerName.toLowerCase().trim() !== finalSellerName.toLowerCase().trim()) {
+          debugError('? CRITICAL ERROR: Seller name mismatch!', {
+            cartSellerName: cartSellerName,
+            finalSellerName: finalSellerName
           });
-          alert(`Error: Cart items belong to "${cartRestaurantName}" but restaurant data shows "${finalRestaurantName}". Please refresh the page and try again.`);
+          alert(`Error: Cart items belong to "${cartSellerName}" but seller data shows "${finalSellerName}". Please refresh the page and try again.`);
           setIsPlacingOrder(false);
           return;
         }
       }
 
       // Log order details for debugging
-      debugLog('? Order validation passed - Placing order with restaurant:', {
-        restaurantId: finalRestaurantId,
-        restaurantName: finalRestaurantName,
-        restaurantDataId: restaurantData?._id,
-        restaurantDataRestaurantId: restaurantData?.restaurantId,
-        cartRestaurantId: cartRestaurantIds[0],
-        cartRestaurantName: cartRestaurantNames[0],
+      debugLog('? Order validation passed - Placing order with seller:', {
+        sellerId: finalSellerId,
+        sellerName: finalSellerName,
+        sellerDataId: sellerData?._id,
+        sellerDataSellerId: sellerData?.sellerId,
+        cartSellerId: cartSellerIds[0],
+        cartSellerName: cartSellerNames[0],
         cartItemCount: cart.length
       });
 
-      // FINAL VALIDATION: Double-check restaurantId before sending to backend
-      const cartRestaurantId = cart[0]?.restaurantId;
-      if (cartRestaurantId && cartRestaurantId !== finalRestaurantId &&
-        cartRestaurantId !== restaurantData?._id?.toString() &&
-        cartRestaurantId !== restaurantData?.restaurantId) {
-        debugError('? CRITICAL: Final validation failed - restaurantId mismatch!', {
-          cartRestaurantId: cartRestaurantId,
-          finalRestaurantId: finalRestaurantId,
-          restaurantDataId: restaurantData?._id?.toString(),
-          restaurantDataRestaurantId: restaurantData?.restaurantId,
-          cartRestaurantName: cart[0]?.restaurant,
-          finalRestaurantName: finalRestaurantName
+      // FINAL VALIDATION: Double-check sellerId before sending to backend
+      const cartSellerId = cart[0]?.sellerId;
+      if (cartSellerId && cartSellerId !== finalSellerId &&
+        cartSellerId !== sellerData?._id?.toString() &&
+        cartSellerId !== sellerData?.sellerId) {
+        debugError('? CRITICAL: Final validation failed - sellerId mismatch!', {
+          cartSellerId: cartSellerId,
+          finalSellerId: finalSellerId,
+          sellerDataId: sellerData?._id?.toString(),
+          sellerDataSellerId: sellerData?.sellerId,
+          cartSellerName: cart[0]?.seller,
+          finalSellerName: finalSellerName
         });
-        alert('Error: Restaurant information mismatch detected. Please refresh the page and try again.');
+        alert('Error: Seller information mismatch detected. Please refresh the page and try again.');
         setIsPlacingOrder(false);
         return;
       }
@@ -2156,7 +2156,7 @@ export default function Cart() {
       const resolvedCouponCode = appliedCoupon?.code || couponCode || pricing?.couponCode || undefined
       const calculatePayload = {
         items: orderItems,
-        restaurantId: finalRestaurantId,
+        sellerId: finalSellerId,
         deliveryAddress: pricingAddress,
         couponCode: resolvedCouponCode,
         deliveryMode,
@@ -2208,8 +2208,8 @@ export default function Cart() {
         },
         customerName: recipientName,
         customerPhone: recipientPhone || defaultAddress?.phone || "",
-        restaurantId: finalRestaurantId,
-        restaurantName: finalRestaurantName || undefined,
+        sellerId: finalSellerId,
+        sellerName: finalSellerName || undefined,
         pricing: orderPricing,
         note: String(note || "").trim(),
         deliveryInstructions: deliveryInstructionText,
@@ -2222,8 +2222,8 @@ export default function Cart() {
       };
       // Log final order details (including paymentMethod for COD debugging)
       debugLog('?? FINAL: Sending order to backend with:', {
-        restaurantId: finalRestaurantId,
-        restaurantName: finalRestaurantName,
+        sellerId: finalSellerId,
+        sellerName: finalSellerName,
         itemCount: orderItems.length,
         totalAmount: orderPricing.total,
         paymentMethod: orderPayload.paymentMethod
@@ -2321,7 +2321,7 @@ export default function Cart() {
         notes: {
           orderId: order._id || order.orderId,
           userId: userInfo.id || "",
-          restaurantId: restaurantId || "unknown"
+          sellerId: sellerId || "unknown"
         },
         handler: async (response) => {
           try {
@@ -2466,7 +2466,7 @@ export default function Cart() {
             <Utensils className="h-10 w-10 text-gray-400" />
           </div>
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">Your cart is empty</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Add items from a restaurant to start a new order</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Add items from a seller to start a new order</p>
           <Link to="/user">
             <Button
               className="text-white border-0"
@@ -2475,7 +2475,7 @@ export default function Cart() {
                 boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,250,2,114),0.25)",
               }}
             >
-              Browse Restaurants
+              Browse Sellers
             </Button>
           </Link>
         </div>
@@ -2504,7 +2504,7 @@ export default function Cart() {
                 className="flex-1 min-w-0 text-left"
               >
                 <p className="text-[15px] md:text-base font-semibold leading-snug truncate">
-                  {restaurantName}
+                  {sellerName}
                 </p>
                 <div className="mt-1.5 flex items-center gap-1.5 text-[12px] md:text-[13px] text-white/90">
                   <Home className="h-3.5 w-3.5 shrink-0" />
@@ -2543,7 +2543,7 @@ export default function Cart() {
         <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-4 md:px-6 py-2.5">
           <div className="max-w-7xl mx-auto">
             <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-              {restaurantName} is currently offline. You can keep items in your cart, but checkout will open once the restaurant is back online.
+              {sellerName} is currently offline. You can keep items in your cart, but checkout will open once the seller is back online.
             </p>
           </div>
         </div>
@@ -2729,19 +2729,19 @@ export default function Cart() {
                             </div>
                             <button
                               onClick={() => {
-                                // Use restaurant info from existing cart items to ensure format consistency
-                                const cartRestaurantId = cart[0]?.restaurantId || restaurantId;
-                                const cartRestaurantName = cart[0]?.restaurant || restaurantName;
+                                // Use seller info from existing cart items to ensure format consistency
+                                const cartSellerId = cart[0]?.sellerId || sellerId;
+                                const cartSellerName = cart[0]?.seller || sellerName;
 
-                                if (!cartRestaurantId || !cartRestaurantName) {
-                                  debugError('? Cannot add addon: Missing restaurant information', {
-                                    cartRestaurantId,
-                                    cartRestaurantName,
-                                    restaurantId,
-                                    restaurantName,
+                                if (!cartSellerId || !cartSellerName) {
+                                  debugError('? Cannot add addon: Missing seller information', {
+                                    cartSellerId,
+                                    cartSellerName,
+                                    sellerId,
+                                    sellerName,
                                     cartItem: cart[0]
                                   });
-                                  toast.error('Restaurant information is missing. Please refresh the page.');
+                                  toast.error('Seller information is missing. Please refresh the page.');
                                   return;
                                 }
 
@@ -2753,8 +2753,8 @@ export default function Cart() {
                                   description: addon.description || "",
                                   isVeg: addon.isVeg,
                                   foodType: addon.foodType,
-                                  restaurant: cartRestaurantName,
-                                  restaurantId: cartRestaurantId
+                                  seller: cartSellerName,
+                                  sellerId: cartSellerId
                                 });
                               }}
                               className="absolute top-1 right-1 h-6 w-6 rounded-full bg-white border border-[#EB590E] flex items-center justify-center shadow-sm hover:bg-orange-50 transition-colors"
@@ -3180,7 +3180,7 @@ export default function Cart() {
               onClick={handlePlaceOrder}
               disabled={
                 isPlacingOrder ||
-                loadingRestaurant ||
+                loadingSeller ||
                 !canPlaceOrder ||
                 (selectedPaymentMethod === "wallet" && walletBalance < total)
               }
@@ -3192,7 +3192,7 @@ export default function Cart() {
             >
               {isPlacingOrder
                 ? "Processing..."
-                : loadingRestaurant
+                : loadingSeller
                   ? "Loading..."
                   : !canPlaceOrder
                     ? "Offline"
@@ -3537,7 +3537,7 @@ export default function Cart() {
                       </button>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                      These notes are shared with the restaurant partner while preparing your order
+                      These notes are shared with the seller partner while preparing your order
                     </p>
                     <textarea
                       value={note}
@@ -3725,7 +3725,7 @@ export default function Cart() {
                         </div>
                         <div className="rounded-xl bg-slate-50 dark:bg-[#141414] p-3">
                           <Percent className="h-4 w-4 text-[#EB590E] mb-2" />
-                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Restaurant deals</p>
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Seller deals</p>
                           <p className="text-[11px] text-gray-500 mt-1">Add more items to unlock</p>
                         </div>
                       </div>

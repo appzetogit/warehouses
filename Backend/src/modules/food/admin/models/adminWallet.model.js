@@ -12,7 +12,7 @@ const adminWalletSchema = new mongoose.Schema(
         balance: { type: Number, default: 0 },
         /** Lifetime total platform revenue */
         totalRevenue: { type: Number, default: 0, min: 0 },
-        /** Total paid out to restaurants + delivery partners */
+        /** Total paid out to sellers + delivery partners */
         totalPayouts: { type: Number, default: 0, min: 0 },
         /** Total refunds issued */
         totalRefunds: { type: Number, default: 0, min: 0 }

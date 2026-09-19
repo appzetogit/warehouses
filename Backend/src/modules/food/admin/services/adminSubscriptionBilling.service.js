@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { FoodSubscriptionInvoice } from '../../restaurant/models/subscriptionInvoice.model.js';
-import { FoodSubscriptionTransaction } from '../../restaurant/models/subscriptionTransaction.model.js';
-import { FoodSubscriptionBillingRun } from '../../restaurant/models/subscriptionBillingRun.model.js';
+import { FoodSubscriptionInvoice } from '../../seller/models/subscriptionInvoice.model.js';
+import { FoodSubscriptionTransaction } from '../../seller/models/subscriptionTransaction.model.js';
+import { FoodSubscriptionBillingRun } from '../../seller/models/subscriptionBillingRun.model.js';
 import {
     applyWalletDeduction,
     applyManualPayment,
@@ -13,8 +13,8 @@ import {
     getMonthWindow,
     formatBillingMonth,
     getOutstandingSummary,
-} from '../../restaurant/services/subscriptionBilling.service.js';
-import { getRestaurantFinance } from '../../restaurant/services/restaurantFinance.service.js';
+} from '../../seller/services/subscriptionBilling.service.js';
+import { getSellerFinance } from '../../seller/services/sellerFinance.service.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 
 const toObjectId = (value) => {
@@ -24,8 +24,8 @@ const toObjectId = (value) => {
 
 function buildInvoiceFilter(query = {}) {
     const filter = {};
-    const restaurantId = toObjectId(query.restaurantId);
-    if (restaurantId) filter.restaurantId = restaurantId;
+    const sellerId = toObjectId(query.sellerId);
+    if (sellerId) filter.sellerId = sellerId;
     if (query.billingMonth) filter.billingMonth = String(query.billingMonth).trim();
     if (query.planName) filter.planName = String(query.planName).trim().toLowerCase();
     if (query.status) filter.status = String(query.status).trim().toLowerCase();
@@ -50,26 +50,26 @@ function buildInvoiceFilter(query = {}) {
     return { filter, amountOn, amountMin, amountMax };
 }
 
-async function resolveScopedRestaurantIds(query = {}) {
+async function resolveScopedSellerIds(query = {}) {
     const zoneId = toObjectId(query.zoneId || query.zone);
     const search = String(query.search || '').trim();
     if (!zoneId && !search) return null;
 
-    const { FoodRestaurant } = await import('../../restaurant/models/restaurant.model.js');
-    const restaurantQuery = {};
-    if (zoneId) restaurantQuery.zoneId = zoneId;
+    const { FoodSeller } = await import('../../seller/models/seller.model.js');
+    const sellerQuery = {};
+    if (zoneId) sellerQuery.zoneId = zoneId;
     if (search) {
         const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const pattern = new RegExp(escaped, 'i');
-        restaurantQuery.$or = [
-            { restaurantName: pattern },
+        sellerQuery.$or = [
+            { sellerName: pattern },
             { ownerName: pattern },
             { ownerPhone: pattern },
             { primaryContactNumber: pattern },
         ];
     }
 
-    const matches = await FoodRestaurant.find(restaurantQuery)
+    const matches = await FoodSeller.find(sellerQuery)
         .select('_id')
         .limit(1000)
         .lean();
@@ -86,22 +86,22 @@ function parseInvoiceSort(query = {}) {
     return { sortBy, sortOrder };
 }
 
-function mapInvoiceRow(inv, walletByRestaurantId) {
-    const restaurantObjectId = String(inv.restaurantId?._id || inv.restaurantId || '');
+function mapInvoiceRow(inv, walletBySellerId) {
+    const sellerObjectId = String(inv.sellerId?._id || inv.sellerId || '');
     return {
         ...inv,
         billingMonthLabel: billingMonthLabel(inv.billingMonth),
-        restaurant: inv.restaurantId && typeof inv.restaurantId === 'object'
+        seller: inv.sellerId && typeof inv.sellerId === 'object'
             ? {
-                _id: inv.restaurantId._id,
-                restaurantName: inv.restaurantId.restaurantName,
-                ownerName: inv.restaurantId.ownerName,
-                ownerPhone: inv.restaurantId.ownerPhone,
-                profileImage: inv.restaurantId.profileImage,
+                _id: inv.sellerId._id,
+                sellerName: inv.sellerId.sellerName,
+                ownerName: inv.sellerId.ownerName,
+                ownerPhone: inv.sellerId.ownerPhone,
+                profileImage: inv.sellerId.profileImage,
             }
             : null,
-        restaurantId: inv.restaurantId?._id || inv.restaurantId,
-        wallet: walletByRestaurantId[restaurantObjectId] || {
+        sellerId: inv.sellerId?._id || inv.sellerId,
+        wallet: walletBySellerId[sellerObjectId] || {
             totalEarnings: 0,
             walletBalance: 0,
             netAvailable: 0,
@@ -140,8 +140,8 @@ function sortInvoiceRows(rows, { sortBy, sortOrder }) {
             return (av - bv) * dir;
         }
         if (av === bv) {
-            return String(a.restaurant?.restaurantName || '').localeCompare(
-                String(b.restaurant?.restaurantName || ''),
+            return String(a.seller?.sellerName || '').localeCompare(
+                String(b.seller?.sellerName || ''),
             ) * dir;
         }
         return (av - bv) * dir;
@@ -154,10 +154,10 @@ async function listHydratedInvoicesAdmin(query = {}, { paginate = true } = {}) {
     const { filter, amountOn, amountMin, amountMax } = buildInvoiceFilter(query);
     const sort = parseInvoiceSort(query);
 
-    if (!filter.restaurantId || filter.restaurantId?.$in) {
-        const scopedRestaurantIds = await resolveScopedRestaurantIds(query);
-        if (scopedRestaurantIds !== null) {
-            filter.restaurantId = { $in: scopedRestaurantIds };
+    if (!filter.sellerId || filter.sellerId?.$in) {
+        const scopedSellerIds = await resolveScopedSellerIds(query);
+        if (scopedSellerIds !== null) {
+            filter.sellerId = { $in: scopedSellerIds };
         }
     }
 
@@ -171,7 +171,7 @@ async function listHydratedInvoicesAdmin(query = {}, { paginate = true } = {}) {
 
     if (useInMemoryPipeline) {
         invoices = await FoodSubscriptionInvoice.find(filter)
-            .populate('restaurantId', 'restaurantName ownerName ownerPhone profileImage')
+            .populate('sellerId', 'sellerName ownerName ownerPhone profileImage')
             .sort({ billingMonth: -1, createdAt: -1 })
             .limit(5000)
             .lean();
@@ -182,7 +182,7 @@ async function listHydratedInvoicesAdmin(query = {}, { paginate = true } = {}) {
 
         [invoices, total] = await Promise.all([
             FoodSubscriptionInvoice.find(filter)
-                .populate('restaurantId', 'restaurantName ownerName ownerPhone profileImage')
+                .populate('sellerId', 'sellerName ownerName ownerPhone profileImage')
                 .sort(mongoSort)
                 .skip(paginate ? (page - 1) * limit : 0)
                 .limit(paginate ? limit : 5000)
@@ -191,11 +191,11 @@ async function listHydratedInvoicesAdmin(query = {}, { paginate = true } = {}) {
         ]);
     }
 
-    const walletByRestaurantId = await getWalletSummariesForRestaurants(
-        invoices.map((inv) => inv.restaurantId?._id || inv.restaurantId),
+    const walletBySellerId = await getWalletSummariesForSellers(
+        invoices.map((inv) => inv.sellerId?._id || inv.sellerId),
     );
 
-    let rows = invoices.map((inv) => mapInvoiceRow(inv, walletByRestaurantId));
+    let rows = invoices.map((inv) => mapInvoiceRow(inv, walletBySellerId));
 
     if (needsWalletPostFilter) {
         rows = applyWalletAmountFilter(rows, amountMin, amountMax);
@@ -219,9 +219,9 @@ async function listHydratedInvoicesAdmin(query = {}, { paginate = true } = {}) {
     };
 }
 
-async function getWalletSummariesForRestaurants(restaurantIds = []) {
+async function getWalletSummariesForSellers(sellerIds = []) {
     const uniqueIds = [...new Set(
-        (restaurantIds || [])
+        (sellerIds || [])
             .map((id) => String(id?._id || id || '').trim())
             .filter(Boolean),
     )];
@@ -229,12 +229,12 @@ async function getWalletSummariesForRestaurants(restaurantIds = []) {
     if (uniqueIds.length === 0) return {};
 
     const entries = await Promise.all(
-        uniqueIds.map(async (restaurantId) => {
+        uniqueIds.map(async (sellerId) => {
             try {
-                const finance = await getRestaurantFinance(restaurantId);
+                const finance = await getSellerFinance(sellerId);
                 const wallet = finance?.wallet ?? finance?.currentCycle ?? {};
                 return [
-                    restaurantId,
+                    sellerId,
                     {
                         totalEarnings: Number(wallet.totalEarnings ?? wallet.estimatedPayout ?? 0),
                         walletBalance: Number(wallet.withdrawableBalance ?? 0),
@@ -244,7 +244,7 @@ async function getWalletSummariesForRestaurants(restaurantIds = []) {
                 ];
             } catch {
                 return [
-                    restaurantId,
+                    sellerId,
                     {
                         totalEarnings: 0,
                         walletBalance: 0,
@@ -260,7 +260,7 @@ async function getWalletSummariesForRestaurants(restaurantIds = []) {
 }
 
 /**
- * Paginated invoice list with restaurant name populated and optional search.
+ * Paginated invoice list with seller name populated and optional search.
  */
 export async function listSubscriptionInvoicesAdmin(query = {}) {
     return listHydratedInvoicesAdmin(query, { paginate: true });
@@ -271,13 +271,13 @@ export async function getSubscriptionInvoiceAdmin(invoiceId) {
     if (!id) throw new ValidationError('Invalid invoice id');
 
     const invoice = await FoodSubscriptionInvoice.findById(id)
-        .populate('restaurantId', 'restaurantName ownerName ownerPhone profileImage')
+        .populate('sellerId', 'sellerName ownerName ownerPhone profileImage')
         .lean();
     if (!invoice) throw new NotFoundError('Invoice not found');
 
-    const restaurantObjectId = String(invoice.restaurantId?._id || invoice.restaurantId || '');
-    const walletByRestaurantId = await getWalletSummariesForRestaurants([restaurantObjectId]);
-    const wallet = walletByRestaurantId[restaurantObjectId] || {
+    const sellerObjectId = String(invoice.sellerId?._id || invoice.sellerId || '');
+    const walletBySellerId = await getWalletSummariesForSellers([sellerObjectId]);
+    const wallet = walletBySellerId[sellerObjectId] || {
         totalEarnings: 0,
         walletBalance: 0,
         netAvailable: 0,
@@ -292,15 +292,15 @@ export async function getSubscriptionInvoiceAdmin(invoiceId) {
         invoice: {
             ...invoice,
             billingMonthLabel: billingMonthLabel(invoice.billingMonth),
-            restaurant: invoice.restaurantId && typeof invoice.restaurantId === 'object'
+            seller: invoice.sellerId && typeof invoice.sellerId === 'object'
                 ? {
-                    _id: invoice.restaurantId._id,
-                    restaurantName: invoice.restaurantId.restaurantName,
-                    ownerName: invoice.restaurantId.ownerName,
-                    ownerPhone: invoice.restaurantId.ownerPhone,
+                    _id: invoice.sellerId._id,
+                    sellerName: invoice.sellerId.sellerName,
+                    ownerName: invoice.sellerId.ownerName,
+                    ownerPhone: invoice.sellerId.ownerPhone,
                 }
                 : null,
-            restaurantId: invoice.restaurantId?._id || invoice.restaurantId,
+            sellerId: invoice.sellerId?._id || invoice.sellerId,
             wallet,
         },
         transactions,
@@ -369,10 +369,10 @@ export async function getSubscriptionBillingSummaryAdmin(query = {}) {
 }
 
 /**
- * POS/per-restaurant overview: live month GMV + estimated plan + invoices + outstanding.
+ * POS/per-seller overview: live month GMV + estimated plan + invoices + outstanding.
  */
-export async function getRestaurantSubscriptionOverviewAdmin(restaurantId) {
-    const rid = toObjectId(restaurantId);
+export async function getSellerSubscriptionOverviewAdmin(sellerId) {
+    const rid = toObjectId(sellerId);
     if (!rid) throw new ValidationError('Invalid store id');
 
     const currentMonth = formatBillingMonth(new Date());
@@ -380,7 +380,7 @@ export async function getRestaurantSubscriptionOverviewAdmin(restaurantId) {
     const [gmvResult, outstanding, invoices] = await Promise.all([
         computeMonthlyGmv(rid, start, new Date()),
         getOutstandingSummary(rid),
-        FoodSubscriptionInvoice.find({ restaurantId: rid }).sort({ billingMonth: -1 }).limit(24).lean(),
+        FoodSubscriptionInvoice.find({ sellerId: rid }).sort({ billingMonth: -1 }).limit(24).lean(),
     ]);
 
     return {
@@ -398,18 +398,18 @@ export async function getRestaurantSubscriptionOverviewAdmin(restaurantId) {
 // ---------- Settlement actions ----------
 
 /**
- * Deduct (part of) an invoice's due from the restaurant wallet.
- * Validated against the same available balance the restaurant sees, plus the
+ * Deduct (part of) an invoice's due from the seller wallet.
+ * Validated against the same available balance the seller sees, plus the
  * amount already locked for OTHER invoices (deducting for this invoice may
  * consume its own locked share, but never other invoices' locked money).
  */
 export async function deductInvoiceFromWalletAdmin(invoiceId, amount, admin, remarks) {
     const id = toObjectId(invoiceId);
     if (!id) throw new ValidationError('Invalid invoice id');
-    const invoice = await FoodSubscriptionInvoice.findById(id).select('restaurantId').lean();
+    const invoice = await FoodSubscriptionInvoice.findById(id).select('sellerId').lean();
     if (!invoice) throw new NotFoundError('Invoice not found');
 
-    const finance = await getRestaurantFinance(String(invoice.restaurantId));
+    const finance = await getSellerFinance(String(invoice.sellerId));
     const wallet = finance?.wallet ?? finance?.currentCycle ?? {};
     const walletBalance = Math.max(0, Number(wallet.withdrawableBalance ?? 0));
 
@@ -450,14 +450,14 @@ export async function exportSubscriptionInvoicesAdmin(query = {}) {
     };
 
     const header = [
-        'Billing Month', 'Restaurant', 'Owner', 'Phone', 'GMV', 'Orders', 'Plan',
+        'Billing Month', 'Seller', 'Owner', 'Phone', 'GMV', 'Orders', 'Plan',
         'Plan Amount', 'GST', 'Total', 'Paid', 'Waived', 'Adjustment', 'Outstanding', 'Status', 'Generated At',
     ];
     const rows = invoices.map((inv) => [
         billingMonthLabel(inv.billingMonth),
-        inv.restaurant?.restaurantName || '',
-        inv.restaurant?.ownerName || '',
-        inv.restaurant?.ownerPhone || '',
+        inv.seller?.sellerName || '',
+        inv.seller?.ownerName || '',
+        inv.seller?.ownerPhone || '',
         inv.gmv,
         inv.orderCount,
         inv.planName,

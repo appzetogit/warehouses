@@ -2,7 +2,7 @@
 
 Verified against `Backend/src/routes/index.js` and every controller, service, validator, and model it reaches.
 
-Companion docs: [DELIVERY_API_SPEC.md](DELIVERY_API_SPEC.md), [RESTAURANT_API_SPEC.md](RESTAURANT_API_SPEC.md).
+Companion docs: [DELIVERY_API_SPEC.md](DELIVERY_API_SPEC.md), [SELLER_API_SPEC.md](SELLER_API_SPEC.md).
 
 ## Global
 
@@ -17,7 +17,7 @@ Two pagination shapes exist. Don't assume one:
 ```json
 { "data": [ … ], "meta": { "total": 240, "page": 1, "limit": 20, "totalPages": 12 } }   // orders
 { "items": [ … ], "pagination": { "page": 1, "limit": 20, "total": 8, "totalPages": 1 } } // notifications
-{ "restaurants": [ … ], "total": 42, "page": 1, "limit": 20 }                            // restaurants, search
+{ "sellers": [ … ], "total": 42, "page": 1, "limit": 20 }                            // sellers, search
 ```
 
 ---
@@ -87,21 +87,21 @@ Call on cold start — these drive feature flags, fee display, and CMS content.
 | GET | `/food/admin/feature-settings/public` | feature flags |
 | GET | `/food/admin/fee-settings/public` | GST rate, platform fee, packaging, quick-delivery surcharge |
 | GET | `/food/admin/power-scanning/public` | power-scanning config |
-| GET | `/food/admin/restaurant-subscription-settings/public` | plan catalog |
+| GET | `/food/admin/seller-subscription-settings/public` | plan catalog |
 | GET | `/food/landing/settings/public?zoneId=` | landing config (below) |
 | GET | `/food/referral-settings` | reward + limit per role |
 | GET | `/food/pages/:key` | CMS page — `about`, `terms`, `privacy`, … |
 | GET | `/v1/health` | health probe (full path `/api/v1/health`) |
 
-`GET /food/landing/settings/public` returns the landing settings spread at the top level, with `recommendedRestaurantIds` replaced by hydrated docs:
+`GET /food/landing/settings/public` returns the landing settings spread at the top level, with `recommendedSellerIds` replaced by hydrated docs:
 ```json
 {
   "…landing settings fields…",
-  "recommendedRestaurants": [
-    { "_id": "…", "restaurantName": "…", "area": "…", "city": "…",
+  "recommendedSellers": [
+    { "_id": "…", "sellerName": "…", "area": "…", "city": "…",
       "profileImage": "…", "coverImages": [], "menuImages": [],
       "slug": "…", "rating": 4.3, "cuisines": ["…"],
-      "pureVegRestaurant": false, "zoneId": "…" }
+      "pureVegSeller": false, "zoneId": "…" }
   ]
 }
 ```
@@ -148,21 +148,21 @@ All return active-only, ordered lists.
 | GET | `/food/hero-banners/under-250/public` | `{ banners }` |
 | GET | `/food/hero-banners/dining/public` | `{ banners }` |
 | GET | `/food/hero-banners/home-promotion/public` | `{ banners }` |
-| GET | `/food/hero-banners/gourmet/public` | `{ restaurants }` |
+| GET | `/food/hero-banners/gourmet/public` | `{ sellers }` |
 | GET | `/food/explore-icons/public` | `{ items }` |
 | GET | `/food/dining/categories/public` | dining categories |
-| GET | `/food/dining/restaurants/public` | dining restaurants |
+| GET | `/food/dining/sellers/public` | dining sellers |
 
 ---
 
 ## 5. Discovery (no auth)
 
-### `GET /food/restaurant/restaurants`
+### `GET /food/seller/sellers`
 Query: `page` (default 1), `limit` (default 100, max 1000), `city`, `area`, `cuisine`, `hasOffers=true`, `zoneId`, `lat`, `lng`, `radiusKm` (or legacy `maxDistance`), `sortBy` = `nearest` | `rating` / `rating-high` | `rating-low` | `price-low` | `price-high` | `deliveryTime` | `newest`.
 
 ```json
 {
-  "restaurants": [ … ],
+  "sellers": [ … ],
   "total": 42,
   "page": 1,
   "limit": 20
@@ -174,8 +174,8 @@ Query: `page` (default 1), `limit` (default 100, max 1000), `city`, `area`, `cui
 Non-geo item:
 ```json
 {
-  "_id": "…", "id": "…", "restaurantId": "…",
-  "restaurantName": "Spice Route",
+  "_id": "…", "id": "…", "sellerId": "…",
+  "sellerName": "Spice Route",
   "name": "Spice Route",                    // alias — geo path does NOT have this
   "area": "…", "city": "…", "cuisines": ["North Indian"],
   "profileImage": { "url": "…" },           // wrapped object — geo path returns a plain string
@@ -183,7 +183,7 @@ Non-geo item:
   "estimatedDeliveryTime": "30", "estimatedDeliveryTimeMinutes": 30,
   "offer": "…", "featuredDish": "…", "featuredPrice": 260,
   "rating": 4.3, "totalRatings": 88,
-  "isAcceptingOrders": true, "status": "approved", "pureVegRestaurant": false,
+  "isAcceptingOrders": true, "status": "approved", "pureVegSeller": false,
   "location": { "type": "Point", "coordinates": [lng, lat], "latitude": …, "longitude": … },
   "openingTime": "09:00", "closingTime": "22:00", "openDays": ["Monday", …],
   "outletTimings": { "Monday": { "isOpen": true, "openingTime": "09:00", "closingTime": "22:00" }, … },
@@ -192,15 +192,15 @@ Non-geo item:
   "createdAt": "…"
 }
 ```
-Geo item: same fields **minus** `name` / `id` / `restaurantId` aliases, `profileImage` is a plain string, and it adds `distanceMeters` + `distanceInKm`.
+Geo item: same fields **minus** `name` / `id` / `sellerId` aliases, `profileImage` is a plain string, and it adds `distanceMeters` + `distanceInKm`.
 
-Write your model to accept `profileImage` as either a string or `{ url }`, and fall back to `restaurantName` when `name` is absent. This bites on the first "near me" screen.
+Write your model to accept `profileImage` as either a string or `{ url }`, and fall back to `sellerName` when `name` is absent. This bites on the first "near me" screen.
 
-### `GET /food/restaurant/restaurants/:id`
-Accepts an ObjectId **or** a name slug. Approved restaurants only; `pendingLocation` is stripped from public output.
-→ `data: { restaurant }` — full restaurant doc plus `outletTimings` and normalized geo. `null` → 404 path in the caller.
+### `GET /food/seller/sellers/:id`
+Accepts an ObjectId **or** a name slug. Approved sellers only; `pendingLocation` is stripped from public output.
+→ `data: { seller }` — full seller doc plus `outletTimings` and normalized geo. `null` → 404 path in the caller.
 
-### `GET /food/restaurant/restaurants/:id/menu`
+### `GET /food/seller/sellers/:id/menu`
 ```json
 {
   "menu": {
@@ -223,26 +223,26 @@ Accepts an ObjectId **or** a name slug. Approved restaurants only; `pendingLocat
   }
 }
 ```
-Only approved, available items reach the public menu. 404 for a non-approved restaurant.
+Only approved, available items reach the public menu. 404 for a non-approved seller.
 
-### `GET /food/restaurant/restaurants/:id/addons`
-→ `{ addons: [ … ] }` — approved add-ons for that restaurant.
+### `GET /food/seller/sellers/:id/addons`
+→ `{ addons: [ … ] }` — approved add-ons for that seller.
 
-### `GET /food/restaurant/restaurants/:id/outlet-timings`
+### `GET /food/seller/sellers/:id/outlet-timings`
 ```json
 { "outletTimings": {
   "Monday": { "isOpen": true, "openingTime": "09:00", "closingTime": "22:00" },
   "…", "Sunday": { "isOpen": false, "openingTime": "", "closingTime": "" }
 } }
 ```
-Always all seven days, full names. A closed day has empty time strings. Use this to block cart-building when closed — the order API will reject it anyway with *"Restaurant is currently closed"* / *"Restaurant is currently offline"*.
+Always all seven days, full names. A closed day has empty time strings. Use this to block cart-building when closed — the order API will reject it anyway with *"Seller is currently closed"* / *"Seller is currently offline"*.
 
-### `GET /food/restaurant/public/foods`
-Cross-restaurant dish feed. Query: `limit` (default 500, max 1000), `zoneId`, `categorySlug` / `category`, `promo` / `promoSlug` (`switch99`, `under-250`, `under250`).
+### `GET /food/seller/public/foods`
+Cross-seller dish feed. Query: `limit` (default 500, max 1000), `zoneId`, `categorySlug` / `category`, `promo` / `promoSlug` (`switch99`, `under-250`, `under250`).
 ```json
 { "foods": [{
     "id": "…", "_id": "…",
-    "restaurantId": "…", "restaurantName": "Spice Route",
+    "sellerId": "…", "sellerName": "Spice Route",
     "categoryId": "…", "categoryName": "Starters", "category": "Starters",
     "name": "Paneer Tikka", "description": "…",
     "price": 260, "otherPrice": 320,
@@ -253,11 +253,11 @@ Cross-restaurant dish feed. Query: `limit` (default 500, max 1000), `zoneId`, `c
 ```
 `total` is the length of the returned page, **not** the collection count — there is no pagination here.
 
-### `GET /food/restaurant/categories/public`
+### `GET /food/seller/categories/public`
 Zone-aware approved category list.
 
-### `GET /food/restaurant/offers` — optional auth
-Query: `restaurantId`, `subtotal`. Send the Bearer token when logged in — the response then excludes coupons the user has exhausted and first-order coupons they no longer qualify for.
+### `GET /food/seller/offers` — optional auth
+Query: `sellerId`, `subtotal`. Send the Bearer token when logged in — the response then excludes coupons the user has exhausted and first-order coupons they no longer qualify for.
 ```json
 {
   "allOffers": [{
@@ -266,11 +266,11 @@ Query: `restaurantId`, `subtotal`. Send the Bearer token when logged in — the 
     "discountType": "percentage", "discountValue": 20,
     "maxDiscount": 100, "perUserLimit": 1, "minOrderValue": 199,
     "customerScope": "all", "isFirstOrderOnly": false,
-    "restaurantScope": "selected",
-    "restaurantId": "…", "restaurantIds": ["…"],
-    "restaurantName": "Spice Route",     // or "All Restaurants" / "Selected Restaurants"
-    "restaurantSlug": "…", "restaurantImage": "…",
-    "deliveryTime": "30", "restaurantRating": 4.3,
+    "sellerScope": "selected",
+    "sellerId": "…", "sellerIds": ["…"],
+    "sellerName": "Spice Route",     // or "All Sellers" / "Selected Sellers"
+    "sellerSlug": "…", "sellerImage": "…",
+    "deliveryTime": "30", "sellerRating": 4.3,
     "endDate": "…", "showInCart": true
   }],
   "groupedByOffer": {}
@@ -283,21 +283,21 @@ Query: `q`, `lat`, `lng`, `radiusKm` (default 20), `categoryId`, `minRating`, `m
 
 ```json
 {
-  "restaurants": [ /* restaurant docs + match metadata */ ],
+  "sellers": [ /* seller docs + match metadata */ ],
   "total": 17,
   "page": 1,
   "limit": 20,
   "zoneFiltered": true
 }
 ```
-Restaurants matched via a dish carry:
+Sellers matched via a dish carry:
 ```json
 { "matchType": "food", "matchedDish": "Paneer Tikka", "matchedDishImage": "…", "matchedDishId": "…" }
 ```
-Use those to render the "matched on dish" subtitle. Results are restaurant-shaped even when the query hit a dish — there's no separate dish array. With lat/lng, results are re-sorted by distance and gain `distanceScore`. Unless `strictZone` is true, a zone with no results falls back to a wider search.
+Use those to render the "matched on dish" subtitle. Results are seller-shaped even when the query hit a dish — there's no separate dish array. With lat/lng, results are re-sorted by distance and gain `distanceScore`. Unless `strictZone` is true, a zone with no results falls back to a wider search.
 
 ### `GET /food/search/categories/admin?zoneId=`
-→ `{ categories: [ … ] }` — admin-curated only, excludes restaurant-created categories. Cached 30 min.
+→ `{ categories: [ … ] }` — admin-curated only, excludes seller-created categories. Cached 30 min.
 
 ---
 
@@ -367,11 +367,11 @@ Legacy label `"Work"` is coerced to `"Office"`; anything unrecognized becomes `"
 
 ### `PUT /food/user/cart`
 ```json
-{ "items": [ { "itemId": "…", "name": "…", "price": 260, "quantity": 2, "restaurantId": "…", "restaurant": "…" } ],
+{ "items": [ { "itemId": "…", "name": "…", "price": 260, "quantity": 2, "sellerId": "…", "seller": "…" } ],
   "pricing": { … },
-  "restaurantId": "…", "restaurantName": "…" }
+  "sellerId": "…", "sellerName": "…" }
 ```
-`restaurantId` / `restaurantName` are backfilled per item from the first item or the top-level field, so you can send either.
+`sellerId` / `sellerName` are backfilled per item from the first item or the top-level field, so you can send either.
 → `{ "synced": true, "itemCount": 3 }`
 
 Server-side cart is for cross-device continuity only — checkout reads the cart you send it, not this.
@@ -427,11 +427,11 @@ Pre-order copy (no auth): `GET /food/admin/cashback-settings/public` → `{ cash
 ```json
 { "totalRefunded": 546,
   "refunds": [
-    { "orderId":"6a64...", "orderDisplayId":"FOD-123", "restaurantName":"Suvio",
+    { "orderId":"6a64...", "orderDisplayId":"FOD-123", "sellerName":"Suvio",
       "amount":546, "status":"processed",            // pending | processed | failed
       "method":"razorpay", "refundId":"rfnd_...", "reason":"...",
       "creditedToWallet": true,                       // false = back to card
-      "processedAt":"...", "orderStatus":"cancelled_by_restaurant",
+      "processedAt":"...", "orderStatus":"cancelled_by_seller",
       "createdAt":"...", "updatedAt":"..." } ],
   "pagination": { ... } }
 ```
@@ -474,14 +474,14 @@ Share link uses the user's `referralCode` (equal to their `_id` on older account
 `POST /food/user/support/ticket`:
 ```json
 {
-  "type": "order",              // order | restaurant | other — required
+  "type": "order",              // order | seller | other — required
   "issueType": "required",
   "description": "…",
   "orderId": "<ObjectId>",      // required when type = order
-  "restaurantId": "<ObjectId>"  // required when type = restaurant
+  "sellerId": "<ObjectId>"  // required when type = seller
 }
 ```
-For `type: "order"` the server also links the restaurant automatically. → 201, `{ ticket }`
+For `type: "order"` the server also links the seller automatically. → 201, `{ ticket }`
 
 `GET /food/user/support/my-tickets` — query `page`, `limit` (default 20, max 50).
 
@@ -504,7 +504,7 @@ Always call before showing the bill. Never compute totals client-side.
     "price": 260, "otherPrice": 320,
     "quantity": 2, "isVeg": true, "image": "…", "notes": "less spicy"
   }],
-  "restaurantId": "…",
+  "sellerId": "…",
   "deliveryAddressId": "…",
   "zoneId": "…",
   "couponCode": "SAVE50",
@@ -549,7 +549,7 @@ Always call before showing the bill. Never compute totals client-side.
 
 **`priceChanges` is non-empty when the menu changed under the user.** Show a "prices updated" confirmation before letting them place the order — it's the whole reason the field exists.
 
-Coupon behaviour: `couponCode` is echoed back even when rejected, but `appliedCoupon` is `null` and `discount` is 0. Check `appliedCoupon`, not `couponCode`. A coupon can fail on status, dates, restaurant scope, min order value, global usage limit, per-user limit, or first-order-only.
+Coupon behaviour: `couponCode` is echoed back even when rejected, but `appliedCoupon` is `null` and `discount` is 0. Check `appliedCoupon`, not `couponCode`. A coupon can fail on status, dates, seller scope, min order value, global usage limit, per-user limit, or first-order-only.
 
 Maths, so your UI can explain the bill:
 - discount is clamped to ≤ subtotal, floored to whole rupees, and percentage discounts respect `maxDiscount`
@@ -568,8 +568,8 @@ Maths, so your UI can explain the bill:
     "zipCode": "440001", "phone": "9876543210",
     "location": { "type": "Point", "coordinates": [lng, lat] }
   },
-  "restaurantId": "…",
-  "restaurantName": "…",
+  "sellerId": "…",
+  "sellerName": "…",
   "customerName": "…",
   "customerPhone": "…",
   "pricing": { /* echo back what /calculate returned */ },
@@ -595,7 +595,7 @@ Maths, so your UI can explain the bill:
 ```
 `razorpay` is `null` for non-`razorpay` methods or when the gateway isn't configured. Online orders under ₹1 total are rejected (*"Amount too low for online payment"*).
 
-An online order starts at `orderStatus: "pending_payment"` and the **restaurant is not notified until payment is verified**. Unpaid orders are swept away by an expiry job and never appear in `GET /food/orders`.
+An online order starts at `orderStatus: "pending_payment"` and the **seller is not notified until payment is verified**. Unpaid orders are swept away by an expiry job and never appear in `GET /food/orders`.
 
 ### `POST /food/orders/verify-payment`
 ```json
@@ -615,8 +615,8 @@ Returned by every order endpoint, normalized for clients:
   "_id": "…", "orderMongoId": "…",
   "order_id": "FOD-1234567890", "orderId": "FOD-1234567890",
   "userId": "…",
-  "restaurantId": {
-    "_id": "…", "restaurantName": "…", "profileImage": "…",
+  "sellerId": {
+    "_id": "…", "sellerName": "…", "profileImage": "…",
     "area": "…", "city": "…", "location": { … }, "rating": 4.3, "totalRatings": 88
   },
   "zoneId": "…", "transactionId": "…",
@@ -626,7 +626,7 @@ Returned by every order endpoint, normalized for clients:
   "pricing": {
     "subtotal": 520, "tax": 24, "packagingFee": 10,
     "deliveryFee": 35, "deliveryFeeGst": 6, "platformFee": 5, "quickDeliveryFee": 0,
-    "deliveryMode": "basic", "restaurantCommission": 78,
+    "deliveryMode": "basic", "sellerCommission": 78,
     "discount": 50, "couponCode": "SAVE50",
     "total": 550, "currency": "INR",
     "distanceKm": 3.1, "roadDistanceKm": 3.9, "roadDurationMins": 14
@@ -654,8 +654,8 @@ Returned by every order endpoint, normalized for clients:
     "currentLocation": { "lat": 21.14, "lng": 79.08 }
   },
   "deliveryVerification": { "dropOtp": { "required": true, "verified": false } },
-  "statusHistory": [ { "at": "…", "byRole": "RESTAURANT", "from": "confirmed", "to": "preparing", "note": "" } ],
-  "ratings": { "restaurant": { "rating": 5, "comment": "…", "ratedAt": "…" }, "deliveryPartner": { … } },
+  "statusHistory": [ { "at": "…", "byRole": "SELLER", "from": "confirmed", "to": "preparing", "note": "" } ],
+  "ratings": { "seller": { "rating": 5, "comment": "…", "ratedAt": "…" }, "deliveryPartner": { … } },
   "rating": 5,
   "note": "kitchen note", "deliveryInstructions": "Ring the bell",
   "sendCutlery": false, "deliveryFleet": "standard", "scheduledAt": null,
@@ -668,9 +668,9 @@ Returned by every order endpoint, normalized for clients:
 
 `deliveryState.currentLocation` is derived from the rider's last GPS ping — `{lat, lng}` here, even though the raw field is GeoJSON. Use it as the map marker seed before the socket connects.
 
-`cancelledBy` is resolved server-side to `"customer"` / `"restaurant"` / `"admin"`; `deliveryOtp` is never in the response.
+`cancelledBy` is resolved server-side to `"customer"` / `"seller"` / `"admin"`; `deliveryOtp` is never in the response.
 
-**Status values** — `pending_payment`, `created`, `confirmed`, `preparing`, `ready_for_pickup`, `reached_pickup`, `picked_up`, `reached_drop`, `delivered`, `cancelled_by_user`, `cancelled_by_restaurant`, `cancelled_by_admin`.
+**Status values** — `pending_payment`, `created`, `confirmed`, `preparing`, `ready_for_pickup`, `reached_pickup`, `picked_up`, `reached_drop`, `delivered`, `cancelled_by_user`, `cancelled_by_seller`, `cancelled_by_admin`.
 
 **Phases** — `en_route_to_pickup` → `at_pickup` → `en_route_to_delivery` → `at_drop` → `delivered` → `completed`.
 
@@ -694,13 +694,13 @@ Returned by every order endpoint, normalized for clients:
 Ratings body:
 ```json
 {
-  "restaurantRating": 5,            // required, 1–5
+  "sellerRating": 5,            // required, 1–5
   "deliveryPartnerRating": 4,       // optional, 1–5
-  "restaurantComment": "…",         // optional, ≤500
+  "sellerComment": "…",         // optional, ≤500
   "deliveryPartnerComment": "…"     // optional, ≤500
 }
 ```
-Submitting also updates the restaurant's and rider's aggregate `rating` / `totalRatings`.
+Submitting also updates the seller's and rider's aggregate `rating` / `totalRatings`.
 
 ---
 
@@ -716,7 +716,7 @@ Everything the tracking screen needs, in the order you use it.
 |---|---|
 | Stage stepper | `orderStatus` + `deliveryState.currentPhase` |
 | Rider marker | `deliveryState.currentLocation` → `{ lat, lng }` |
-| Restaurant marker | `restaurantId.location.coordinates` → `[lng, lat]` |
+| Seller marker | `sellerId.location.coordinates` → `[lng, lat]` |
 | Drop marker | `deliveryAddress.location.coordinates` → `[lng, lat]` |
 | Rider name / phone / rating | `dispatch.deliveryPartnerId` (populated object) |
 | "Call rider" enabled? | `dispatch.status === "accepted"` |
@@ -728,12 +728,12 @@ Everything the tracking screen needs, in the order you use it.
 
 ### Step 2 — the two status axes
 
-`orderStatus` is the **order's** lifecycle. `deliveryState.currentPhase` is the **rider's**. They advance together but answer different questions — drive your stepper off `orderStatus` and your map copy ("heading to restaurant" vs "heading to you") off `currentPhase`.
+`orderStatus` is the **order's** lifecycle. `deliveryState.currentPhase` is the **rider's**. They advance together but answer different questions — drive your stepper off `orderStatus` and your map copy ("heading to seller" vs "heading to you") off `currentPhase`.
 
 ```
 orderStatus:  pending_payment → created → confirmed → preparing → ready_for_pickup
               → reached_pickup → picked_up → reached_drop → delivered
-              (or cancelled_by_user | cancelled_by_restaurant | cancelled_by_admin)
+              (or cancelled_by_user | cancelled_by_seller | cancelled_by_admin)
 
 currentPhase: en_route_to_pickup → at_pickup → en_route_to_delivery → at_drop
               → delivered → completed
@@ -772,12 +772,12 @@ Every order read includes a freshly computed ETA:
 ```json
 "eta": { "minutes": 13, "distanceKm": 4.51,
          "source": "live",        // live | estimate | completed | unavailable
-         "target": "customer" }   // customer | restaurant | null
+         "target": "customer" }   // customer | seller | null
 ```
 
 | `target` | meaning |
 |---|---|
-| `restaurant` | rider is still going to collect the food |
+| `seller` | rider is still going to collect the food |
 | `customer` | rider has the food and is coming to you |
 
 | `source` | meaning |
@@ -929,12 +929,12 @@ socket.emit('leave-tracking', orderId);  // on leaving the screen
 | Event | Meaning |
 |---|---|
 | `order_status_update` | order moved to a new status |
-| `order_ready` | restaurant marked ready for pickup |
+| `order_ready` | seller marked ready for pickup |
 | `location-update` | rider GPS ping — move the marker |
 | `delivery_drop_otp` | `{ orderMongoId, orderId, otp, message }` — the handover OTP, pushed to the user |
 | `tracking-room-joined` | join ack |
 
-`new_order`, `new_order_available`, `order_claimed`, `order_deassigned`, `admin_notification` are restaurant/rider/admin events — ignore them.
+`new_order`, `new_order_available`, `order_claimed`, `order_deassigned`, `admin_notification` are seller/rider/admin events — ignore them.
 
 Sockets are an optimization. The tracking screen must still work by polling `GET /food/orders/:orderId`.
 
@@ -955,10 +955,10 @@ Sockets are an optimization. The tracking screen must still work by polling `GET
 5. **Check `appliedCoupon`, not `couponCode`,** to know whether a discount actually landed.
 6. **Payment truth is the webhook.** Client verify is best-effort; poll the order on ambiguity. Call `DELETE .../pending-payment` when the user backs out.
 7. **Zone first.** Location permission → `/food/zones/detect` → check `data.status` → home screen.
-8. **Restaurant list items come in two shapes** (geo vs non-geo). Model `profileImage` as string-or-`{url}` and fall back to `restaurantName` for `name`.
+8. **Seller list items come in two shapes** (geo vs non-geo). Model `profileImage` as string-or-`{url}` and fall back to `sellerName` for `name`.
 9. `scheduledAt` must be a full ISO-8601 datetime with timezone, not a date.
 10. Three different pagination envelopes exist across the API. Parse per-endpoint.
 
 ## Build order
 
-auth/OTP → zone + landing → restaurant list/detail/menu → cart → `/calculate` → checkout + Razorpay → order tracking (REST first, sockets after) → profile/addresses/orders history → wallet/referrals → notifications + FCM.
+auth/OTP → zone + landing → seller list/detail/menu → cart → `/calculate` → checkout + Razorpay → order tracking (REST first, sockets after) → profile/addresses/orders history → wallet/referrals → notifications + FCM.

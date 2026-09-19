@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Clock } from 'lucide-react';
 import { ActionSlider } from '@/modules/DeliveryV2/components/ui/ActionSlider';
 import { resolveCustomerAddress } from '@/modules/DeliveryV2/utils/orderAddress';
-import { getUserRestaurantDistance, normalizeRestaurantLocation } from '@food/utils/geo';
+import { getUserSellerDistance, normalizeSellerLocation } from '@food/utils/geo';
 import { fetchDrivingDistanceKm, formatDistanceLabel } from '@food/utils/roadDistance';
 
 /**
@@ -30,12 +30,12 @@ export const NewOrderModal = ({ order, onAccept, onReject, onMinimize, swapGuard
     if (!lockedOrder) return undefined;
     let cancelled = false;
 
-    const restaurantLoc = normalizeRestaurantLocation(
-      lockedOrder.restaurantId?.location ||
-        lockedOrder.restaurant?.location ||
-        lockedOrder.restaurantLocation ||
-        lockedOrder.restaurantId ||
-        lockedOrder.restaurant,
+    const sellerLoc = normalizeSellerLocation(
+      lockedOrder.sellerId?.location ||
+        lockedOrder.seller?.location ||
+        lockedOrder.sellerLocation ||
+        lockedOrder.sellerId ||
+        lockedOrder.seller,
     );
 
     const customerLoc =
@@ -79,8 +79,8 @@ export const NewOrderModal = ({ order, onAccept, onReject, onMinimize, swapGuard
         }
       }
 
-      // 2) Google Directions restaurant → customer
-      const roadKm = await fetchDrivingDistanceKm(restaurantLoc, customerLoc);
+      // 2) Google Directions seller → customer
+      const roadKm = await fetchDrivingDistanceKm(sellerLoc, customerLoc);
       if (!cancelled && roadKm != null) {
         apply(roadKm);
         return;
@@ -93,7 +93,7 @@ export const NewOrderModal = ({ order, onAccept, onReject, onMinimize, swapGuard
       }
 
       // 4) Haversine fallback
-      const measured = getUserRestaurantDistance(customerLoc, restaurantLoc);
+      const measured = getUserSellerDistance(customerLoc, sellerLoc);
       if (measured) apply(measured.km);
       else {
         setDistanceLabel('--');
@@ -110,15 +110,15 @@ export const NewOrderModal = ({ order, onAccept, onReject, onMinimize, swapGuard
   if (!lockedOrder) return null;
 
   const earnings = lockedOrder.earnings || lockedOrder.riderEarning || (lockedOrder.orderAmount ? lockedOrder.orderAmount * 0.1 : 0);
-  const restaurantName =
-    lockedOrder.restaurantName ||
-    lockedOrder.restaurant_name ||
-    lockedOrder.restaurant?.restaurantName ||
-    lockedOrder.restaurant?.name ||
-    lockedOrder.restaurantId?.restaurantName ||
-    lockedOrder.restaurantId?.name ||
-    'Restaurant';
-  const restaurantAddress = lockedOrder.restaurantAddress || lockedOrder.restaurant_address || (lockedOrder.restaurantId?.location?.address) || 'Address not available';
+  const sellerName =
+    lockedOrder.sellerName ||
+    lockedOrder.seller_name ||
+    lockedOrder.seller?.sellerName ||
+    lockedOrder.seller?.name ||
+    lockedOrder.sellerId?.sellerName ||
+    lockedOrder.sellerId?.name ||
+    'Seller';
+  const sellerAddress = lockedOrder.sellerAddress || lockedOrder.seller_address || (lockedOrder.sellerId?.location?.address) || 'Address not available';
   const customerAddress = resolveCustomerAddress(lockedOrder) || 'Location not available';
   const mapsLink = customerAddress !== 'Location not available'
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerAddress)}`
@@ -201,9 +201,9 @@ export const NewOrderModal = ({ order, onAccept, onReject, onMinimize, swapGuard
 
                 <div className="flex-1 space-y-4">
                   <div>
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-0.5">Restaurant Pickup</h4>
-                    <h3 className="text-gray-950 font-black text-lg leading-tight mb-0.5 line-clamp-1">{restaurantName}</h3>
-                    <p className="text-gray-500 text-[11px] font-bold line-clamp-1">{restaurantAddress}</p>
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-0.5">Seller Pickup</h4>
+                    <h3 className="text-gray-950 font-black text-lg leading-tight mb-0.5 line-clamp-1">{sellerName}</h3>
+                    <p className="text-gray-500 text-[11px] font-bold line-clamp-1">{sellerAddress}</p>
                   </div>
                   <div>
                     <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-600 mb-0.5">Customer Drop</h4>

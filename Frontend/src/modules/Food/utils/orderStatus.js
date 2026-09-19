@@ -4,7 +4,7 @@ const debugError = (...args) => {}
 
 /**
  * Order Status Utility Functions
- * Centralized management for order status across the restaurant module
+ * Centralized management for order status across the seller module
  */
 
 // Standard status values (as used in OrderDetails.jsx)
@@ -19,7 +19,7 @@ export const ORDER_STATUS = {
 
 /**
  * Human-readable labels for raw backend order statuses, used by
- * order-timeline views (restaurant OrderDetailPage, admin ViewOrderDialog).
+ * order-timeline views (seller OrderDetailPage, admin ViewOrderDialog).
  */
 export const STATUS_TIMELINE_LABELS = {
   pending_payment: "Awaiting Payment",
@@ -27,12 +27,12 @@ export const STATUS_TIMELINE_LABELS = {
   confirmed: "Order Accepted",
   preparing: "Preparing",
   ready_for_pickup: "Ready for Pickup",
-  reached_pickup: "Rider at Restaurant",
+  reached_pickup: "Rider at Seller",
   picked_up: "Picked Up",
   reached_drop: "Rider at Doorstep",
   delivered: "Delivered",
   cancelled_by_user: "Cancelled by Customer",
-  cancelled_by_restaurant: "Cancelled by Restaurant",
+  cancelled_by_seller: "Cancelled by Seller",
   cancelled_by_admin: "Cancelled by Admin",
 }
 
@@ -47,7 +47,7 @@ export const getTimelineStatusLabel = (status) => {
 
 const TIMELINE_ROLE_LABELS = {
   USER: "Customer",
-  RESTAURANT: "Restaurant",
+  SELLER: "Seller",
   DELIVERY_PARTNER: "Delivery Partner",
   ADMIN: "Admin",
   SYSTEM: "System",

@@ -80,9 +80,9 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
     if (!activeOrder) return null;
     let rawLoc = null;
     if (tripStatus === 'PICKING_UP' || tripStatus === 'REACHED_PICKUP') {
-      rawLoc = activeOrder.restaurantLocation;
+      rawLoc = activeOrder.sellerLocation;
     } else if (tripStatus === 'PICKED_UP' || tripStatus === 'REACHED_DROP') {
-      // After pickup: route/distance target is restaurant → customer (live remaining from rider ≈ drop leg)
+      // After pickup: route/distance target is seller → customer (live remaining from rider ≈ drop leg)
       rawLoc = activeOrder.customerLocation;
     }
     if (!rawLoc) return null;
@@ -179,9 +179,9 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
     })();
   }, []);
 
-  const restaurantMarkerUrl = useMemo(() => {
+  const sellerMarkerUrl = useMemo(() => {
     if (!activeOrder) return 'https://cdn-icons-png.flaticon.com/512/3170/3170733.png';
-    return activeOrder.restaurantImage || activeOrder.restaurant?.logo || activeOrder.restaurant?.profileImage || 'https://cdn-icons-png.flaticon.com/512/3170/3170733.png';
+    return activeOrder.sellerImage || activeOrder.seller?.logo || activeOrder.seller?.profileImage || 'https://cdn-icons-png.flaticon.com/512/3170/3170733.png';
   }, [activeOrder]);
 
   const customerMarkerUrl = useMemo(() => {
@@ -260,7 +260,7 @@ export const LiveMap = ({ onMapClick, onMapLoad, onPathReceived, onPolylineRecei
         )}
 
         {targetLocation && (
-          <Marker position={targetLocation} icon={{ url: (tripStatus === 'PICKING_UP' || tripStatus === 'REACHED_PICKUP') ? restaurantMarkerUrl : customerMarkerUrl, scaledSize: new window.google.maps.Size(44, 44), anchor: new window.google.maps.Point(22, 22) }} />
+          <Marker position={targetLocation} icon={{ url: (tripStatus === 'PICKING_UP' || tripStatus === 'REACHED_PICKUP') ? sellerMarkerUrl : customerMarkerUrl, scaledSize: new window.google.maps.Size(44, 44), anchor: new window.google.maps.Point(22, 22) }} />
         )}
 
         {zones.map((zone) => (

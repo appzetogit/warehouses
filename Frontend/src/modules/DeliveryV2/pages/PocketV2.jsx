@@ -7,7 +7,7 @@ import {
   Sparkles, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { deliveryAPI, restaurantAPI } from '@food/api';
+import { deliveryAPI, sellerAPI } from '@food/api';
 import { toast } from 'sonner';
 import { formatCurrency } from '@food/utils/currency';
 import { initRazorpayPayment } from "@food/utils/razorpay";
@@ -72,7 +72,7 @@ export const PocketV2 = () => {
   useEffect(() => {
     const loadFeatureSettings = async () => {
       try {
-        const res = await restaurantAPI.getFeatureSettingsPublic();
+        const res = await sellerAPI.getFeatureSettingsPublic();
         const rows = Array.isArray(res?.data?.data) ? res.data.data : [];
         const codControl = rows.find((row) => row.key === "cod_control");
         if (codControl) {

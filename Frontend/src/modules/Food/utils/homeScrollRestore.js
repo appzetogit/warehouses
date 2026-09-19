@@ -5,7 +5,7 @@ const MAX_AGE_MS = 30 * 60 * 1000;
 let memoryPending = null;
 
 /**
- * Full restaurant list snapshot for SPA back-navigation.
+ * Full seller list snapshot for SPA back-navigation.
  * Kept in memory only (too large for sessionStorage).
  */
 let memorySnapshot = null;
@@ -120,7 +120,7 @@ export function saveHomeScrollState({
   memoryPending = next;
 
   try {
-    // Persist compact fields only (not the restaurant snapshot).
+    // Persist compact fields only (not the seller snapshot).
     sessionStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -159,12 +159,12 @@ export function peekHomeScrollState() {
 }
 
 export function stashHomePageSnapshot(snapshot = {}) {
-  const restaurantsData = Array.isArray(snapshot.restaurantsData)
-    ? snapshot.restaurantsData
+  const sellersData = Array.isArray(snapshot.sellersData)
+    ? snapshot.sellersData
     : null;
-  if (!restaurantsData || restaurantsData.length === 0) return;
+  if (!sellersData || sellersData.length === 0) return;
   memorySnapshot = {
-    restaurantsData,
+    sellersData,
     ts: Date.now(),
   };
 }

@@ -215,7 +215,7 @@ export const PocketDetailsV2 = () => {
                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">• {new Date(order.deliveredAt || order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
                           </div>
                           <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest truncate max-w-[140px]">
-                            {order.restaurantName || order.restaurantId?.name || "Premium Restaurant"}
+                            {order.sellerName || order.sellerId?.name || "Premium Seller"}
                           </p>
                        </div>
                     </div>

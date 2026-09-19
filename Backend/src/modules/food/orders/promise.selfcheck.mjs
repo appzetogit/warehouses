@@ -29,7 +29,7 @@ assert.equal(buildLiveEta(order()).promiseMinutes, PACKING_MINUTES + 8);
 // quote every order minutes later than it will actually arrive.
 const withRider = order({
     lastRiderLocation: { coordinates: [77.5, 12.9] },
-    restaurantId: { latitude: 12.9, longitude: 77.5 },
+    sellerId: { latitude: 12.9, longitude: 77.5 },
 });
 assert.equal(
     buildLiveEta(withRider).promiseMinutes,

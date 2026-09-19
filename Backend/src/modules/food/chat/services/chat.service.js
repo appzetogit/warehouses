@@ -8,7 +8,7 @@ import { notifyOwnersSafely } from '../../orders/services/order.helpers.js';
 import { notifyAdminsSafely } from '../../../../core/notifications/firebase.service.js';
 import { logger } from '../../../../utils/logger.js';
 
-const ROLES = ['USER', 'RESTAURANT', 'DELIVERY_PARTNER', 'ADMIN'];
+const ROLES = ['USER', 'SELLER', 'DELIVERY_PARTNER', 'ADMIN'];
 
 /** Stable identifier for a participant. ADMIN carries no id (shared inbox). */
 export const partyToken = (role, id) => (role === 'ADMIN' ? 'ADMIN' : `${role}:${String(id)}`);
@@ -23,7 +23,7 @@ const buildConversationId = (tokenA, tokenB, orderId) => {
 const roomForToken = (role, id) => {
     if (role === 'ADMIN') return rooms.admin();
     if (role === 'USER') return rooms.user(id);
-    if (role === 'RESTAURANT') return rooms.restaurant(id);
+    if (role === 'SELLER') return rooms.seller(id);
     if (role === 'DELIVERY_PARTNER') return rooms.delivery(id);
     return null;
 };
@@ -34,14 +34,14 @@ async function assertOrderParticipants(orderId, tokens) {
         throw new ValidationError('Invalid order id');
     }
     const order = await FoodOrder.findById(orderId)
-        .select('userId restaurantId dispatch.deliveryPartnerId')
+        .select('userId sellerId dispatch.deliveryPartnerId')
         .lean();
     if (!order) throw new ValidationError('Order not found');
 
     const orderTokens = new Set(
         [
             order.userId && partyToken('USER', order.userId),
-            order.restaurantId && partyToken('RESTAURANT', order.restaurantId),
+            order.sellerId && partyToken('SELLER', order.sellerId),
             order.dispatch?.deliveryPartnerId &&
                 partyToken('DELIVERY_PARTNER', order.dispatch.deliveryPartnerId)
         ].filter(Boolean)
@@ -65,19 +65,19 @@ async function assertOrderParticipants(orderId, tokens) {
  * which a caller could point at an unrelated user.
  *
  * With only { orderId, text } the counterpart is implied: a customer is writing to the
- * assigned rider and vice versa. peerRole is honoured when supplied so a restaurant can
+ * assigned rider and vice versa. peerRole is honoured when supplied so a seller can
  * pick which side of the order it is addressing.
  */
 async function resolveOrderRecipient(sender, order, requestedPeerRole = '') {
     const userId = order?.userId ? String(order.userId) : '';
     const riderId = order?.dispatch?.deliveryPartnerId ? String(order.dispatch.deliveryPartnerId) : '';
-    const restaurantId = order?.restaurantId ? String(order.restaurantId) : '';
+    const sellerId = order?.sellerId ? String(order.sellerId) : '';
     const me = String(sender.id);
 
     const parties = {
         USER: userId,
         DELIVERY_PARTNER: riderId,
-        RESTAURANT: restaurantId
+        SELLER: sellerId
     };
 
     // The sender must actually be on this order.
@@ -107,7 +107,7 @@ async function resolveOrderRecipient(sender, order, requestedPeerRole = '') {
         if (!userId) throw new ValidationError('This order has no customer to message');
         return { role: 'USER', id: userId };
     }
-    // A restaurant has two possible counterparts, so it must say which.
+    // A seller has two possible counterparts, so it must say which.
     throw new ValidationError('peerRole is required for this sender');
 }
 
@@ -142,7 +142,7 @@ export async function sendMessage(sender, dto) {
             throw new ValidationError('Invalid order id');
         }
         const order = await FoodOrder.findById(orderIdRaw)
-            .select('userId restaurantId dispatch.deliveryPartnerId')
+            .select('userId sellerId dispatch.deliveryPartnerId')
             .lean();
         if (!order) throw new ValidationError('Order not found');
 
@@ -219,7 +219,7 @@ export async function sendMessage(sender, dto) {
 
 const chatTitle = (senderRole) => {
     if (senderRole === 'USER') return 'New message from customer';
-    if (senderRole === 'RESTAURANT') return 'New message from restaurant';
+    if (senderRole === 'SELLER') return 'New message from seller';
     if (senderRole === 'DELIVERY_PARTNER') return 'New message from delivery partner';
     if (senderRole === 'ADMIN') return 'New message from support';
     return 'New message';

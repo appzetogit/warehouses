@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { FoodUser } from '../users/user.model.js';
-import { FoodRestaurant } from '../../modules/food/restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../../modules/food/seller/models/seller.model.js';
 import { FoodDeliveryPartner } from '../../modules/food/delivery/models/deliveryPartner.model.js';
 import { FoodAdmin } from '../admin/admin.model.js';
 import { config } from '../../config/env.js';
@@ -15,7 +15,7 @@ const FCM_SEND_URL = (projectId) =>
     `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/messages:send`;
 const OWNER_MODELS = {
     USER: FoodUser,
-    RESTAURANT: FoodRestaurant,
+    SELLER: FoodSeller,
     DELIVERY_PARTNER: FoodDeliveryPartner,
     ADMIN: FoodAdmin
 };
@@ -87,7 +87,7 @@ const normalizeNotificationText = (value) => {
 
     return repaired
         // Remove leading module prefix if any sender still adds it.
-        .replace(/^\s*(?:\p{Extended_Pictographic}\s*)?\[(user|shop|restaurant|delivery|admin|rider)\]\s*/iu, '')
+        .replace(/^\s*(?:\p{Extended_Pictographic}\s*)?\[(user|shop|seller|delivery|admin|rider)\]\s*/iu, '')
         // Remove replacement-char mojibake tails like "�x}0".
         .replace(/�[A-Za-z0-9{}[\]\\/_.:-]*/g, ' ')
         // Remove remaining control chars and collapse spaces.
@@ -486,7 +486,7 @@ export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, pla
  * auth.middleware), logging in elsewhere already evicts the previous session's JWT.
  * Its push token used to survive that, so the signed-out phone kept receiving
  * pushes for the account: a rider's old handset went on raising full-screen order
- * alerts it could no longer accept, and a restaurant's old device kept getting new
+ * alerts it could no longer accept, and a seller's old device kept getting new
  * order notifications. Killing the session and leaving its notifications alive is
  * half a logout.
  *
@@ -521,7 +521,7 @@ export const removeFirebaseDeviceToken = async ({ ownerType, ownerId, token }) =
         throw new Error('ownerType and ownerId are required.');
     }
 
-    // Logout without a token used to throw here. The delivery and restaurant apps
+    // Logout without a token used to throw here. The delivery and seller apps
     // call this on logout with no body, so every logout raised a 500 that the app
     // swallowed ("logging out locally regardless") and the token stayed attached --
     // the rider signed out and kept getting new-order alerts.

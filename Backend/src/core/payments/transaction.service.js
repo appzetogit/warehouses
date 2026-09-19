@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { Transaction } from './models/transaction.model.js';
 import { FoodUserWallet } from '../../modules/food/user/models/userWallet.model.js';
-import { FoodRestaurantWallet } from '../../modules/food/restaurant/models/restaurantWallet.model.js';
+import { FoodSellerWallet } from '../../modules/food/seller/models/sellerWallet.model.js';
 import { FoodDeliveryWallet } from '../../modules/food/delivery/models/deliveryWallet.model.js';
 import { FoodAdminWallet } from '../../modules/food/admin/models/adminWallet.model.js';
 import { logger } from '../../utils/logger.js';
@@ -16,9 +16,9 @@ function resolveWallet(entityType, entityId) {
             const id = new mongoose.Types.ObjectId(entityId);
             return { Model: FoodUserWallet, filter: { userId: id }, idField: 'userId' };
         }
-        case 'restaurant': {
+        case 'seller': {
             const id = new mongoose.Types.ObjectId(entityId);
-            return { Model: FoodRestaurantWallet, filter: { restaurantId: id }, idField: 'restaurantId' };
+            return { Model: FoodSellerWallet, filter: { sellerId: id }, idField: 'sellerId' };
         }
         case 'deliveryBoy': {
             const id = new mongoose.Types.ObjectId(entityId);
@@ -64,7 +64,7 @@ export async function getBalance(entityType, entityId) {
  * in a single MongoDB transaction. This is the ONLY way to change wallet balances.
  *
  * @param {Object} payload
- * @param {string} payload.entityType - 'user' | 'restaurant' | 'deliveryBoy' | 'admin'
+ * @param {string} payload.entityType - 'user' | 'seller' | 'deliveryBoy' | 'admin'
  * @param {string} payload.entityId - ObjectId of the entity
  * @param {string} payload.type - 'credit' | 'debit'
  * @param {number} payload.amount - positive amount
@@ -135,7 +135,7 @@ export async function recordTransaction(payload) {
 
         // Update lifetime totals based on entity + type
         if (type === 'credit') {
-            if (entityType === 'restaurant' || entityType === 'deliveryBoy') {
+            if (entityType === 'seller' || entityType === 'deliveryBoy') {
                 await Model.updateOne(filter, {
                     $set: { balance: newBalance },
                     $inc: { totalEarnings: amount }

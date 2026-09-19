@@ -6,7 +6,7 @@ import { getCachedSettings, setCachedSettings } from "@food/utils/businessSettin
 
 const MODULES = [
   { key: "user", label: "User Module", fallbackColor: "#FA0272" },
-  { key: "restaurant", label: "Restaurant Module", fallbackColor: "#2563EB" },
+  { key: "seller", label: "Seller Module", fallbackColor: "#2563EB" },
   { key: "delivery", label: "Delivery Module", fallbackColor: "#00B761" },
 ];
 
@@ -274,7 +274,7 @@ export default function PowerScanning() {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Power Scanning</h1>
-        <p className="text-sm text-gray-500 mt-1">Set module-wise theme color and font for User, Restaurant, and Delivery apps.</p>
+        <p className="text-sm text-gray-500 mt-1">Set module-wise theme color and font for User, Seller, and Delivery apps.</p>
       </div>
 
       {MODULES.map((module) => {

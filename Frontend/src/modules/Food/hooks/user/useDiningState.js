@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 
 export const useDiningState = () => {
   const [heroSearch, setHeroSearch] = useState("");
-  const [currentRestaurantIndex, setCurrentRestaurantIndex] = useState(0);
+  const [currentSellerIndex, setCurrentSellerIndex] = useState(0);
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilterTab, setActiveFilterTab] = useState('sort');
@@ -21,7 +21,7 @@ export const useDiningState = () => {
 
   return {
     heroSearch, setHeroSearch,
-    currentRestaurantIndex, setCurrentRestaurantIndex,
+    currentSellerIndex, setCurrentSellerIndex,
     activeFilters, setActiveFilters, toggleFilter,
     isFilterOpen, setIsFilterOpen,
     activeFilterTab, setActiveFilterTab,

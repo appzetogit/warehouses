@@ -8,16 +8,16 @@ const foodCategorySchema = new mongoose.Schema(
         foodTypeScope: { type: String, enum: ['Veg', 'Non-Veg', 'Both'], default: 'Both', index: true },
         /**
          * Category scope:
-         * - When restaurantId is missing: category is admin/global and can be shared across restaurants.
-         * - When restaurantId is set: category is private to that restaurant only.
+         * - When sellerId is missing: category is admin/global and can be shared across sellers.
+         * - When sellerId is set: category is private to that seller only.
          *
          * Approval remains available for admin moderation, but approval does not make a
-         * restaurant-owned category globally reusable.
+         * seller-owned category globally reusable.
          *
          * Note: existing categories (created by admin historically) should be treated as approved.
          */
-        restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodRestaurant', index: true, default: undefined },
-        createdByRestaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodRestaurant', index: true, default: undefined },
+        sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodSeller', index: true, default: undefined },
+        createdBySellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodSeller', index: true, default: undefined },
         approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved', index: true },
         isApproved: { type: Boolean, default: true, index: true },
         rejectionReason: { type: String, trim: true, default: '' },
@@ -53,9 +53,9 @@ const foodCategorySchema = new mongoose.Schema(
 );
 
 foodCategorySchema.index({ isApproved: 1, createdAt: -1 });
-foodCategorySchema.index({ restaurantId: 1, isApproved: 1, createdAt: -1 });
+foodCategorySchema.index({ sellerId: 1, isApproved: 1, createdAt: -1 });
 foodCategorySchema.index({ approvalStatus: 1, createdAt: -1 });
-foodCategorySchema.index({ createdByRestaurantId: 1, createdAt: -1 });
+foodCategorySchema.index({ createdBySellerId: 1, createdAt: -1 });
 
 export const FoodCategory = mongoose.model('FoodCategory', foodCategorySchema);
 

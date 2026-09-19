@@ -1,13 +1,13 @@
 /**
  * Normalises the dish image fields so `image` and `images` can never disagree.
  *
- * Shared by the admin and restaurant food services rather than duplicated: they
+ * Shared by the admin and seller food services rather than duplicated: they
  * write the same two fields on the same documents, and two copies of this rule
  * would eventually drift into a dish whose primary image differs depending on
  * which panel last saved it.
  *
- * Callers send either shape. The admin panel and restaurant panel send `images`;
- * the restaurant app and older builds send a single `image`. Whichever arrives,
+ * Callers send either shape. The admin panel and seller panel send `images`;
+ * the seller app and older builds send a single `image`. Whichever arrives,
  * `image` ends up as `images[0]`.
  *
  * Keeping them in sync matters because different screens read different fields —

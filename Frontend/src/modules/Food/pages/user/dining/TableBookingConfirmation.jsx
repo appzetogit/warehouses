@@ -27,7 +27,7 @@ export default function TableBookingConfirmation() {
         }
     }, [])
     const resolvedState = location.state || fallbackDraft || {}
-    const { restaurant, guests, date, timeSlot, discount } = resolvedState
+    const { seller, guests, date, timeSlot, discount } = resolvedState
 
     const [specialRequest, setSpecialRequest] = useState("")
     const [user, setUser] = useState(null)
@@ -35,7 +35,7 @@ export default function TableBookingConfirmation() {
     const [bookingInProgress, setBookingInProgress] = useState(false)
 
     useEffect(() => {
-        if (!restaurant) {
+        if (!seller) {
             navigate("/food/user/dining")
             return
         }
@@ -59,27 +59,27 @@ export default function TableBookingConfirmation() {
             }
         }
         fetchUser()
-    }, [restaurant, navigate])
+    }, [seller, navigate])
 
     const handleBooking = async () => {
         try {
             setBookingInProgress(true)
-            const restaurantId =
-                restaurant?._id ||
-                restaurant?.id ||
-                restaurant?.restaurant?._id ||
-                restaurant?.restaurant?.id ||
-                restaurant?.restaurantId ||
+            const sellerId =
+                seller?._id ||
+                seller?.id ||
+                seller?.seller?._id ||
+                seller?.seller?.id ||
+                seller?.sellerId ||
                 null
 
-            if (!restaurantId) {
-                toast.error("Unable to proceed. Restaurant ID is missing.")
+            if (!sellerId) {
+                toast.error("Unable to proceed. Seller ID is missing.")
                 return
             }
 
             const response = await diningAPI.createBooking({
-                restaurant: restaurantId,
-                restaurantRef: restaurant,
+                seller: sellerId,
+                sellerRef: seller,
                 userRef: user,
                 guests,
                 date,
@@ -118,7 +118,7 @@ export default function TableBookingConfirmation() {
                     <button onClick={goBack} className="p-1 hover:bg-white/10 rounded-full transition-colors">
                         <ArrowLeft className="w-6 h-6" />
                     </button>
-                    <p className="font-semibold text-sm">Reach the restaurant 15 minutes before your booking time for a hassle-free experience</p>
+                    <p className="font-semibold text-sm">Reach the seller 15 minutes before your booking time for a hassle-free experience</p>
                 </div>
             </div>
 
@@ -144,11 +144,11 @@ export default function TableBookingConfirmation() {
                                 <MapPin className="w-5 h-5 text-red-500" />
                             </div>
                             <div>
-                                <p className="font-bold text-gray-900">{restaurant.name}</p>
+                                <p className="font-bold text-gray-900">{seller.name}</p>
                                 <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">
-                                    {typeof restaurant.location === 'string'
-                                        ? restaurant.location
-                                        : (restaurant.location?.formattedAddress || restaurant.location?.address || `${restaurant.location?.city || ''}${restaurant.location?.area ? ', ' + restaurant.location.area : ''}`)}
+                                    {typeof seller.location === 'string'
+                                        ? seller.location
+                                        : (seller.location?.formattedAddress || seller.location?.address || `${seller.location?.city || ''}${seller.location?.area ? ', ' + seller.location.area : ''}`)}
                                 </p>
                             </div>
                         </div>
@@ -238,12 +238,12 @@ export default function TableBookingConfirmation() {
                             {[
                                 "Please arrive 15 minutes prior to your reservation time.",
                                 "Booking valid for the specified number of guests entered during reservation",
-                                "Cover charges upon entry are subject to the discretion of the restaurant",
+                                "Cover charges upon entry are subject to the discretion of the seller",
                                 "House rules are to be observed at all times",
-                                "Special requests will be accommodated at the restaurant's discretion",
+                                "Special requests will be accommodated at the seller's discretion",
                                 "Offers can be availed only by paying via Tastizo",
                                 "Cover charges cannot be refunded if slot is cancelled within 30 minutes of slot start time",
-                                "Additional service charges on the bill are at the restaurant's discretion"
+                                "Additional service charges on the bill are at the seller's discretion"
                             ].map((term, i) => (
                                 <li key={i} className="flex gap-3">
                                     <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-2 flex-shrink-0"></div>

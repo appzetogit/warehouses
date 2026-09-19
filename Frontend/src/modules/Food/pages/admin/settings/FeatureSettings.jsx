@@ -7,7 +7,7 @@ import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 const FEATURE_KEYS = {
-    RESTAURANT_SUBSCRIPTION: 'restaurant_subscription',
+    SELLER_SUBSCRIPTION: 'seller_subscription',
     ADMIN_ACCESS_SECTION: 'admin_access_section',
     ROOT_LANDING_AND_UNREGISTERED_CONTROL: 'root_landing_and_unregistered_control'
 };
@@ -17,8 +17,8 @@ export default function FeatureSettings() {
     const [saving, setSaving] = useState(false);
     const [features, setFeatures] = useState([]);
 
-    const restaurantSubscription = useMemo(
-        () => features.find((item) => item.key === FEATURE_KEYS.RESTAURANT_SUBSCRIPTION) || null,
+    const sellerSubscription = useMemo(
+        () => features.find((item) => item.key === FEATURE_KEYS.SELLER_SUBSCRIPTION) || null,
         [features]
     );
 
@@ -57,7 +57,7 @@ export default function FeatureSettings() {
     };
 
     const handleSave = async () => {
-        const updates = [restaurantSubscription, adminAccessSection, rootLandingAndUnregisteredControl].filter(Boolean);
+        const updates = [sellerSubscription, adminAccessSection, rootLandingAndUnregisteredControl].filter(Boolean);
         if (updates.length === 0) return;
         try {
             setSaving(true);
@@ -101,20 +101,20 @@ export default function FeatureSettings() {
 
             <Card className="border-slate-200">
                 <CardHeader>
-                    <CardTitle className="text-lg">Restaurant Subscription</CardTitle>
+                    <CardTitle className="text-lg">Seller Subscription</CardTitle>
                     <CardDescription>
                         Controls post-approval onboarding payment, due checks, withdrawal restrictions, and subscription settings visibility.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-4">
                     <div className="text-sm text-gray-700">
-                        {restaurantSubscription?.isEnabled
+                        {sellerSubscription?.isEnabled
                             ? 'Enabled: subscription flows are active'
                             : 'Disabled: subscription flows are hidden and checks are bypassed'}
                     </div>
                     <Switch
-                        checked={Boolean(restaurantSubscription?.isEnabled)}
-                        onCheckedChange={(checked) => setToggle(FEATURE_KEYS.RESTAURANT_SUBSCRIPTION, checked)}
+                        checked={Boolean(sellerSubscription?.isEnabled)}
+                        onCheckedChange={(checked) => setToggle(FEATURE_KEYS.SELLER_SUBSCRIPTION, checked)}
                     />
                 </CardContent>
             </Card>
@@ -141,16 +141,16 @@ export default function FeatureSettings() {
 
             <Card className="border-slate-200">
                 <CardHeader>
-                    <CardTitle className="text-lg">Root Landing & Unregistered Restaurants</CardTitle>
+                    <CardTitle className="text-lg">Root Landing & Unregistered Sellers</CardTitle>
                     <CardDescription>
-                        Controls root URL and Unregistered Restaurants visibility. OFF redirects root (/) to /food/user and hides Unregistered Restaurants.
+                        Controls root URL and Unregistered Sellers visibility. OFF redirects root (/) to /food/user and hides Unregistered Sellers.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-4">
                     <div className="text-sm text-gray-700">
                         {rootLandingAndUnregisteredControl?.isEnabled
-                            ? 'Enabled: root opens Landing Page and Unregistered Restaurants is visible'
-                            : 'Disabled: root redirects to /food/user and Unregistered Restaurants is hidden'}
+                            ? 'Enabled: root opens Landing Page and Unregistered Sellers is visible'
+                            : 'Disabled: root redirects to /food/user and Unregistered Sellers is hidden'}
                     </div>
                     <Switch
                         checked={Boolean(rootLandingAndUnregisteredControl?.isEnabled)}
@@ -160,7 +160,7 @@ export default function FeatureSettings() {
             </Card>
 
             <div className="flex justify-end">
-                <Button onClick={handleSave} disabled={saving || (!restaurantSubscription && !adminAccessSection && !rootLandingAndUnregisteredControl)}>
+                <Button onClick={handleSave} disabled={saving || (!sellerSubscription && !adminAccessSection && !rootLandingAndUnregisteredControl)}>
                     {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                     Save Changes
                 </Button>

@@ -1,30 +1,30 @@
 import { FoodTransaction } from '../models/foodTransaction.model.js';
-import { FoodRestaurantCommission } from '../../admin/models/restaurantCommission.model.js';
+import { FoodSellerCommission } from '../../admin/models/sellerCommission.model.js';
 import { resolveDiscountSplitByCoupon } from '../../shared/discountSplit.util.js';
 import mongoose from 'mongoose';
 
-const RESTAURANT_COMMISSION_CACHE_MS = 60 * 1000;
-let restaurantCommissionRulesCache = null;
-let restaurantCommissionRulesLoadedAt = 0;
+const SELLER_COMMISSION_CACHE_MS = 60 * 1000;
+let sellerCommissionRulesCache = null;
+let sellerCommissionRulesLoadedAt = 0;
 
-async function getActiveRestaurantCommissionRules() {
+async function getActiveSellerCommissionRules() {
   const now = Date.now();
   if (
-    restaurantCommissionRulesCache &&
-    now - restaurantCommissionRulesLoadedAt < RESTAURANT_COMMISSION_CACHE_MS
+    sellerCommissionRulesCache &&
+    now - sellerCommissionRulesLoadedAt < SELLER_COMMISSION_CACHE_MS
   ) {
-    return restaurantCommissionRulesCache;
+    return sellerCommissionRulesCache;
   }
 
-  const list = await FoodRestaurantCommission.find({
+  const list = await FoodSellerCommission.find({
     status: { $ne: false },
   }).lean();
-  restaurantCommissionRulesCache = list || [];
-  restaurantCommissionRulesLoadedAt = now;
-  return restaurantCommissionRulesCache;
+  sellerCommissionRulesCache = list || [];
+  sellerCommissionRulesLoadedAt = now;
+  return sellerCommissionRulesCache;
 }
 
-export function computeRestaurantCommissionAmount(baseAmount, rule) {
+export function computeSellerCommissionAmount(baseAmount, rule) {
   const safeBase = Math.max(0, Number(baseAmount) || 0);
   if (!Number.isFinite(safeBase) || safeBase < 0) return 0;
 
@@ -48,12 +48,12 @@ export function computeRestaurantCommissionAmount(baseAmount, rule) {
   return { commissionAmount, commissionType, commissionValue, baseAmount: safeBase };
 }
 
-export async function getRestaurantCommissionSnapshot(orderDoc) {
+export async function getSellerCommissionSnapshot(orderDoc) {
   const baseAmount = Number(orderDoc?.pricing?.subtotal ?? 0) || 0;
-  const restaurantIdRaw =
-    orderDoc?.restaurantId?._id ?? orderDoc?.restaurantId ?? null;
+  const sellerIdRaw =
+    orderDoc?.sellerId?._id ?? orderDoc?.sellerId ?? null;
 
-  if (!restaurantIdRaw) {
+  if (!sellerIdRaw) {
     return {
       commissionAmount: 0,
       commissionType: 'percentage',
@@ -62,11 +62,11 @@ export async function getRestaurantCommissionSnapshot(orderDoc) {
     };
   }
 
-  const rules = await getActiveRestaurantCommissionRules();
+  const rules = await getActiveSellerCommissionRules();
   const rule =
-    rules.find((r) => String(r.restaurantId) === String(restaurantIdRaw)) ||
-    // Fallback: accept legacy docs where restaurantId may be stored under `restaurant` / `restaurant_id`
-    rules.find((r) => String(r.restaurant || r.restaurant_id || '') === String(restaurantIdRaw)) ||
+    rules.find((r) => String(r.sellerId) === String(sellerIdRaw)) ||
+    // Fallback: accept legacy docs where sellerId may be stored under `seller` / `seller_id`
+    rules.find((r) => String(r.seller || r.seller_id || '') === String(sellerIdRaw)) ||
     null;
 
   if (!rule) {
@@ -78,7 +78,7 @@ export async function getRestaurantCommissionSnapshot(orderDoc) {
     };
   }
 
-  return computeRestaurantCommissionAmount(baseAmount, rule);
+  return computeSellerCommissionAmount(baseAmount, rule);
 }
 
 /**
@@ -87,7 +87,7 @@ export async function getRestaurantCommissionSnapshot(orderDoc) {
 export async function createInitialTransaction(order) {
     if (!order) return null;
 
-    const { commissionAmount = 0 } = await getRestaurantCommissionSnapshot(order).catch(() => ({ commissionAmount: 0 }));
+    const { commissionAmount = 0 } = await getSellerCommissionSnapshot(order).catch(() => ({ commissionAmount: 0 }));
     
     // Split logic - Ensure all values are finite numbers
     const totalCustomerPaid = Number(order.pricing?.total) || 0;
@@ -95,10 +95,10 @@ export async function createInitialTransaction(order) {
     
     // Prefer commission already computed & stored on the order (source of truth for this order),
     // fallback to rule snapshot for older orders.
-    const restaurantCommissionFromOrder = Number(order.pricing?.restaurantCommission);
-    const restaurantCommission =
-        Number.isFinite(restaurantCommissionFromOrder) && restaurantCommissionFromOrder > 0
-            ? restaurantCommissionFromOrder
+    const sellerCommissionFromOrder = Number(order.pricing?.sellerCommission);
+    const sellerCommission =
+        Number.isFinite(sellerCommissionFromOrder) && sellerCommissionFromOrder > 0
+            ? sellerCommissionFromOrder
             : (Number(commissionAmount) || 0);
 
     const discount = Number(order.pricing?.discount) || 0;
@@ -109,33 +109,33 @@ export async function createInitialTransaction(order) {
     const deliveryFeeGst = Number(order.pricing?.deliveryFeeGst) || 0;
     const tax = Number(order.pricing?.tax) || 0;
 
-    let restaurantNet = subtotal + packagingFee - restaurantCommission;
-    let platformNetProfit = platformFee + deliveryFee + deliveryFeeGst + restaurantCommission - riderShare;
+    let sellerNet = subtotal + packagingFee - sellerCommission;
+    let platformNetProfit = platformFee + deliveryFee + deliveryFeeGst + sellerCommission - riderShare;
     let adminDiscountShare = 0;
-    let restaurantDiscountShare = 0;
+    let sellerDiscountShare = 0;
     let discountAdminBearPercentage = 0;
-    let discountRestaurantBearPercentage = 0;
+    let discountSellerBearPercentage = 0;
 
     // Handle discount attribution via the shared split util (single source of truth).
     const couponCode = order.pricing?.couponCode;
     if (discount > 0 && couponCode) {
         const split = await resolveDiscountSplitByCoupon({ couponCode, discount });
         adminDiscountShare = split.adminDiscountShare;
-        restaurantDiscountShare = split.restaurantDiscountShare;
+        sellerDiscountShare = split.sellerDiscountShare;
         discountAdminBearPercentage = split.adminBearPercentage;
-        discountRestaurantBearPercentage = split.restaurantBearPercentage;
+        discountSellerBearPercentage = split.sellerBearPercentage;
     }
-    restaurantNet -= restaurantDiscountShare;
+    sellerNet -= sellerDiscountShare;
     platformNetProfit -= adminDiscountShare;
 
     // Ensure nets are finite and rounded
-    restaurantNet = Math.round((Number(restaurantNet) || 0) * 100) / 100;
+    sellerNet = Math.round((Number(sellerNet) || 0) * 100) / 100;
     platformNetProfit = Math.round((Number(platformNetProfit) || 0) * 100) / 100;
 
     const transaction = new FoodTransaction({
         orderId: order._id,
         userId: order.userId,
-        restaurantId: order.restaurantId,
+        sellerId: order.sellerId,
         deliveryPartnerId: order.dispatch?.deliveryPartnerId,
         paymentMethod: order.payment?.method || 'cash',
         status: order.payment?.status === 'paid' ? 'captured' : 'pending',
@@ -164,7 +164,7 @@ export async function createInitialTransaction(order) {
             deliveryFee: deliveryFee,
             deliveryFeeGst: deliveryFeeGst,
             platformFee: platformFee,
-            restaurantCommission: restaurantCommission,
+            sellerCommission: sellerCommission,
             discount: discount,
             couponCode: couponCode ? String(couponCode).toUpperCase() : null,
             total: totalCustomerPaid,
@@ -172,15 +172,15 @@ export async function createInitialTransaction(order) {
         },
         amounts: {
             totalCustomerPaid: totalCustomerPaid,
-            restaurantShare: Math.max(0, restaurantNet),
-            restaurantCommission: restaurantCommission,
+            sellerShare: Math.max(0, sellerNet),
+            sellerCommission: sellerCommission,
             riderShare: riderShare,
             platformNetProfit: platformNetProfit,
             taxAmount: tax,
             adminDiscountShare,
-            restaurantDiscountShare,
+            sellerDiscountShare,
             discountAdminBearPercentage,
-            discountRestaurantBearPercentage
+            discountSellerBearPercentage
         },
         gateway: {
             razorpayOrderId: order.payment?.razorpay?.orderId,
@@ -246,12 +246,12 @@ export async function updateTransactionRider(orderId, riderId) {
 }
 
 /**
- * Marks restaurant as settled in the finance record.
+ * Marks seller as settled in the finance record.
  */
-export async function settleRestaurant(orderId, adminId) {
+export async function settleSeller(orderId, adminId) {
     return await updateTransactionStatus(orderId, 'settled', {
         status: 'captured', // Ensure it's marked as captured if it was pending cash
-        note: 'Restaurant payout settled by admin',
+        note: 'Seller payout settled by admin',
         recordedByRole: 'ADMIN',
         recordedById: adminId
     });

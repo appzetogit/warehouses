@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 import { useCart } from "@food/context/CartContext"
 import { useProfile } from "@food/context/ProfileContext"
-import { orderAPI, restaurantAPI } from "@food/api"
+import { orderAPI, sellerAPI } from "@food/api"
 import {
   AUTO_COUPON_APPLIED_EVENT,
   buildCartItemsForPricing,
@@ -34,13 +34,13 @@ const formatAddressForPricing = (address) => {
   }
 }
 
-async function fetchRestaurantCoupons(restaurantId, cart, subtotal) {
+async function fetchSellerCoupons(sellerId, cart, subtotal) {
   const unique = new Map()
   for (const cartItem of cart) {
     const itemId = cartItem.itemId || cartItem.id
     if (!itemId) continue
     try {
-      const response = await restaurantAPI.getCouponsByItemIdPublic(restaurantId, itemId, subtotal)
+      const response = await sellerAPI.getCouponsByItemIdPublic(sellerId, itemId, subtotal)
       const coupons = response?.data?.data?.coupons
       if (!Array.isArray(coupons)) continue
       coupons.forEach((coupon) => {
@@ -58,14 +58,14 @@ async function fetchRestaurantCoupons(restaurantId, cart, subtotal) {
 
 async function validateCouponWithBackend({
   cart,
-  restaurantId,
+  sellerId,
   deliveryAddress,
   couponCode,
   deliveryMode = "basic",
 }) {
   const response = await orderAPI.calculateOrder({
     items: buildCartItemsForPricing(cart),
-    restaurantId,
+    sellerId,
     deliveryAddress,
     couponCode,
     deliveryMode,
@@ -105,24 +105,24 @@ export default function useAutoCouponEngine({ deliveryMode = "basic", enabled = 
   useEffect(() => {
     if (!enabled || typeof window === "undefined") return undefined
 
-    const restaurantId = cart[0]?.restaurantId
+    const sellerId = cart[0]?.sellerId
     const cartSignature = getCartSignature(cart)
     const subtotal = getCartSubtotal(cart)
 
-    if (!cart.length || !restaurantId) {
+    if (!cart.length || !sellerId) {
       lastAppliedCodeRef.current = ""
       writeAutoCouponState(null)
       dispatchAutoCouponState({ action: "clear" })
       return undefined
     }
 
-    syncCartPreferenceKeys(restaurantId, cartSignature)
+    syncCartPreferenceKeys(sellerId, cartSignature)
 
-    if (isManualCouponOptOut(restaurantId, cartSignature)) {
+    if (isManualCouponOptOut(sellerId, cartSignature)) {
       return undefined
     }
 
-    if (isUserSelectedCoupon(restaurantId, cartSignature)) {
+    if (isUserSelectedCoupon(sellerId, cartSignature)) {
       return undefined
     }
 
@@ -131,7 +131,7 @@ export default function useAutoCouponEngine({ deliveryMode = "basic", enabled = 
       runningRef.current = true
 
       try {
-        const coupons = await fetchRestaurantCoupons(restaurantId, cart, subtotal)
+        const coupons = await fetchSellerCoupons(sellerId, cart, subtotal)
         const ranked = rankCouponsBySavings(coupons, subtotal, userOrderCountRef.current)
 
         if (!ranked.length) {
@@ -150,7 +150,7 @@ export default function useAutoCouponEngine({ deliveryMode = "basic", enabled = 
             (deliveryAddress.street || deliveryAddress.formattedAddress || deliveryAddress.city),
         )
 
-        const userSelected = isUserSelectedCoupon(restaurantId, cartSignature)
+        const userSelected = isUserSelectedCoupon(sellerId, cartSignature)
         const storedCode = lastAppliedCodeRef.current
 
         let bestMatch = null
@@ -169,7 +169,7 @@ export default function useAutoCouponEngine({ deliveryMode = "basic", enabled = 
             try {
               const validated = await validateCouponWithBackend({
                 cart,
-                restaurantId,
+                sellerId,
                 deliveryAddress,
                 couponCode: coupon.code,
                 deliveryMode,
@@ -212,7 +212,7 @@ export default function useAutoCouponEngine({ deliveryMode = "basic", enabled = 
         writeAutoCouponState({
           code,
           savings,
-          restaurantId: String(restaurantId),
+          sellerId: String(sellerId),
           cartSignature,
           estimated: Boolean(estimated),
           at: Date.now(),

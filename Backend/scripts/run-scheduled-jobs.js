@@ -3,8 +3,8 @@ import { connectDB, disconnectDB } from '../src/config/db.js';
 import { connectRedis, closeRedis } from '../src/config/redis.js';
 import { config } from '../src/config/env.js';
 import { expireExpiredOffers } from '../src/modules/food/admin/services/admin.service.js';
-import { syncExpiredFssaiNotifications } from '../src/modules/food/restaurant/services/fssaiExpiry.service.js';
-import { runBillingCatchUp } from '../src/modules/food/restaurant/services/subscriptionBilling.service.js';
+import { syncExpiredFssaiNotifications } from '../src/modules/food/seller/services/fssaiExpiry.service.js';
+import { runBillingCatchUp } from '../src/modules/food/seller/services/subscriptionBilling.service.js';
 import { logger } from '../src/utils/logger.js';
 
 let expireOffersInterval = null;

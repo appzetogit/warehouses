@@ -17,7 +17,7 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
-import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
 import { FoodOrder } from '../src/modules/food/orders/models/order.model.js';
 import { FoodUser } from '../src/core/users/user.model.js';
 
@@ -32,7 +32,7 @@ const SEED_NOTE = 'seed:demo-orders';
  * upserts them on.
  *
  * Not the `website: 'seed:quick-commerce'` tag that script appears to set --
- * `website` is not on the restaurant schema, so Mongoose strips it on save and
+ * `website` is not on the seller schema, so Mongoose strips it on save and
  * the field is undefined on every seeded seller. (That also means that script's
  * own --wipe matches nothing, which is worth fixing separately.)
  *
@@ -92,15 +92,15 @@ async function main() {
         return;
     }
 
-    const sellers = await FoodRestaurant.find({ ownerPhone: { $in: SEED_SELLER_PHONES } })
-        .select('_id restaurantName zoneId')
+    const sellers = await FoodSeller.find({ ownerPhone: { $in: SEED_SELLER_PHONES } })
+        .select('_id sellerName zoneId')
         .lean();
 
     if (!sellers.length) {
         console.error('no seeded sellers found -- run seed-quick-commerce.js first');
         process.exit(1);
     }
-    console.log(`sellers: ${sellers.map((s) => s.restaurantName).join(', ')}`);
+    console.log(`sellers: ${sellers.map((s) => s.sellerName).join(', ')}`);
 
     const existing = await FoodOrder.countDocuments({ note: SEED_NOTE });
     if (existing > 0) {
@@ -131,14 +131,14 @@ async function main() {
 
     for (const seller of sellers) {
         const products = await FoodItem.find({
-            restaurantId: seller._id,
+            sellerId: seller._id,
             approvalStatus: 'approved',
         })
             .select('_id name price gstRate brand packSize image categoryId categoryName foodType')
             .lean();
 
         if (!products.length) {
-            console.log(`  !  ${seller.restaurantName} has no approved products, skipped`);
+            console.log(`  !  ${seller.sellerName} has no approved products, skipped`);
             continue;
         }
 
@@ -192,7 +192,7 @@ async function main() {
 
                 const order = new FoodOrder({
                     userId: customer._id,
-                    restaurantId: seller._id,
+                    sellerId: seller._id,
                     zoneId: seller.zoneId,
                     items,
                     deliveryAddress: { ...ADDRESS, name: customer.name, fullName: customer.name, phone: customer.phone },

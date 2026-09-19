@@ -10,8 +10,8 @@ export const syncUserCartController = async (req, res, next) => {
 
         const payload = items.map((item) => ({
             ...item,
-            restaurantId: item?.restaurantId || firstItem?.restaurantId || req.body?.restaurantId || '',
-            restaurantName: item?.restaurant || item?.restaurantName || firstItem?.restaurant || req.body?.restaurantName || '',
+            sellerId: item?.sellerId || firstItem?.sellerId || req.body?.sellerId || '',
+            sellerName: item?.seller || item?.sellerName || firstItem?.seller || req.body?.sellerName || '',
         }));
 
         const result = await syncUserCart(userId, payload, pricing);

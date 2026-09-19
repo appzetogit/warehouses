@@ -172,33 +172,33 @@ export async function updateDispatchSettingsController(req, res, next) {
     }
 }
 
-export async function listOrdersRestaurantController(req, res, next) {
+export async function listOrdersSellerController(req, res, next) {
     try {
-        const restaurantId = req.user?.userId;
-        const result = await orderService.listOrdersRestaurant(restaurantId, req.query);
+        const sellerId = req.user?.userId;
+        const result = await orderService.listOrdersSeller(sellerId, req.query);
         return sendResponse(res, 200, 'Orders retrieved', result);
     } catch (err) {
         next(err);
     }
 }
 
-export async function getOrderByIdRestaurantController(req, res, next) {
+export async function getOrderByIdSellerController(req, res, next) {
     try {
-        const restaurantId = req.user?.userId;
+        const sellerId = req.user?.userId;
         const orderId = req.params.orderId;
-        const order = await orderService.getOrderById(orderId, { restaurantId });
+        const order = await orderService.getOrderById(orderId, { sellerId });
         return sendResponse(res, 200, 'Order retrieved', { order });
     } catch (err) {
         next(err);
     }
 }
 
-export async function updateOrderStatusRestaurantController(req, res, next) {
+export async function updateOrderStatusSellerController(req, res, next) {
     try {
-        const restaurantId = req.user?.userId;
+        const sellerId = req.user?.userId;
         const orderId = req.params.orderId;
         const dto = validateOrderStatusDto(req.body);
-        const order = await orderService.updateOrderStatusRestaurant(orderId, restaurantId, dto.orderStatus, dto.note);
+        const order = await orderService.updateOrderStatusSeller(orderId, sellerId, dto.orderStatus, dto.note);
         return sendResponse(res, 200, 'Order status updated', { order });
     } catch (err) {
         next(err);
@@ -405,11 +405,11 @@ export async function deleteOrderAdminController(req, res, next) {
     }
 }
 
-export async function resendDeliveryNotificationRestaurantController(req, res, next) {
+export async function resendDeliveryNotificationSellerController(req, res, next) {
     try {
-        const restaurantId = req.user?.userId;
+        const sellerId = req.user?.userId;
         const orderId = req.params.orderId;
-        const result = await orderService.resendDeliveryNotificationRestaurant(orderId, restaurantId);
+        const result = await orderService.resendDeliveryNotificationSeller(orderId, sellerId);
         return sendResponse(res, 200, 'Notification resent successfully', result);
     } catch (err) {
         next(err);

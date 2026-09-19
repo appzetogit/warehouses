@@ -5,12 +5,12 @@ import { debitWallet, unlockWalletAmount } from './wallet.service.js';
 import { logger } from '../../utils/logger.js';
 
 /**
- * Create a settlement (payout request) for a restaurant or delivery partner.
+ * Create a settlement (payout request) for a seller or delivery partner.
  * Locks the settlement amount in their wallet until processed.
  */
 export async function createSettlement({ entityType, entityId, amount, notes = '', periodStart, periodEnd }) {
-    if (!['restaurant', 'deliveryBoy'].includes(entityType)) {
-        throw new Error('Settlements only for restaurant or deliveryBoy');
+    if (!['seller', 'deliveryBoy'].includes(entityType)) {
+        throw new Error('Settlements only for seller or deliveryBoy');
     }
 
     const settlement = await Settlement.create({
@@ -73,11 +73,11 @@ export async function processSettlement(settlementId, { processedBy, payoutRef =
 
 function resolveWalletForSettlement(entityType, entityId) {
     const id = new mongoose.Types.ObjectId(entityId);
-    if (entityType === 'restaurant') {
+    if (entityType === 'seller') {
         // Dynamic import would be circular — import at top
         return {
-            Model: mongoose.model('FoodRestaurantWallet'),
-            filter: { restaurantId: id }
+            Model: mongoose.model('FoodSellerWallet'),
+            filter: { sellerId: id }
         };
     }
     if (entityType === 'deliveryBoy') {

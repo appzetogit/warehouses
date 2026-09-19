@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { adminAPI, restaurantAPI } from "@food/api";
+import { adminAPI, sellerAPI } from "@food/api";
 import { foodImages } from "@food/constants/images";
 import { normalizeImageUrl } from "@food/utils/common";
 
 export const useCategoryData = (zoneId) => {
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
-  const [restaurantsData, setRestaurantsData] = useState([]);
-  const [loadingRestaurants, setLoadingRestaurants] = useState(true);
+  const [sellersData, setSellersData] = useState([]);
+  const [loadingSellers, setLoadingSellers] = useState(true);
   const [categoryKeywords, setCategoryKeywords] = useState({});
 
   const fetchCategories = useCallback(async () => {
@@ -43,36 +43,36 @@ export const useCategoryData = (zoneId) => {
     }
   }, [zoneId]);
 
-  const fetchRestaurants = useCallback(async () => {
+  const fetchSellers = useCallback(async () => {
     try {
-      setLoadingRestaurants(true);
+      setLoadingSellers(true);
       const params = zoneId ? { zoneId } : {};
-      const response = await restaurantAPI.getRestaurants(params);
+      const response = await sellerAPI.getSellers(params);
       if (response.data?.success) {
-        const raw = response.data.data.restaurants || [];
+        const raw = response.data.data.sellers || [];
         const transformed = raw.map(r => ({
           ...r,
-          id: r.restaurantId || r._id,
+          id: r.sellerId || r._id,
           image: normalizeImageUrl(r.profileImage?.url || r.image),
           slug: r.slug || r.name?.toLowerCase().replace(/\s+/g, '-')
         }));
-        setRestaurantsData(transformed);
+        setSellersData(transformed);
       }
     } catch (err) {
-      console.error("Failed to fetch restaurants", err);
+      console.error("Failed to fetch sellers", err);
     } finally {
-      setLoadingRestaurants(false);
+      setLoadingSellers(false);
     }
   }, [zoneId]);
 
   useEffect(() => {
     fetchCategories();
-    fetchRestaurants();
-  }, [fetchCategories, fetchRestaurants]);
+    fetchSellers();
+  }, [fetchCategories, fetchSellers]);
 
   return {
     categories, loadingCategories,
-    restaurantsData, loadingRestaurants,
+    sellersData, loadingSellers,
     categoryKeywords
   };
 };

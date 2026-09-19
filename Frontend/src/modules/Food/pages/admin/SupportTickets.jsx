@@ -35,22 +35,22 @@ const STATUS_OPTIONS = [
 const SOURCE_OPTIONS = [
   { value: "all", label: "All Sources" },
   { value: "user", label: "User App" },
-  { value: "restaurant", label: "Restaurant Panel" },
+  { value: "seller", label: "Seller Panel" },
 ]
 
 const USER_TYPE_OPTIONS = [
   { value: "", label: "All Types" },
   { value: "order", label: "Order" },
-  { value: "restaurant", label: "Restaurant" },
+  { value: "seller", label: "Seller" },
   { value: "other", label: "Other" },
 ]
 
-const RESTAURANT_CATEGORY_OPTIONS = [
+const SELLER_CATEGORY_OPTIONS = [
   { value: "", label: "All Categories" },
   { value: "orders", label: "Orders" },
   { value: "payments", label: "Payments" },
   { value: "menu", label: "Menu" },
-  { value: "restaurant", label: "Restaurant" },
+  { value: "seller", label: "Seller" },
   { value: "technical", label: "Technical" },
   { value: "other", label: "Other" },
 ]
@@ -60,7 +60,7 @@ function buildQueryParams(filters, page, search) {
   if (filters.source && filters.source !== "all") params.source = filters.source
   if (filters.status) params.status = filters.status
   if (search.trim()) params.search = search.trim()
-  if (filters.source === "restaurant") {
+  if (filters.source === "seller") {
     if (filters.category) params.category = filters.category
   } else if (filters.type) {
     params.type = filters.type
@@ -127,7 +127,7 @@ export default function SupportTickets() {
   const statsParams = useMemo(() => {
     const params = {}
     if (filters.source && filters.source !== "all") params.source = filters.source
-    if (filters.source === "restaurant") {
+    if (filters.source === "seller") {
       if (filters.category) params.category = filters.category
     } else if (filters.type) {
       params.type = filters.type
@@ -138,7 +138,7 @@ export default function SupportTickets() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const getUserLabel = (ticket) => {
-    if (ticket.source === "restaurant") return "Restaurant Panel"
+    if (ticket.source === "seller") return "Seller Panel"
     const user = ticket.user || {}
     const name = user.name || ticket.userName || ""
     const phone = user.phone || ticket.userPhone || ""
@@ -149,17 +149,17 @@ export default function SupportTickets() {
     return id ? `#${id}` : "-"
   }
 
-  const getRestaurantLabel = (ticket) => {
-    const restaurant = ticket.restaurant || {}
-    const name = restaurant.name || ticket.restaurantName || ""
-    const city = restaurant.city || ""
+  const getSellerLabel = (ticket) => {
+    const seller = ticket.seller || {}
+    const name = seller.name || ticket.sellerName || ""
+    const city = seller.city || ""
     if (name && city) return `${name} (${city})`
     if (name) return name
     return "-"
   }
 
   const getTypeLabel = (ticket) => {
-    if (ticket.source === "restaurant") return ticket.category || "other"
+    if (ticket.source === "seller") return ticket.category || "other"
     return ticket.type || "other"
   }
 
@@ -205,7 +205,7 @@ export default function SupportTickets() {
     setFilters((prev) => {
       const next = { ...prev, [key]: value }
       if (key === "source") {
-        if (value === "restaurant") next.type = ""
+        if (value === "seller") next.type = ""
         if (value === "user") next.category = ""
       }
       return next
@@ -269,7 +269,7 @@ export default function SupportTickets() {
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Support Tickets</h1>
               <p className="text-sm text-slate-600 mt-1">
-                Review and respond to user and restaurant support requests.
+                Review and respond to user and seller support requests.
               </p>
             </div>
           </div>
@@ -341,7 +341,7 @@ export default function SupportTickets() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Search by issue, description, user, restaurant, or ticket ID..."
+                placeholder="Search by issue, description, user, seller, or ticket ID..."
                 className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -374,13 +374,13 @@ export default function SupportTickets() {
                 </option>
               ))}
             </select>
-            {filters.source === "restaurant" ? (
+            {filters.source === "seller" ? (
               <select
                 value={filters.category}
                 onChange={(e) => handleFilterChange("category", e.target.value)}
                 className="px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white"
               >
-                {RESTAURANT_CATEGORY_OPTIONS.map((option) => (
+                {SELLER_CATEGORY_OPTIONS.map((option) => (
                   <option key={option.value || "all"} value={option.value}>
                     {option.label}
                   </option>
@@ -391,7 +391,7 @@ export default function SupportTickets() {
                 value={filters.type}
                 onChange={(e) => handleFilterChange("type", e.target.value)}
                 className="px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white"
-                disabled={filters.source === "restaurant"}
+                disabled={filters.source === "seller"}
               >
                 {USER_TYPE_OPTIONS.map((option) => (
                   <option key={option.value || "all"} value={option.value}>
@@ -474,7 +474,7 @@ export default function SupportTickets() {
                           {formatStatusLabel(ticket.status)}
                         </span>
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 capitalize">
-                          {ticket.source === "restaurant" ? (
+                          {ticket.source === "seller" ? (
                             <Store className="w-3.5 h-3.5" />
                           ) : (
                             <User className="w-3.5 h-3.5" />
@@ -507,8 +507,8 @@ export default function SupportTickets() {
                           <p className="text-slate-700 mt-1">{getUserLabel(ticket)}</p>
                         </div>
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-slate-400">Restaurant</p>
-                          <p className="text-slate-700 mt-1">{getRestaurantLabel(ticket)}</p>
+                          <p className="text-xs uppercase tracking-wide text-slate-400">Seller</p>
+                          <p className="text-slate-700 mt-1">{getSellerLabel(ticket)}</p>
                         </div>
                         <div>
                           <p className="text-xs uppercase tracking-wide text-slate-400">Created</p>
@@ -654,7 +654,7 @@ export default function SupportTickets() {
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-1 h-6 bg-violet-500 rounded" />
                     <h3 className="text-base font-semibold text-slate-900">
-                      {selectedTicket.source === "restaurant" ? "Restaurant" : "Customer"}
+                      {selectedTicket.source === "seller" ? "Seller" : "Customer"}
                     </h3>
                   </div>
                   <div className="pl-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -663,8 +663,8 @@ export default function SupportTickets() {
                       <p className="text-sm text-slate-900 font-semibold">{getUserLabel(selectedTicket)}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">Restaurant</p>
-                      <p className="text-sm text-slate-900 font-semibold">{getRestaurantLabel(selectedTicket)}</p>
+                      <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">Seller</p>
+                      <p className="text-sm text-slate-900 font-semibold">{getSellerLabel(selectedTicket)}</p>
                     </div>
                   </div>
                 </div>
@@ -736,12 +736,12 @@ export default function SupportTickets() {
             <Textarea
               value={responseText}
               onChange={(e) => setResponseText(e.target.value)}
-              placeholder="Write your response to the customer or restaurant..."
+              placeholder="Write your response to the customer or seller..."
               rows={6}
               className="min-h-[180px] resize-y rounded-xl border-slate-300 bg-white px-4 py-3 text-sm leading-6 text-slate-800 shadow-sm focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-100"
             />
             <p className="mt-2 text-xs text-slate-500">
-              This message will be visible in the support ticket for the user or restaurant.
+              This message will be visible in the support ticket for the user or seller.
             </p>
           </div>
 

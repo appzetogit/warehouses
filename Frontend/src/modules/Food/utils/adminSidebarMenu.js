@@ -80,7 +80,7 @@ export const adminSidebarMenu = [
           { label: "Out For Delivery", path: "/admin/store/orders/food-on-the-way" },
           { label: "Delivered", path: "/admin/store/orders/delivered" },
           { label: "Cancelled", path: "/admin/store/orders/canceled" },
-          { label: "Seller cancelled", path: "/admin/store/orders/restaurant-cancelled" },
+          { label: "Seller cancelled", path: "/admin/store/orders/seller-cancelled" },
           { label: "Payment Failed", path: "/admin/store/orders/payment-failed" },
           { label: "Refunded", path: "/admin/store/orders/refunded" },
           { label: "Offline Payments", path: "/admin/store/orders/offline-payments" },
@@ -176,9 +176,9 @@ export const adminSidebarMenu = [
       { type: "link", label: "Tax Report", path: "/admin/store/tax-report", icon: "Receipt" },
       {
         type: "expandable",
-        label: "Restaurant Report",
+        label: "Seller Report",
         icon: "FileText",
-        subItems: [{ label: "Restaurant Report", path: "/admin/store/restaurant-report" }],
+        subItems: [{ label: "Seller Report", path: "/admin/store/seller-report" }],
       },
       {
         type: "expandable",
@@ -192,7 +192,7 @@ export const adminSidebarMenu = [
     type: "section",
     label: "TRANSACTION MANAGEMENT",
     items: [
-      { type: "link", label: "Restaurant Withdraws", path: "/admin/store/restaurant-withdraws", icon: "CreditCard" },
+      { type: "link", label: "Seller Withdraws", path: "/admin/store/seller-withdraws", icon: "CreditCard" },
     ],
   },
   {

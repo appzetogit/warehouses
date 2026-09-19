@@ -21,11 +21,11 @@ export const useCategoryState = (initialCategory) => {
     });
   }, []);
 
-  const toggleFavorite = useCallback((restaurantId) => {
+  const toggleFavorite = useCallback((sellerId) => {
     setFavorites((prev) => {
       const next = new Set(prev);
-      if (next.has(restaurantId)) next.delete(restaurantId);
-      else next.add(restaurantId);
+      if (next.has(sellerId)) next.delete(sellerId);
+      else next.add(sellerId);
       return next;
     });
   }, []);

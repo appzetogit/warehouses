@@ -68,13 +68,13 @@ export function getUserIdFromToken(token) {
 /**
  * Check if user has access to a module based on role
  * @param {string} role - User role
- * @param {string} module - Module name (admin, restaurant, delivery, user)
+ * @param {string} module - Module name (admin, seller, delivery, user)
  * @returns {boolean} - True if user has access
  */
 export function hasModuleAccess(role, module) {
   const roleModuleMap = {
     'admin': 'admin',
-    'restaurant': 'restaurant',
+    'seller': 'seller',
     'delivery': 'delivery',
     'user': 'user'
   };
@@ -84,7 +84,7 @@ export function hasModuleAccess(role, module) {
 
 /**
  * Get module-specific access token
- * @param {string} module - Module name (admin, restaurant, delivery, user)
+ * @param {string} module - Module name (admin, seller, delivery, user)
  * @returns {string|null} - Access token or null
  */
 export function getModuleToken(module) {
@@ -93,7 +93,7 @@ export function getModuleToken(module) {
 
 /**
  * Get module-specific refresh token (fallback for WebView environments where cookies may be unreliable)
- * @param {string} module - Module name (admin, restaurant, delivery, user)
+ * @param {string} module - Module name (admin, seller, delivery, user)
  * @returns {string|null} - Refresh token or null
  */
 export function getModuleRefreshToken(module) {
@@ -102,7 +102,7 @@ export function getModuleRefreshToken(module) {
 
 /**
  * Get current user's role from a specific module's storage/token
- * @param {string} module - Module name (admin, restaurant, delivery, user)
+ * @param {string} module - Module name (admin, seller, delivery, user)
  * @returns {string|null} - Current user role or null
  */
 export function getCurrentUserRole(module = null) {
@@ -122,7 +122,7 @@ export function getCurrentUserRole(module = null) {
 
 /**
  * Get current user object from specific module's storage
- * @param {string} module - Module name (admin, restaurant, delivery, user)
+ * @param {string} module - Module name (admin, seller, delivery, user)
  * @returns {Object|null} - User object or null
  */
 export function getCurrentUser(module) {
@@ -140,7 +140,7 @@ export function getCurrentUser(module) {
  * True when the module still has a recoverable session.
  * Access token may be expired — as long as refresh token is present and not expired,
  * axios / ensureValidAccessToken can restore the session without forcing re-login.
- * @param {string} module - Module name (admin, restaurant, delivery, user)
+ * @param {string} module - Module name (admin, seller, delivery, user)
  * @returns {boolean}
  */
 export function isModuleAuthenticated(module) {
@@ -225,7 +225,7 @@ export async function ensureValidAccessToken(module) {
 
 /**
  * Clear authentication data for a specific module
- * @param {string} module - Module name (admin, restaurant, delivery, user)
+ * @param {string} module - Module name (admin, seller, delivery, user)
  */
 export function clearModuleAuth(module) {
   localStorage.removeItem(`${module}_accessToken`);
@@ -234,58 +234,58 @@ export function clearModuleAuth(module) {
   localStorage.removeItem(`${module}_user`);
   // Clear cached FCM web token for this module
   localStorage.removeItem(`fcm_web_registered_token_${module}`);
-  if (module === "restaurant") {
-    clearRestaurantSessionCache();
+  if (module === "seller") {
+    clearSellerSessionCache();
   }
   // Also clear any sessionStorage data
   sessionStorage.removeItem(`${module}AuthData`);
 }
 
 /**
- * Clear restaurant-local cached UI data to prevent cross-account stale state.
+ * Clear seller-local cached UI data to prevent cross-account stale state.
  */
-export function clearRestaurantSessionCache() {
+export function clearSellerSessionCache() {
   const keys = [
-    "restaurant_owner_contact",
-    "restaurant_onboarding",
-    "restaurant_onboarding_data",
-    "restaurant_invited_users",
-    "restaurant_schedule_off",
-    "restaurant_online_status",
-    "restaurant_outlet_timings",
-    "restaurant_hub_menu_active_tab",
-    "restaurant_name",
-    "restaurantName",
-    "restaurant_pendingPhone",
+    "seller_owner_contact",
+    "seller_onboarding",
+    "seller_onboarding_data",
+    "seller_invited_users",
+    "seller_schedule_off",
+    "seller_online_status",
+    "seller_outlet_timings",
+    "seller_hub_menu_active_tab",
+    "seller_name",
+    "sellerName",
+    "seller_pendingPhone",
   ];
 
   keys.forEach((key) => localStorage.removeItem(key));
 }
 
-export function setRestaurantPendingPhone(phone) {
+export function setSellerPendingPhone(phone) {
   if (typeof localStorage === "undefined") return;
   if (!phone) {
-    localStorage.removeItem("restaurant_pendingPhone");
+    localStorage.removeItem("seller_pendingPhone");
     return;
   }
-  localStorage.setItem("restaurant_pendingPhone", phone);
+  localStorage.setItem("seller_pendingPhone", phone);
 }
 
-export function getRestaurantPendingPhone() {
+export function getSellerPendingPhone() {
   if (typeof localStorage === "undefined") return null;
-  return localStorage.getItem("restaurant_pendingPhone");
+  return localStorage.getItem("seller_pendingPhone");
 }
 
-export function clearRestaurantPendingPhone() {
+export function clearSellerPendingPhone() {
   if (typeof localStorage === "undefined") return;
-  localStorage.removeItem("restaurant_pendingPhone");
+  localStorage.removeItem("seller_pendingPhone");
 }
 
 /**
  * Clear all authentication data for all modules
  */
 export function clearAuthData() {
-  const modules = ['admin', 'restaurant', 'delivery', 'user'];
+  const modules = ['admin', 'seller', 'delivery', 'user'];
   modules.forEach(module => {
     clearModuleAuth(module);
   });
@@ -296,7 +296,7 @@ export function clearAuthData() {
 
 /**
  * Set authentication data for a specific module
- * @param {string} module - Module name (admin, restaurant, delivery, user)
+ * @param {string} module - Module name (admin, seller, delivery, user)
  * @param {string} token - Access token
  * @param {Object} user - User data
  * @param {string|null} refreshToken - Optional refresh token
@@ -326,9 +326,9 @@ export function setAuthData(module, token, user, refreshToken = null) {
     const authKey = `${module}_authenticated`;
     const userKey = `${module}_user`;
 
-    // Prevent stale restaurant profile data from previous account after re-login.
-    if (module === "restaurant") {
-      clearRestaurantSessionCache();
+    // Prevent stale seller profile data from previous account after re-login.
+    if (module === "seller") {
+      clearSellerSessionCache();
     }
 
     localStorage.setItem(tokenKey, token);

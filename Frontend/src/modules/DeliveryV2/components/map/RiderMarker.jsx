@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
-import { RIDER_BIKE_SVG, RESTAURANT_PIN_SVG, CUSTOMER_PIN_SVG } from '@/modules/DeliveryV2/components/map/map.icons';
+import { RIDER_BIKE_SVG, SELLER_PIN_SVG, CUSTOMER_PIN_SVG } from '@/modules/DeliveryV2/components/map/map.icons';
 
 /**
  * RiderMarker - Professional animated bike marker.

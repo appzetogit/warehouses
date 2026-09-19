@@ -1,7 +1,7 @@
 /**
  * Asserts that no public endpoint hands out a seller's private data.
  *
- * Written after `GET /food/restaurant/restaurants/:id` was found returning the
+ * Written after `GET /food/seller/sellers/:id` was found returning the
  * entire seller document to anonymous callers — bank account number, IFSC, PAN
  * number and a URL to the PAN scan among them. The fix is an allowlist
  * projection; this is the check that stops it regressing, because the failure
@@ -86,18 +86,18 @@ async function main() {
   console.log(`checking ${BASE} with no credentials\n`);
 
   const products = await (await fetch(`${BASE}/food/search/products?limit=1`)).json();
-  const sellerId = products?.data?.products?.[0]?.restaurantId;
+  const sellerId = products?.data?.products?.[0]?.sellerId;
   if (!sellerId) {
     console.error('no seller id available to test with');
     process.exit(1);
   }
 
   await check('search/products', `${BASE}/food/search/products?limit=5`);
-  await check('restaurant/restaurants', `${BASE}/food/restaurant/restaurants`);
-  await check('restaurant/restaurants/:id', `${BASE}/food/restaurant/restaurants/${sellerId}`);
-  await check('restaurants/:id/menu', `${BASE}/food/restaurant/restaurants/${sellerId}/menu`);
+  await check('seller/sellers', `${BASE}/food/seller/sellers`);
+  await check('seller/sellers/:id', `${BASE}/food/seller/sellers/${sellerId}`);
+  await check('sellers/:id/menu', `${BASE}/food/seller/sellers/${sellerId}/menu`);
   await check('search/unified', `${BASE}/food/search/unified?q=milk`);
-  await check('public/foods', `${BASE}/food/restaurant/public/foods?limit=5`);
+  await check('public/foods', `${BASE}/food/seller/public/foods?limit=5`);
   await check('business-settings/public', `${BASE}/food/admin/business-settings/public`);
 
   console.log(`\n${failures === 0 ? 'PASS — no private field exposed' : `FAIL — ${failures} leaked field(s)`}`);

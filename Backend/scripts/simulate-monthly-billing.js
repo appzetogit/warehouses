@@ -11,7 +11,7 @@ import { connectDB, disconnectDB } from '../src/config/db.js';
 import {
     runMonthlyBilling,
     runBillingCatchUp,
-} from '../src/modules/food/restaurant/services/subscriptionBilling.service.js';
+} from '../src/modules/food/seller/services/subscriptionBilling.service.js';
 
 const getArg = (name) => {
     const idx = process.argv.indexOf(`--${name}`);

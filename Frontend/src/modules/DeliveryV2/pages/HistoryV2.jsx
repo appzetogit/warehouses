@@ -4,7 +4,7 @@ import {
   CheckCircle2, Clock, Search, History, Calendar, Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { deliveryAPI, restaurantAPI } from '@food/api';
+import { deliveryAPI, sellerAPI } from '@food/api';
 import { toast } from 'sonner';
 import useDeliveryBackNavigation from '../hooks/useDeliveryBackNavigation';
 import useCloseOnBrowserBack from '../hooks/useCloseOnBrowserBack';
@@ -90,7 +90,7 @@ export const HistoryV2 = () => {
   useEffect(() => {
     const loadFeatureSettings = async () => {
       try {
-        const res = await restaurantAPI.getFeatureSettingsPublic();
+        const res = await sellerAPI.getFeatureSettingsPublic();
         const rows = Array.isArray(res?.data?.data) ? res.data.data : [];
         const codControl = rows.find((row) => row.key === "cod_control");
         if (codControl) {
@@ -298,7 +298,7 @@ export const HistoryV2 = () => {
                                 <div className="flex items-center gap-2 mb-1.5">
                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">{trip.orderId || 'ORDER-ID'}</h4>
                                 </div>
-                                <p className="text-base font-bold text-gray-800 leading-tight mb-1">{trip.restaurant || trip.restaurantName || 'Restaurant'}</p>
+                                <p className="text-base font-bold text-gray-800 leading-tight mb-1">{trip.seller || trip.sellerName || 'Seller'}</p>
                                 <p className="text-xs text-gray-400 font-medium line-clamp-1">{extractItems(trip)}</p>
                              </div>
                              <div className={`px-2.5 py-1 rounded-full border flex items-center justify-center ${isCompleted ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : isCancelled ? 'bg-red-50 border-red-100 text-red-600' : 'bg-orange-50 border-orange-100 text-orange-600'}`}>

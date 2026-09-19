@@ -162,7 +162,7 @@ export function normalizeDeliveryAddress(address) {
   };
 }
 
-export function normalizeRestaurantLocation(location) {
+export function normalizeSellerLocation(location) {
   if (!location || typeof location !== 'object') return location;
 
   const point = parseGeoPoint(location);

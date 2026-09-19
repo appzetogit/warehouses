@@ -2,7 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 
 import { config } from '../../../config/env.js';
-import { FoodRestaurant } from '../restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../seller/models/seller.model.js';
 import { FoodItem } from '../admin/models/food.model.js';
 
 const router = express.Router();
@@ -37,7 +37,7 @@ const firstOf = (...values) =>
  *
  * Its real job is the Open Graph tags. WhatsApp, Instagram and the rest fetch the
  * URL and render a preview card from them, which is what makes a shared link look
- * like a shared restaurant rather than a bare string — and they only do that for
+ * like a shared seller rather than a bare string — and they only do that for
  * http(s) URLs, which is why the app no longer shares suvio:// links.
  *
  * Anyone with the app installed never sees this page: Android App Links hands the
@@ -161,43 +161,43 @@ router.get('/.well-known/assetlinks.json', (_req, res) => {
     );
 });
 
-router.get('/restaurant-detail/:id', async (req, res, next) => {
+router.get('/seller-detail/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return notFoundPage(req, res, 'restaurant');
+            return notFoundPage(req, res, 'seller');
         }
 
-        const restaurant = await FoodRestaurant.findOne({
+        const seller = await FoodSeller.findOne({
             _id: id,
             status: 'approved',
         })
-            .select('restaurantName profileImage coverImage coverImages cuisines area city')
+            .select('sellerName profileImage coverImage coverImages cuisines area city')
             .lean();
 
-        if (!restaurant) return notFoundPage(req, res, 'restaurant');
+        if (!seller) return notFoundPage(req, res, 'seller');
 
-        const cuisines = Array.isArray(restaurant.cuisines)
-            ? restaurant.cuisines.filter(Boolean).join(', ')
+        const cuisines = Array.isArray(seller.cuisines)
+            ? seller.cuisines.filter(Boolean).join(', ')
             : '';
-        const place = [restaurant.area, restaurant.city].filter(Boolean).join(', ');
+        const place = [seller.area, seller.city].filter(Boolean).join(', ');
 
         sendPage(
             res,
             renderPage({
-                title: restaurant.restaurantName || 'Restaurant',
+                title: seller.sellerName || 'Seller',
                 description: [cuisines, place].filter(Boolean).join(' · ') ||
                     'Order food on Suvio.',
                 image: absoluteUrl(
                     req,
                     firstOf(
-                        restaurant.coverImage,
-                        restaurant.coverImages || [],
-                        restaurant.profileImage,
+                        seller.coverImage,
+                        seller.coverImages || [],
+                        seller.profileImage,
                     ),
                 ),
-                canonical: `${req.protocol}://${req.get('host')}/restaurant-detail/${id}`,
-                appUrl: `suvio://restaurant-detail/${id}`,
+                canonical: `${req.protocol}://${req.get('host')}/seller-detail/${id}`,
+                appUrl: `suvio://seller-detail/${id}`,
             }),
         );
     } catch (err) {
@@ -213,24 +213,24 @@ router.get('/food-detail', async (req, res, next) => {
         }
 
         const food = await FoodItem.findOne({ _id: id, approvalStatus: 'approved' })
-            .select('name description price image images restaurantId')
-            .populate('restaurantId', 'restaurantName')
+            .select('name description price image images sellerId')
+            .populate('sellerId', 'sellerName')
             .lean();
 
         if (!food) return notFoundPage(req, res, 'dish');
 
-        const restaurantName = food.restaurantId?.restaurantName || '';
+        const sellerName = food.sellerId?.sellerName || '';
         const price = Number(food.price);
         const description = [
             Number.isFinite(price) && price > 0 ? `Rs.${price}` : '',
-            restaurantName ? `from ${restaurantName}` : '',
+            sellerName ? `from ${sellerName}` : '',
             food.description || '',
         ]
             .filter(Boolean)
             .join(' · ');
 
-        const restaurantId = String(food.restaurantId?._id || food.restaurantId || '');
-        const query = new URLSearchParams({ id, restaurantId }).toString();
+        const sellerId = String(food.sellerId?._id || food.sellerId || '');
+        const query = new URLSearchParams({ id, sellerId }).toString();
 
         sendPage(
             res,

@@ -6,18 +6,18 @@ const debugError = (...args) => {}
 
 
 const defaultFields = [
-  "Restaurant Name", "Restaurant Logo", "Owner Last Name",
+  "Seller Name", "Seller Logo", "Owner Last Name",
   "Vat/Tax", "Cuisine", "Phone Number",
   "Delivery Address", "Zone", "Email",
   "Min Delivery Time", "Latitude & Longitude", "Password",
   "Max Delivery Time", "Map Location",
-  "Restaurant Cover", "Owner First Name"
+  "Seller Cover", "Owner First Name"
 ]
 
 const fieldTypes = ["Text", "Date", "File Upload", "Number", "Email", "Phone"]
 
 export default function JoinUsPageSetup() {
-  const [activeTab, setActiveTab] = useState("restaurant")
+  const [activeTab, setActiveTab] = useState("seller")
   const [customFields, setCustomFields] = useState([
     {
       id: 1,
@@ -129,14 +129,14 @@ export default function JoinUsPageSetup() {
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-2 mb-3">
           <div className="flex gap-2">
             <button
-              onClick={() => setActiveTab("restaurant")}
+              onClick={() => setActiveTab("seller")}
               className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors border-b-2 ${
-                activeTab === "restaurant"
+                activeTab === "seller"
                   ? "border-blue-600 text-blue-600"
                   : "border-transparent text-slate-600 hover:text-slate-900"
               }`}
             >
-              Restaurant Registration Form
+              Seller Registration Form
             </button>
             <button
               onClick={() => setActiveTab("deliveryman")}

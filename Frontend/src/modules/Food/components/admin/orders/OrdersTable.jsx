@@ -10,7 +10,7 @@ const getStatusColor = (orderStatus) => {
     "Processing": "bg-orange-100 text-orange-700",
     "Food On The Way": "bg-yellow-100 text-yellow-700",
     "Canceled": "bg-rose-100 text-rose-700",
-    "Cancelled by Restaurant": "bg-red-100 text-red-700",
+    "Cancelled by Seller": "bg-red-100 text-red-700",
     "Cancelled by User": "bg-orange-100 text-orange-700",
     "Payment Failed": "bg-red-100 text-red-700",
     "Refunded": "bg-sky-100 text-sky-700",
@@ -81,7 +81,7 @@ export default function OrdersTable({
     setInternalCurrentPage(page)
   }
 
-  const formatRestaurantName = (name) => {
+  const formatSellerName = (name) => {
     if (name === "Cafe Monarch") return "Café Monarch"
     return name
   }
@@ -125,7 +125,7 @@ export default function OrdersTable({
     return ![
       "delivered",
       "canceled",
-      "cancelled by restaurant",
+      "cancelled by seller",
       "cancelled by user",
       "payment failed",
       "refunded",
@@ -209,10 +209,10 @@ export default function OrdersTable({
                   </div>
                 </th>
               )}
-              {visibleColumns.restaurant && (
+              {visibleColumns.seller && (
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <span>Restaurant</span>
+                    <span>Seller</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400 cursor-pointer hover:text-slate-600" />
                   </div>
                 </th>
@@ -313,9 +313,9 @@ export default function OrdersTable({
                     </div>
                   </td>
                 )}
-                {visibleColumns.restaurant && (
+                {visibleColumns.seller && (
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-slate-700">{formatRestaurantName(order.restaurant)}</span>
+                    <span className="text-sm font-medium text-slate-700">{formatSellerName(order.seller)}</span>
                   </td>
                 )}
                 {visibleColumns.foodItems && (
@@ -430,7 +430,7 @@ export default function OrdersTable({
                         <div className="text-xs text-red-600 mt-1">
                           <span className="font-medium">
                             {order.cancelledBy === 'user' ? 'Cancelled by User - ' :
-                              order.cancelledBy === 'restaurant' ? 'Cancelled by Restaurant - ' :
+                              order.cancelledBy === 'seller' ? 'Cancelled by Seller - ' :
                                 'Reason: '}
                           </span>
                           {order.cancellationReason}
@@ -497,7 +497,7 @@ export default function OrdersTable({
                           title={
                             canResendNotification(order)
                               ? "Resend delivery notification to nearby partners"
-                              : "Available only after restaurant accepts the order and no delivery partner is assigned"
+                              : "Available only after seller accepts the order and no delivery partner is assigned"
                           }
                         >
                           {actionLoadingOrderId === (order.id || order.orderId) ? (
@@ -647,13 +647,13 @@ export default function OrdersTable({
                           )}
                         </button>
                       )}
-                      {/* Show Refund button or Refunded status for cancelled orders with Online/Wallet payment (restaurant or user cancelled) */}
+                      {/* Show Refund button or Refunded status for cancelled orders with Online/Wallet payment (seller or user cancelled) */}
                       {(() => {
-                        // Check if order is cancelled by restaurant or user
-                        const isCancelled = order.orderStatus === "Cancelled by Restaurant" ||
+                        // Check if order is cancelled by seller or user
+                        const isCancelled = order.orderStatus === "Cancelled by Seller" ||
                           order.orderStatus === "Cancelled" ||
                           order.orderStatus === "Cancelled by User" ||
-                          (order.status === "cancelled" && (order.cancelledBy === "user" || order.cancelledBy === "restaurant"));
+                          (order.status === "cancelled" && (order.cancelledBy === "user" || order.cancelledBy === "seller"));
 
                         // Check if payment type is Online or Wallet (not Cash on Delivery)
                         const paymentMethod = order.payment?.method || order.paymentMethod;

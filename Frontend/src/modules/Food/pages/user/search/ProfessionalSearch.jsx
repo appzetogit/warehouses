@@ -47,7 +47,7 @@ export default function ProfessionalSearch() {
   const [query, setQuery] = useState(initialQuery)
   const debouncedQuery = useDebounce(query, 500)
   
-  const [results, setResults] = useState({ restaurants: [], dishes: [] })
+  const [results, setResults] = useState({ sellers: [], dishes: [] })
   const [loading, setLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [categories, setCategories] = useState([])
@@ -104,7 +104,7 @@ export default function ProfessionalSearch() {
 
   const performSearch = useCallback(async (searchTerm, catId) => {
     if (!searchTerm && !catId) {
-      setResults({ restaurants: [], dishes: [] })
+      setResults({ sellers: [], dishes: [] })
       return
     }
     
@@ -120,16 +120,16 @@ export default function ProfessionalSearch() {
       })
       
       if (res.data?.success) {
-        // Grouping results into Restaurants and potential Dishes
-        const all = (res.data.data.restaurants || []).filter((row) => {
-          const restaurantZoneId = row?.zoneId || row?.zone?._id || row?.zone || null
-          if (zoneId && restaurantZoneId && String(restaurantZoneId) !== String(zoneId)) {
+        // Grouping results into Sellers and potential Dishes
+        const all = (res.data.data.sellers || []).filter((row) => {
+          const sellerZoneId = row?.zoneId || row?.zone?._id || row?.zone || null
+          if (zoneId && sellerZoneId && String(sellerZoneId) !== String(zoneId)) {
             return false
           }
           return true
         })
         setResults({
-          restaurants: all.filter(r => r.matchType === 'restaurant' || !r.matchType),
+          sellers: all.filter(r => r.matchType === 'seller' || !r.matchType),
           dishes: all.filter(r => r.matchType === 'food')
         })
       }
@@ -171,7 +171,7 @@ export default function ProfessionalSearch() {
     setQuery("")
     setSelectedCategoryId(null)
     setSearchParams({}, { replace: true })
-    setResults({ restaurants: [], dishes: [] })
+    setResults({ sellers: [], dishes: [] })
   }
 
   const handleCategoryClick = (id) => {
@@ -199,7 +199,7 @@ export default function ProfessionalSearch() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
             <Input 
               autoFocus
-              placeholder="Search for restaurants or dishes..." 
+              placeholder="Search for sellers or dishes..." 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-12 pr-12 h-12 w-full bg-slate-100 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-rose-500 rounded-full text-base"
@@ -292,18 +292,18 @@ export default function ProfessionalSearch() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                    <div className="w-1 h-5 bg-orange-500 rounded-full" />
-                   <h2 className="text-lg font-bold dark:text-white">Dishes from restaurants</h2>
+                   <h2 className="text-lg font-bold dark:text-white">Dishes from sellers</h2>
                 </div>
                 <div className="grid gap-4">
                   {results.dishes.map((r) => (
-                    <Link to={`/user/restaurants/${r.slug || r._id}${r.matchedDishId ? `?dish=${r.matchedDishId}` : ''}`} key={r._id} className="flex gap-4 p-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 hover:shadow-md transition-shadow group">
+                    <Link to={`/user/sellers/${r.slug || r._id}${r.matchedDishId ? `?dish=${r.matchedDishId}` : ''}`} key={r._id} className="flex gap-4 p-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 hover:shadow-md transition-shadow group">
                        <div className="w-24 h-24 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
                            <img 
                             src={getMediaUrl(r.matchedDishImage || r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                             onError={(e) => (e.target.src = "/placeholder-dish.jpg")}
                           />
-                          {r.pureVegRestaurant && (
+                          {r.pureVegSeller && (
                             <div className="absolute top-1 left-1 w-4 h-4 border border-green-600 p-[1px] bg-white rounded-sm">
                                <div className="w-full h-full bg-green-600 rounded-full" />
                             </div>
@@ -313,7 +313,7 @@ export default function ProfessionalSearch() {
                           <div className="text-rose-500 text-[10px] font-bold uppercase tracking-wider mb-1">
                              Matched: {r.matchedDish || query}
                           </div>
-                          <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1">{r.restaurantName}</h3>
+                          <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1">{r.sellerName}</h3>
                           <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-zinc-400 mt-1">
                              <div className="flex items-center gap-1">
                                 <Star className="w-3 h-3 text-orange-500 fill-orange-500" />
@@ -331,26 +331,26 @@ export default function ProfessionalSearch() {
               </section>
             )}
 
-            {/* Restaurant Results Section */}
-            {results.restaurants.length > 0 && (
+            {/* Seller Results Section */}
+            {results.sellers.length > 0 && (
               <section>
                 <div className="flex items-center gap-2 mb-4">
                    <div className="w-1 h-5 bg-rose-500 rounded-full" />
-                   <h2 className="text-lg font-bold dark:text-white">Restaurants</h2>
+                   <h2 className="text-lg font-bold dark:text-white">Sellers</h2>
                 </div>
                 <div className="grid gap-6">
-                  {results.restaurants.map((r) => (
-                    <Link to={`/user/restaurants/${r._id}`} key={r._id} className="block group">
+                  {results.sellers.map((r) => (
+                    <Link to={`/user/sellers/${r._id}`} key={r._id} className="block group">
                       <div className="relative rounded-3xl overflow-hidden aspect-[16/9] mb-3 bg-slate-200">
                          <img 
                           src={getMediaUrl(r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => (e.target.src = "/placeholder-restaurant.jpg")}
+                          onError={(e) => (e.target.src = "/placeholder-seller.jpg")}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                         <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
                            <div>
-                              <h3 className="text-xl font-bold text-white mb-1">{r.restaurantName}</h3>
+                              <h3 className="text-xl font-bold text-white mb-1">{r.sellerName}</h3>
                               <p className="text-white/80 text-xs line-clamp-1">{r.cuisines?.join(", ")}</p>
                            </div>
                            <div className="bg-white/20 backdrop-blur-md border border-white/30 px-2 py-1 rounded-lg flex items-center gap-1">
@@ -385,7 +385,7 @@ export default function ProfessionalSearch() {
             )}
 
             {/* Empty State */}
-            {!loading && results.restaurants.length === 0 && results.dishes.length === 0 && (
+            {!loading && results.sellers.length === 0 && results.dishes.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                  <div className="w-20 h-20 bg-slate-100 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-4">
                     <Search className="w-8 h-8 text-slate-300" />
@@ -431,7 +431,7 @@ export default function ProfessionalSearch() {
 
           <div className="mt-24 text-center">
             <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Speak Now</h2>
-            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for dishes or restaurants...</p>
+            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for dishes or sellers...</p>
           </div>
 
           <Button

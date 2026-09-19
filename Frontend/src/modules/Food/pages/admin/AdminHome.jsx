@@ -139,8 +139,8 @@ export default function AdminHome() {
   const totalAdminEarnings = dashboardData?.totalAdminEarnings || 0
 
   // Additional stats
-  const totalRestaurants = dashboardData?.restaurants?.total || 0
-  const pendingRestaurantRequests = dashboardData?.restaurants?.pendingRequests || 0
+  const totalSellers = dashboardData?.sellers?.total || 0
+  const pendingSellerRequests = dashboardData?.sellers?.pendingRequests || 0
   const totalDeliveryBoys = dashboardData?.deliveryBoys?.total || 0
   const pendingDeliveryBoyRequests = dashboardData?.deliveryBoys?.pendingRequests || 0
   const totalFoods = dashboardData?.foods?.total || 0
@@ -231,7 +231,7 @@ export default function AdminHome() {
             <MetricCard
               title="Commission earned"
               value={formatCurrency(commissionTotal)}
-              helper={`${periodLabel} restaurant cut`}
+              helper={`${periodLabel} seller cut`}
               icon={<ArrowUpRight className="h-5 w-5 text-indigo-600" />}
               accent="bg-indigo-200/40"
               path="/admin/store/sellers/commission"
@@ -278,7 +278,7 @@ export default function AdminHome() {
             />
             <MetricCard
               title="Total sellers"
-              value={totalRestaurants.toLocaleString("en-IN")}
+              value={totalSellers.toLocaleString("en-IN")}
               helper="Approved sellers"
               icon={<Store className="h-5 w-5 text-blue-600" />}
               accent="bg-blue-200/40"
@@ -286,7 +286,7 @@ export default function AdminHome() {
             />
             <MetricCard
               title="Seller requests pending"
-              value={pendingRestaurantRequests.toLocaleString("en-IN")}
+              value={pendingSellerRequests.toLocaleString("en-IN")}
               helper="Awaiting approval"
               icon={<UserCheck className="h-5 w-5 text-orange-600" />}
               accent="bg-orange-200/40"
@@ -522,7 +522,7 @@ export default function AdminHome() {
                           return <CheckCircle className="h-4 w-4 text-emerald-600" />
                         case "order_cancelled":
                           return <XCircle className="h-4 w-4 text-red-600" />
-                        case "restaurant":
+                        case "seller":
                           return <Store className="h-4 w-4 text-blue-600" />
                         case "delivery":
                           return <Truck className="h-4 w-4 text-purple-600" />
@@ -541,7 +541,7 @@ export default function AdminHome() {
                           return "bg-emerald-50"
                         case "order_cancelled":
                           return "bg-red-50"
-                        case "restaurant":
+                        case "seller":
                           return "bg-blue-50"
                         case "delivery":
                           return "bg-purple-50"

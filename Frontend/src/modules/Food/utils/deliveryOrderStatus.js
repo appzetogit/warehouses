@@ -75,7 +75,7 @@ export const getDeliveryStatusMessage = (status) => {
       description: "When it's ready for cooking, you will be notified."
     },
     [DELIVERY_ORDER_STATUS.PICKED_UP]: {
-      message: "Order picked up from restaurant",
+      message: "Order picked up from seller",
       description: "You can now proceed to deliver the order."
     },
     [DELIVERY_ORDER_STATUS.ON_THE_WAY]: {

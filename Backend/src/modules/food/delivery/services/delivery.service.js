@@ -706,10 +706,10 @@ const toTripDto = (order) => {
 
     const status = isDelivered ? 'Completed' : isCancelled ? 'Cancelled' : 'Pending';
 
-    const restaurantName =
-        order?.restaurantId?.restaurantName ||
-        order?.restaurantName ||
-        order?.restaurant?.restaurantName ||
+    const sellerName =
+        order?.sellerId?.sellerName ||
+        order?.sellerName ||
+        order?.seller?.sellerName ||
         '';
 
     const paymentMethod = order?.payment?.method || order?.paymentMethod || '';
@@ -723,8 +723,8 @@ const toTripDto = (order) => {
         _id: order?._id,
         orderId: order?.orderId || order?._id,
         status,
-        restaurantName,
-        restaurant: restaurantName,
+        sellerName,
+        seller: sellerName,
         items: order?.items || order?.orderItems || [],
         orderItems: order?.orderItems || order?.items || [],
         paymentMethod,
@@ -784,7 +784,7 @@ export const getDeliveryPartnerTripHistory = async (deliveryPartnerId, query = {
     }
 
     const orders = await FoodOrder.find(match)
-        .populate({ path: 'restaurantId', select: 'restaurantName' })
+        .populate({ path: 'sellerId', select: 'sellerName' })
         .sort({ 'deliveryState.deliveredAt': -1, deliveredAt: -1, completedAt: -1, updatedAt: -1, createdAt: -1 })
         .limit(limit)
         .lean();
@@ -818,7 +818,7 @@ export const getDeliveryPocketDetails = async (deliveryPartnerId, query = {}) =>
             { createdAt: { $gte: start, $lte: end } }
         ]
     })
-        .populate({ path: 'restaurantId', select: 'restaurantName' })
+        .populate({ path: 'sellerId', select: 'sellerName' })
         .sort({ 'deliveryState.deliveredAt': -1, deliveredAt: -1, completedAt: -1, updatedAt: -1, createdAt: -1 })
         .limit(limit)
         .lean();
@@ -842,7 +842,7 @@ export const getDeliveryPocketDetails = async (deliveryPartnerId, query = {}) =>
         createdAt: o?.deliveryState?.deliveredAt || o?.deliveredAt || o?.createdAt,
         orderId: o.orderId || String(o._id),
         metadata: { orderId: o.orderId || String(o._id) },
-        description: o?.restaurantId?.restaurantName ? `Order earning - ${o.restaurantId.restaurantName}` : 'Order earning'
+        description: o?.sellerId?.sellerName ? `Order earning - ${o.sellerId.sellerName}` : 'Order earning'
     }));
 
     const bonusTransactions = (bonusTxList || []).map((t) => ({

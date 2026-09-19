@@ -24,7 +24,7 @@ export const createHeroBannersFromFiles = async (files, meta = {}) => {
                 title: meta.title,
                 ctaText: meta.ctaText,
                 ctaLink: meta.ctaLink,
-                linkedRestaurantIds: meta.linkedRestaurantIds || [],
+                linkedSellerIds: meta.linkedSellerIds || [],
                 sortOrder: meta.sortOrder ?? 0,
                 isActive: true
             });

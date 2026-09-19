@@ -3,18 +3,18 @@
  * Always clears local session even if network/API calls fail.
  */
 
-import { authAPI, restaurantAPI, deliveryAPI, userAPI } from "@food/api";
+import { authAPI, sellerAPI, deliveryAPI, userAPI } from "@food/api";
 import { clearModuleAuth, clearAuthData } from "@food/utils/auth";
 import { resolveDeviceFcmToken } from "@food/utils/firebaseMessaging";
 
 const LOGIN_PATHS = {
-  restaurant: "/seller/login",
+  seller: "/seller/login",
   user: "/food/user/auth/login",
   delivery: "/food/delivery/login",
 };
 
 const AUTH_CHANGED_EVENTS = {
-  restaurant: "restaurantAuthChanged",
+  seller: "sellerAuthChanged",
   user: "userAuthChanged",
   delivery: "deliveryAuthChanged",
   admin: "adminAuthChanged",
@@ -37,8 +37,8 @@ async function signOutFirebaseAuthBestEffort() {
 
 async function removeModuleFcmToken(module, fcmToken, platform) {
   if (!fcmToken) return;
-  if (module === "restaurant") {
-    await restaurantAPI.removeFcmToken(fcmToken, platform);
+  if (module === "seller") {
+    await sellerAPI.removeFcmToken(fcmToken, platform);
     return;
   }
   if (module === "delivery") {
@@ -51,8 +51,8 @@ async function removeModuleFcmToken(module, fcmToken, platform) {
 }
 
 async function logoutModuleApi(module, fcmToken, platform) {
-  if (module === "restaurant") {
-    return restaurantAPI.logout(undefined, fcmToken, platform);
+  if (module === "seller") {
+    return sellerAPI.logout(undefined, fcmToken, platform);
   }
   if (module === "delivery") {
     return deliveryAPI.logout(undefined, fcmToken, platform);
@@ -69,9 +69,9 @@ function clearModuleLocalExtras(module) {
     // ignore
   }
 
-  if (module === "restaurant") {
+  if (module === "seller") {
     try {
-      localStorage.removeItem("restaurant_onboarding");
+      localStorage.removeItem("seller_onboarding");
     } catch {
       // ignore
     }
@@ -111,7 +111,7 @@ function dispatchAuthCleared(module, clearAllModules) {
 }
 
 /**
- * @param {"user"|"restaurant"|"delivery"} module
+ * @param {"user"|"seller"|"delivery"} module
  * @param {object} [options]
  * @param {boolean} [options.clearAllModules=false]
  * @param {(path: string, opts?: object) => void} [options.navigate]
@@ -121,7 +121,7 @@ function dispatchAuthCleared(module, clearAllModules) {
  */
 export async function logoutModuleSession(module, options = {}) {
   const normalizedModule = String(module || "").trim().toLowerCase();
-  if (!["user", "restaurant", "delivery"].includes(normalizedModule)) {
+  if (!["user", "seller", "delivery"].includes(normalizedModule)) {
     throw new Error(`Unsupported logout module: ${module}`);
   }
 
@@ -165,7 +165,7 @@ export async function logoutModuleSession(module, options = {}) {
   if (clearAllModules) {
     clearAuthData();
     try {
-      sessionStorage.removeItem("restaurantAuthData");
+      sessionStorage.removeItem("sellerAuthData");
       sessionStorage.removeItem("adminAuthData");
       sessionStorage.removeItem("deliveryAuthData");
       sessionStorage.removeItem("userAuthData");
@@ -174,7 +174,7 @@ export async function logoutModuleSession(module, options = {}) {
     }
     clearModuleLocalExtras("user");
     clearModuleLocalExtras("delivery");
-    clearModuleLocalExtras("restaurant");
+    clearModuleLocalExtras("seller");
   } else {
     clearModuleAuth(normalizedModule);
     clearModuleLocalExtras(normalizedModule);
@@ -200,6 +200,6 @@ export function logoutDeliverySession(options = {}) {
   });
 }
 
-export function logoutRestaurantSession(options = {}) {
-  return logoutModuleSession("restaurant", options);
+export function logoutSellerSession(options = {}) {
+  return logoutModuleSession("seller", options);
 }

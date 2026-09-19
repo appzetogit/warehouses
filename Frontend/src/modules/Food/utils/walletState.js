@@ -43,7 +43,7 @@ const DEFAULT_WALLET_STATE = {
   withdrawRequests: []
 }
 
-const WALLET_STORAGE_KEY = 'restaurant_wallet_state'
+const WALLET_STORAGE_KEY = 'seller_wallet_state'
 
 /**
  * Get wallet state from localStorage

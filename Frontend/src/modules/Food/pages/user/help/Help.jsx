@@ -36,7 +36,7 @@ const helpCategories = [
     topics: [
       {
         question: "How do I place an order?",
-        answer: "To place an order, browse restaurants, add items to your cart, and proceed to checkout. Select your delivery address and payment method, then confirm your order."
+        answer: "To place an order, browse sellers, add items to your cart, and proceed to checkout. Select your delivery address and payment method, then confirm your order."
       },
       {
         question: "Can I modify or cancel my order?",
@@ -48,7 +48,7 @@ const helpCategories = [
       },
       {
         question: "What is the minimum order amount?",
-        answer: "The minimum order amount varies by restaurant, typically ranging from $10 to $15. This information is displayed on each restaurant's page."
+        answer: "The minimum order amount varies by seller, typically ranging from $10 to $15. This information is displayed on each seller's page."
       }
     ]
   },
@@ -88,11 +88,11 @@ const helpCategories = [
     topics: [
       {
         question: "What are your delivery times?",
-        answer: "Delivery times typically range from 30-60 minutes, depending on the restaurant and your location. Estimated time is shown before checkout."
+        answer: "Delivery times typically range from 30-60 minutes, depending on the seller and your location. Estimated time is shown before checkout."
       },
       {
         question: "How much is the delivery fee?",
-        answer: "Delivery fees vary by restaurant and distance, typically ranging from $2.99 to $5.99. The exact fee is shown before you place your order."
+        answer: "Delivery fees vary by seller and distance, typically ranging from $2.99 to $5.99. The exact fee is shown before you place your order."
       },
       {
         question: "Can I schedule a delivery for later?",
@@ -125,8 +125,8 @@ const helpCategories = [
         answer: "Navigate to Profile > Addresses to view, add, edit, or delete delivery addresses. Set a default address for faster checkout."
       },
       {
-        question: "How do I save my favorite restaurants?",
-        answer: "Click the heart icon on any restaurant page to add it to your favorites. View all favorites in Profile > Favorites."
+        question: "How do I save my favorite sellers?",
+        answer: "Click the heart icon on any seller page to add it to your favorites. View all favorites in Profile > Favorites."
       }
     ]
   },
@@ -166,7 +166,7 @@ const helpCategories = [
     topics: [
       {
         question: "Do you offer discounts or promotions?",
-        answer: "Yes! Check the 'Offers' section for current promotions, discount codes, and special deals from restaurants."
+        answer: "Yes! Check the 'Offers' section for current promotions, discount codes, and special deals from sellers."
       },
       {
         question: "How do I contact customer support?",
@@ -178,7 +178,7 @@ const helpCategories = [
       },
       {
         question: "Do you deliver to my area?",
-        answer: "Enter your delivery address to see available restaurants in your area. We're constantly expanding our delivery zones."
+        answer: "Enter your delivery address to see available sellers in your area. We're constantly expanding our delivery zones."
       }
     ]
   }

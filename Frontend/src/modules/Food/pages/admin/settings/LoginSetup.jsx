@@ -15,7 +15,7 @@ const panelLoginUrls = [
   },
   {
     id: 2,
-    panelName: "Restaurant Panel",
+    panelName: "Seller Panel",
     loginUrl: "https://restaurant.stackfood.com/login",
     status: "active"
   },

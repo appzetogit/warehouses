@@ -6,9 +6,9 @@ const foodOfferSchema = new mongoose.Schema(
         discountType: { type: String, enum: ['percentage', 'flat-price'], default: 'percentage', index: true },
         discountValue: { type: Number, required: true, min: 0 },
         customerScope: { type: String, enum: ['all', 'first-time'], default: 'all', index: true },
-        restaurantScope: { type: String, enum: ['all', 'selected'], default: 'all', index: true },
-        restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodRestaurant' },
-        restaurantIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'FoodRestaurant' }],
+        sellerScope: { type: String, enum: ['all', 'selected'], default: 'all', index: true },
+        sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodSeller' },
+        sellerIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'FoodSeller' }],
         minOrderValue: { type: Number, default: 0, min: 0 },
         maxDiscount: { type: Number, default: null, min: 0 },
         usageLimit: { type: Number, default: null, min: 0 },
@@ -19,14 +19,14 @@ const foodOfferSchema = new mongoose.Schema(
         endDate: { type: Date },
         status: { type: String, enum: ['active', 'paused', 'inactive'], default: 'active', index: true },
         showInCart: { type: Boolean, default: true },
-        createdByRole: { type: String, enum: ['ADMIN', 'RESTAURANT'], default: 'ADMIN', index: true },
+        createdByRole: { type: String, enum: ['ADMIN', 'SELLER'], default: 'ADMIN', index: true },
         adminBearPercentage: { type: Number, default: 100, min: 0, max: 100 },
-        restaurantBearPercentage: { type: Number, default: 0, min: 0, max: 100 }
+        sellerBearPercentage: { type: Number, default: 0, min: 0, max: 100 }
     },
     { collection: 'food_offers', timestamps: true }
 );
 
-foodOfferSchema.index({ restaurantId: 1, createdAt: -1 });
-foodOfferSchema.index({ restaurantIds: 1, createdAt: -1 });
+foodOfferSchema.index({ sellerId: 1, createdAt: -1 });
+foodOfferSchema.index({ sellerIds: 1, createdAt: -1 });
 
 export const FoodOffer = mongoose.model('FoodOffer', foodOfferSchema);

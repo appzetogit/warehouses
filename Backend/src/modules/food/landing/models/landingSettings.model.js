@@ -6,9 +6,9 @@ const foodLandingSettingsSchema = new mongoose.Schema(
             type: String,
             default: 'Explore more'
         },
-        recommendedRestaurantIds: {
+        recommendedSellerIds: {
             type: [mongoose.Schema.Types.ObjectId],
-            ref: 'FoodRestaurant',
+            ref: 'FoodSeller',
             default: []
         },
         showHeroBanners: {

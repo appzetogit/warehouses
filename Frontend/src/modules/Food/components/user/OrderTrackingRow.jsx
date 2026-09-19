@@ -33,7 +33,7 @@ function OrderTrackingRowInner({ order, timeRemaining, onDismiss, compact = fals
   if (!order) return null;
 
   const orderId = getOrderKey(order);
-  const restaurantName = order.restaurant || order.restaurantName || "Restaurant";
+  const sellerName = order.seller || order.sellerName || "Seller";
   const statusText = getOrderStatusText(order);
   const themeColor = "var(--module-theme-color, #EB590E)";
 
@@ -84,7 +84,7 @@ function OrderTrackingRowInner({ order, timeRemaining, onDismiss, compact = fals
         <CookingAnimation />
 
         <div className="flex-1 min-w-0">
-          <p className="text-gray-900 font-bold text-sm truncate tracking-tight">{restaurantName}</p>
+          <p className="text-gray-900 font-bold text-sm truncate tracking-tight">{sellerName}</p>
           <div className="flex items-center gap-1 mt-0.5">
             <p className="text-gray-500 font-medium text-xs truncate">{statusText}</p>
             <ChevronRight className="w-3 h-3 shrink-0 group-hover:translate-x-0.5 transition-transform" style={{ color: themeColor }} />

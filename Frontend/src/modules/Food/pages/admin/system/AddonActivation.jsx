@@ -8,7 +8,7 @@ const debugError = (...args) => {}
 const addons = [
   {
     id: 1,
-    title: "Restaurant app",
+    title: "Seller app",
     description: "With this app your vendor will mange their business through mobile app",
     enabled: true,
     hasSettings: true
@@ -112,7 +112,7 @@ export default function AddonActivation() {
                     onToggle={() => handleToggle(addon.id)}
                   />
 
-                  {/* Settings Icon (only for Restaurant app) */}
+                  {/* Settings Icon (only for Seller app) */}
                   {addon.hasSettings && (
                     <button
                       type="button"

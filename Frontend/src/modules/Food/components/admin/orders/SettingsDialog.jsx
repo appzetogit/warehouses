@@ -13,7 +13,7 @@ export default function SettingsDialog({ isOpen, onOpenChange, visibleColumns, t
     orderDate: "Order Date",
     orderOtp: "Order OTP",
     customer: "Customer Information",
-    restaurant: "Restaurant",
+    seller: "Seller",
     foodItems: "Food Items",
     totalAmount: "Total Amount",
     paymentType: "Payment Type",

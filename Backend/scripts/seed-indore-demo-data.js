@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { FoodZone } from '../src/modules/food/admin/models/zone.model.js';
-import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
 import { FoodAdmin } from '../src/core/admin/admin.model.js';
 
 const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
@@ -46,9 +46,9 @@ const zoneSeeds = [
   }
 ];
 
-const restaurantSeeds = [
+const sellerSeeds = [
   {
-    restaurantName: 'Poha Junction',
+    sellerName: 'Poha Junction',
     ownerName: 'Rohit Sharma',
     ownerEmail: 'rohit@pohajunction.in',
     ownerPhone: '9171110001',
@@ -58,7 +58,7 @@ const restaurantSeeds = [
     state: 'Madhya Pradesh',
     pincode: '452010',
     cuisines: ['Breakfast', 'Indori', 'Street Food'],
-    pureVegRestaurant: true,
+    pureVegSeller: true,
     openingTime: '07:00',
     closingTime: '22:30',
     openDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -82,7 +82,7 @@ const restaurantSeeds = [
     zoneName: 'Vijay Nagar'
   },
   {
-    restaurantName: 'Sarafa Sweets & Snacks',
+    sellerName: 'Sarafa Sweets & Snacks',
     ownerName: 'Anjali Jain',
     ownerEmail: 'anjali@sarafasnacks.in',
     ownerPhone: '9171110002',
@@ -92,7 +92,7 @@ const restaurantSeeds = [
     state: 'Madhya Pradesh',
     pincode: '452001',
     cuisines: ['Desserts', 'North Indian', 'Snacks'],
-    pureVegRestaurant: true,
+    pureVegSeller: true,
     openingTime: '10:00',
     closingTime: '23:59',
     openDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -116,7 +116,7 @@ const restaurantSeeds = [
     zoneName: 'Palasia'
   },
   {
-    restaurantName: 'Chatori Galli',
+    sellerName: 'Chatori Galli',
     ownerName: 'Kunal Verma',
     ownerEmail: 'kunal@chatorigalli.in',
     ownerPhone: '9171110003',
@@ -126,7 +126,7 @@ const restaurantSeeds = [
     state: 'Madhya Pradesh',
     pincode: '452010',
     cuisines: ['Fast Food', 'Chinese', 'Rolls'],
-    pureVegRestaurant: false,
+    pureVegSeller: false,
     openingTime: '11:00',
     closingTime: '23:00',
     openDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -150,7 +150,7 @@ const restaurantSeeds = [
     zoneName: 'Vijay Nagar'
   },
   {
-    restaurantName: 'Narmada Family Dhaba',
+    sellerName: 'Narmada Family Dhaba',
     ownerName: 'Suresh Patel',
     ownerEmail: 'suresh@narmadadhaba.in',
     ownerPhone: '9171110004',
@@ -160,7 +160,7 @@ const restaurantSeeds = [
     state: 'Madhya Pradesh',
     pincode: '453331',
     cuisines: ['North Indian', 'Thali', 'Tandoor'],
-    pureVegRestaurant: false,
+    pureVegSeller: false,
     openingTime: '12:00',
     closingTime: '23:30',
     openDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -184,7 +184,7 @@ const restaurantSeeds = [
     zoneName: 'Rau'
   },
   {
-    restaurantName: '56 Dukan Bites',
+    sellerName: '56 Dukan Bites',
     ownerName: 'Megha Agrawal',
     ownerEmail: 'megha@56dukanbites.in',
     ownerPhone: '9171110005',
@@ -194,7 +194,7 @@ const restaurantSeeds = [
     state: 'Madhya Pradesh',
     pincode: '452001',
     cuisines: ['Street Food', 'Beverages', 'Chaat'],
-    pureVegRestaurant: true,
+    pureVegSeller: true,
     openingTime: '09:00',
     closingTime: '23:00',
     openDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -250,10 +250,10 @@ async function upsertZones() {
   return zoneMap;
 }
 
-async function upsertRestaurants(zoneMap) {
-  const restaurants = [];
+async function upsertSellers(zoneMap) {
+  const sellers = [];
 
-  for (const seed of restaurantSeeds) {
+  for (const seed of sellerSeeds) {
     const zone = zoneMap.get(seed.zoneName);
     const update = {
       ...seed,
@@ -275,16 +275,16 @@ async function upsertRestaurants(zoneMap) {
 
     delete update.zoneName;
 
-    const restaurant = await FoodRestaurant.findOneAndUpdate(
-      { restaurantName: seed.restaurantName, ownerPhone: seed.ownerPhone },
+    const seller = await FoodSeller.findOneAndUpdate(
+      { sellerName: seed.sellerName, ownerPhone: seed.ownerPhone },
       { $set: update },
       { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
     );
 
-    restaurants.push(restaurant);
+    sellers.push(seller);
   }
 
-  return restaurants;
+  return sellers;
 }
 
 async function upsertAdmin() {
@@ -319,12 +319,12 @@ async function main() {
   console.log('Connected to MongoDB');
 
   const zoneMap = await upsertZones();
-  const restaurants = await upsertRestaurants(zoneMap);
+  const sellers = await upsertSellers(zoneMap);
   const admin = await upsertAdmin();
 
   console.log('\nSeed complete.');
   console.log(`Zones: ${zoneMap.size}`);
-  console.log(`Restaurants: ${restaurants.length}`);
+  console.log(`Sellers: ${sellers.length}`);
   console.log(`Admin: ${admin.email}`);
   console.log(`Admin password: ${adminSeed.password}`);
 
@@ -333,9 +333,9 @@ async function main() {
     console.log(`- ${name}: ${zone._id}`);
   }
 
-  console.log('\nRestaurants:');
-  for (const restaurant of restaurants) {
-    console.log(`- ${restaurant.restaurantName} | ${restaurant.city} | ${restaurant.status}`);
+  console.log('\nSellers:');
+  for (const seller of sellers) {
+    console.log(`- ${seller.sellerName} | ${seller.city} | ${seller.status}`);
   }
 }
 

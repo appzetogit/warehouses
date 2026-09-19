@@ -28,7 +28,7 @@ export function resolveCustomerAddress(order) {
   return addressParts.length ? addressParts.join(', ') : '';
 }
 
-/** Open Google Maps with a searchable address (same pattern as restaurant pickup). */
+/** Open Google Maps with a searchable address (same pattern as seller pickup). */
 export function openGoogleMapsForAddress(address) {
   const query = String(address || '').trim();
   if (!query) return false;

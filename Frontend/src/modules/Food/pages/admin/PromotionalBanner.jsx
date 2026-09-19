@@ -11,7 +11,7 @@ const MAX_BANNER_MB = 50
 
 export default function PromotionalBanner() {
   const [banners, setBanners] = useState([])
-  const [restaurants, setRestaurants] = useState([])
+  const [sellers, setSellers] = useState([])
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -21,7 +21,7 @@ export default function PromotionalBanner() {
   const [formData, setFormData] = useState({
     title: "",
     ctaLink: "",
-    restaurantId: "",
+    sellerId: "",
     zoneId: "",
     startDate: "",
     endDate: "",
@@ -43,14 +43,14 @@ export default function PromotionalBanner() {
     }
   }, [])
 
-  const fetchRestaurants = useCallback(async () => {
+  const fetchSellers = useCallback(async () => {
     try {
-      const response = await api.get("/food/admin/restaurants", { params: { limit: 1000, status: 'approved' } })
+      const response = await api.get("/food/admin/sellers", { params: { limit: 1000, status: 'approved' } })
       if (response.data?.success) {
-        setRestaurants(response.data.data?.restaurants || [])
+        setSellers(response.data.data?.sellers || [])
       }
     } catch (error) {
-      debugError("Failed to fetch restaurants:", error)
+      debugError("Failed to fetch sellers:", error)
     }
   }, [])
 
@@ -70,9 +70,9 @@ export default function PromotionalBanner() {
 
   useEffect(() => {
     fetchBanners()
-    fetchRestaurants()
+    fetchSellers()
     fetchZones()
-  }, [fetchBanners, fetchRestaurants, fetchZones])
+  }, [fetchBanners, fetchSellers, fetchZones])
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0]
@@ -197,7 +197,7 @@ export default function PromotionalBanner() {
     setFormData({
       title: "",
       ctaLink: "",
-      restaurantId: "",
+      sellerId: "",
       zoneId: "",
       startDate: "",
       endDate: "",
@@ -209,18 +209,18 @@ export default function PromotionalBanner() {
   const openEdit = (banner) => {
     setEditingBanner(banner)
     
-    // Try to find if ctaLink matches a restaurant route
-    let matchedRestaurantId = "";
-    if (banner.ctaLink?.startsWith("/restaurant/")) {
-      const slug = banner.ctaLink.replace("/restaurant/", "");
-      const found = restaurants.find(r => r.slug === slug);
-      if (found) matchedRestaurantId = found._id;
+    // Try to find if ctaLink matches a seller route
+    let matchedSellerId = "";
+    if (banner.ctaLink?.startsWith("/seller/")) {
+      const slug = banner.ctaLink.replace("/seller/", "");
+      const found = sellers.find(r => r.slug === slug);
+      if (found) matchedSellerId = found._id;
     }
 
     setFormData({
       title: banner.title || "",
       ctaLink: banner.ctaLink || "",
-      restaurantId: matchedRestaurantId,
+      sellerId: matchedSellerId,
       zoneId: banner.zoneId?._id || banner.zoneId || "",
       startDate: banner.startDate ? new Date(banner.startDate).toISOString().split('T')[0] : "",
       endDate: banner.endDate ? new Date(banner.endDate).toISOString().split('T')[0] : "",
@@ -230,13 +230,13 @@ export default function PromotionalBanner() {
     setShowAddModal(true)
   }
 
-  const handleRestaurantChange = (id) => {
-    const restaurant = restaurants.find(r => r._id === id);
+  const handleSellerChange = (id) => {
+    const seller = sellers.find(r => r._id === id);
     
-    if (restaurant) {
+    if (seller) {
       // PRO LOGIC: Use existing slug, or generate one from name if missing
-      const slug = restaurant.slug || 
-                   restaurant.restaurantName
+      const slug = seller.slug || 
+                   seller.sellerName
                      .toLowerCase()
                      .trim()
                      .replace(/[^\w\s-]/g, '')
@@ -245,11 +245,11 @@ export default function PromotionalBanner() {
 
       setFormData(prev => ({
         ...prev, 
-        restaurantId: id,
-        ctaLink: `/food/user/restaurants/${slug}`
+        sellerId: id,
+        ctaLink: `/food/user/sellers/${slug}`
       }))
     } else {
-      setFormData(prev => ({...prev, restaurantId: ""}))
+      setFormData(prev => ({...prev, sellerId: ""}))
     }
   }
 
@@ -408,7 +408,7 @@ export default function PromotionalBanner() {
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Zone (Required for Filtering)</label>
                       <select
                         value={formData.zoneId}
-                        onChange={(e) => setFormData(p => ({...p, zoneId: e.target.value, restaurantId: ""}))}
+                        onChange={(e) => setFormData(p => ({...p, zoneId: e.target.value, sellerId: ""}))}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm appearance-none"
                       >
                         <option value="">Select a zone...</option>
@@ -418,17 +418,17 @@ export default function PromotionalBanner() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Link to Restaurant (Optional)</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Link to Seller (Optional)</label>
                       <select
-                        value={formData.restaurantId}
-                        onChange={(e) => handleRestaurantChange(e.target.value)}
+                        value={formData.sellerId}
+                        onChange={(e) => handleSellerChange(e.target.value)}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm appearance-none"
                       >
-                        <option value="">Select a restaurant...</option>
-                        {restaurants
+                        <option value="">Select a seller...</option>
+                        {sellers
                           .filter(r => !formData.zoneId || (r.zoneId?._id || r.zoneId) === formData.zoneId)
                           .map(r => (
-                            <option key={r._id} value={r._id}>{r.restaurantName}</option>
+                            <option key={r._id} value={r._id}>{r.sellerName}</option>
                           ))}
                       </select>
                     </div>
@@ -437,7 +437,7 @@ export default function PromotionalBanner() {
                       <input 
                         type="text" 
                         value={formData.ctaLink}
-                        onChange={e => setFormData(p => ({...p, ctaLink: e.target.value, restaurantId: ""}))}
+                        onChange={e => setFormData(p => ({...p, ctaLink: e.target.value, sellerId: ""}))}
                         placeholder="e.g. burgers-king or /food/offers"
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                       />

@@ -6,8 +6,8 @@ const ADMIN_STATUS_NOTE_PATTERNS = [
   /^order marked as delivered by admin$/i,
 ];
 
-/** Customer cooking requests only — excludes admin/restaurant status messages wrongly stored on `note`. */
-export function getRestaurantCookingNote(order = {}) {
+/** Customer cooking requests only — excludes admin/seller status messages wrongly stored on `note`. */
+export function getSellerCookingNote(order = {}) {
   const note = String(order?.note || "").trim();
   if (!note) return "";
 

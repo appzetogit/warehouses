@@ -10,7 +10,7 @@ import { toast } from "sonner"
 import completedIcon from "@food/assets/Transaction-report-icons/trx1.png"
 import refundedIcon from "@food/assets/Transaction-report-icons/trx3.png"
 import adminEarningIcon from "@food/assets/Transaction-report-icons/admin-earning.png"
-import restaurantEarningIcon from "@food/assets/Transaction-report-icons/store-earning.png"
+import sellerEarningIcon from "@food/assets/Transaction-report-icons/store-earning.png"
 import deliverymanEarningIcon from "@food/assets/Transaction-report-icons/deliveryman-earning.png"
 
 // Import search and export icons from Dashboard-icons
@@ -30,21 +30,21 @@ export default function TransactionReport() {
     completedTransaction: 0,
     refundedTransaction: 0,
     adminEarning: 0,
-    restaurantEarning: 0,
+    sellerEarning: 0,
     deliverymanEarning: 0
   })
   const [filters, setFilters] = useState({
     zone: "All Zones",
-    restaurant: "All restaurants",
+    seller: "All sellers",
     time: "All Time",
     fromDate: "",
     toDate: "",
   })
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [zones, setZones] = useState([])
-  const [restaurants, setRestaurants] = useState([])
+  const [sellers, setSellers] = useState([])
 
-  // Fetch zones and restaurants for filters
+  // Fetch zones and sellers for filters
   useEffect(() => {
     const fetchFilterData = async () => {
       try {
@@ -54,10 +54,10 @@ export default function TransactionReport() {
           setZones(zonesResponse.data.data.zones)
         }
 
-        // Fetch restaurants
-        const restaurantsResponse = await adminAPI.getRestaurants({ limit: 1000 })
-        if (restaurantsResponse?.data?.success && restaurantsResponse.data.data?.restaurants) {
-          setRestaurants(restaurantsResponse.data.data.restaurants)
+        // Fetch sellers
+        const sellersResponse = await adminAPI.getSellers({ limit: 1000 })
+        if (sellersResponse?.data?.success && sellersResponse.data.data?.sellers) {
+          setSellers(sellersResponse.data.data.sellers)
         }
       } catch (error) {
         debugError("Error fetching filter data:", error)
@@ -99,7 +99,7 @@ export default function TransactionReport() {
         const params = {
           search: searchQuery || undefined,
           zone: filters.zone !== "All Zones" ? filters.zone : undefined,
-          restaurant: filters.restaurant !== "All restaurants" ? filters.restaurant : undefined,
+          seller: filters.seller !== "All sellers" ? filters.seller : undefined,
           fromDate: fromDate ? fromDate.toISOString() : undefined,
           toDate: toDate ? toDate.toISOString() : undefined,
           limit: 1000
@@ -113,7 +113,7 @@ export default function TransactionReport() {
             completedTransaction: 0,
             refundedTransaction: 0,
             adminEarning: 0,
-            restaurantEarning: 0,
+            sellerEarning: 0,
             deliverymanEarning: 0
           })
         } else {
@@ -159,14 +159,14 @@ export default function TransactionReport() {
   const handleResetFilters = () => {
     setFilters({
       zone: "All Zones",
-      restaurant: "All restaurants",
+      seller: "All sellers",
       time: "All Time",
       fromDate: "",
       toDate: "",
     })
   }
 
-  const activeFiltersCount = (filters.zone !== "All Zones" ? 1 : 0) + (filters.restaurant !== "All restaurants" ? 1 : 0) + (filters.time !== "All Time" ? 1 : 0)
+  const activeFiltersCount = (filters.zone !== "All Zones" ? 1 : 0) + (filters.seller !== "All sellers" ? 1 : 0) + (filters.time !== "All Time" ? 1 : 0)
 
   const formatCurrency = (amount) => {
     if (amount >= 1000) {
@@ -188,7 +188,7 @@ export default function TransactionReport() {
     if (['pending', 'created', 'authorized', 'cod_pending'].includes(normalized)) {
       return 'bg-yellow-100 text-yellow-700'
     }
-    if (['failed', 'refunded', 'cancelled', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_restaurant'].includes(normalized)) {
+    if (['failed', 'refunded', 'cancelled', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_seller'].includes(normalized)) {
       return 'bg-red-100 text-red-700'
     }
 
@@ -238,13 +238,13 @@ export default function TransactionReport() {
 
             <div className="relative flex-1 min-w-0">
               <select
-                value={filters.restaurant}
-                onChange={(e) => setFilters(prev => ({ ...prev, restaurant: e.target.value }))}
+                value={filters.seller}
+                onChange={(e) => setFilters(prev => ({ ...prev, seller: e.target.value }))}
                 className="w-full px-2.5 py-1.5 pr-5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs appearance-none cursor-pointer"
               >
-                <option value="All restaurants">All restaurants</option>
-                {restaurants.map(restaurant => (
-                  <option key={restaurant._id} value={restaurant._id}>{restaurant.restaurantName || restaurant.name}</option>
+                <option value="All sellers">All sellers</option>
+                {sellers.map(seller => (
+                  <option key={seller._id} value={seller._id}>{seller.sellerName || seller.name}</option>
                 ))}
               </select>
               <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500 pointer-events-none" />
@@ -374,21 +374,21 @@ export default function TransactionReport() {
               </div>
             </div>
 
-            {/* Restaurant Earning */}
+            {/* Seller Earning */}
             <div className="rounded-lg shadow-sm border border-slate-200 p-3" style={{ backgroundColor: '#f1f5f9' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <img src={restaurantEarningIcon} alt="Restaurant Earning" className="w-6 h-6" />
+                    <img src={sellerEarningIcon} alt="Seller Earning" className="w-6 h-6" />
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-900">Restaurant Earning</p>
+                    <p className="text-sm font-semibold text-slate-900">Seller Earning</p>
                     <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
                       <Info className="w-3 h-3 text-white" />
                     </div>
                   </div>
                 </div>
-                <p className="text-base font-bold text-green-600">{formatCurrency(summary.restaurantEarning)}</p>
+                <p className="text-base font-bold text-green-600">{formatCurrency(summary.sellerEarning)}</p>
               </div>
             </div>
 
@@ -477,7 +477,7 @@ export default function TransactionReport() {
                 <tr>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '3%' }}>SI</th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '7%' }}>Order Id</th>
-                  <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '10%' }}>Restaurant</th>
+                  <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '10%' }}>Seller</th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '10%' }}>Customer Name</th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '11%' }}>Total Item Amount</th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: '9%' }}>Coupon Discount</th>
@@ -511,7 +511,7 @@ export default function TransactionReport() {
                         <span className="text-[10px] text-slate-700">{transaction.orderId}</span>
                       </td>
                       <td className="px-1.5 py-1">
-                        <span className="text-[10px] text-slate-700 truncate block">{transaction.restaurant}</span>
+                        <span className="text-[10px] text-slate-700 truncate block">{transaction.seller}</span>
                       </td>
                       <td className="px-1.5 py-1">
                         <span className={`text-[10px] truncate block ${

@@ -28,8 +28,8 @@ const userCartSchema = new mongoose.Schema(
             unique: true,
             index: true,
         },
-        restaurantId: { type: String, trim: true, default: '' },
-        restaurantName: { type: String, trim: true, default: '' },
+        sellerId: { type: String, trim: true, default: '' },
+        sellerName: { type: String, trim: true, default: '' },
         items: {
             type: [userCartItemSchema],
             default: [],
@@ -62,6 +62,6 @@ const userCartSchema = new mongoose.Schema(
 );
 
 userCartSchema.index({ updatedAt: -1 });
-userCartSchema.index({ restaurantId: 1 });
+userCartSchema.index({ sellerId: 1 });
 
 export const FoodUserCart = mongoose.model('FoodUserCart', userCartSchema);

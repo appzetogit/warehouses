@@ -5,7 +5,7 @@ import {
     getOrderTransactionsController,
     getUserWalletBalanceController,
     getUserWalletTransactionsController,
-    getRestaurantWalletController,
+    getSellerWalletController,
     getDeliveryWalletController,
     getAdminWalletController,
     getAdminFinanceSummaryController,
@@ -35,11 +35,11 @@ const requireOrderParty = async (req, res, next) => {
             return sendError(res, 404, 'Order not found');
         }
         const order = await FoodOrder.findById(orderId)
-            .select('userId restaurantId dispatch.deliveryPartnerId')
+            .select('userId sellerId dispatch.deliveryPartnerId')
             .lean();
         const partyId = {
             USER: order?.userId,
-            RESTAURANT: order?.restaurantId,
+            SELLER: order?.sellerId,
             DELIVERY_PARTNER: order?.dispatch?.deliveryPartnerId
         }[role];
         if (!order || !partyId || String(partyId) !== String(userId)) {
@@ -67,8 +67,8 @@ router.get('/orders/:orderId/refunds', requireOrderParty, getRefundsByOrderContr
 router.get('/wallet/balance', getUserWalletBalanceController);
 router.get('/wallet/transactions', getUserWalletTransactionsController);
 
-// ─── Restaurant wallet ───
-router.get('/restaurant/:restaurantId/wallet', requireSelfOrAdmin('RESTAURANT', 'restaurantId'), getRestaurantWalletController);
+// ─── Seller wallet ───
+router.get('/seller/:sellerId/wallet', requireSelfOrAdmin('SELLER', 'sellerId'), getSellerWalletController);
 
 // ─── Delivery partner wallet ───
 router.get('/delivery/:deliveryPartnerId/wallet', requireSelfOrAdmin('DELIVERY_PARTNER', 'deliveryPartnerId'), getDeliveryWalletController);

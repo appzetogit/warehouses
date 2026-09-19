@@ -38,7 +38,7 @@ const describeServiceAccount = (raw) => {
 
 const POWER_SCANNING_DEFAULT = {
     user: { themeColor: '#FA0272', fontFamily: 'Poppins' },
-    restaurant: { themeColor: '#2563EB', fontFamily: 'Poppins' },
+    seller: { themeColor: '#2563EB', fontFamily: 'Poppins' },
     delivery: { themeColor: '#00B761', fontFamily: 'Poppins' }
 };
 
@@ -72,9 +72,9 @@ const buildPowerScanningPayload = (payload = {}, existing = POWER_SCANNING_DEFAU
         themeColor: normalizeHexColor(payload?.user?.themeColor, existing?.user?.themeColor || POWER_SCANNING_DEFAULT.user.themeColor),
         fontFamily: normalizeFontFamily(payload?.user?.fontFamily, existing?.user?.fontFamily || POWER_SCANNING_DEFAULT.user.fontFamily)
     },
-    restaurant: {
-        themeColor: normalizeHexColor(payload?.restaurant?.themeColor, existing?.restaurant?.themeColor || POWER_SCANNING_DEFAULT.restaurant.themeColor),
-        fontFamily: normalizeFontFamily(payload?.restaurant?.fontFamily, existing?.restaurant?.fontFamily || POWER_SCANNING_DEFAULT.restaurant.fontFamily)
+    seller: {
+        themeColor: normalizeHexColor(payload?.seller?.themeColor, existing?.seller?.themeColor || POWER_SCANNING_DEFAULT.seller.themeColor),
+        fontFamily: normalizeFontFamily(payload?.seller?.fontFamily, existing?.seller?.fontFamily || POWER_SCANNING_DEFAULT.seller.fontFamily)
     },
     delivery: {
         themeColor: normalizeHexColor(payload?.delivery?.themeColor, existing?.delivery?.themeColor || POWER_SCANNING_DEFAULT.delivery.themeColor),
@@ -115,7 +115,7 @@ export async function getBusinessSettings(req, res, next) {
         const persistedPowerScanning = settings?.powerScanning || {};
         const wasMissingAnyModule =
             !persistedPowerScanning?.user ||
-            !persistedPowerScanning?.restaurant ||
+            !persistedPowerScanning?.seller ||
             !persistedPowerScanning?.delivery;
         if (wasMissingAnyModule) {
             settings.powerScanning = normalizedPowerScanning;
@@ -342,18 +342,18 @@ export async function updateBusinessSettings(req, res, next) {
                     publicId: faviconResult.public_id
                 };
             }
-            if (req.files.restaurantLogo) {
-                const restaurantLogoResult = await uploadImageBufferDetailed(req.files.restaurantLogo[0].buffer, 'business/restaurant/logos');
-                settings.restaurantLogo = {
-                    url: restaurantLogoResult.secure_url,
-                    publicId: restaurantLogoResult.public_id
+            if (req.files.sellerLogo) {
+                const sellerLogoResult = await uploadImageBufferDetailed(req.files.sellerLogo[0].buffer, 'business/seller/logos');
+                settings.sellerLogo = {
+                    url: sellerLogoResult.secure_url,
+                    publicId: sellerLogoResult.public_id
                 };
             }
-            if (req.files.restaurantFavicon) {
-                const restaurantFaviconResult = await uploadImageBufferDetailed(req.files.restaurantFavicon[0].buffer, 'business/restaurant/favicons');
-                settings.restaurantFavicon = {
-                    url: restaurantFaviconResult.secure_url,
-                    publicId: restaurantFaviconResult.public_id
+            if (req.files.sellerFavicon) {
+                const sellerFaviconResult = await uploadImageBufferDetailed(req.files.sellerFavicon[0].buffer, 'business/seller/favicons');
+                settings.sellerFavicon = {
+                    url: sellerFaviconResult.secure_url,
+                    publicId: sellerFaviconResult.public_id
                 };
             }
             if (req.files.deliveryLogo) {

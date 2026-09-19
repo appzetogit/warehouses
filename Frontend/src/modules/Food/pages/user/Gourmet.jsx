@@ -8,7 +8,7 @@ import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
 import { toast } from "sonner"
 import { API_BASE_URL } from "@food/api/config"
 import OptimizedImage from "@food/components/OptimizedImage"
-import { RestaurantGridSkeleton } from "@food/components/ui/loading-skeletons"
+import { SellerGridSkeleton } from "@food/components/ui/loading-skeletons"
 import { useDelayedLoading } from "@food/hooks/useDelayedLoading"
 import { useDeliveryLocation } from "@food/context/DeliveryLocationContext"
 
@@ -23,7 +23,7 @@ export default function Gourmet() {
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
   const [favorites, setFavorites] = useState(new Set())
-  const [gourmetRestaurants, setGourmetRestaurants] = useState([])
+  const [gourmetSellers, setGourmetSellers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const {
@@ -46,15 +46,15 @@ export default function Gourmet() {
     return `${backendOrigin.replace(/\/$/, "")}${trimmed.startsWith("/") ? trimmed : `/${trimmed}`}`
   }
 
-  // Fetch Gourmet restaurants from public API
+  // Fetch Gourmet sellers from public API
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
 
-    const fetchGourmetRestaurants = async () => {
+    const fetchGourmetSellers = async () => {
       if (!zoneId) {
         if (zoneStatus !== 'loading' && !zoneLoading) {
-          setGourmetRestaurants([]);
+          setGourmetSellers([]);
           setLoading(false);
         }
         return;
@@ -69,19 +69,19 @@ export default function Gourmet() {
         if (cancelled) return;
         
         const data = response?.data?.data
-        const list = data?.restaurants ?? (Array.isArray(data) ? data : [])
-        setGourmetRestaurants(list);
+        const list = data?.sellers ?? (Array.isArray(data) ? data : [])
+        setGourmetSellers(list);
       } catch (err) {
         if (cancelled) return;
-        const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load Gourmet restaurants'
+        const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load Gourmet sellers'
         setError(errorMessage)
-        setGourmetRestaurants([])
+        setGourmetSellers([])
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
 
-    fetchGourmetRestaurants()
+    fetchGourmetSellers()
     
     return () => {
       cancelled = true;
@@ -127,17 +127,17 @@ export default function Gourmet() {
         <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
           {/* Header */}
           <div className="mb-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Premium Gourmet Restaurants</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Premium Gourmet Sellers</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Exquisite dining experiences delivered to your doorstep</p>
           </div>
 
-          {/* Restaurant Count */}
+          {/* Seller Count */}
           <p className="text-xs sm:text-sm font-semibold text-gray-400 dark:text-gray-500 tracking-widest uppercase">
-            {showGourmetSkeleton ? '...' : gourmetRestaurants.length} GOURMET RESTAURANTS
+            {showGourmetSkeleton ? '...' : gourmetSellers.length} GOURMET SELLERS
           </p>
 
           {/* Loading State */}
-          {showGourmetSkeleton && <RestaurantGridSkeleton count={4} />}
+          {showGourmetSkeleton && <SellerGridSkeleton count={4} />}
 
           {/* Error State */}
           {error && !loading && (
@@ -147,19 +147,19 @@ export default function Gourmet() {
             </div>
           )}
 
-          {/* Restaurant Cards */}
+          {/* Seller Cards */}
           {!showGourmetSkeleton && !error && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {gourmetRestaurants.length === 0 ? (
+              {gourmetSellers.length === 0 ? (
                 <div className="col-span-full text-center py-12">
-                  <p className="text-gray-500 dark:text-gray-400">No Gourmet restaurants available at the moment</p>
+                  <p className="text-gray-500 dark:text-gray-400">No Gourmet sellers available at the moment</p>
                 </div>
               ) : (
-                gourmetRestaurants.map((item) => {
-                  const restaurant = item.restaurant || item
-                  const restaurantSlug = restaurant.slug || restaurant.restaurantName?.toLowerCase().replace(/\s+/g, "-") || restaurant.name?.toLowerCase().replace(/\s+/g, "-") || ""
-                  const restaurantId = restaurant._id || restaurant.restaurantId || restaurant.id
-                  const isFavorite = favorites.has(restaurantId)
+                gourmetSellers.map((item) => {
+                  const seller = item.seller || item
+                  const sellerSlug = seller.slug || seller.sellerName?.toLowerCase().replace(/\s+/g, "-") || seller.name?.toLowerCase().replace(/\s+/g, "-") || ""
+                  const sellerId = seller._id || seller.sellerId || seller.id
+                  const isFavorite = favorites.has(sellerId)
 
                   // Calculate distance if coordinates are available
                   const calculateDistance = (lat1, lng1, lat2, lng2) => {
@@ -177,43 +177,43 @@ export default function Gourmet() {
                   };
 
                   let distanceStr = '1.2 km'
-                  const restaurantLat = restaurant.location?.latitude || restaurant.location?.coordinates?.[1]
-                  const restaurantLng = restaurant.location?.longitude || restaurant.location?.coordinates?.[0]
+                  const sellerLat = seller.location?.latitude || seller.location?.coordinates?.[1]
+                  const sellerLng = seller.location?.longitude || seller.location?.coordinates?.[0]
                   
-                  if (location?.latitude && location?.longitude && restaurantLat && restaurantLng) {
-                    const d = calculateDistance(location.latitude, location.longitude, restaurantLat, restaurantLng)
+                  if (location?.latitude && location?.longitude && sellerLat && sellerLng) {
+                    const d = calculateDistance(location.latitude, location.longitude, sellerLat, sellerLng)
                     distanceStr = `${d.toFixed(1)} km`
-                  } else if (restaurant.distance) {
-                    distanceStr = restaurant.distance
+                  } else if (seller.distance) {
+                    distanceStr = seller.distance
                   }
 
-                  // Get restaurant cover image with priority: coverImages > menuImages > profileImage
-                  const coverImages = restaurant.coverImages && restaurant.coverImages.length > 0
-                    ? restaurant.coverImages.map(img => img.url || img).filter(Boolean)
+                  // Get seller cover image with priority: coverImages > menuImages > profileImage
+                  const coverImages = seller.coverImages && seller.coverImages.length > 0
+                    ? seller.coverImages.map(img => img.url || img).filter(Boolean)
                     : []
 
-                  const menuImages = restaurant.menuImages && restaurant.menuImages.length > 0
-                    ? restaurant.menuImages.map(img => img.url || img).filter(Boolean)
+                  const menuImages = seller.menuImages && seller.menuImages.length > 0
+                    ? seller.menuImages.map(img => img.url || img).filter(Boolean)
                     : []
 
-                  const rawRestaurantImage =
+                  const rawSellerImage =
                     coverImages.length > 0
                       ? coverImages[0]
                       : (menuImages.length > 0
                         ? menuImages[0]
-                        : (restaurant.profileImage?.url || restaurant.profileImage || restaurant.image || ""))
+                        : (seller.profileImage?.url || seller.profileImage || seller.image || ""))
 
-                  const restaurantImage = resolveImageUrl(rawRestaurantImage)
+                  const sellerImage = resolveImageUrl(rawSellerImage)
 
                   return (
-                    <Link key={restaurantId} to={`/user/restaurants/${restaurantSlug}`}>
+                    <Link key={sellerId} to={`/user/sellers/${sellerSlug}`}>
                       <Card className="overflow-hidden cursor-pointer border-0 group bg-white dark:bg-[#1a1a1a] shadow-md hover:shadow-xl transition-all duration-300 py-0 rounded-2xl mb-4">
                         {/* Image Section */}
                         <div className="relative h-44 sm:h-52 md:h-56 w-full overflow-hidden rounded-t-2xl">
-                          {restaurantImage ? (
+                          {sellerImage ? (
                             <OptimizedImage
-                              src={restaurantImage}
-                              alt={restaurant.restaurantName || restaurant.name}
+                              src={sellerImage}
+                              alt={seller.sellerName || seller.name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />
                           ) : (
@@ -232,7 +232,7 @@ export default function Gourmet() {
                             onClick={(e) => {
                               e.preventDefault()
                               e.stopPropagation()
-                              toggleFavorite(restaurantId)
+                              toggleFavorite(sellerId)
                             }}
                           >
                             <Bookmark className={`h-5 w-5 ${isFavorite ? "fill-gray-800 dark:fill-gray-200 text-gray-800 dark:text-gray-200" : "text-gray-600 dark:text-gray-400"}`} strokeWidth={2} />
@@ -241,15 +241,15 @@ export default function Gourmet() {
 
                         {/* Content Section */}
                         <CardContent className="p-3 sm:p-4">
-                          {/* Restaurant Name & Rating */}
+                          {/* Seller Name & Rating */}
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex-1 min-w-0">
                               <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 line-clamp-1">
-                                {restaurant.restaurantName || restaurant.name}
+                                {seller.sellerName || seller.name}
                               </h3>
                             </div>
                             <div className="flex-shrink-0 bg-green-600 text-white px-2 py-1 rounded-lg flex items-center gap-1">
-                              <span className="text-sm font-bold">{restaurant.rating?.toFixed(1) || '0.0'}</span>
+                              <span className="text-sm font-bold">{seller.rating?.toFixed(1) || '0.0'}</span>
                               <Star className="h-3 w-3 fill-white text-white" />
                             </div>
                           </div>
@@ -257,16 +257,16 @@ export default function Gourmet() {
                           {/* Delivery Time & Distance */}
                           <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 mb-2">
                             <Clock className="h-4 w-4" strokeWidth={1.5} />
-                            <span className="font-medium">{restaurant.estimatedDeliveryTime || '25-30 mins'}</span>
+                            <span className="font-medium">{seller.estimatedDeliveryTime || '25-30 mins'}</span>
                             <span className="mx-1">|</span>
                             <span className="font-medium">{distanceStr}</span>
                           </div>
 
                           {/* Offer Badge */}
-                          {restaurant.offer && (
+                          {seller.offer && (
                             <div className="flex items-center gap-2 text-sm">
                               <BadgePercent className="h-4 w-4 text-[#EB590E] dark:text-[#F97316]" strokeWidth={2} />
-                              <span className="text-gray-700 dark:text-gray-300 font-medium">{restaurant.offer}</span>
+                              <span className="text-gray-700 dark:text-gray-300 font-medium">{seller.offer}</span>
                             </div>
                           )}
                         </CardContent>

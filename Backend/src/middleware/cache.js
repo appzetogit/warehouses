@@ -41,7 +41,7 @@ const buildCacheKey = (req, prefix, varyByUser = false) => {
 /**
  * Higher-order function to create a caching middleware.
  * @param {number} ttlInSeconds - Time to live for the cache in seconds.
- * @param {string} prefix - Optional key prefix for Redis (e.g. 'restaurants').
+ * @param {string} prefix - Optional key prefix for Redis (e.g. 'sellers').
  * @param {{ varyByUser?: boolean, browserTtlSeconds?: number }} options
  * @returns {import('express').RequestHandler}
  */

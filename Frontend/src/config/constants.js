@@ -12,6 +12,6 @@ export const MODULES = {
 export const ROLES = {
   USER: 'user',
   ADMIN: 'admin',
-  RESTAURANT: 'restaurant',
+  SELLER: 'seller',
   DELIVERY: 'delivery',
 };

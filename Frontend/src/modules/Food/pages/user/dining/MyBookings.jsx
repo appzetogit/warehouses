@@ -40,7 +40,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
 
                 <div className="p-6 space-y-6">
                     <div className="flex flex-col items-center">
-                        <p className="text-sm font-medium text-slate-500 mb-3">How was your visit to {booking.restaurant?.name}?</p>
+                        <p className="text-sm font-medium text-slate-500 mb-3">How was your visit to {booking.seller?.name}?</p>
                         <div className="flex gap-2">
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button
@@ -155,9 +155,9 @@ export default function MyBookings() {
                         <div key={booking._id} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-start gap-4">
                             <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100">
                                 <img
-                                    src={booking.restaurant?.image || booking.restaurant?.profileImage?.url || ""}
+                                    src={booking.seller?.image || booking.seller?.profileImage?.url || ""}
                                     className="w-full h-full object-cover"
-                                    alt={booking.restaurant?.name}
+                                    alt={booking.seller?.name}
                                     onError={(e) => {
                                         e.currentTarget.style.display = 'none'
                                     }}
@@ -165,7 +165,7 @@ export default function MyBookings() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start">
-                                    <h3 className="font-bold text-gray-900 truncate">{booking.restaurant?.name}</h3>
+                                    <h3 className="font-bold text-gray-900 truncate">{booking.seller?.name}</h3>
                                     <Badge className={getStatusBadgeClass(booking.status)}>
                                         {getStatusLabel(booking.status)}
                                     </Badge>
@@ -173,9 +173,9 @@ export default function MyBookings() {
                                 <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                                     <MapPin className="w-3 h-3" />
                                     <span className="truncate">
-                                        {typeof booking.restaurant?.location === 'string'
-                                            ? booking.restaurant.location
-                                            : (booking.restaurant?.location?.formattedAddress || booking.restaurant?.location?.address || `${booking.restaurant?.location?.city || ''}${booking.restaurant?.location?.area ? ', ' + booking.restaurant.location.area : ''}`)}
+                                        {typeof booking.seller?.location === 'string'
+                                            ? booking.seller.location
+                                            : (booking.seller?.location?.formattedAddress || booking.seller?.location?.address || `${booking.seller?.location?.city || ''}${booking.seller?.location?.area ? ', ' + booking.seller.location.area : ''}`)}
                                     </span>
                                 </p>
 
@@ -211,7 +211,7 @@ export default function MyBookings() {
                             <Utensils className="w-8 h-8 text-slate-300" />
                         </div>
                         <h3 className="text-lg font-bold text-gray-800">No bookings yet</h3>
-                        <p className="text-gray-500 text-sm mt-2">Book your favorite restaurant for a great dining experience!</p>
+                        <p className="text-gray-500 text-sm mt-2">Book your favorite seller for a great dining experience!</p>
                         <Link to="/dining">
                             <button className="mt-6 bg-red-500 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-red-200">
                                 Book a table

@@ -14,8 +14,8 @@ function getDeliveryLocationPath(deliveryId) {
   return `delivery_boys/${sanitizeRealtimeKey(deliveryId)}`;
 }
 
-function getRestaurantLocationPath(restaurantId) {
-  return `restaurant/${sanitizeRealtimeKey(restaurantId)}/location`;
+function getSellerLocationPath(sellerId) {
+  return `seller/${sanitizeRealtimeKey(sellerId)}/location`;
 }
 
 function getOrderTrackingPath(orderId) {
@@ -129,10 +129,10 @@ export function subscribeAllDeliveryLocations(onChange, onError) {
   return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
 }
 
-export function subscribeRestaurantLocation(restaurantId, onChange, onError) {
-  if (!restaurantId || typeof onChange !== 'function') return () => {};
+export function subscribeSellerLocation(sellerId, onChange, onError) {
+  if (!sellerId || typeof onChange !== 'function') return () => {};
   ensureFirebaseInitialized({ enableAuth: true, enableGoogleProvider: false, enableRealtimeDb: true });
-  const path = getRestaurantLocationPath(restaurantId);
+  const path = getSellerLocationPath(sellerId);
   const unsub = onValue(
     ref(firebaseRealtimeDb, path),
     (snapshot) => {

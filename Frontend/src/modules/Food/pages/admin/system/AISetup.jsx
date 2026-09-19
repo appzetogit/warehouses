@@ -169,17 +169,17 @@ export default function AISetup() {
         {activeTab === "ai-settings" && (
           <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
             <form onSubmit={handleAISettingsSave}>
-              {/* Restaurant Limits Section */}
+              {/* Seller Limits Section */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Store className="w-4 h-4 text-slate-600" />
-                  <h2 className="text-sm font-semibold text-slate-900">Restaurant Limits On Using AI</h2>
+                  <h2 className="text-sm font-semibold text-slate-900">Seller Limits On Using AI</h2>
                 </div>
 
                 {/* Section Wise Data Generation */}
                 <div className="mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
                   <p className="text-xs text-slate-600 mb-3">
-                    Set how many times AI can generate data for each element of the restaurant panel or app.
+                    Set how many times AI can generate data for each element of the seller panel or app.
                   </p>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">

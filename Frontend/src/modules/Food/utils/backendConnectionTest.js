@@ -6,7 +6,7 @@ export async function testBackendHealth() {
   return { success: true, data: { status: "MOCKED", mode: "static-only" } };
 }
 
-export async function testRestaurantAPI() {
+export async function testSellerAPI() {
   return { success: true, data: { count: 10, mode: "static-only" } };
 }
 
@@ -14,7 +14,7 @@ export async function runConnectionTests() {
   console.log('✅ [Static Mode] Skipping backend connection tests.');
   return {
     health: { success: true },
-    restaurantAPI: { success: true }
+    sellerAPI: { success: true }
   };
 }
 

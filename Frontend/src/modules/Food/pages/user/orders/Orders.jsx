@@ -25,9 +25,9 @@ export default function Orders() {
   const [activeMenuOrderId, setActiveMenuOrderId] = useState(null)
   const [showShareModal, setShowShareModal] = useState(false)
   const [sharePayload, setSharePayload] = useState(null)
-  const [selectedRestaurantRating, setSelectedRestaurantRating] = useState(null)
+  const [selectedSellerRating, setSelectedSellerRating] = useState(null)
   const [selectedDeliveryRating, setSelectedDeliveryRating] = useState(null)
-  const [restaurantFeedbackText, setRestaurantFeedbackText] = useState("")
+  const [sellerFeedbackText, setSellerFeedbackText] = useState("")
   const [deliveryFeedbackText, setDeliveryFeedbackText] = useState("")
   const [submittingRating, setSubmittingRating] = useState(false)
   const [countdowns, setCountdowns] = useState({})
@@ -139,10 +139,10 @@ export default function Orders() {
         transformedStatus.toLowerCase() === 'delivered' ||
         transformedStatus.toLowerCase() === 'completed'
 
-      const hasRestaurantRating = Number.isFinite(Number(order.restaurantRating))
+      const hasSellerRating = Number.isFinite(Number(order.sellerRating))
       const hasDeliveryPartner = !!(order.deliveryPartnerId || order.deliveryPartnerName)
       const hasDeliveryRating = Number.isFinite(Number(order.deliveryPartnerRating))
-      const hasRating = hasRestaurantRating && (!hasDeliveryPartner || hasDeliveryRating)
+      const hasRating = hasSellerRating && (!hasDeliveryPartner || hasDeliveryRating)
 
       const orderId = order.id || order._id || order.mongoId
       const hasShownPopup = shownRatingForOrders.has(orderId)
@@ -158,7 +158,7 @@ export default function Orders() {
         isDelivered,
         hasDeliveredAt,
         hasRating,
-        restaurantRating: order.restaurantRating,
+        sellerRating: order.sellerRating,
         deliveryPartnerRating: order.deliveryPartnerRating,
         hasShownPopup,
         shouldShow
@@ -176,7 +176,7 @@ export default function Orders() {
 
       debugLog('?? Showing rating popup for order:', {
         orderId,
-        restaurant: orderToRate.restaurant,
+        seller: orderToRate.seller,
         status: orderToRate.status
       })
 
@@ -187,14 +187,14 @@ export default function Orders() {
       setTimeout(() => {
         debugLog('? Opening rating modal for order:', {
           orderId: orderId,
-          restaurant: orderToRate.restaurant,
+          seller: orderToRate.seller,
           status: orderToRate.status,
           originalStatus: orderToRate.originalStatus
         })
         setRatingModal({ open: true, order: orderToRate })
-        setSelectedRestaurantRating(null)
+        setSelectedSellerRating(null)
         setSelectedDeliveryRating(null)
-        setRestaurantFeedbackText("")
+        setSellerFeedbackText("")
         setDeliveryFeedbackText("")
       }, 800) // Show after 0.8 seconds
     }
@@ -263,34 +263,34 @@ export default function Orders() {
           debugLog('?? Raw orders from API:', ordersData.slice(0, 3).map(o => ({
             id: o.orderId || o._id,
             status: o.orderStatus || o.status,
-            restaurantRating: o.ratings?.restaurant?.rating || null,
+            sellerRating: o.ratings?.seller?.rating || null,
             deliveryPartnerRating: o.ratings?.deliveryPartner?.rating || null,
             deliveredAt: o.deliveredAt,
-            restaurant: o.restaurantId?.restaurantName || o.restaurantId?.name || o.restaurantName
+            seller: o.sellerId?.sellerName || o.sellerId?.name || o.sellerName
           })))
 
           // Transform API orders to match UI structure
           const transformedOrders = ordersData.map(order => {
             const createdAt = order.createdAt ? new Date(order.createdAt) : new Date()
 
-            // Check if cancelled by restaurant or user
+            // Check if cancelled by seller or user
             const backendStatus = order.orderStatus || order.status
             const isCancelled =
               backendStatus === 'cancelled' ||
               backendStatus === 'cancelled_by_user' ||
-              backendStatus === 'cancelled_by_restaurant' ||
+              backendStatus === 'cancelled_by_seller' ||
               backendStatus === 'cancelled_by_admin'
             const cancellationReason = order.cancellationReason || ''
             // Check cancelledBy field first, then fallback to cancellation reason pattern
-            const isRestaurantCancelled = isCancelled && (
-              order.cancelledBy === 'restaurant' ||
-              /rejected by restaurant|restaurant rejected|restaurant cancelled|restaurant is too busy|item not available|outside delivery area|kitchen closing|technical issue|order not accepted within time limit|restaurant did not respond/i.test(cancellationReason)
+            const isSellerCancelled = isCancelled && (
+              order.cancelledBy === 'seller' ||
+              /rejected by seller|seller rejected|seller cancelled|seller is too busy|item not available|outside delivery area|kitchen closing|technical issue|order not accepted within time limit|seller did not respond/i.test(cancellationReason)
             )
             const isUserCancelled = isCancelled && order.cancelledBy === 'user'
 
             // Get original status from backend before transformation
             const originalStatus = backendStatus
-            const restaurantRating = order.ratings?.restaurant?.rating || null
+            const sellerRating = order.ratings?.seller?.rating || null
             const deliveryPartnerRating = order.ratings?.deliveryPartner?.rating || null
 
             const pricing = order.pricing || {}
@@ -313,7 +313,7 @@ export default function Orders() {
               id: order._id?.toString() || order.orderId || `ORD-${order._id}`,
               mongoId: order._id,
               orderId: order.orderId || order._id?.toString(), // Keep orderId for display
-              status: isRestaurantCancelled ? 'restaurant_cancelled' : getOrderStatus({ ...order, status: backendStatus }),
+              status: isSellerCancelled ? 'seller_cancelled' : getOrderStatus({ ...order, status: backendStatus }),
               originalStatus: originalStatus, // Keep original status for reference
               createdAt: createdAt.toISOString(),
               address: order.address || order.deliveryAddress || {},
@@ -340,19 +340,19 @@ export default function Orders() {
               pricing: { ...pricing, discount }, // Keep full pricing object for discounts, coupons
               payment: order.payment || {},
               paymentMethod: order.payment?.method || order.paymentMethod,
-              restaurant: order.restaurantId?.restaurantName || order.restaurantId?.name || order.restaurantName || 'Restaurant',
-              restaurantId: order.restaurantId?._id || order.restaurantId,
-              restaurantSlug: order.restaurantId?.slug || null,
-              restaurantImage: order.restaurantId?.profileImage?.url || order.restaurantId?.profileImage || null,
-              restaurantLocation: order.restaurantId?.location?.area || order.restaurantId?.location?.city || order.address?.city || order.deliveryAddress?.city || '',
-              restaurantRating,
+              seller: order.sellerId?.sellerName || order.sellerId?.name || order.sellerName || 'Seller',
+              sellerId: order.sellerId?._id || order.sellerId,
+              sellerSlug: order.sellerId?.slug || null,
+              sellerImage: order.sellerId?.profileImage?.url || order.sellerId?.profileImage || null,
+              sellerLocation: order.sellerId?.location?.area || order.sellerId?.location?.city || order.address?.city || order.deliveryAddress?.city || '',
+              sellerRating,
               deliveryPartnerRating,
               ratings: order.ratings || {},
-              rating: restaurantRating || null,
+              rating: sellerRating || null,
               review: order.review || null,
               tracking: order.tracking || {},
               cancellationReason: cancellationReason,
-              isRestaurantCancelled: isRestaurantCancelled,
+              isSellerCancelled: isSellerCancelled,
               isUserCancelled: isUserCancelled,
               cancelledBy: order.cancelledBy,
               eta: order.eta || { min: order.estimatedDeliveryTime || 30, max: order.estimatedDeliveryTime || 30 },
@@ -372,12 +372,12 @@ export default function Orders() {
           debugLog('? Orders fetched and transformed:', {
             total: transformedOrders.length,
             delivered: transformedOrders.filter(o => o.status === 'delivered' || o.originalStatus === 'delivered').length,
-            withRating: transformedOrders.filter(o => o.restaurantRating && (!o.deliveryPartnerId || o.deliveryPartnerRating)).length,
+            withRating: transformedOrders.filter(o => o.sellerRating && (!o.deliveryPartnerId || o.deliveryPartnerRating)).length,
             sample: transformedOrders.slice(0, 2).map(o => ({
               id: o.id,
               status: o.status,
               originalStatus: o.originalStatus,
-              restaurantRating: o.restaurantRating,
+              sellerRating: o.sellerRating,
               deliveryPartnerRating: o.deliveryPartnerRating,
               deliveredAt: o.deliveredAt
             }))
@@ -444,25 +444,25 @@ export default function Orders() {
     if (!searchQuery.trim()) return true
 
     const query = searchQuery.toLowerCase()
-    const restaurantMatch = order.restaurant?.toLowerCase().includes(query)
+    const sellerMatch = order.seller?.toLowerCase().includes(query)
     const itemsMatch = order.items.some(item =>
       (item.name || item.foodName || '').toLowerCase().includes(query)
     )
 
-    return restaurantMatch || itemsMatch
+    return sellerMatch || itemsMatch
   })
 
   const ratingModalHasDeliveryPartner = !!(ratingModal.order?.deliveryPartnerId || ratingModal.order?.deliveryPartnerName)
   const ratingSubmitDisabled = submittingRating ||
-    selectedRestaurantRating === null ||
+    selectedSellerRating === null ||
     (ratingModalHasDeliveryPartner && selectedDeliveryRating === null)
 
   // Handle reorder
   const handleReorder = (order) => {
-    const restaurantTarget = order.restaurantSlug || order.restaurantId
+    const sellerTarget = order.sellerSlug || order.sellerId
 
-    if (!restaurantTarget || !order.items?.length) {
-      toast.info('Order items or restaurant information not available')
+    if (!sellerTarget || !order.items?.length) {
+      toast.info('Order items or seller information not available')
       return
     }
 
@@ -476,8 +476,8 @@ export default function Orders() {
           name: item.name || item.foodName || "Item",
           price: Number(item.price) || 0,
           image: item.image || "",
-          restaurant: order.restaurant || "Restaurant",
-          restaurantId: order.restaurantId,
+          seller: order.seller || "Seller",
+          sellerId: order.sellerId,
           description: item.description || "",
           isVeg: item.isVeg !== false,
           quantity: Math.max(1, Number(item.quantity) || 1),
@@ -493,7 +493,7 @@ export default function Orders() {
 
     replaceCart(reorderItems)
     toast.success("Items added to cart")
-    navigate(`/food/user/restaurants/${restaurantTarget}`)
+    navigate(`/food/user/sellers/${sellerTarget}`)
   }
 
   // Three-dots menu handlers
@@ -580,22 +580,22 @@ export default function Orders() {
     }
   }
 
-  const handleShareRestaurant = async (order) => {
+  const handleShareSeller = async (order) => {
     const companyName = await getCompanyNameAsync()
     const location =
-      order.restaurantLocation ||
+      order.sellerLocation ||
       `${order.address?.city || ""}, ${order.address?.state || ""}`.trim()
-    const restaurantPath = order.restaurantSlug || order.restaurantId
-    const shareUrl = restaurantPath
-      ? `${window.location.origin}/food/user/restaurants/${restaurantPath}`
+    const sellerPath = order.sellerSlug || order.sellerId
+    const shareUrl = sellerPath
+      ? `${window.location.origin}/food/user/sellers/${sellerPath}`
       : `${window.location.origin}/food/user/orders/${order.id}`
 
-    const shareText = `Check out ${order.restaurant} on ${companyName}.
+    const shareText = `Check out ${order.seller} on ${companyName}.
 Location: ${location || "Location not available"}
-Order again from this restaurant in the ${companyName} app.`
+Order again from this seller in the ${companyName} app.`
 
     const payload = {
-      title: order.restaurant,
+      title: order.seller,
       text: shareText,
       url: shareUrl,
     }
@@ -603,15 +603,15 @@ Order again from this restaurant in the ${companyName} app.`
     try {
       const shared = await tryNativeShare(payload)
       if (shared) {
-        toast.success("Restaurant shared successfully")
+        toast.success("Seller shared successfully")
         return
       }
 
       openShareModal(payload)
     } catch (error) {
       if (error?.name !== "AbortError") {
-        debugError("Error sharing restaurant:", error)
-        toast.error("Failed to share restaurant")
+        debugError("Error sharing seller:", error)
+        toast.error("Failed to share seller")
       }
     } finally {
       setActiveMenuOrderId(null)
@@ -626,17 +626,17 @@ Order again from this restaurant in the ${companyName} app.`
   // Open rating modal for an order
   const handleOpenRating = (order) => {
     setRatingModal({ open: true, order })
-    setSelectedRestaurantRating(order.restaurantRating || null)
+    setSelectedSellerRating(order.sellerRating || null)
     setSelectedDeliveryRating(order.deliveryPartnerRating || null)
-    setRestaurantFeedbackText(order.ratings?.restaurant?.comment || "")
+    setSellerFeedbackText(order.ratings?.seller?.comment || "")
     setDeliveryFeedbackText(order.ratings?.deliveryPartner?.comment || "")
   }
 
   const handleCloseRating = () => {
     setRatingModal({ open: false, order: null })
-    setSelectedRestaurantRating(null)
+    setSelectedSellerRating(null)
     setSelectedDeliveryRating(null)
-    setRestaurantFeedbackText("")
+    setSellerFeedbackText("")
     setDeliveryFeedbackText("")
   }
 
@@ -644,7 +644,7 @@ Order again from this restaurant in the ${companyName} app.`
   const handleSubmitRating = async () => {
     const hasDeliveryPartner = !!(ratingModal.order?.deliveryPartnerId || ratingModal.order?.deliveryPartnerName)
     const isMissingDeliveryRating = hasDeliveryPartner && selectedDeliveryRating === null
-    if (!ratingModal.order || selectedRestaurantRating === null || isMissingDeliveryRating) {
+    if (!ratingModal.order || selectedSellerRating === null || isMissingDeliveryRating) {
       toast.error("Please select all required ratings first")
       return
     }
@@ -655,9 +655,9 @@ Order again from this restaurant in the ${companyName} app.`
       const order = ratingModal.order
 
       const response = await orderAPI.submitOrderRatings(order.id, {
-        restaurantRating: selectedRestaurantRating,
+        sellerRating: selectedSellerRating,
         deliveryPartnerRating: hasDeliveryPartner ? selectedDeliveryRating : undefined,
-        restaurantComment: restaurantFeedbackText || undefined,
+        sellerComment: sellerFeedbackText || undefined,
         deliveryPartnerComment: hasDeliveryPartner ? (deliveryFeedbackText || undefined) : undefined,
       })
       const updatedOrder = response?.data?.data?.order || response?.data?.order || null
@@ -667,13 +667,13 @@ Order again from this restaurant in the ${companyName} app.`
         prev.map(o =>
           o.id === order.id ? {
             ...o,
-            restaurantRating: updatedOrder?.ratings?.restaurant?.rating ?? selectedRestaurantRating,
+            sellerRating: updatedOrder?.ratings?.seller?.rating ?? selectedSellerRating,
             deliveryPartnerRating: updatedOrder?.ratings?.deliveryPartner?.rating ?? (hasDeliveryPartner ? selectedDeliveryRating : null),
             ratings: updatedOrder?.ratings || {
-              restaurant: { rating: selectedRestaurantRating, comment: restaurantFeedbackText || "" },
+              seller: { rating: selectedSellerRating, comment: sellerFeedbackText || "" },
               deliveryPartner: hasDeliveryPartner ? { rating: selectedDeliveryRating, comment: deliveryFeedbackText || "" } : undefined
             },
-            rating: updatedOrder?.ratings?.restaurant?.rating ?? selectedRestaurantRating
+            rating: updatedOrder?.ratings?.seller?.rating ?? selectedSellerRating
           } : o
         )
       )
@@ -747,7 +747,7 @@ Order again from this restaurant in the ${companyName} app.`
           <Search className="w-5 h-5 text-[#EB590E]" />
           <input
             type="text"
-            placeholder="Search by restaurant or dish"
+            placeholder="Search by seller or dish"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 ml-3 outline-none text-gray-600 dark:text-gray-200 bg-transparent placeholder-gray-400"
@@ -773,31 +773,31 @@ Order again from this restaurant in the ${companyName} app.`
 
             // Payment failed only for online payments (razorpay) that actually failed
             // Don't show payment failed for COD/wallet or cancelled orders
-            const isCancelled = order.status === 'cancelled' || order.status === 'restaurant_cancelled'
+            const isCancelled = order.status === 'cancelled' || order.status === 'seller_cancelled'
             const paymentFailed = !isCodOrWallet &&
               !isCancelled &&
               (order.payment?.status === 'failed')
 
             const isDelivered = order.status === 'delivered'
-            const isRestaurantCancelled = order.isRestaurantCancelled || order.status === 'restaurant_cancelled'
+            const isSellerCancelled = order.isSellerCancelled || order.status === 'seller_cancelled'
             const isUserCancelled = order.isUserCancelled || (isCancelled && order.cancelledBy === 'user')
-            // Prefer food image from first item; fallback to restaurant image, then generic food photo
+            // Prefer food image from first item; fallback to seller image, then generic food photo
             const firstItemImage = order.items?.[0]?.image
-            const restaurantImage = firstItemImage
-              || order.restaurantImage
+            const sellerImage = firstItemImage
+              || order.sellerImage
               || "https://images.unsplash.com/photo-1604908176997-125188eb3c52?auto=format&fit=crop&w=200&q=80"
-            const location = order.restaurantLocation || `${order.address?.city || ''}, ${order.address?.state || ''}`.trim() || 'Location not available'
+            const location = order.sellerLocation || `${order.address?.city || ''}, ${order.address?.state || ''}`.trim() || 'Location not available'
 
             return (
               <div key={order.id} className="relative bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
-                {/* Card Header: Restaurant Info */}
+                {/* Card Header: Seller Info */}
                 <div className="flex items-start justify-between p-4 pb-2">
                   <div className="flex gap-3">
-                    {/* Restaurant Image */}
+                    {/* Seller Image */}
                     <div className="w-14 h-14 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
                       <img
-                        src={restaurantImage}
-                        alt={order.restaurant}
+                        src={sellerImage}
+                        alt={order.seller}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.target.src = "https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?auto=format&fit=crop&w=100&q=80"
@@ -806,7 +806,7 @@ Order again from this restaurant in the ${companyName} app.`
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-800 dark:text-white text-lg leading-tight">{order.restaurant}</h3>
+                      <h3 className="font-semibold text-gray-800 dark:text-white text-lg leading-tight">{order.seller}</h3>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                         Order ID: <span className="font-semibold text-gray-700 dark:text-gray-300">{order.orderId || order.id}</span>
                       </p>
@@ -817,8 +817,8 @@ Order again from this restaurant in the ${companyName} app.`
                           {order.deliveryPartnerPhone && ` | ${order.deliveryPartnerPhone}`}
                         </p>
                       )}
-                      {order.restaurantId && (
-                        <Link to={`/user/restaurants/${order.restaurantId}`}>
+                      {order.sellerId && (
+                        <Link to={`/user/sellers/${order.sellerId}`}>
                           <button className="text-xs text-[#EB590E] font-medium flex items-center mt-1 hover:text-[#D94F0C]">
                             View menu <span className="ml-0.5">&gt;</span>
                           </button>
@@ -841,10 +841,10 @@ Order again from this restaurant in the ${companyName} app.`
                   <div className="absolute right-3 top-10 z-20 w-40 rounded-xl bg-white shadow-lg border border-gray-100 py-1 text-xs">
                     <button
                       type="button"
-                      onClick={() => handleShareRestaurant(order)}
+                      onClick={() => handleShareSeller(order)}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-800"
                     >
-                      Share restaurant
+                      Share seller
                     </button>
                     <button
                       type="button"
@@ -1002,13 +1002,13 @@ Order again from this restaurant in the ${companyName} app.`
                     {isDelivered && !paymentFailed && (
                       <p className="text-xs font-medium text-green-600 mt-1">Delivered</p>
                     )}
-                    {isRestaurantCancelled && (
-                      <p className="text-xs font-medium text-red-500 mt-1">Restaurant Cancelled</p>
+                    {isSellerCancelled && (
+                      <p className="text-xs font-medium text-red-500 mt-1">Seller Cancelled</p>
                     )}
                     {isUserCancelled && (
                       <p className="text-xs font-medium text-gray-500 mt-1">Cancelled by you</p>
                     )}
-                    {isCancelled && !isRestaurantCancelled && !isUserCancelled && (
+                    {isCancelled && !isSellerCancelled && !isUserCancelled && (
                       <p className="text-xs font-medium text-gray-500 mt-1">Cancelled</p>
                     )}
                   </div>
@@ -1028,13 +1028,13 @@ Order again from this restaurant in the ${companyName} app.`
                 {/* Card Footer: Actions */}
                 <div className="px-4 py-3 flex items-center justify-between">
                   {/* Left Side: Rating or Error */}
-                  {isRestaurantCancelled ? (
+                  {isSellerCancelled ? (
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <div className="bg-red-100 p-1 rounded-full">
                           <AlertCircle className="w-4 h-4 text-red-500" />
                         </div>
-                        <span className="text-xs font-semibold text-red-500">Restaurant Cancelled</span>
+                        <span className="text-xs font-semibold text-red-500">Seller Cancelled</span>
                       </div>
                       <p className="text-xs text-gray-600 ml-7">If prepaid, refund is sent automatically to the original payment method.</p>
                     </div>
@@ -1045,12 +1045,12 @@ Order again from this restaurant in the ${companyName} app.`
                       </div>
                       <span className="text-xs font-semibold text-red-500">Payment failed</span>
                     </div>
-                  ) : isDelivered && order.restaurantRating && (!order.deliveryPartnerId || order.deliveryPartnerRating) ? (
+                  ) : isDelivered && order.sellerRating && (!order.deliveryPartnerId || order.deliveryPartnerRating) ? (
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm text-gray-800">You rated</span>
                         <div className="flex bg-yellow-400 text-white px-1 rounded text-[10px] items-center gap-0.5 h-4">
-                          R {order.restaurantRating}<Star className="w-2 h-2 fill-current" />
+                          R {order.sellerRating}<Star className="w-2 h-2 fill-current" />
                         </div>
                         {order.deliveryPartnerId && (
                           <div className="flex bg-blue-500 text-white px-1 rounded text-[10px] items-center gap-0.5 h-4">
@@ -1067,7 +1067,7 @@ Order again from this restaurant in the ${companyName} app.`
                         onClick={() => handleOpenRating(order)}
                         className="text-xs text-[#EB590E] font-medium mt-0.5 flex items-center"
                       >
-                        Rate restaurant & delivery <span className="ml-0.5">&gt;</span>
+                        Rate seller & delivery <span className="ml-0.5">&gt;</span>
                       </button>
                     </div>
                   ) : (
@@ -1124,22 +1124,22 @@ Order again from this restaurant in the ${companyName} app.`
                   <span className="text-xl">x</span>
                 </button>
               </div>
-              <p className="text-sm text-white/90">{ratingModal.order.restaurant}</p>
+              <p className="text-sm text-white/90">{ratingModal.order.seller}</p>
             </div>
 
             <div className="px-6 py-6">
               <div className="mb-6">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  Restaurant rating (out of 5)
+                  Seller rating (out of 5)
                 </p>
                 <div className="flex items-center justify-center gap-2 mb-3">
                   {Array.from({ length: 5 }, (_, i) => i + 1).map((num) => {
-                    const isActive = (selectedRestaurantRating || 0) >= num
+                    const isActive = (selectedSellerRating || 0) >= num
                     return (
                       <button
-                        key={`restaurant-${num}`}
+                        key={`seller-${num}`}
                         type="button"
-                        onClick={() => setSelectedRestaurantRating(num)}
+                        onClick={() => setSelectedSellerRating(num)}
                         className="p-2 transition-transform hover:scale-125 active:scale-95"
                       >
                         <Star
@@ -1154,10 +1154,10 @@ Order again from this restaurant in the ${companyName} app.`
                 </div>
                 <textarea
                   rows={2}
-                  value={restaurantFeedbackText}
-                  onChange={(e) => setRestaurantFeedbackText(e.target.value)}
+                  value={sellerFeedbackText}
+                  onChange={(e) => setSellerFeedbackText(e.target.value)}
                   className="w-full rounded-xl border-2 border-gray-200 dark:border-zinc-800 bg-transparent px-4 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#EB590E] focus:border-[#EB590E] resize-none transition-all"
-                  placeholder="Restaurant feedback (optional)"
+                  placeholder="Seller feedback (optional)"
                 />
               </div>
 
@@ -1241,7 +1241,7 @@ Order again from this restaurant in the ${companyName} app.`
           >
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 px-5 py-4">
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Share restaurant</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Share seller</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Native share available ho to sab supported apps wahan dikhenge</p>
               </div>
               <button

@@ -34,7 +34,7 @@ export default function Gallery() {
     "Admin": { type: "folder", items: [] },
     "Landing": { type: "folder", items: [] },
     "React_rest": { type: "folder", items: [] },
-    "Restaurant": { type: "folder", items: [] },
+    "Seller": { type: "folder", items: [] },
     "Page_meta_": { type: "folder", items: [] },
     "Campaign": { type: "folder", items: [] },
     "React_serv": { type: "folder", items: [] },

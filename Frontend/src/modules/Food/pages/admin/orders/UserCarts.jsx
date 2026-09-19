@@ -132,7 +132,7 @@ function CartBillBreakdown({ pricing, fallbackSubtotal = 0, items = [] }) {
           <span className="font-medium text-slate-800">{formatMoney(basePlatformFee)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-slate-600">GST and Restaurant Charges</span>
+          <span className="text-slate-600">GST and Seller Charges</span>
           <span className="font-medium text-slate-800">{formatMoney(gstCharges)}</span>
         </div>
         {otherSavings > 0 && (
@@ -252,7 +252,7 @@ export default function UserCarts() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="Search user, phone, restaurant..."
+              placeholder="Search user, phone, seller..."
               className="pl-9 bg-white h-9"
             />
           </div>
@@ -306,7 +306,7 @@ export default function UserCarts() {
             <div className={`${ROW_GRID} px-4 py-2.5 border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-600`}>
               <span>SI</span>
               <span>Customer</span>
-              <span>Restaurant</span>
+              <span>Seller</span>
               <span>Items</span>
               <span className="text-center">Qty</span>
               <span className="text-right">To Pay</span>
@@ -336,7 +336,7 @@ export default function UserCarts() {
                           <p className="text-[11px] text-slate-500 truncate">{cart.userPhone}</p>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-slate-800 truncate min-w-0">{cart.restaurantName || "-"}</p>
+                      <p className="text-sm font-medium text-slate-800 truncate min-w-0">{cart.sellerName || "-"}</p>
                       <p className="text-xs text-slate-600 truncate min-w-0">
                         {itemsPreview || "No items"}{moreItems}
                       </p>
@@ -386,11 +386,11 @@ export default function UserCarts() {
                               <div className="rounded-lg border border-slate-200 bg-white p-3">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Store className="h-4 w-4 text-orange-600" />
-                                  <p className="text-xs font-semibold uppercase text-slate-500">Restaurant</p>
+                                  <p className="text-xs font-semibold uppercase text-slate-500">Seller</p>
                                 </div>
-                                <p className="text-sm font-semibold text-slate-900">{cart.restaurantName || "-"}</p>
-                                {cart.restaurantId && (
-                                  <p className="text-[11px] text-slate-400 mt-1 truncate">{cart.restaurantId}</p>
+                                <p className="text-sm font-semibold text-slate-900">{cart.sellerName || "-"}</p>
+                                {cart.sellerId && (
+                                  <p className="text-[11px] text-slate-400 mt-1 truncate">{cart.sellerId}</p>
                                 )}
                                 <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1">
                                   <Clock className="h-3 w-3 shrink-0" />

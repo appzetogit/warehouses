@@ -17,13 +17,13 @@ import bikeLogo from '../../Food/assets/bikelogo.png'
  * 
  * <GoogleMapsTracking
  *   deliveryLocation={{ lat: deliveryBoyLat, lng: deliveryBoyLng }}
- *   storeLocation={{ lat: restaurantLat, lng: restaurantLng, name: "Restaurant Name" }}
+ *   storeLocation={{ lat: sellerLat, lng: sellerLng, name: "Seller Name" }}
  *   customerLocation={{ lat: customerLat, lng: customerLng }}
  *   isTracking={true}
  *   showRoute={true}
  *   routeOrigin={{ lat: deliveryBoyLat, lng: deliveryBoyLng }}
- *   routeDestination={{ lat: restaurantLat, lng: restaurantLng }}
- *   destinationName="Restaurant Name"
+ *   routeDestination={{ lat: sellerLat, lng: sellerLng }}
+ *   destinationName="Seller Name"
  *   onRouteInfoUpdate={(info) => {
  *     debugLog('Distance:', info.distance, 'Duration:', info.duration)
  *   }}
@@ -33,7 +33,7 @@ import bikeLogo from '../../Food/assets/bikelogo.png'
  * When delivery partner accepts order:
  * - Set showRoute={true}
  * - Set routeOrigin to delivery partner's current location
- * - Set routeDestination to restaurant location
+ * - Set routeDestination to seller location
  * - The component will automatically calculate and display the driving route polyline
  */
 

@@ -15,18 +15,18 @@ const getEntityId = (value) => {
   if (!value) return ""
   if (typeof value === "string" || typeof value === "number") return String(value)
   if (typeof value === "object") {
-    return String(value._id || value.id || value.restaurantId || "")
+    return String(value._id || value.id || value.sellerId || "")
   }
   return ""
 }
 
-const getRestaurantName = (value) => {
+const getSellerName = (value) => {
   if (!value || typeof value !== "object") return ""
-  return String(value.name || value.restaurantName || "")
+  return String(value.name || value.sellerName || "")
 }
 
 const createFoodForm = () => ({
-  restaurantId: "",
+  sellerId: "",
   categoryId: "",
   categoryName: "",
   name: "",
@@ -59,9 +59,9 @@ const FOOD_FALLBACK_IMAGE =
 
 export default function FoodsList() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedRestaurant, setSelectedRestaurant] = useState("all")
+  const [selectedSeller, setSelectedSeller] = useState("all")
   const [foods, setFoods] = useState([])
-  const [restaurantsForFilter, setRestaurantsForFilter] = useState([])
+  const [sellersForFilter, setSellersForFilter] = useState([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [selectedFood, setSelectedFood] = useState(null)
@@ -120,15 +120,15 @@ export default function FoodsList() {
   const [totalFoods, setTotalFoods] = useState(0)
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [imageVersion, setImageVersion] = useState(Date.now())
-  const [restaurantFilterSearch, setRestaurantFilterSearch] = useState("")
+  const [sellerFilterSearch, setSellerFilterSearch] = useState("")
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false)
   const [bulkUploadFile, setBulkUploadFile] = useState(null)
   const [bulkUploadResults, setBulkUploadResults] = useState(null)
   const [isBulkUploading, setIsBulkUploading] = useState(false)
-  const [bulkUploadRestaurantId, setBulkUploadRestaurantId] = useState("")
-  const [bulkUploadRestaurantSearch, setBulkUploadRestaurantSearch] = useState("")
+  const [bulkUploadSellerId, setBulkUploadSellerId] = useState("")
+  const [bulkUploadSellerSearch, setBulkUploadSellerSearch] = useState("")
   const [selectedFoodIds, setSelectedFoodIds] = useState(() => new Set())
-  const [selectAllForRestaurant, setSelectAllForRestaurant] = useState(false)
+  const [selectAllForSeller, setSelectAllForSeller] = useState(false)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const ensureActionAccess = (action) => {
     if (canCurrentAdminAction(action)) return true
@@ -149,43 +149,43 @@ export default function FoodsList() {
     return () => window.clearTimeout(timeoutId)
   }, [searchQuery])
 
-  const fetchRestaurantsForFilter = useCallback(async () => {
+  const fetchSellersForFilter = useCallback(async () => {
     try {
-      const restaurantsResponse = await adminAPI.getRestaurants({ limit: 1000 })
+      const sellersResponse = await adminAPI.getSellers({ limit: 1000 })
       const list =
-        restaurantsResponse?.data?.data?.restaurants ||
-        restaurantsResponse?.data?.restaurants ||
+        sellersResponse?.data?.data?.sellers ||
+        sellersResponse?.data?.sellers ||
         []
 
-      const restaurantsMap = new Map()
-      ;(Array.isArray(list) ? list : []).forEach((restaurant) => {
-        const restaurantId = getEntityId(restaurant)
-        if (!restaurantId || restaurantsMap.has(restaurantId)) return
-        restaurantsMap.set(restaurantId, {
-          id: restaurantId,
-          name: getRestaurantName(restaurant) || "Unknown Restaurant",
+      const sellersMap = new Map()
+      ;(Array.isArray(list) ? list : []).forEach((seller) => {
+        const sellerId = getEntityId(seller)
+        if (!sellerId || sellersMap.has(sellerId)) return
+        sellersMap.set(sellerId, {
+          id: sellerId,
+          name: getSellerName(seller) || "Unknown Seller",
         })
       })
 
-      setRestaurantsForFilter(
-        Array.from(restaurantsMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+      setSellersForFilter(
+        Array.from(sellersMap.values()).sort((a, b) => a.name.localeCompare(b.name))
       )
     } catch (error) {
-      debugError("Error fetching restaurants:", error)
-      setRestaurantsForFilter([])
+      debugError("Error fetching sellers:", error)
+      setSellersForFilter([])
     }
   }, [])
 
   useEffect(() => {
-    fetchRestaurantsForFilter()
-  }, [fetchRestaurantsForFilter])
+    fetchSellersForFilter()
+  }, [fetchSellersForFilter])
 
   const fetchAllFoods = useCallback(async () => {
     try {
       setLoading(true)
 
       const params = { page: currentPage, limit: pageSize }
-      if (selectedRestaurant !== "all") params.restaurantId = selectedRestaurant
+      if (selectedSeller !== "all") params.sellerId = selectedSeller
       if (debouncedSearchQuery) params.search = debouncedSearchQuery
 
       const foodsRes = await adminAPI.getFoods(params)
@@ -198,11 +198,11 @@ export default function FoodsList() {
             name: f.name || "Unnamed Item",
             image: f.image || FOOD_FALLBACK_IMAGE,
             status: f.isAvailable !== false && String(f.approvalStatus || "").toLowerCase() !== "rejected",
-            restaurantId: getEntityId(f.restaurantId || f.restaurant?._id || f.restaurant),
-            restaurantName:
-              f.restaurantName ||
-              getRestaurantName(f.restaurant) ||
-              "Unknown Restaurant",
+            sellerId: getEntityId(f.sellerId || f.seller?._id || f.seller),
+            sellerName:
+              f.sellerName ||
+              getSellerName(f.seller) ||
+              "Unknown Seller",
             categoryId: String(f.categoryId || ""),
             categoryName: f.categoryName || "",
             price: getFoodDisplayPrice(f),
@@ -221,17 +221,17 @@ export default function FoodsList() {
       setFoods(normalizedFoods)
       setTotalFoods(Number.isFinite(total) ? total : normalizedFoods.length)
       setImageVersion(Date.now())
-      setRestaurantsForFilter((prev) => {
-        const restaurantsMap = new Map((Array.isArray(prev) ? prev : []).map((restaurant) => [restaurant.id, restaurant]))
+      setSellersForFilter((prev) => {
+        const sellersMap = new Map((Array.isArray(prev) ? prev : []).map((seller) => [seller.id, seller]))
         normalizedFoods.forEach((food) => {
-          const restaurantId = getEntityId(food.restaurantId)
-          if (!restaurantId || restaurantsMap.has(restaurantId)) return
-          restaurantsMap.set(restaurantId, {
-            id: restaurantId,
-            name: food.restaurantName || "Unknown Restaurant",
+          const sellerId = getEntityId(food.sellerId)
+          if (!sellerId || sellersMap.has(sellerId)) return
+          sellersMap.set(sellerId, {
+            id: sellerId,
+            name: food.sellerName || "Unknown Seller",
           })
         })
-        return Array.from(restaurantsMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+        return Array.from(sellersMap.values()).sort((a, b) => a.name.localeCompare(b.name))
       })
     } catch (error) {
       debugError("Error fetching foods:", error)
@@ -241,7 +241,7 @@ export default function FoodsList() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, pageSize, selectedRestaurant, debouncedSearchQuery])
+  }, [currentPage, pageSize, selectedSeller, debouncedSearchQuery])
 
   useEffect(() => {
     fetchAllFoods()
@@ -299,7 +299,7 @@ export default function FoodsList() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedRestaurant, pageSize])
+  }, [searchQuery, selectedSeller, pageSize])
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -307,45 +307,45 @@ export default function FoodsList() {
     }
   }, [currentPage, totalPages])
 
-  const restaurantOptions = useMemo(() => {
-    return restaurantsForFilter
-  }, [restaurantsForFilter])
+  const sellerOptions = useMemo(() => {
+    return sellersForFilter
+  }, [sellersForFilter])
 
-  const filteredRestaurantOptions = useMemo(() => {
-    const query = restaurantFilterSearch.trim().toLowerCase()
-    if (!query) return restaurantOptions
-    return restaurantOptions.filter((restaurant) =>
-      restaurant.name.toLowerCase().includes(query)
+  const filteredSellerOptions = useMemo(() => {
+    const query = sellerFilterSearch.trim().toLowerCase()
+    if (!query) return sellerOptions
+    return sellerOptions.filter((seller) =>
+      seller.name.toLowerCase().includes(query)
     )
-  }, [restaurantOptions, restaurantFilterSearch])
+  }, [sellerOptions, sellerFilterSearch])
 
-  const filteredBulkUploadRestaurants = useMemo(() => {
-    const query = bulkUploadRestaurantSearch.trim().toLowerCase()
-    if (!query) return restaurantOptions
-    return restaurantOptions.filter((restaurant) =>
-      restaurant.name.toLowerCase().includes(query)
+  const filteredBulkUploadSellers = useMemo(() => {
+    const query = bulkUploadSellerSearch.trim().toLowerCase()
+    if (!query) return sellerOptions
+    return sellerOptions.filter((seller) =>
+      seller.name.toLowerCase().includes(query)
     )
-  }, [restaurantOptions, bulkUploadRestaurantSearch])
+  }, [sellerOptions, bulkUploadSellerSearch])
 
-  const isRestaurantSelected = selectedRestaurant !== "all"
+  const isSellerSelected = selectedSeller !== "all"
   const pageFoodIds = useMemo(() => foods.map((food) => food.id), [foods])
   const allPageSelected =
     pageFoodIds.length > 0 &&
-    pageFoodIds.every((id) => selectAllForRestaurant || selectedFoodIds.has(id))
+    pageFoodIds.every((id) => selectAllForSeller || selectedFoodIds.has(id))
   const somePageSelected =
-    !selectAllForRestaurant &&
+    !selectAllForSeller &&
     pageFoodIds.some((id) => selectedFoodIds.has(id))
-  const selectedDeleteCount = selectAllForRestaurant ? totalFoods : selectedFoodIds.size
+  const selectedDeleteCount = selectAllForSeller ? totalFoods : selectedFoodIds.size
 
   useEffect(() => {
     setSelectedFoodIds(new Set())
-    setSelectAllForRestaurant(false)
-  }, [selectedRestaurant, debouncedSearchQuery])
+    setSelectAllForSeller(false)
+  }, [selectedSeller, debouncedSearchQuery])
 
   useEffect(() => {
-    if (!selectAllForRestaurant) return
+    if (!selectAllForSeller) return
     setSelectedFoodIds(new Set())
-  }, [currentPage, selectAllForRestaurant])
+  }, [currentPage, selectAllForSeller])
 
   const openAddFoodModal = () => {
     if (!ensureActionAccess("create")) return
@@ -353,7 +353,7 @@ export default function FoodsList() {
     setEditingFood(null)
     setFoodForm({
       ...createFoodForm(),
-      restaurantId: selectedRestaurant !== "all" ? selectedRestaurant : "",
+      sellerId: selectedSeller !== "all" ? selectedSeller : "",
     })
     setSelectedImageFile(null)
     setImagePreviewUrl("")
@@ -368,7 +368,7 @@ export default function FoodsList() {
     setFoodFormMode("edit")
     setEditingFood(food)
     setFoodForm({
-      restaurantId: String(food.restaurantId || ""),
+      sellerId: String(food.sellerId || ""),
       categoryId: String(food.categoryId || ""),
       categoryName: String(food.categoryName || ""),
       name: String(food.name || ""),
@@ -459,8 +459,8 @@ export default function FoodsList() {
 
   const handleFoodFormSubmit = async () => {
     if (!ensureActionAccess(foodFormMode === "edit" ? "edit" : "create")) return
-    if (!foodForm.restaurantId) {
-      toast.error("Please select a restaurant")
+    if (!foodForm.sellerId) {
+      toast.error("Please select a seller")
       return
     }
     if (!String(foodForm.categoryName || "").trim()) {
@@ -537,7 +537,7 @@ export default function FoodsList() {
       const imageUrl = imageUrls[0] || ""
 
       const payload = {
-        restaurantId: foodForm.restaurantId,
+        sellerId: foodForm.sellerId,
         categoryId: foodForm.categoryId || undefined,
         categoryName: String(foodForm.categoryName || "").trim(),
         name: foodForm.name.trim(),
@@ -602,8 +602,8 @@ export default function FoodsList() {
 
   const openBulkUploadModal = () => {
     if (!ensureActionAccess("create")) return
-    setBulkUploadRestaurantId(selectedRestaurant !== "all" ? selectedRestaurant : "")
-    setBulkUploadRestaurantSearch("")
+    setBulkUploadSellerId(selectedSeller !== "all" ? selectedSeller : "")
+    setBulkUploadSellerSearch("")
     setBulkUploadFile(null)
     setBulkUploadResults(null)
     setIsBulkUploadModalOpen(true)
@@ -627,8 +627,8 @@ export default function FoodsList() {
   }
 
   const handleBulkUpload = async () => {
-    if (!bulkUploadRestaurantId) {
-      toast.error("Please select a restaurant first")
+    if (!bulkUploadSellerId) {
+      toast.error("Please select a seller first")
       return
     }
     if (!bulkUploadFile) {
@@ -638,7 +638,7 @@ export default function FoodsList() {
 
     try {
       setIsBulkUploading(true)
-      const response = await adminAPI.bulkUploadFoods(bulkUploadRestaurantId, bulkUploadFile)
+      const response = await adminAPI.bulkUploadFoods(bulkUploadSellerId, bulkUploadFile)
       if (response.data?.success) {
         const results = response.data.data || {}
         const normalizedErrors = Array.isArray(results.errors)
@@ -672,8 +672,8 @@ export default function FoodsList() {
   }
 
   const toggleFoodSelection = (foodId) => {
-    if (selectAllForRestaurant) {
-      setSelectAllForRestaurant(false)
+    if (selectAllForSeller) {
+      setSelectAllForSeller(false)
       setSelectedFoodIds(new Set(pageFoodIds.filter((id) => id !== foodId)))
       return
     }
@@ -687,23 +687,23 @@ export default function FoodsList() {
 
   const toggleSelectAllPage = () => {
     if (allPageSelected) {
-      setSelectAllForRestaurant(false)
+      setSelectAllForSeller(false)
       setSelectedFoodIds(new Set())
       return
     }
-    setSelectAllForRestaurant(false)
+    setSelectAllForSeller(false)
     setSelectedFoodIds(new Set(pageFoodIds))
   }
 
-  const handleSelectAllForRestaurant = () => {
-    setSelectAllForRestaurant(true)
+  const handleSelectAllForSeller = () => {
+    setSelectAllForSeller(true)
     setSelectedFoodIds(new Set())
   }
 
   const handleBulkDelete = async () => {
     if (!ensureActionAccess("delete")) return
-    if (!isRestaurantSelected) {
-      toast.error("Select a restaurant to bulk delete items")
+    if (!isSellerSelected) {
+      toast.error("Select a seller to bulk delete items")
       return
     }
     if (selectedDeleteCount === 0) {
@@ -711,13 +711,13 @@ export default function FoodsList() {
       return
     }
 
-    const restaurantName =
-      restaurantOptions.find((restaurant) => restaurant.id === selectedRestaurant)?.name ||
-      "this restaurant"
+    const sellerName =
+      sellerOptions.find((seller) => seller.id === selectedSeller)?.name ||
+      "this seller"
 
     if (
       !window.confirm(
-        `Delete ${selectedDeleteCount} food item(s) from ${restaurantName}? This cannot be undone.`
+        `Delete ${selectedDeleteCount} food item(s) from ${sellerName}? This cannot be undone.`
       )
     ) {
       return
@@ -726,15 +726,15 @@ export default function FoodsList() {
     try {
       setIsBulkDeleting(true)
       const response = await adminAPI.bulkDeleteFoods({
-        restaurantId: selectedRestaurant,
-        selectAll: selectAllForRestaurant,
-        foodIds: selectAllForRestaurant ? [] : Array.from(selectedFoodIds),
-        search: selectAllForRestaurant ? debouncedSearchQuery : undefined,
+        sellerId: selectedSeller,
+        selectAll: selectAllForSeller,
+        foodIds: selectAllForSeller ? [] : Array.from(selectedFoodIds),
+        search: selectAllForSeller ? debouncedSearchQuery : undefined,
       })
       const deletedCount = response?.data?.data?.deletedCount ?? selectedDeleteCount
       toast.success(`Deleted ${deletedCount} food item(s)`)
       setSelectedFoodIds(new Set())
-      setSelectAllForRestaurant(false)
+      setSelectAllForSeller(false)
       await fetchAllFoods()
     } catch (error) {
       debugError("Error bulk deleting foods:", error)
@@ -790,7 +790,7 @@ export default function FoodsList() {
               <Upload className="w-4 h-4" />
               <span>Bulk Upload</span>
             </button>
-            {isRestaurantSelected && selectedDeleteCount > 0 && (
+            {isSellerSelected && selectedDeleteCount > 0 && (
               <button
                 type="button"
                 onClick={handleBulkDelete}
@@ -814,20 +814,20 @@ export default function FoodsList() {
             <div className="flex flex-col gap-2 min-w-[240px]">
               <input
                 type="text"
-                placeholder="Search restaurant..."
-                value={restaurantFilterSearch}
-                onChange={(e) => setRestaurantFilterSearch(e.target.value)}
+                placeholder="Search seller..."
+                value={sellerFilterSearch}
+                onChange={(e) => setSellerFilterSearch(e.target.value)}
                 className="px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
               />
               <select
-                value={selectedRestaurant}
-                onChange={(e) => setSelectedRestaurant(e.target.value)}
+                value={selectedSeller}
+                onChange={(e) => setSelectedSeller(e.target.value)}
                 className="px-4 py-2.5 min-w-[240px] text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
               >
-                <option value="all">All Restaurants</option>
-                {filteredRestaurantOptions.map((restaurant) => (
-                  <option key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
+                <option value="all">All Sellers</option>
+                {filteredSellerOptions.map((seller) => (
+                  <option key={seller.id} value={seller.id}>
+                    {seller.name}
                   </option>
                 ))}
               </select>
@@ -838,26 +838,26 @@ export default function FoodsList() {
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        {isRestaurantSelected && allPageSelected && totalFoods > foods.length && !selectAllForRestaurant && (
+        {isSellerSelected && allPageSelected && totalFoods > foods.length && !selectAllForSeller && (
           <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 text-sm text-blue-800 flex flex-wrap items-center gap-2">
             <span>All {foods.length} items on this page are selected.</span>
             <button
               type="button"
-              onClick={handleSelectAllForRestaurant}
+              onClick={handleSelectAllForSeller}
               className="font-semibold underline hover:text-blue-900"
             >
-              Select all {totalFoods} items for this restaurant
+              Select all {totalFoods} items for this seller
               {debouncedSearchQuery ? " matching your search" : ""}
             </button>
           </div>
         )}
-        {isRestaurantSelected && selectAllForRestaurant && (
+        {isSellerSelected && selectAllForSeller && (
           <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 text-sm text-blue-800 flex flex-wrap items-center gap-2">
             <span>All {totalFoods} items are selected for bulk delete.</span>
             <button
               type="button"
               onClick={() => {
-                setSelectAllForRestaurant(false)
+                setSelectAllForSeller(false)
                 setSelectedFoodIds(new Set())
               }}
               className="font-semibold underline hover:text-blue-900"
@@ -870,7 +870,7 @@ export default function FoodsList() {
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                {isRestaurantSelected && (
+                {isSellerSelected && (
                   <th className="px-4 py-4 text-left">
                     <input
                       type="checkbox"
@@ -894,7 +894,7 @@ export default function FoodsList() {
                   Title
                 </th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                  Restaurant
+                  Seller
                 </th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                   Category
@@ -907,7 +907,7 @@ export default function FoodsList() {
             <tbody className="bg-white divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={isRestaurantSelected ? 7 : 6} className="px-6 py-20 text-center">
+                  <td colSpan={isSellerSelected ? 7 : 6} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
                       <p className="text-sm text-slate-500">Loading foods...</p>
@@ -916,10 +916,10 @@ export default function FoodsList() {
                 </tr>
               ) : foods.length === 0 ? (
                 <tr>
-                  <td colSpan={isRestaurantSelected ? 7 : 6} className="px-6 py-20 text-center">
+                  <td colSpan={isSellerSelected ? 7 : 6} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <p className="text-lg font-semibold text-slate-700 mb-1">No Data Found</p>
-                      <p className="text-sm text-slate-500">No food items match your search or restaurant filter</p>
+                      <p className="text-sm text-slate-500">No food items match your search or seller filter</p>
                     </div>
                   </td>
                 </tr>
@@ -929,11 +929,11 @@ export default function FoodsList() {
                     key={food.id}
                     className="hover:bg-slate-50 transition-colors"
                   >
-                    {isRestaurantSelected && (
+                    {isSellerSelected && (
                       <td className="px-4 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
-                          checked={selectAllForRestaurant || selectedFoodIds.has(food.id)}
+                          checked={selectAllForSeller || selectedFoodIds.has(food.id)}
                           onChange={() => toggleFoodSelection(food.id)}
                           className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                           aria-label={`Select ${food.name}`}
@@ -964,7 +964,7 @@ export default function FoodsList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-slate-800">{food.restaurantName || "-"}</span>
+                        <span className="text-sm font-medium text-slate-800">{food.sellerName || "-"}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1083,7 +1083,7 @@ export default function FoodsList() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <p><span className="font-semibold text-slate-700">Restaurant:</span> <span className="text-slate-900">{selectedFood.restaurantName || "-"}</span></p>
+                <p><span className="font-semibold text-slate-700">Seller:</span> <span className="text-slate-900">{selectedFood.sellerName || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Price:</span> <span className="text-slate-900">{selectedFood.variants?.length ? `Starting from \u20B9${selectedFood.price}` : `\u20B9${selectedFood.price}`}</span></p>
                 <p><span className="font-semibold text-slate-700">Category:</span> <span className="text-slate-900">{selectedFood.categoryName || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Food Type:</span> <span className="text-slate-900">{selectedFood.foodType || "-"}</span></p>
@@ -1137,17 +1137,17 @@ export default function FoodsList() {
           <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Restaurant</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Seller</label>
                 <select
-                  value={foodForm.restaurantId}
-                  onChange={(e) => setFoodForm((prev) => ({ ...prev, restaurantId: e.target.value, categoryId: "", categoryName: "" }))}
+                  value={foodForm.sellerId}
+                  onChange={(e) => setFoodForm((prev) => ({ ...prev, sellerId: e.target.value, categoryId: "", categoryName: "" }))}
                   disabled={foodFormMode === "edit"}
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white disabled:bg-slate-100"
                 >
-                  <option value="">Select restaurant</option>
-                  {restaurantOptions.map((restaurant) => (
-                    <option key={restaurant.id} value={restaurant.id}>
-                      {restaurant.name}
+                  <option value="">Select seller</option>
+                  {sellerOptions.map((seller) => (
+                    <option key={seller.id} value={seller.id}>
+                      {seller.name}
                     </option>
                   ))}
                 </select>
@@ -1469,23 +1469,23 @@ export default function FoodsList() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-900">Step 2: Select Restaurant</label>
+                  <label className="block text-sm font-semibold text-slate-900">Step 2: Select Seller</label>
                   <input
                     type="text"
-                    placeholder="Search restaurant..."
-                    value={bulkUploadRestaurantSearch}
-                    onChange={(e) => setBulkUploadRestaurantSearch(e.target.value)}
+                    placeholder="Search seller..."
+                    value={bulkUploadSellerSearch}
+                    onChange={(e) => setBulkUploadSellerSearch(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                   />
                   <select
-                    value={bulkUploadRestaurantId}
-                    onChange={(e) => setBulkUploadRestaurantId(e.target.value)}
+                    value={bulkUploadSellerId}
+                    onChange={(e) => setBulkUploadSellerId(e.target.value)}
                     className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                   >
-                    <option value="">Choose a restaurant</option>
-                    {filteredBulkUploadRestaurants.map((restaurant) => (
-                      <option key={restaurant.id} value={restaurant.id}>
-                        {restaurant.name}
+                    <option value="">Choose a seller</option>
+                    {filteredBulkUploadSellers.map((seller) => (
+                      <option key={seller.id} value={seller.id}>
+                        {seller.name}
                       </option>
                     ))}
                   </select>
@@ -1518,7 +1518,7 @@ export default function FoodsList() {
                   <button
                     type="button"
                     onClick={handleBulkUpload}
-                    disabled={!bulkUploadRestaurantId || !bulkUploadFile || isBulkUploading}
+                    disabled={!bulkUploadSellerId || !bulkUploadFile || isBulkUploading}
                     className="px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-60 inline-flex items-center gap-2"
                   >
                     {isBulkUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}

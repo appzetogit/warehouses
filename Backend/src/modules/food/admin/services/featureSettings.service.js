@@ -1,7 +1,7 @@
 import { FoodFeatureSetting } from '../models/featureSetting.model.js';
 
 export const FEATURE_KEYS = {
-    RESTAURANT_SUBSCRIPTION: 'restaurant_subscription',
+    SELLER_SUBSCRIPTION: 'seller_subscription',
     COD_CONTROL: 'cod_control',
     ADMIN_ACCESS_SECTION: 'admin_access_section',
     ROOT_LANDING_AND_UNREGISTERED_CONTROL: 'root_landing_and_unregistered_control'
@@ -9,9 +9,9 @@ export const FEATURE_KEYS = {
 
 const DEFAULT_FEATURES = [
     {
-        key: FEATURE_KEYS.RESTAURANT_SUBSCRIPTION,
-        name: 'Restaurant Subscription',
-        description: 'Controls monthly GMV-based subscription billing, wallet locking against dues, and subscription UI. Never blocks restaurant login.',
+        key: FEATURE_KEYS.SELLER_SUBSCRIPTION,
+        name: 'Seller Subscription',
+        description: 'Controls monthly GMV-based subscription billing, wallet locking against dues, and subscription UI. Never blocks seller login.',
         isEnabled: true
     },
     {
@@ -28,8 +28,8 @@ const DEFAULT_FEATURES = [
     },
     {
         key: FEATURE_KEYS.ROOT_LANDING_AND_UNREGISTERED_CONTROL,
-        name: 'Root Landing & Unregistered Restaurants',
-        description: 'Controls root URL behavior and Unregistered Restaurants visibility. When disabled, root redirects to /food/user and Unregistered Restaurants is hidden.',
+        name: 'Root Landing & Unregistered Sellers',
+        description: 'Controls root URL behavior and Unregistered Sellers visibility. When disabled, root redirects to /food/user and Unregistered Sellers is hidden.',
         isEnabled: true
     }
 ];

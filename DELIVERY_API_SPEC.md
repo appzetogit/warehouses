@@ -164,8 +164,8 @@ Behaviour depends on state:
   "_id": "…", "orderMongoId": "…",
   "order_id": "FOD-1234567890", "orderId": "FOD-1234567890",
   "userId": { "_id": "…", "name": "…", "phone": "…", "email": "…" },
-  "restaurantId": {
-    "_id": "…", "restaurantName": "…", "name": "…", "phone": "…", "ownerPhone": "…",
+  "sellerId": {
+    "_id": "…", "sellerName": "…", "name": "…", "phone": "…", "ownerPhone": "…",
     "location": { "type": "Point", "coordinates": [lng, lat] },
     "addressLine1": "…", "area": "…", "city": "…", "state": "…", "profileImage": "…"
   },
@@ -178,7 +178,7 @@ Behaviour depends on state:
   "amounts": { … }, "transactionStatus": "…",
   "orderStatus": "ready_for_pickup",
   "dispatch": { … }, "deliveryState": { … },
-  "cookingNote": "less spicy",        // the restaurant-facing note
+  "cookingNote": "less spicy",        // the seller-facing note
   "deliveryInstructions": "Ring bell",
   "note": "Ring bell",                // NOTE: aliased to deliveryInstructions, NOT the cooking note
   "riderEarning": 42,
@@ -186,10 +186,10 @@ Behaviour depends on state:
   "lastRiderLocation": { "type": "Point", "coordinates": [lng, lat] },
   "deliveryFleet": "standard",
   "ratings": { … },
-  "restaurantCoverImage": "/uploads/food/restaurants/cover/….webp",
-  "restaurantGalleryImages": ["/uploads/….webp"],
-  "restaurantLandmark": "Near SBI ATM",
-  "restaurantCallUri": "tel:9632587410",
+  "sellerCoverImage": "/uploads/food/sellers/cover/….webp",
+  "sellerGalleryImages": ["/uploads/….webp"],
+  "sellerLandmark": "Near SBI ATM",
+  "sellerCallUri": "tel:9632587410",
   "customerCallUri": "tel:9876543210",
   "pickupDistanceKm": 1.2,
   "createdAt": "…", "updatedAt": "…"
@@ -217,7 +217,7 @@ Watch out: `note` on a delivery-facing order is the **delivery instruction**, no
 | PATCH | `/orders/:orderId/complete` | free-form body passed through | `{ order }` |
 | PATCH | `/orders/:orderId/status` | `{ "orderStatus": "…", "note": "…" }` | `{ order }` |
 
-`orderStatus` on the generic status endpoint accepts only: `confirmed`, `preparing`, `ready_for_pickup`, `picked_up`, `delivered`, `cancelled_by_restaurant`. Prefer the dedicated lifecycle endpoints — they also maintain `deliveryState.currentPhase`.
+`orderStatus` on the generic status endpoint accepts only: `confirmed`, `preparing`, `ready_for_pickup`, `picked_up`, `delivered`, `cancelled_by_seller`. Prefer the dedicated lifecycle endpoints — they also maintain `deliveryState.currentPhase`.
 
 `deliveryState.currentPhase` progresses: `en_route_to_pickup` → `at_pickup` → `en_route_to_delivery` → `at_drop` → `delivered` → `completed`.
 
@@ -230,14 +230,14 @@ The drop OTP is never exposed to the partner in any response. The customer reads
 Driving route for the active-trip map. Accepts the display id **or** the Mongo `_id`.
 
 Query: `lat`, `lng` (rider's current position — falls back to the last stored ping),
-`target` = `restaurant` | `customer` (optional; inferred from trip phase when omitted —
-restaurant before pickup, customer after).
+`target` = `seller` | `customer` (optional; inferred from trip phase when omitted —
+seller before pickup, customer after).
 
 ```json
 { "polyline": "<encoded google polyline>",
   "distanceMeters": 10936, "distanceKm": 10.94,
   "durationSeconds": 1612, "durationMins": 27,
-  "target": "restaurant",
+  "target": "seller",
   "origin": { "lat": 22.68, "lng": 75.83 },
   "destination": { "lat": 22.7282195, "lng": 75.8843622 } }
 ```
@@ -253,7 +253,7 @@ distances — don't draw the line, keep the markers. Don't treat it as an error.
 real re-route, not on a timer. The same polyline is also written to Firebase RTDB
 `active_orders/{orderMongoId}` at accept time and is free to read.
 
-⚠️ A near-zero-distance order (test data where the customer is metres from the restaurant)
+⚠️ A near-zero-distance order (test data where the customer is metres from the seller)
 legitimately returns a 2-point polyline. That's correct, not a bug.
 
 ---
@@ -385,7 +385,7 @@ Query: `period` = `daily` (default) | `weekly` | `monthly`, `date`, `status` = `
   "trips": [{
     "id": "…", "_id": "…", "orderId": "FOD-…",
     "status": "Completed",                        // Completed | Cancelled | Pending
-    "restaurantName": "…", "restaurant": "…",
+    "sellerName": "…", "seller": "…",
     "items": [ … ], "orderItems": [ … ],
     "paymentMethod": "cash",
     "totalAmount": 546, "orderTotal": 546,
@@ -496,7 +496,7 @@ No order id — the server finds the partner's currently accepted order itself. 
 → 201, `data: { request }`:
 ```json
 {
-  "_id": "…", "orderId": "…", "deliveryPartnerId": "…", "restaurantId": "…",
+  "_id": "…", "orderId": "…", "deliveryPartnerId": "…", "sellerId": "…",
   "reason": "…",
   "status": "open",              // open | in_progress | processing | resolved | closed
   "adminResponse": "", "failureReason": "",
@@ -508,7 +508,7 @@ No order id — the server finds the partner's currently accepted order itself. 
 ### `GET /food/delivery/order-emergency-requests` → `data: { requests: [...] }`
 ### `GET /food/delivery/order-emergency-requests/:id` → `data: { request, … }`
 
-List/detail responses populate `order`, `deliveryPartner`, `restaurant`, and `resolvedBy` as nested objects alongside the raw ids.
+List/detail responses populate `order`, `deliveryPartner`, `seller`, and `resolvedBy` as nested objects alongside the raw ids.
 
 Errors to handle: `Emergency reassignment is available only for an accepted order before pickup`, `An active reassignment request already exists for this order`.
 
@@ -532,7 +532,7 @@ Handshake with the access token (`auth.token`, `Authorization` header, or `?toke
 | `join-delivery` | `deliveryPartnerId` | explicit re-join; ack `delivery-room-joined`. Rejected if the id isn't yours or your role isn't DELIVERY_PARTNER |
 | `join-tracking` | `orderId` | ack `tracking-room-joined` |
 | `leave-tracking` | `orderId` | |
-| location ping | `{ orderId, lat, lng, userId, restaurantId }` | broadcast to the tracking room as `location-update` |
+| location ping | `{ orderId, lat, lng, userId, sellerId }` | broadcast to the tracking room as `location-update` |
 
 **Listen:**
 | Event | Meaning |
@@ -540,7 +540,7 @@ Handshake with the access token (`auth.token`, `Authorization` header, or `?toke
 | `new_order_available` | a new order is offered to you — show the accept modal |
 | `order_claimed` | another rider took it — dismiss the modal |
 | `order_deassigned` | the order was taken off you |
-| `order_ready` | restaurant marked ready for pickup |
+| `order_ready` | seller marked ready for pickup |
 | `order_status_update` | any status change |
 
 Poll `/orders/available` as a fallback — the modal must not depend on the socket alone.

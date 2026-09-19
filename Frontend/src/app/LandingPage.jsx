@@ -8,7 +8,7 @@ import {
   Users, Percent, Heart, Sparkles, X, Home, Store, Bike, Loader2
 } from "lucide-react";
 import { APP_CONFIG } from "../config/constants"; // Adjust path if needed
-import apiClient, { restaurantAPI } from "../services/api";
+import apiClient, { sellerAPI } from "../services/api";
 
 // --- Animation Variants for Cinematic Reveals ---
 const textReveal = {
@@ -41,7 +41,7 @@ const gridVariants = {
 export default function LandingPage() {
   const containerRef = useRef(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const [isRestaurantOpen, setIsRestaurantOpen] = useState(false);
+  const [isSellerOpen, setIsSellerOpen] = useState(false);
   const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
   const [supportContact, setSupportContact] = useState({
     email: "support@switcheats.com",
@@ -49,7 +49,7 @@ export default function LandingPage() {
   });
   const [leadForm, setLeadForm] = useState({
     ownerName: "",
-    restaurantName: "",
+    sellerName: "",
     mobileNumber: "",
     emailId: "",
     location: "",
@@ -91,17 +91,17 @@ export default function LandingPage() {
 
   const handleLeadSubmit = async (e) => {
     e.preventDefault();
-    if (!leadForm.ownerName || !leadForm.restaurantName || !leadForm.mobileNumber || !leadForm.emailId || !leadForm.location) {
+    if (!leadForm.ownerName || !leadForm.sellerName || !leadForm.mobileNumber || !leadForm.emailId || !leadForm.location) {
       alert("Please fill all the details to register.");
       return;
     }
     try {
       setSubmittingLead(true);
-      await restaurantAPI.createUnregisteredRestaurant(leadForm);
+      await sellerAPI.createUnregisteredSeller(leadForm);
       setLeadSuccess(true);
       setLeadForm({
         ownerName: "",
-        restaurantName: "",
+        sellerName: "",
         mobileNumber: "",
         emailId: "",
         location: "",
@@ -134,7 +134,7 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    if (isAboutOpen || isRestaurantOpen || isDeliveryOpen) {
+    if (isAboutOpen || isSellerOpen || isDeliveryOpen) {
       if (lenisRef.current) lenisRef.current.stop();
       document.body.style.overflow = "hidden";
     } else {
@@ -144,13 +144,13 @@ export default function LandingPage() {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isAboutOpen, isRestaurantOpen, isDeliveryOpen]);
+  }, [isAboutOpen, isSellerOpen, isDeliveryOpen]);
 
   // Handle browser back button (popstate) to close overlays instead of navigating away
   useEffect(() => {
     const handlePopState = (event) => {
       setIsAboutOpen(false);
-      setIsRestaurantOpen(false);
+      setIsSellerOpen(false);
       setIsDeliveryOpen(false);
     };
 
@@ -162,7 +162,7 @@ export default function LandingPage() {
 
   // Sync React states to browser history stack
   useEffect(() => {
-    const isAnyOpen = isAboutOpen || isRestaurantOpen || isDeliveryOpen;
+    const isAnyOpen = isAboutOpen || isSellerOpen || isDeliveryOpen;
     
     if (isAnyOpen) {
       if (!window.history.state?.modalOpen) {
@@ -173,7 +173,7 @@ export default function LandingPage() {
         window.history.back();
       }
     }
-  }, [isAboutOpen, isRestaurantOpen, isDeliveryOpen]);
+  }, [isAboutOpen, isSellerOpen, isDeliveryOpen]);
 
   // Global Scroll Progress Hook
   const { scrollYProgress } = useScroll({ target: containerRef });
@@ -209,11 +209,11 @@ export default function LandingPage() {
             <span className="hidden md:inline">Home</span>
           </a>
           <button
-            onClick={() => setIsRestaurantOpen(true)}
+            onClick={() => setIsSellerOpen(true)}
             className="group flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-full text-xs font-bold text-slate-700 hover:text-[#FA0272] hover:bg-white/80 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
           >
             <Store className="w-4 h-4 md:w-3.5 md:h-3.5 text-slate-500 group-hover:text-[#FA0272] transition-colors" />
-            <span className="hidden md:inline">Restaurant Partner</span>
+            <span className="hidden md:inline">Seller Partner</span>
           </button>
           <button
             onClick={() => setIsDeliveryOpen(true)}
@@ -254,7 +254,7 @@ export default function LandingPage() {
 
             <div className="overflow-hidden mt-4 lg:mt-6 max-w-xl">
               <motion.p custom={3} initial="hidden" animate="visible" variants={textReveal} className="text-base lg:text-lg text-slate-600 font-light leading-relaxed">
-                SwitchEats is a next-generation food delivery platform built with a mission to create fairness and transparency in the food ecosystem. Unlike traditional platforms, we operate on a lifetime 0% commission model, ensuring that restaurant partners keep every hard-earned penny of their revenue.
+                SwitchEats is a next-generation food delivery platform built with a mission to create fairness and transparency in the food ecosystem. Unlike traditional platforms, we operate on a lifetime 0% commission model, ensuring that seller partners keep every hard-earned penny of their revenue.
               </motion.p>
             </div>
 
@@ -323,7 +323,7 @@ export default function LandingPage() {
               Empowering partners, <br /><span className="italic text-slate-500 font-light">restoring trust.</span>
             </h3>
             <p className="text-lg md:text-xl text-slate-600 leading-relaxed font-light max-w-lg">
-              Unlike traditional delivery apps that squeeze restaurant margins, SwitchEats works on a lifetime 0% commission model. We believe in creating a balanced, fair, and growth-oriented food ecosystem.
+              Unlike traditional delivery apps that squeeze seller margins, SwitchEats works on a lifetime 0% commission model. We believe in creating a balanced, fair, and growth-oriented food ecosystem.
             </p>
             <div className="pt-2">
               <button
@@ -776,7 +776,7 @@ export default function LandingPage() {
                 <div>
                   <h4 className="font-bold text-slate-900 mb-1">Telangana Launchpad (Active)</h4>
                   <p className="text-sm text-slate-500 font-light">
-                    Our central headquarters and active delivery operations. Reclaiming restaurant revenues with 0% lifetime commission.
+                    Our central headquarters and active delivery operations. Reclaiming seller revenues with 0% lifetime commission.
                   </p>
                 </div>
               </div>
@@ -1146,7 +1146,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Lifetime 0% Commission</h3>
                     <p className="text-slate-600 font-light leading-relaxed">
-                      We operate on a lifetime 0% commission model. This ensures that our restaurant partners keep every hard-earned penny of their revenue, giving them the financial breathing room to grow, sustain jobs, and thrive in a digital economy.
+                      We operate on a lifetime 0% commission model. This ensures that our seller partners keep every hard-earned penny of their revenue, giving them the financial breathing room to grow, sustain jobs, and thrive in a digital economy.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
@@ -1163,7 +1163,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Trust & Transparent Pricing</h3>
                     <p className="text-slate-600 font-light leading-relaxed">
-                      By offering transparent pricing, SwitchEats ensures customers pay genuine prices without hidden markups. We are building long-term relationships of trust with both restaurants and consumers.
+                      By offering transparent pricing, SwitchEats ensures customers pay genuine prices without hidden markups. We are building long-term relationships of trust with both sellers and consumers.
                     </p>
                   </div>
                   <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
@@ -1212,7 +1212,7 @@ export default function LandingPage() {
               <div className="text-center py-12 md:py-20 border-t border-slate-200/60 flex flex-col items-center gap-6 shrink-0">
                 <h3 className="text-3xl md:text-4xl font-black text-slate-900">Be Part of the Movement</h3>
                 <p className="text-slate-500 max-w-lg font-light">
-                  Support your local neighborhood restaurants. Join SwitchEats today as a customer or partner and help us create a fair ecosystem.
+                  Support your local neighborhood sellers. Join SwitchEats today as a customer or partner and help us create a fair ecosystem.
                 </p>
                 <div className="flex gap-4 mt-2">
                   <button
@@ -1233,7 +1233,7 @@ export default function LandingPage() {
           </motion.div>
         )}
 
-        {isRestaurantOpen && (
+        {isSellerOpen && (
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -1262,7 +1262,7 @@ export default function LandingPage() {
                   <span className="sm:hidden">Join</span>
                 </button>
                 <button
-                  onClick={() => setIsRestaurantOpen(false)}
+                  onClick={() => setIsSellerOpen(false)}
                   className="group flex items-center gap-1.5 sm:gap-2 bg-slate-900 text-white px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-bold hover:bg-[#FA0272] transition-all duration-300 shadow-md hover:shadow-lg cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
@@ -1278,14 +1278,14 @@ export default function LandingPage() {
               {/* Cinematic Page Title - Centered Elegant Culinary Accent */}
               <div className="max-w-4xl space-y-6 text-center mx-auto mb-4">
                 <span className="inline-flex items-center gap-2 text-[#FA0272] font-black tracking-widest uppercase text-xs bg-[#FA0272]/10 border border-[#FA0272]/20 px-4 py-2 rounded-full">
-                  <Store className="w-4 h-4 text-[#FA0272]" /> Restaurant Empowerment Initiative
+                  <Store className="w-4 h-4 text-[#FA0272]" /> Seller Empowerment Initiative
                 </span>
                 <h1 className="text-5xl md:text-7xl font-black leading-[1.05] tracking-tight text-slate-900">
                   Earn Commission-Free. <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#FA0272] to-[#E02477] font-extrabold italic font-light">Reclaim 100% of Your Revenue.</span>
                 </h1>
                 <p className="text-xl text-slate-700 font-light leading-relaxed max-w-3xl mx-auto">
-                  Say goodbye to standard 25%-30% commissions that wipe out restaurant profit margins. With SwitchEats, you gain access to a powerful digital ordering system on a <strong>lifetime 0% commission model</strong>.
+                  Say goodbye to standard 25%-30% commissions that wipe out seller profit margins. With SwitchEats, you gain access to a powerful digital ordering system on a <strong>lifetime 0% commission model</strong>.
                 </p>
               </div>
 
@@ -1435,9 +1435,9 @@ export default function LandingPage() {
               {/* Bottom Call to Action and Lead Form */}
               <div id="partner-lead-form" className="py-12 md:py-20 border-t border-slate-200/40 shrink-0 max-w-3xl mx-auto w-full">
                 <div className="text-center mb-10">
-                  <h3 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Become a Restaurant Partner</h3>
+                  <h3 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Become a Seller Partner</h3>
                   <p className="text-slate-600 max-w-lg font-light text-sm md:text-base mx-auto mt-3">
-                    Fill out the form below to register your interest, and our onboarding team will contact you to set up your restaurant on SwitchEats.
+                    Fill out the form below to register your interest, and our onboarding team will contact you to set up your seller on SwitchEats.
                   </p>
                 </div>
 
@@ -1476,13 +1476,13 @@ export default function LandingPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Restaurant Name</label>
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Seller Name</label>
                         <input
                           type="text"
                           required
                           placeholder="Ex: The Culinary Hub"
-                          value={leadForm.restaurantName}
-                          onChange={(e) => setLeadForm({ ...leadForm, restaurantName: e.target.value })}
+                          value={leadForm.sellerName}
+                          onChange={(e) => setLeadForm({ ...leadForm, sellerName: e.target.value })}
                           className="w-full px-5 py-3.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-[#FA0272]/20 focus:border-[#FA0272] transition-all text-slate-800"
                         />
                       </div>
@@ -1542,7 +1542,7 @@ export default function LandingPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setIsRestaurantOpen(false)}
+                        onClick={() => setIsSellerOpen(false)}
                         className="sm:flex-initial bg-slate-100 hover:bg-slate-200 text-slate-700 px-8 py-4 rounded-2xl font-bold text-sm transition-all duration-300 text-center cursor-pointer"
                       >
                         Return to Homepage
@@ -1774,7 +1774,7 @@ export default function LandingPage() {
               <div className="text-center py-12 md:py-20 border-t border-slate-800/80 flex flex-col items-center gap-6 shrink-0">
                 <h3 className="text-3xl md:text-4xl font-black text-white">Start Earning with SwitchEats</h3>
                 <p className="text-slate-400 max-w-lg font-light text-sm md:text-base">
-                  Get on the road and empower the local neighborhood restaurant ecosystem while securing premium distance-based earnings.
+                  Get on the road and empower the local neighborhood seller ecosystem while securing premium distance-based earnings.
                 </p>
                 <div className="flex gap-4 mt-2">
                   <button

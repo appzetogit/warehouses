@@ -3,9 +3,9 @@ import mongoose from 'mongoose';
 const supportTicketSchema = new mongoose.Schema(
     {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodUser', required: true, index: true },
-        type: { type: String, enum: ['order', 'restaurant', 'other'], required: true },
+        type: { type: String, enum: ['order', 'seller', 'other'], required: true },
         orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodOrder', default: null },
-        restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodRestaurant', default: null },
+        sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodSeller', default: null },
         issueType: { type: String, required: true, trim: true },
         description: { type: String, default: '', trim: true },
         status: { type: String, enum: ['open', 'in-progress', 'resolved'], default: 'open', index: true },

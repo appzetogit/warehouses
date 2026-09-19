@@ -58,8 +58,8 @@ export const useOrderManager = () => {
 
         console.log('[OrderManager] Raw Full Order Data:', fullOrder);
 
-        const resLoc = getLoc(fullOrder.restaurantId, ['latitude', 'lat'], ['longitude', 'lng']) || 
-                       getLoc(fullOrder, ['restaurant_lat', 'restaurantLat', 'latitude'], ['restaurant_lng', 'restaurantLng', 'longitude']);
+        const resLoc = getLoc(fullOrder.sellerId, ['latitude', 'lat'], ['longitude', 'lng']) || 
+                       getLoc(fullOrder, ['seller_lat', 'sellerLat', 'latitude'], ['seller_lng', 'sellerLng', 'longitude']);
                        
         const cusLoc = getLoc(fullOrder.deliveryAddress, ['latitude', 'lat'], ['longitude', 'lng']) || 
                        getLoc(fullOrder, ['customer_lat', 'customerLat', 'latitude'], ['customer_lng', 'customerLng', 'longitude']);
@@ -76,7 +76,7 @@ export const useOrderManager = () => {
           // Pretty id kept for display only (order reference, pickup confirmation)
           orderId: fullOrder.order_id || fullOrder.orderId || order?.orderId || orderId,
           displayOrderId: fullOrder.order_id || fullOrder.orderId || order?.orderId || null,
-          restaurantLocation: resLoc,
+          sellerLocation: resLoc,
           customerLocation: cusLoc,
           customerAddress,
           // Preserve trip road distance from the new-order offer payload
@@ -112,7 +112,7 @@ export const useOrderManager = () => {
   };
 
   /**
-   * Mark "Reached Pickup" (Arrival at restaurant)
+   * Mark "Reached Pickup" (Arrival at seller)
    */
   const reachPickup = async () => {
     const orderId = canonicalOrderId(activeOrder);
@@ -120,7 +120,7 @@ export const useOrderManager = () => {
       const response = await deliveryAPI.confirmReachedPickup(orderId);
       if (response?.data?.success) {
         updateTripStatus('REACHED_PICKUP');
-        // toast.info('Arrived at Restaurant');
+        // toast.info('Arrived at Seller');
       } else {
         throw new Error('Confirm pickup failed');
       }

@@ -23,7 +23,7 @@ export default function NewRefundRequests() {
     orderId: true,
     orderDate: true,
     customer: true,
-    restaurant: true,
+    seller: true,
     totalAmount: true,
     orderStatus: true,
     actions: true,
@@ -91,11 +91,11 @@ export default function NewRefundRequests() {
   } = useGenericTableManagement(
     orders,
     "New Refund Requests",
-    ["orderId", "customerName", "restaurant", "customerPhone"]
+    ["orderId", "customerName", "seller", "customerPhone"]
   )
 
-  const restaurants = useMemo(() => {
-    return [...new Set(orders.map(o => o.restaurant))]
+  const sellers = useMemo(() => {
+    return [...new Set(orders.map(o => o.seller))]
   }, [orders])
 
   // Handle refund processing
@@ -134,7 +134,7 @@ export default function NewRefundRequests() {
       orderId: true,
       orderDate: true,
       customer: true,
-      restaurant: true,
+      seller: true,
       totalAmount: true,
       orderStatus: true,
       actions: true,
@@ -160,7 +160,7 @@ export default function NewRefundRequests() {
         setFilters={setFilters}
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
-        restaurants={restaurants}
+        sellers={sellers}
       />
       <SettingsDialog
         isOpen={isSettingsOpen}
@@ -191,7 +191,7 @@ export default function NewRefundRequests() {
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Order ID</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Order Date</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Customer</th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Restaurant</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Seller</th>
                   <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-700 uppercase">Total Amount</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Cancellation Reason</th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase">Refund Status</th>
@@ -224,7 +224,7 @@ export default function NewRefundRequests() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-slate-700">{order.restaurant}</span>
+                        <span className="text-sm font-medium text-slate-700">{order.seller}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="text-sm font-medium text-slate-900">
@@ -234,7 +234,7 @@ export default function NewRefundRequests() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-red-600 max-w-xs">
-                          {order.cancellationReason || "Rejected by restaurant"}
+                          {order.cancellationReason || "Rejected by seller"}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

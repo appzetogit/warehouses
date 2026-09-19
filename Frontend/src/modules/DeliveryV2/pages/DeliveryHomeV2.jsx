@@ -309,15 +309,15 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
             return null;
           };
 
-          const resLoc = getLoc(serverData.restaurantId, ['latitude', 'lat'], ['longitude', 'lng']) ||
-            getLoc(serverData, ['restaurant_lat', 'restaurantLat', 'latitude'], ['restaurant_lng', 'restaurantLng', 'longitude']);
+          const resLoc = getLoc(serverData.sellerId, ['latitude', 'lat'], ['longitude', 'lng']) ||
+            getLoc(serverData, ['seller_lat', 'sellerLat', 'latitude'], ['seller_lng', 'sellerLng', 'longitude']);
 
           const cusLoc = getLoc(serverData.deliveryAddress, ['latitude', 'lat'], ['longitude', 'lng']) ||
             getLoc(serverData, ['customer_lat', 'customerLat', 'latitude'], ['customer_lng', 'customerLng', 'longitude']);
 
           const syncedOrder = {
             ...serverData,
-            restaurantLocation: resLoc,
+            sellerLocation: resLoc,
             customerLocation: cusLoc,
             customerAddress: resolveCustomerAddress(serverData),
             tripDistanceKm:
@@ -413,7 +413,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
         if (tripStatus === 'PICKING_UP') {
           lastAutoArrivalRef.current[tripStatus] = true;
           reachPickup().catch(() => { lastAutoArrivalRef.current[tripStatus] = false; });
-          // toast.success('Auto-arrived at Restaurant');
+          // toast.success('Auto-arrived at Seller');
         } else if (tripStatus === 'PICKED_UP') {
           lastAutoArrivalRef.current[tripStatus] = true;
           reachDrop().catch(() => { lastAutoArrivalRef.current[tripStatus] = false; });
@@ -864,7 +864,7 @@ export default function DeliveryHomeV2({ tab = 'feed' }) {
                     toast.warning('Simulation Mode Active');
                     // Initialize position if null
                     if (!useDeliveryStore.getState().riderLocation && activeOrder) {
-                      const target = activeOrder.restaurantLocation || activeOrder.customerLocation;
+                      const target = activeOrder.sellerLocation || activeOrder.customerLocation;
                       if (target) {
                         setRiderLocation({
                           lat: parseFloat(target.lat || target.latitude) + 0.001,

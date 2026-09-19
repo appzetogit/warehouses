@@ -41,12 +41,12 @@ export default function RegularOrderReport() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [zones, setZones] = useState([])
-  const [restaurants, setRestaurants] = useState([])
+  const [sellers, setSellers] = useState([])
   const [customers, setCustomers] = useState([])
   
   const [filters, setFilters] = useState({
     zone: "All Zones",
-    restaurant: "All restaurants",
+    seller: "All sellers",
     customer: "All customers",
     time: "All Time",
     fromDate: "",
@@ -57,7 +57,7 @@ export default function RegularOrderReport() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-  // Fetch zones, restaurants, and customers for filter dropdowns
+  // Fetch zones, sellers, and customers for filter dropdowns
   useEffect(() => {
     const fetchFilterData = async () => {
       try {
@@ -67,10 +67,10 @@ export default function RegularOrderReport() {
           setZones(zonesRes.data.data.zones || [])
         }
 
-        // Fetch restaurants
-        const restaurantsRes = await adminAPI.getRestaurants({ limit: 100 })
-        if (restaurantsRes.data?.success) {
-          setRestaurants(restaurantsRes.data.data.restaurants || [])
+        // Fetch sellers
+        const sellersRes = await adminAPI.getSellers({ limit: 100 })
+        if (sellersRes.data?.success) {
+          setSellers(sellersRes.data.data.sellers || [])
         }
 
         // Fetch customers (users) via existing customers API
@@ -135,7 +135,7 @@ export default function RegularOrderReport() {
         page: 1,
         limit: 10000,
         ...(filters.zone !== "All Zones" && { zoneId: filters.zone }),
-        ...(filters.restaurant !== "All restaurants" && { restaurantId: filters.restaurant }),
+        ...(filters.seller !== "All sellers" && { sellerId: filters.seller }),
         ...(fromDate && { startDate: fromDate.toISOString().split('T')[0] }),
         ...(toDate && { endDate: toDate.toISOString().split('T')[0] }),
       }
@@ -172,17 +172,17 @@ export default function RegularOrderReport() {
               ? Number(pricing.total)
               : computedTotal
 
-          const restaurantName =
-            order.restaurantId?.restaurantName ||
-            order.restaurantName ||
+          const sellerName =
+            order.sellerId?.sellerName ||
+            order.sellerName ||
             ""
-          const restaurantId =
-            order.restaurantId?._id?.toString?.() ||
-            order.restaurantId?.toString?.() ||
+          const sellerId =
+            order.sellerId?._id?.toString?.() ||
+            order.sellerId?.toString?.() ||
             ""
           const orderZoneId =
-            order.restaurantId?.zoneId?._id?.toString?.() ||
-            order.restaurantId?.zoneId?.toString?.() ||
+            order.sellerId?.zoneId?._id?.toString?.() ||
+            order.sellerId?.zoneId?.toString?.() ||
             ""
 
           const customerName =
@@ -204,7 +204,7 @@ export default function RegularOrderReport() {
             displayStatus = "Food On The Way"
           } else if (backendStatus === "delivered") {
             displayStatus = "Delivered"
-          } else if (backendStatus === "cancelled_by_restaurant") {
+          } else if (backendStatus === "cancelled_by_seller") {
             displayStatus = "Canceled"
           } else if (backendStatus === "cancelled_by_user" || backendStatus === "cancelled_by_admin") {
             displayStatus = "Canceled"
@@ -212,9 +212,9 @@ export default function RegularOrderReport() {
 
           return {
             orderId: order.orderId,
-            restaurantId,
+            sellerId,
             zoneId: orderZoneId,
-            restaurant: restaurantName,
+            seller: sellerName,
             customerId,
             customerName,
             totalItemAmount: subtotal,
@@ -277,7 +277,7 @@ export default function RegularOrderReport() {
     }
     const headers = [
       { key: "orderId", label: "Order ID" },
-      { key: "restaurant", label: "Restaurant" },
+      { key: "seller", label: "Seller" },
       { key: "customerName", label: "Customer Name" },
       { key: "totalItemAmount", label: "Total Item Amount" },
       { key: "couponDiscount", label: "Coupon Discount" },
@@ -302,7 +302,7 @@ export default function RegularOrderReport() {
   const handleResetFilters = () => {
     setFilters({
       zone: "All Zones",
-      restaurant: "All restaurants",
+      seller: "All sellers",
       customer: "All customers",
       time: "All Time",
       fromDate: "",
@@ -310,7 +310,7 @@ export default function RegularOrderReport() {
     })
   }
 
-  const activeFiltersCount = (filters.zone !== "All Zones" ? 1 : 0) + (filters.restaurant !== "All restaurants" ? 1 : 0) + (filters.customer !== "All customers" ? 1 : 0) + (filters.time !== "All Time" ? 1 : 0)
+  const activeFiltersCount = (filters.zone !== "All Zones" ? 1 : 0) + (filters.seller !== "All sellers" ? 1 : 0) + (filters.customer !== "All customers" ? 1 : 0) + (filters.time !== "All Time" ? 1 : 0)
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE))
 
@@ -444,14 +444,14 @@ export default function RegularOrderReport() {
 
             <div className="relative flex-1 min-w-0">
               <select
-                value={filters.restaurant}
-                onChange={(e) => handleFilterChange("restaurant", e.target.value)}
+                value={filters.seller}
+                onChange={(e) => handleFilterChange("seller", e.target.value)}
                 className="w-full px-2.5 py-1.5 pr-5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs appearance-none cursor-pointer"
               >
-                <option value="All restaurants">All restaurants</option>
-                {restaurants.map((restaurant) => (
-                  <option key={restaurant._id} value={restaurant._id}>
-                    {restaurant.restaurantName || restaurant.name}
+                <option value="All sellers">All sellers</option>
+                {sellers.map((seller) => (
+                  <option key={seller._id} value={seller._id}>
+                    {seller.sellerName || seller.name}
                   </option>
                 ))}
               </select>
@@ -620,7 +620,7 @@ export default function RegularOrderReport() {
                     Order Id
                   </th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: "12%" }}>
-                    Restaurant
+                    Seller
                   </th>
                   <th className="px-1.5 py-1 text-left text-[8px] font-bold text-slate-700 uppercase tracking-wider" style={{ width: "12%" }}>
                     Customer Name
@@ -670,7 +670,7 @@ export default function RegularOrderReport() {
                         <span className="text-[10px] text-blue-600 hover:underline cursor-pointer">{order.orderId}</span>
                       </td>
                       <td className="px-1.5 py-1">
-                        <span className="text-[10px] text-slate-700 truncate block">{order.restaurant}</span>
+                        <span className="text-[10px] text-slate-700 truncate block">{order.seller}</span>
                       </td>
                       <td className="px-1.5 py-1">
                         <span className="text-[10px] text-slate-700 truncate block">{order.customerName}</span>

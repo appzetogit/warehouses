@@ -91,14 +91,14 @@ const pricingSchema = new mongoose.Schema(
         /** Extra surcharge when user selects Quick Mode (also included in platformFee). */
         quickDeliveryFee: { type: Number, default: 0, min: 0 },
         deliveryMode: { type: String, enum: ['basic', 'quick'], default: 'basic' },
-        restaurantCommission: { type: Number, default: 0, min: 0 },
+        sellerCommission: { type: Number, default: 0, min: 0 },
         discount: { type: Number, default: 0, min: 0 },
         couponCode: { type: String, default: null, trim: true, uppercase: true },
         total: { type: Number, required: true, min: 0 },
         currency: { type: String, default: 'INR' },
-        /** Straight-line restaurant ↔ customer km (fee calculation) */
+        /** Straight-line seller ↔ customer km (fee calculation) */
         distanceKm: { type: Number, default: null, min: 0 },
-        /** Driving / road restaurant ↔ customer km (Directions API) */
+        /** Driving / road seller ↔ customer km (Directions API) */
         roadDistanceKm: { type: Number, default: null, min: 0 },
         roadDurationMins: { type: Number, default: null, min: 0 },
     },
@@ -202,7 +202,7 @@ const deliveryStateSchema = new mongoose.Schema(
 const statusHistorySchema = new mongoose.Schema(
     {
         at: { type: Date, default: Date.now },
-        byRole: { type: String, enum: ['USER', 'RESTAURANT', 'DELIVERY_PARTNER', 'ADMIN', 'SYSTEM'] },
+        byRole: { type: String, enum: ['USER', 'SELLER', 'DELIVERY_PARTNER', 'ADMIN', 'SYSTEM'] },
         byId: { type: mongoose.Schema.Types.ObjectId },
         from: { type: String },
         to: { type: String },
@@ -234,7 +234,7 @@ const orderItemRatingSchema = new mongoose.Schema(
 
 const orderRatingsSchema = new mongoose.Schema(
     {
-        restaurant: { type: orderEntityRatingSchema, default: undefined },
+        seller: { type: orderEntityRatingSchema, default: undefined },
         deliveryPartner: { type: orderEntityRatingSchema, default: undefined },
         /** The CUSTOMER, rated by the delivery partner after handover. */
         customer: { type: orderEntityRatingSchema, default: undefined },
@@ -274,9 +274,9 @@ const orderSchema = new mongoose.Schema(
             ref: 'FoodUser',
             required: true
         },
-        restaurantId: {
+        sellerId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'FoodRestaurant',
+            ref: 'FoodSeller',
             required: true
         },
         zoneId: {
@@ -325,7 +325,7 @@ const orderSchema = new mongoose.Schema(
                 'reached_drop',
                 'delivered',
                 'cancelled_by_user',
-                'cancelled_by_restaurant',
+                'cancelled_by_seller',
                 'cancelled_by_admin'
             ],
             default: 'created'
@@ -351,7 +351,7 @@ const orderSchema = new mongoose.Schema(
         acceptanceWindowSeconds: { type: Number, default: 240, min: 1 },
         acceptanceDeadlineAt: { type: Date, default: null },
         /** Idempotency guard so retries/duplicate calls never double-push the "new order" alert. */
-        restaurantNotifiedAt: { type: Date, default: null },
+        sellerNotifiedAt: { type: Date, default: null },
         /** Set once stock was decremented for this order; absent on pre-inventory orders. */
         stockReservedAt: { type: Date, default: null },
         /**
@@ -367,7 +367,7 @@ const orderSchema = new mongoose.Schema(
         riderEarning: { type: Number, default: 0, min: 0 },
         // Can be negative when discounts/rider pay exceed platform income; keep the real value visible.
         platformProfit: { type: Number, default: 0 },
-        /** Restaurant ↔ customer driving distance (km) for delivery-partner offer UI */
+        /** Seller ↔ customer driving distance (km) for delivery-partner offer UI */
         tripDistanceKm: { type: Number, default: null, min: 0 },
         tripDurationMins: { type: Number, default: null, min: 0 },
         /** Plain 4-digit OTP for handover; cleared after successful verify (never expose to partner in API responses). */
@@ -393,7 +393,7 @@ orderSchema.index({ orderStatus: 1, createdAt: -1 });
 orderSchema.index({ 'deliveryAddress.location': '2dsphere' });
 orderSchema.index({ lastRiderLocation: '2dsphere' });
 orderSchema.index({ userId: 1, createdAt: -1 });
-orderSchema.index({ restaurantId: 1, orderStatus: 1, createdAt: -1 });
+orderSchema.index({ sellerId: 1, orderStatus: 1, createdAt: -1 });
 orderSchema.index({ 'dispatch.deliveryPartnerId': 1, orderStatus: 1 });
 orderSchema.index({ 'dispatch.status': 1, orderStatus: 1 });
 orderSchema.index({ 'dispatch.status': 1, orderStatus: 1, updatedAt: -1 });

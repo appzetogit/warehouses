@@ -25,14 +25,14 @@ const slugifyValue = (value) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
 
-const getCoordinates = (restaurant) => {
-  const latitude = restaurant?.location?.latitude
-  const longitude = restaurant?.location?.longitude
+const getCoordinates = (seller) => {
+  const latitude = seller?.location?.latitude
+  const longitude = seller?.location?.longitude
   if (typeof latitude === "number" && typeof longitude === "number") {
     return { latitude, longitude }
   }
 
-  const coords = restaurant?.location?.coordinates
+  const coords = seller?.location?.coordinates
   if (Array.isArray(coords) && coords.length === 2) {
     return { latitude: coords[1], longitude: coords[0] }
   }
@@ -40,23 +40,23 @@ const getCoordinates = (restaurant) => {
   return null
 }
 
-const getDistanceKm = (userLocation, restaurant) => {
+const getDistanceKm = (userLocation, seller) => {
   const userLat = Number(userLocation?.latitude)
   const userLng = Number(userLocation?.longitude)
-  const restaurantCoords = getCoordinates(restaurant)
+  const sellerCoords = getCoordinates(seller)
 
-  if (!Number.isFinite(userLat) || !Number.isFinite(userLng) || !restaurantCoords) {
+  if (!Number.isFinite(userLat) || !Number.isFinite(userLng) || !sellerCoords) {
     return Number.POSITIVE_INFINITY
   }
 
   const toRadians = (value) => (value * Math.PI) / 180
   const earthRadiusKm = 6371
-  const dLat = toRadians(restaurantCoords.latitude - userLat)
-  const dLng = toRadians(restaurantCoords.longitude - userLng)
+  const dLat = toRadians(sellerCoords.latitude - userLat)
+  const dLng = toRadians(sellerCoords.longitude - userLng)
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRadians(userLat)) *
-      Math.cos(toRadians(restaurantCoords.latitude)) *
+      Math.cos(toRadians(sellerCoords.latitude)) *
       Math.sin(dLng / 2) *
       Math.sin(dLng / 2)
 
@@ -67,7 +67,7 @@ const shimmerClassName =
   "before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent before:animate-[shimmer_2.2s_infinite]"
 
 const loadingCategoryCards = Array.from({ length: 6 }, (_, index) => `category-skeleton-${index}`)
-const loadingRestaurantCards = Array.from({ length: 6 }, (_, index) => `restaurant-skeleton-${index}`)
+const loadingSellerCards = Array.from({ length: 6 }, (_, index) => `seller-skeleton-${index}`)
 
 function DiningCategorySkeleton({ index }) {
   return (
@@ -89,7 +89,7 @@ function DiningCategorySkeleton({ index }) {
   )
 }
 
-function DiningRestaurantSkeleton({ index }) {
+function DiningSellerSkeleton({ index }) {
   return (
     <motion.div
       className="h-full"
@@ -148,7 +148,7 @@ export default function Dining() {
   const { addFavorite, removeFavorite, isFavorite } = useProfile()
 
   const [categories, setCategories] = useState([])
-  const [restaurantList, setRestaurantList] = useState([])
+  const [sellerList, setSellerList] = useState([])
   const [loading, setLoading] = useState(true)
   const [diningHeroBanners, setDiningHeroBanners] = useState([])
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
@@ -190,7 +190,7 @@ export default function Dining() {
         const [bannerResponse, cats, rests] = await Promise.all([
           diningAPI.getHeroBanners().catch(() => ({ data: { success: false, data: { banners: [] } } })),
           diningAPI.getCategories(),
-          diningAPI.getRestaurants(location?.city ? { city: location.city } : {}),
+          diningAPI.getSellers(location?.city ? { city: location.city } : {}),
         ])
 
         const heroBanners = Array.isArray(bannerResponse?.data?.data?.banners)
@@ -211,12 +211,12 @@ export default function Dining() {
 
         setDiningHeroBanners(heroBanners)
         setCategories(cats?.data?.success ? (cats.data.data || []) : [])
-        setRestaurantList(rests?.data?.success ? (rests.data.data || []) : [])
+        setSellerList(rests?.data?.success ? (rests.data.data || []) : [])
       } catch (error) {
         debugError("Failed to fetch dining data", error)
         setDiningHeroBanners([])
         setCategories([])
-        setRestaurantList([])
+        setSellerList([])
       } finally {
         setLoading(false)
       }
@@ -242,58 +242,58 @@ export default function Dining() {
       }))
   }, [categories])
 
-  const normalizedRestaurantList = useMemo(() => {
-    return (Array.isArray(restaurantList) ? restaurantList : [])
-      .filter((restaurant) => String(restaurant?.restaurantName || restaurant?.name || "").trim().length > 0)
-      .map((restaurant, index) => {
-        const distanceKm = getDistanceKm(location, restaurant)
-        const restaurantName = String(restaurant?.restaurantName || restaurant?.name || "").trim()
+  const normalizedSellerList = useMemo(() => {
+    return (Array.isArray(sellerList) ? sellerList : [])
+      .filter((seller) => String(seller?.sellerName || seller?.name || "").trim().length > 0)
+      .map((seller, index) => {
+        const distanceKm = getDistanceKm(location, seller)
+        const sellerName = String(seller?.sellerName || seller?.name || "").trim()
         return {
-          ...restaurant,
-          id: restaurant?._id || restaurant?.id || `restaurant-${index}`,
-          name: restaurantName,
-          slug: String(restaurant?.restaurantNameNormalized || "").trim() || slugifyValue(restaurantName),
-          cuisine: Array.isArray(restaurant?.cuisines) && restaurant.cuisines.length > 0
-            ? restaurant.cuisines.join(", ")
+          ...seller,
+          id: seller?._id || seller?.id || `seller-${index}`,
+          name: sellerName,
+          slug: String(seller?.sellerNameNormalized || "").trim() || slugifyValue(sellerName),
+          cuisine: Array.isArray(seller?.cuisines) && seller.cuisines.length > 0
+            ? seller.cuisines.join(", ")
             : "Multi-cuisine",
           image: String(
-            restaurant?.coverImages?.[0]?.url ||
-            restaurant?.coverImages?.[0] ||
-            restaurant?.coverImage ||
-            restaurant?.menuImages?.[0]?.url ||
-            restaurant?.menuImages?.[0] ||
-            restaurant?.profileImage?.url ||
-            restaurant?.profileImage ||
+            seller?.coverImages?.[0]?.url ||
+            seller?.coverImages?.[0] ||
+            seller?.coverImage ||
+            seller?.menuImages?.[0]?.url ||
+            seller?.menuImages?.[0] ||
+            seller?.profileImage?.url ||
+            seller?.profileImage ||
             ""
           ).trim(),
-          offer: String(restaurant?.offer || "Pre-book table").trim(),
-          featuredDish: String(restaurant?.featuredDish || "Chef's special").trim(),
-          featuredPrice: Number(restaurant?.featuredPrice || 0),
-          rating: Number(restaurant?.rating || restaurant?.avgRating || 0),
+          offer: String(seller?.offer || "Pre-book table").trim(),
+          featuredDish: String(seller?.featuredDish || "Chef's special").trim(),
+          featuredPrice: Number(seller?.featuredPrice || 0),
+          rating: Number(seller?.rating || seller?.avgRating || 0),
           deliveryTime: String(
-            restaurant?.estimatedDeliveryTime ||
-            restaurant?.deliveryTime ||
-            (restaurant?.estimatedDeliveryTimeMinutes ? `${restaurant.estimatedDeliveryTimeMinutes} mins` : "30-40 mins")
+            seller?.estimatedDeliveryTime ||
+            seller?.deliveryTime ||
+            (seller?.estimatedDeliveryTimeMinutes ? `${seller.estimatedDeliveryTimeMinutes} mins` : "30-40 mins")
           ).trim(),
           distanceValue: distanceKm,
           distance: Number.isFinite(distanceKm) ? `${distanceKm.toFixed(1)} km` : "Distance unavailable",
-          diningType: restaurant?.diningSettings?.diningType || restaurant?.categories?.[0]?.slug || "dining",
+          diningType: seller?.diningSettings?.diningType || seller?.categories?.[0]?.slug || "dining",
         }
       })
-  }, [restaurantList, location])
+  }, [sellerList, location])
 
-  const categoryRestaurantKeys = useMemo(() => {
+  const categorySellerKeys = useMemo(() => {
     const keySet = new Set()
 
-    normalizedRestaurantList.forEach((restaurant) => {
+    normalizedSellerList.forEach((seller) => {
       const rawCategories = []
 
-      if (Array.isArray(restaurant?.categories)) {
-        rawCategories.push(...restaurant.categories)
+      if (Array.isArray(seller?.categories)) {
+        rawCategories.push(...seller.categories)
       }
 
-      if (restaurant?.diningSettings?.diningType) {
-        rawCategories.push(restaurant.diningSettings.diningType)
+      if (seller?.diningSettings?.diningType) {
+        rawCategories.push(seller.diningSettings.diningType)
       }
 
       rawCategories.forEach((category) => {
@@ -311,19 +311,19 @@ export default function Dining() {
     })
 
     return keySet
-  }, [normalizedRestaurantList])
+  }, [normalizedSellerList])
 
   const filteredCategories = useMemo(() => {
-    return safeCategories.filter((category) => categoryRestaurantKeys.has(category.slug))
-  }, [safeCategories, categoryRestaurantKeys])
+    return safeCategories.filter((category) => categorySellerKeys.has(category.slug))
+  }, [safeCategories, categorySellerKeys])
 
-  const nearbyPopularRestaurants = useMemo(() => {
-    const within10Km = normalizedRestaurantList
-      .filter((restaurant) => Number.isFinite(restaurant.distanceValue) && restaurant.distanceValue <= 10)
+  const nearbyPopularSellers = useMemo(() => {
+    const within10Km = normalizedSellerList
+      .filter((seller) => Number.isFinite(seller.distanceValue) && seller.distanceValue <= 10)
       .sort((a, b) => a.distanceValue - b.distanceValue)
 
-    return within10Km.length > 0 ? within10Km : normalizedRestaurantList
-  }, [normalizedRestaurantList])
+    return within10Km.length > 0 ? within10Km : normalizedSellerList
+  }, [normalizedSellerList])
 
   const toggleFilter = (filterId) => {
     setActiveFilters(prev => {
@@ -337,8 +337,8 @@ export default function Dining() {
     })
   }
 
-  const filteredRestaurants = useMemo(() => {
-    let filtered = [...nearbyPopularRestaurants]
+  const filteredSellers = useMemo(() => {
+    let filtered = [...nearbyPopularSellers]
 
     if (activeFilters.has('delivery-under-30')) {
       filtered = filtered.filter(r => {
@@ -387,7 +387,7 @@ export default function Dining() {
     }
 
     return filtered
-  }, [nearbyPopularRestaurants, activeFilters, selectedCuisine, sortBy])
+  }, [nearbyPopularSellers, activeFilters, selectedCuisine, sortBy])
 
   useEffect(() => {
     setCurrentBannerIndex((prev) => {
@@ -582,7 +582,7 @@ export default function Dining() {
       {/* Banner Section */}
       <div
         className="relative w-full px-3 sm:px-4 md:px-6 lg:px-8 pt-4 pb-4 sm:pb-6 cursor-pointer"
-        onClick={() => navigate('/user/dining/restaurants')}
+        onClick={() => navigate('/user/dining/sellers')}
       >
         <motion.div
           initial={{ opacity: 0, y: 24, scale: 0.98 }}
@@ -734,15 +734,15 @@ export default function Dining() {
           </div>
         </div>
 
-        {/* Popular Restaurants Around You Section */}
+        {/* Popular Sellers Around You Section */}
         <div className="mb-6 mt-8 sm:mt-12">
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4 px-1">
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                Popular Restaurants Within 10km
+                Popular Sellers Within 10km
               </h3>
               <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                {filteredRestaurants.length} nearby places
+                {filteredSellers.length} nearby places
               </p>
             </div>
           </div>
@@ -809,46 +809,46 @@ export default function Dining() {
             </section>
           )}
 
-          {/* Restaurant Cards */}
+          {/* Seller Cards */}
           {loading ? (
             <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-8">
-              {loadingRestaurantCards.map((key, index) => (
-                <DiningRestaurantSkeleton key={key} index={index} />
+              {loadingSellerCards.map((key, index) => (
+                <DiningSellerSkeleton key={key} index={index} />
               ))}
             </div>
-          ) : filteredRestaurants.length === 0 ? (
+          ) : filteredSellers.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#eadfce] bg-[#fffaf4] px-6 py-12 text-center text-sm font-medium text-gray-500">
-              No popular dining restaurants were found within 10 km for the current location.
+              No popular dining sellers were found within 10 km for the current location.
             </div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-8">
-            {/* First 2 Restaurants */}
-            {filteredRestaurants.slice(0, 2).map((restaurant, index) => {
-              const restaurantSlug = restaurant.slug || restaurant.name.toLowerCase().replace(/\s+/g, "-")
-              const diningDetailPath = `/food/user/dining/${restaurant.diningType || "dining"}/${restaurantSlug}`
-              const favorite = isFavorite(restaurantSlug)
+            {/* First 2 Sellers */}
+            {filteredSellers.slice(0, 2).map((seller, index) => {
+              const sellerSlug = seller.slug || seller.name.toLowerCase().replace(/\s+/g, "-")
+              const diningDetailPath = `/food/user/dining/${seller.diningType || "dining"}/${sellerSlug}`
+              const favorite = isFavorite(sellerSlug)
 
               const handleToggleFavorite = (e) => {
                 e.preventDefault()
                 e.stopPropagation()
                 if (favorite) {
-                  removeFavorite(restaurantSlug)
+                  removeFavorite(sellerSlug)
                 } else {
                   addFavorite({
-                    slug: restaurantSlug,
-                    name: restaurant.name,
-                    cuisine: restaurant.cuisine,
-                    rating: restaurant.rating,
-                    deliveryTime: restaurant.deliveryTime,
-                    distance: restaurant.distance,
-                    image: restaurant.image
+                    slug: sellerSlug,
+                    name: seller.name,
+                    cuisine: seller.cuisine,
+                    rating: seller.rating,
+                    deliveryTime: seller.deliveryTime,
+                    distance: seller.distance,
+                    image: seller.image
                   })
                 }
               }
 
               return (
                 <motion.div
-                  key={restaurant._id || restaurant.id}
+                  key={seller._id || seller.id}
                   className="h-full"
                   initial={{ opacity: 0, y: 30, scale: 0.95 }}
                   whileInView={{ opacity: 1, y: 0, scale: 1 }}
@@ -886,7 +886,7 @@ export default function Dining() {
                   >
                     <Link
                       to={diningDetailPath}
-                      state={{ restaurant }}
+                      state={{ seller }}
                       className="h-full flex"
                     >
                       <Card className="overflow-hidden gap-0 cursor-pointer border-0 dark:border-gray-800 group bg-white dark:bg-[#1a1a1a] shadow-md transition-all duration-500 py-0 rounded-2xl h-full flex flex-col w-full relative">
@@ -900,10 +900,10 @@ export default function Dining() {
                             }}
                             transition={{ duration: 0.6, ease: "easeOut" }}
                           >
-                            {restaurant.image ? (
+                            {seller.image ? (
                               <OptimizedImage
-                                src={restaurant.image}
-                                alt={restaurant.name}
+                                src={seller.image}
+                                alt={seller.name}
                                 className="w-full h-full"
                                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                 objectFit="cover"
@@ -951,7 +951,7 @@ export default function Dining() {
                             transition={{ duration: 0.3 }}
                           >
                             <div className="bg-gray-800/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium shadow-lg">
-                              {restaurant.featuredDish} • ₹{restaurant.featuredPrice}
+                              {seller.featuredDish} • ₹{seller.featuredPrice}
                             </div>
                           </motion.div>
 
@@ -983,7 +983,7 @@ export default function Dining() {
                                 </p>
                                 <div className="h-px bg-white/30 mb-2 w-24"></div>
                                 <p className="text-white text-base sm:text-lg font-bold">
-                                  {restaurant.offer}
+                                  {seller.offer}
                                 </p>
                               </div>
                             </div>
@@ -999,7 +999,7 @@ export default function Dining() {
                           transition={{ duration: 0.4, ease: "easeOut" }}
                         >
                           <CardContent className="p-3 sm:p-4 pt-3 sm:pt-4">
-                            {/* Restaurant Name & Rating */}
+                            {/* Seller Name & Rating */}
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex-1 min-w-0">
                                 <motion.h3
@@ -1010,7 +1010,7 @@ export default function Dining() {
                                   }}
                                   transition={{ duration: 0.3 }}
                                 >
-                                  {restaurant.name}
+                                  {seller.name}
                                 </motion.h3>
                               </div>
                               <motion.div
@@ -1021,7 +1021,7 @@ export default function Dining() {
                                 }}
                                 transition={{ duration: 0.3, type: "spring", stiffness: 400 }}
                               >
-                                <span className="text-sm font-bold">{restaurant.rating}</span>
+                                <span className="text-sm font-bold">{seller.rating}</span>
                                 <Star className="h-3 w-3 fill-white text-white" />
                               </motion.div>
                             </div>
@@ -1029,18 +1029,18 @@ export default function Dining() {
                             {/* Delivery Time & Distance */}
                             <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 mb-2">
                               <Clock className="h-4 w-4" strokeWidth={1.5} />
-                              <span className="font-medium">{restaurant.deliveryTime}</span>
+                              <span className="font-medium">{seller.deliveryTime}</span>
                               <span className="mx-1">|</span>
-                              <span className="font-medium">{restaurant.distance}</span>
+                              <span className="font-medium">{seller.distance}</span>
                             </div>
 
                             {/* Offer Badge */}
-                            {restaurant.offer && (
+                            {seller.offer && (
                               <div className="flex items-center gap-2 text-sm">
                                 <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FFF1E8] px-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#EB590E]">
                                   Off
                                 </span>
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">{restaurant.offer}</span>
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">{seller.offer}</span>
                               </div>
                             )}
                           </CardContent>
@@ -1052,33 +1052,33 @@ export default function Dining() {
               )
             })}
 
-            {/* Remaining Restaurants */}
-            {filteredRestaurants.slice(2).map((restaurant, index) => {
-              const restaurantSlug = restaurant.slug || restaurant.name.toLowerCase().replace(/\s+/g, "-")
-              const diningDetailPath = `/food/user/dining/${restaurant.diningType || "dining"}/${restaurantSlug}`
-              const favorite = isFavorite(restaurantSlug)
+            {/* Remaining Sellers */}
+            {filteredSellers.slice(2).map((seller, index) => {
+              const sellerSlug = seller.slug || seller.name.toLowerCase().replace(/\s+/g, "-")
+              const diningDetailPath = `/food/user/dining/${seller.diningType || "dining"}/${sellerSlug}`
+              const favorite = isFavorite(sellerSlug)
 
               const handleToggleFavorite = (e) => {
                 e.preventDefault()
                 e.stopPropagation()
                 if (favorite) {
-                  removeFavorite(restaurantSlug)
+                  removeFavorite(sellerSlug)
                 } else {
                   addFavorite({
-                    slug: restaurantSlug,
-                    name: restaurant.name,
-                    cuisine: restaurant.cuisine,
-                    rating: restaurant.rating,
-                    deliveryTime: restaurant.deliveryTime,
-                    distance: restaurant.distance,
-                    image: restaurant.image
+                    slug: sellerSlug,
+                    name: seller.name,
+                    cuisine: seller.cuisine,
+                    rating: seller.rating,
+                    deliveryTime: seller.deliveryTime,
+                    distance: seller.distance,
+                    image: seller.image
                   })
                 }
               }
 
               return (
                 <motion.div
-                  key={restaurant._id || restaurant.id}
+                  key={seller._id || seller.id}
                   className="h-full"
                   initial={{ opacity: 0, y: 30, scale: 0.95 }}
                   whileInView={{ opacity: 1, y: 0, scale: 1 }}
@@ -1116,7 +1116,7 @@ export default function Dining() {
                   >
                     <Link
                       to={diningDetailPath}
-                      state={{ restaurant }}
+                      state={{ seller }}
                       className="h-full flex"
                     >
                       <Card className="overflow-hidden cursor-pointer border-0 dark:border-gray-800 group bg-white dark:bg-[#1a1a1a] shadow-md transition-all duration-500 py-0 rounded-2xl h-full flex flex-col w-full relative">
@@ -1130,10 +1130,10 @@ export default function Dining() {
                             }}
                             transition={{ duration: 0.6, ease: "easeOut" }}
                           >
-                            {restaurant.image ? (
+                            {seller.image ? (
                               <OptimizedImage
-                                src={restaurant.image}
-                                alt={restaurant.name}
+                                src={seller.image}
+                                alt={seller.name}
                                 className="w-full h-full"
                                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                 objectFit="cover"
@@ -1173,7 +1173,7 @@ export default function Dining() {
                           {/* Featured Dish Badge - Top Left */}
                           <div className="absolute top-3 left-3">
                             <div className="bg-gray-800/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium">
-                              {restaurant.featuredDish} • ₹{restaurant.featuredPrice}
+                              {seller.featuredDish} • ₹{seller.featuredPrice}
                             </div>
                           </div>
 
@@ -1196,7 +1196,7 @@ export default function Dining() {
                                 </p>
                                 <div className="h-px bg-white/30 mb-2 w-24"></div>
                                 <p className="text-white text-base sm:text-lg font-bold">
-                                  {restaurant.offer}
+                                  {seller.offer}
                                 </p>
                               </div>
                             </div>
@@ -1205,15 +1205,15 @@ export default function Dining() {
 
                         {/* Content Section */}
                         <CardContent className="p-3 sm:p-4 pt-3 sm:pt-4">
-                          {/* Restaurant Name & Rating */}
+                          {/* Seller Name & Rating */}
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex-1 min-w-0">
                               <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white line-clamp-1">
-                                {restaurant.name}
+                                {seller.name}
                               </h3>
                             </div>
                             <div className="flex-shrink-0 bg-green-600 text-white px-2 py-1 rounded-lg flex items-center gap-1">
-                              <span className="text-sm font-bold">{restaurant.rating}</span>
+                              <span className="text-sm font-bold">{seller.rating}</span>
                               <Star className="h-3 w-3 fill-white text-white" />
                             </div>
                           </div>
@@ -1221,18 +1221,18 @@ export default function Dining() {
                           {/* Delivery Time & Distance */}
                           <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 mb-2">
                             <Clock className="h-4 w-4" strokeWidth={1.5} />
-                            <span className="font-medium">{restaurant.deliveryTime}</span>
+                            <span className="font-medium">{seller.deliveryTime}</span>
                             <span className="mx-1">|</span>
-                            <span className="font-medium">{restaurant.distance}</span>
+                            <span className="font-medium">{seller.distance}</span>
                           </div>
 
                           {/* Offer Badge */}
-                          {restaurant.offer && (
+                          {seller.offer && (
                             <div className="flex items-center gap-2 text-sm">
                               <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FFF1E8] px-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#EB590E]">
                                 Off
                               </span>
-                              <span className="text-gray-700 dark:text-gray-300 font-medium">{restaurant.offer}</span>
+                              <span className="text-gray-700 dark:text-gray-300 font-medium">{seller.offer}</span>
                             </div>
                           )}
                         </CardContent>
@@ -1365,7 +1365,7 @@ export default function Dining() {
                 {/* Rating Tab */}
                 {activeFilterTab === 'rating' && (
                   <div className="space-y-4 mb-8">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Restaurant Rating</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Seller Rating</h3>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => toggleFilter('rating-35-plus')}
@@ -1498,7 +1498,7 @@ export default function Dining() {
                   }`}
               >
                 {activeFilters.size > 0 || sortBy || selectedCuisine
-                  ? `Show ${filteredRestaurants.length} results`
+                  ? `Show ${filteredSellers.length} results`
                   : 'Show results'}
               </button>
             </div>

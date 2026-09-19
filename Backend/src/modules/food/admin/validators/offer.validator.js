@@ -7,9 +7,9 @@ const createOfferSchema = z.object({
     discountType: z.enum(['percentage', 'flat-price']).default('percentage'),
     discountValue: z.number().positive('Discount value must be greater than 0'),
     customerScope: z.enum(['all', 'first-time']).default('all'),
-    restaurantScope: z.enum(['all', 'selected']).default('all'),
-    restaurantId: z.string().optional(),
-    restaurantIds: z.array(z.string()).optional(),
+    sellerScope: z.enum(['all', 'selected']).default('all'),
+    sellerId: z.string().optional(),
+    sellerIds: z.array(z.string()).optional(),
     endDate: z.string().optional().or(z.literal('')).or(z.undefined()),
     startDate: z.string().optional().or(z.literal('')).or(z.undefined()),
     minOrderValue: z.number().min(0).optional(),
@@ -18,7 +18,7 @@ const createOfferSchema = z.object({
     perUserLimit: z.number().min(0).optional(),
     isFirstOrderOnly: z.boolean().optional(),
     adminBearPercentage: z.number().min(0).max(100).optional(),
-    restaurantBearPercentage: z.number().min(0).max(100).optional()
+    sellerBearPercentage: z.number().min(0).max(100).optional()
 });
 
 export const validateCreateOfferDto = (body) => {
@@ -28,10 +28,10 @@ export const validateCreateOfferDto = (body) => {
         discountType: body?.discountType,
         discountValue: Number(body?.discountValue),
         customerScope: body?.customerScope,
-        restaurantScope: body?.restaurantScope,
-        restaurantId: body?.restaurantId ? String(body.restaurantId) : undefined,
-        restaurantIds: Array.isArray(body?.restaurantIds)
-            ? body.restaurantIds.map((id) => String(id)).filter(Boolean)
+        sellerScope: body?.sellerScope,
+        sellerId: body?.sellerId ? String(body.sellerId) : undefined,
+        sellerIds: Array.isArray(body?.sellerIds)
+            ? body.sellerIds.map((id) => String(id)).filter(Boolean)
             : undefined,
         endDate: body?.endDate ? String(body.endDate) : undefined,
         startDate: body?.startDate ? String(body.startDate) : undefined,
@@ -41,7 +41,7 @@ export const validateCreateOfferDto = (body) => {
         perUserLimit: body?.perUserLimit !== undefined ? Number(body.perUserLimit) : undefined,
         isFirstOrderOnly: body?.isFirstOrderOnly !== undefined ? Boolean(body.isFirstOrderOnly) : undefined,
         adminBearPercentage: body?.adminBearPercentage !== undefined ? Number(body.adminBearPercentage) : undefined,
-        restaurantBearPercentage: body?.restaurantBearPercentage !== undefined ? Number(body.restaurantBearPercentage) : undefined
+        sellerBearPercentage: body?.sellerBearPercentage !== undefined ? Number(body.sellerBearPercentage) : undefined
     };
 
     const result = createOfferSchema.safeParse(normalized);
@@ -49,12 +49,12 @@ export const validateCreateOfferDto = (body) => {
         throw new ValidationError(result.error.errors[0].message);
     }
 
-    if (result.data.restaurantScope === 'selected') {
-        const restaurantIds = [
-            ...(result.data.restaurantIds || []),
-            ...(result.data.restaurantId ? [result.data.restaurantId] : [])
+    if (result.data.sellerScope === 'selected') {
+        const sellerIds = [
+            ...(result.data.sellerIds || []),
+            ...(result.data.sellerId ? [result.data.sellerId] : [])
         ];
-        if (restaurantIds.length === 0 || restaurantIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
+        if (sellerIds.length === 0 || sellerIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
             throw new ValidationError('At least one valid store is required for selected store scope');
         }
     }
@@ -84,15 +84,15 @@ export const validateCreateOfferDto = (body) => {
         maxDiscount = undefined; // ignore for flat-price
     }
 
-    const restaurantIds = result.data.restaurantScope === 'selected'
+    const sellerIds = result.data.sellerScope === 'selected'
         ? [...new Set([
-            ...(result.data.restaurantIds || []),
-            ...(result.data.restaurantId ? [result.data.restaurantId] : [])
+            ...(result.data.sellerIds || []),
+            ...(result.data.sellerId ? [result.data.sellerId] : [])
         ])]
         : [];
     const adminBearPercentage = result.data.adminBearPercentage ?? 100;
-    const restaurantBearPercentage = result.data.restaurantBearPercentage ?? 0;
-    if (Math.round((adminBearPercentage + restaurantBearPercentage) * 100) / 100 !== 100) {
+    const sellerBearPercentage = result.data.sellerBearPercentage ?? 0;
+    if (Math.round((adminBearPercentage + sellerBearPercentage) * 100) / 100 !== 100) {
         throw new ValidationError('Admin bear and store bear must total 100%');
     }
 
@@ -101,9 +101,9 @@ export const validateCreateOfferDto = (body) => {
         discountType: result.data.discountType,
         discountValue: result.data.discountValue,
         customerScope: result.data.customerScope,
-        restaurantScope: result.data.restaurantScope,
-        restaurantId: restaurantIds[0],
-        restaurantIds,
+        sellerScope: result.data.sellerScope,
+        sellerId: sellerIds[0],
+        sellerIds,
         endDate,
         startDate,
         minOrderValue: result.data.minOrderValue,
@@ -112,7 +112,7 @@ export const validateCreateOfferDto = (body) => {
         perUserLimit: result.data.perUserLimit,
         isFirstOrderOnly: result.data.isFirstOrderOnly,
         adminBearPercentage,
-        restaurantBearPercentage
+        sellerBearPercentage
     };
 };
 

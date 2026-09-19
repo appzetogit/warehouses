@@ -14,7 +14,7 @@ export default function SubscriptionOrders() {
     subscriptionId: true,
     orderType: true,
     duration: true,
-    restaurant: true,
+    seller: true,
     customer: true,
     status: true,
     actions: true,
@@ -44,11 +44,11 @@ export default function SubscriptionOrders() {
   } = useGenericTableManagement(
     emptySubscriptionOrders,
     "Subscription Orders",
-    ["subscriptionId", "customerName", "restaurant", "customerPhone"]
+    ["subscriptionId", "customerName", "seller", "customerPhone"]
   )
 
-  const restaurants = useMemo(() => {
-    return [...new Set(emptySubscriptionOrders.map(o => o.restaurant))]
+  const sellers = useMemo(() => {
+    return [...new Set(emptySubscriptionOrders.map(o => o.seller))]
   }, [])
 
   // Statistics
@@ -66,7 +66,7 @@ export default function SubscriptionOrders() {
       subscriptionId: true,
       orderType: true,
       duration: true,
-      restaurant: true,
+      seller: true,
       customer: true,
       status: true,
       actions: true,
@@ -141,7 +141,7 @@ export default function SubscriptionOrders() {
         setFilters={setFilters}
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
-        restaurants={restaurants}
+        sellers={sellers}
       />
       <SettingsDialog
         isOpen={isSettingsOpen}
@@ -154,7 +154,7 @@ export default function SubscriptionOrders() {
           subscriptionId: "Subscription ID",
           orderType: "Order Type",
           duration: "Duration",
-          restaurant: "Restaurant",
+          seller: "Seller",
           customer: "Customer",
           status: "Status",
           actions: "Actions",

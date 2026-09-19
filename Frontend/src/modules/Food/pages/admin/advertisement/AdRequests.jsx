@@ -16,13 +16,13 @@ export default function AdRequests() {
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [filters, setFilters] = useState({
     adsType: "",
-    restaurant: "",
+    seller: "",
   })
   const [visibleColumns, setVisibleColumns] = useState({
     si: true,
     adsId: true,
     adsTitle: true,
-    restaurantInfo: true,
+    sellerInfo: true,
     adsType: true,
     duration: true,
     actions: true,
@@ -32,7 +32,7 @@ export default function AdRequests() {
     si: "Serial Number",
     adsId: "Ads ID",
     adsTitle: "Ads Title",
-    restaurantInfo: "Restaurant Info",
+    sellerInfo: "Seller Info",
     adsType: "Ads Type",
     duration: "Duration",
     actions: "Actions",
@@ -55,7 +55,7 @@ export default function AdRequests() {
       const query = searchQuery.toLowerCase().trim()
       result = result.filter(request =>
         request.adsId?.toLowerCase().includes(query) ||
-        request.restaurantName?.toLowerCase().includes(query) ||
+        request.sellerName?.toLowerCase().includes(query) ||
         request.adsTitle?.toLowerCase().includes(query)
       )
     }
@@ -65,9 +65,9 @@ export default function AdRequests() {
       result = result.filter(r => r.adsType === filters.adsType)
     }
     
-    // Filter by restaurant
-    if (filters.restaurant) {
-      result = result.filter(r => r.restaurantName === filters.restaurant)
+    // Filter by seller
+    if (filters.seller) {
+      result = result.filter(r => r.sellerName === filters.seller)
     }
     
     return result
@@ -121,7 +121,7 @@ export default function AdRequests() {
       si: true,
       adsId: true,
       adsTitle: true,
-      restaurantInfo: true,
+      sellerInfo: true,
       adsType: true,
       duration: true,
       actions: true,
@@ -135,11 +135,11 @@ export default function AdRequests() {
   const handleResetFilters = () => {
     setFilters({
       adsType: "",
-      restaurant: "",
+      seller: "",
     })
   }
 
-  const restaurants = [...new Set(requests.map(r => r.restaurantName))].filter(Boolean)
+  const sellers = [...new Set(requests.map(r => r.sellerName))].filter(Boolean)
   const adsTypes = [...new Set(requests.map(r => r.adsType))].filter(Boolean)
 
   const tabs = [
@@ -190,7 +190,7 @@ export default function AdRequests() {
               <div className="relative flex-1 sm:flex-initial min-w-[250px]">
                 <input
                   type="text"
-                  placeholder="Search by ads ID or restaurant"
+                  placeholder="Search by ads ID or seller"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 pr-4 py-2.5 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
@@ -262,7 +262,7 @@ export default function AdRequests() {
                 {visibleColumns.si && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">SI</th>}
                 {visibleColumns.adsId && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Ads ID</th>}
                 {visibleColumns.adsTitle && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Ads Title</th>}
-                {visibleColumns.restaurantInfo && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Restaurant Info</th>}
+                {visibleColumns.sellerInfo && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Seller Info</th>}
                 {visibleColumns.adsType && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Ads Type</th>}
                 {visibleColumns.duration && <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Duration</th>}
                 {visibleColumns.actions && <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-700 uppercase tracking-wider">Action</th>}
@@ -297,15 +297,15 @@ export default function AdRequests() {
                         <span className="text-sm font-medium text-slate-900">{request.adsTitle}</span>
                       </td>
                     )}
-                    {visibleColumns.restaurantInfo && (
+                    {visibleColumns.sellerInfo && (
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
                             <Building2 className="w-5 h-5 text-orange-600" />
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-medium text-slate-900">{request.restaurantName}</span>
-                            <span className="text-xs text-slate-500">{request.restaurantEmail}</span>
+                            <span className="text-sm font-medium text-slate-900">{request.sellerName}</span>
+                            <span className="text-xs text-slate-500">{request.sellerEmail}</span>
                           </div>
                         </div>
                       </td>
@@ -394,16 +394,16 @@ export default function AdRequests() {
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Restaurant
+                Seller
               </label>
               <select
-                value={filters.restaurant}
-                onChange={(e) => setFilters(prev => ({ ...prev, restaurant: e.target.value }))}
+                value={filters.seller}
+                onChange={(e) => setFilters(prev => ({ ...prev, seller: e.target.value }))}
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
-                <option value="">All Restaurants</option>
-                {restaurants.map(restaurant => (
-                  <option key={restaurant} value={restaurant}>{restaurant}</option>
+                <option value="">All Sellers</option>
+                {sellers.map(seller => (
+                  <option key={seller} value={seller}>{seller}</option>
                 ))}
               </select>
             </div>
@@ -453,12 +453,12 @@ export default function AdRequests() {
                   <p className="text-sm text-slate-900">{selectedRequest.adsTitle}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-700">Restaurant Name</p>
-                  <p className="text-sm text-slate-900">{selectedRequest.restaurantName}</p>
+                  <p className="text-sm font-semibold text-slate-700">Seller Name</p>
+                  <p className="text-sm text-slate-900">{selectedRequest.sellerName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-700">Restaurant Email</p>
-                  <p className="text-sm text-slate-900">{selectedRequest.restaurantEmail}</p>
+                  <p className="text-sm font-semibold text-slate-700">Seller Email</p>
+                  <p className="text-sm text-slate-900">{selectedRequest.sellerEmail}</p>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-700">Ads Type</p>

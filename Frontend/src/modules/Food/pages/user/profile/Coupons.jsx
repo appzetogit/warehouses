@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react"
 import { ArrowLeft, Copy, MapPin, TicketPercent } from "lucide-react"
 import AnimatedPage from "@food/components/user/AnimatedPage"
 import { Button } from "@food/components/ui/button"
-import { restaurantAPI } from "@food/api"
+import { sellerAPI } from "@food/api"
 import { toast } from "sonner"
 
 export default function Coupons() {
@@ -15,7 +15,7 @@ export default function Coupons() {
     const load = async () => {
       try {
         setLoading(true)
-        const res = await restaurantAPI.getPublicOffers()
+        const res = await sellerAPI.getPublicOffers()
         const list = res?.data?.data?.allOffers || res?.data?.allOffers || []
         if (!cancelled) {
           // Only show offers meant to be visible to users (default true)
@@ -72,7 +72,7 @@ export default function Coupons() {
             {sortedOffers.map((offer) => {
               const code = offer?.couponCode || ""
               const title = offer?.title || ""
-              const restaurantName = offer?.restaurantName || "All Restaurants"
+              const sellerName = offer?.sellerName || "All Sellers"
               const endDate = offer?.endDate ? new Date(offer.endDate) : null
               const expiryText =
                 endDate && !Number.isNaN(endDate.getTime())
@@ -101,7 +101,7 @@ export default function Coupons() {
                           )}
                         </div>
                         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">
-                          {restaurantName}
+                          {sellerName}
                         </p>
                         <p className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">
                           {expiryText}

@@ -1,7 +1,7 @@
 import { verifyAccessToken } from './token.util.js';
 import { sendError } from '../../utils/response.js';
 import { FoodUser } from '../users/user.model.js';
-import { FoodRestaurant } from '../../modules/food/restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../../modules/food/seller/models/seller.model.js';
 import { FoodDeliveryPartner } from '../../modules/food/delivery/models/deliveryPartner.model.js';
 
 export const requireAdmin = (req, res, next) => {
@@ -20,7 +20,7 @@ export const requireAdmin = (req, res, next) => {
  */
 const SESSION_SCOPED_MODELS = {
     USER: FoodUser,
-    RESTAURANT: FoodRestaurant,
+    SELLER: FoodSeller,
     DELIVERY_PARTNER: FoodDeliveryPartner
 };
 

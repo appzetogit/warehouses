@@ -13,7 +13,7 @@ import mongoose from 'mongoose';
 import { FoodZone } from '../src/modules/food/admin/models/zone.model.js';
 import { FoodCategory } from '../src/modules/food/admin/models/category.model.js';
 import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
-import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
 
 const SEED_TAG = 'seed:quick-commerce';
 
@@ -28,7 +28,7 @@ const ZONE_RING = [
 
 const SELLERS = [
     {
-        restaurantName: 'FreshMart Express',
+        sellerName: 'FreshMart Express',
         ownerName: 'Ravi Kumar',
         ownerEmail: 'freshmart@example.com',
         ownerPhone: '9000000101',
@@ -37,7 +37,7 @@ const SELLERS = [
         estimatedDeliveryTime: '10-15 mins',
     },
     {
-        restaurantName: 'DailyNeeds Store',
+        sellerName: 'DailyNeeds Store',
         ownerName: 'Anita Sharma',
         ownerEmail: 'dailyneeds@example.com',
         ownerPhone: '9000000102',
@@ -100,11 +100,11 @@ async function main() {
     console.log(`connected -> ${mongoose.connection.name}`);
 
     if (wipe) {
-        const sellerIds = (await FoodRestaurant.find({ website: SEED_TAG }).select('_id').lean())
+        const sellerIds = (await FoodSeller.find({ website: SEED_TAG }).select('_id').lean())
             .map((s) => s._id);
         const removed = await Promise.all([
-            FoodItem.deleteMany({ restaurantId: { $in: sellerIds } }),
-            FoodRestaurant.deleteMany({ website: SEED_TAG }),
+            FoodItem.deleteMany({ sellerId: { $in: sellerIds } }),
+            FoodSeller.deleteMany({ website: SEED_TAG }),
             FoodCategory.deleteMany({ type: SEED_TAG }),
             FoodZone.deleteMany({ serviceLocation: SEED_TAG }),
         ]);
@@ -134,7 +134,7 @@ async function main() {
     // --- sellers ---
     const sellers = [];
     for (const s of SELLERS) {
-        const doc = await FoodRestaurant.findOneAndUpdate(
+        const doc = await FoodSeller.findOneAndUpdate(
             { ownerPhone: s.ownerPhone },
             {
                 $set: {
@@ -156,7 +156,7 @@ async function main() {
                     location: { type: 'Point', coordinates: [s.longitude, s.latitude] },
                     rating: 4.4,
                     totalRatings: 120,
-                    pureVegRestaurant: false,
+                    pureVegSeller: false,
                     // Marker for --wipe; sellers have no dedicated tag field.
                     website: SEED_TAG,
                 },
@@ -164,7 +164,7 @@ async function main() {
             { upsert: true, new: true, setDefaultsOnInsert: true },
         );
         sellers.push(doc);
-        console.log(`seller: ${doc.restaurantName}`);
+        console.log(`seller: ${doc.sellerName}`);
     }
 
     // --- categories (parent then children) ---
@@ -172,7 +172,7 @@ async function main() {
     let order = 0;
     for (const [parentName, children] of Object.entries(CATEGORIES)) {
         const parent = await FoodCategory.findOneAndUpdate(
-            { name: parentName, restaurantId: { $exists: false } },
+            { name: parentName, sellerId: { $exists: false } },
             {
                 $set: {
                     name: parentName,
@@ -190,7 +190,7 @@ async function main() {
 
         for (const childName of children) {
             const child = await FoodCategory.findOneAndUpdate(
-                { name: childName, restaurantId: { $exists: false } },
+                { name: childName, sellerId: { $exists: false } },
                 {
                     $set: {
                         name: childName,
@@ -223,10 +223,10 @@ async function main() {
             const sellerPrice = index === 1 ? Math.min(Math.round(price * 1.05), mrp || Infinity) : price;
 
             await FoodItem.findOneAndUpdate(
-                { restaurantId: seller._id, name },
+                { sellerId: seller._id, name },
                 {
                     $set: {
-                        restaurantId: seller._id,
+                        sellerId: seller._id,
                         categoryId: category._id,
                         categoryName: category.name,
                         name,
@@ -256,7 +256,7 @@ async function main() {
     console.log(`products: ${created} listings across ${sellers.length} sellers`);
 
     const outOfStock = await FoodItem.countDocuments({
-        restaurantId: { $in: sellers.map((s) => s._id) },
+        sellerId: { $in: sellers.map((s) => s._id) },
         stockQty: 0,
     });
     console.log(`   (${outOfStock} deliberately out of stock)`);

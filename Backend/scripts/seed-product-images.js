@@ -15,8 +15,8 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
 import { FoodCategory } from '../src/modules/food/admin/models/category.model.js';
-import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
-import { uploadRestaurantAttachment } from '../src/modules/food/restaurant/services/restaurant.service.js';
+import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
+import { uploadSellerAttachment } from '../src/modules/food/seller/services/seller.service.js';
 
 /**
  * name, brand, packSize, price, mrp, gstRate, stock, category, image search
@@ -205,8 +205,8 @@ async function main() {
   }
   console.log(`connected -> ${mongoose.connection.name}\n`);
 
-  const sellers = await FoodRestaurant.find({ status: 'approved' })
-    .select('_id restaurantName')
+  const sellers = await FoodSeller.find({ status: 'approved' })
+    .select('_id sellerName')
     .lean();
   if (!sellers.length) {
     console.error('no approved seller; run seed-quick-commerce.js first');
@@ -238,7 +238,7 @@ async function main() {
       if (index > 0 && catalogueIndex % 3 === 2) continue;
       const sellerPrice = index > 0 ? Math.min(Math.round(price * 1.05), mrp || price) : price;
 
-      const existing = await FoodItem.findOne({ restaurantId: seller._id, name })
+      const existing = await FoodItem.findOne({ sellerId: seller._id, name })
         .select('_id image')
         .lean();
 
@@ -257,7 +257,7 @@ async function main() {
             ? ((await fetchPackshot(term)) ?? (await fetchPhoto(term)))
             : await fetchPhoto(term);
           if (photo) {
-            const stored = await uploadRestaurantAttachment(
+            const stored = await uploadSellerAttachment(
               { buffer: photo.buffer, originalname: `${name}.jpg`, mimetype: 'image/jpeg' },
               'products',
             );
@@ -268,10 +268,10 @@ async function main() {
       }
 
       await FoodItem.findOneAndUpdate(
-        { restaurantId: seller._id, name },
+        { sellerId: seller._id, name },
         {
           $set: {
-            restaurantId: seller._id,
+            sellerId: seller._id,
             ...(category ? { categoryId: category._id, categoryName: category.name } : {}),
             name,
             brand,

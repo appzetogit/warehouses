@@ -4,13 +4,13 @@ import mongoose from 'mongoose';
 // whenever the partner was missing.
 import { NotFoundError, ValidationError } from '../../../../core/auth/errors.js';
 import { normalizeFoodImages } from './foodImages.util.js';
-import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
-import { FoodRestaurantOutletTimings } from '../../restaurant/models/outletTimings.model.js';
+import { FoodSeller } from '../../seller/models/seller.model.js';
+import { FoodSellerOutletTimings } from '../../seller/models/outletTimings.model.js';
 import { FoodDeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
 import { DeliverySupportTicket } from '../../delivery/models/supportTicket.model.js';
 import { FoodNotification } from '../../../../core/notifications/models/notification.model.js';
 import { sendNotificationToOwner } from '../../../../core/notifications/firebase.service.js';
-import { FoodRestaurantSubscriptionSettings } from '../models/restaurantSubscriptionSettings.model.js';
+import { FoodSellerSubscriptionSettings } from '../models/sellerSubscriptionSettings.model.js';
 import { FoodZone } from '../models/zone.model.js';
 import { invalidateActiveZonesCache } from '../../shared/zoneServiceability.js';
 import { FoodCategory } from '../models/category.model.js';
@@ -20,7 +20,7 @@ import { FoodOfferUsage } from '../models/offerUsage.model.js';
 import { DeliveryBonusTransaction } from '../models/deliveryBonusTransaction.model.js';
 import { FoodEarningAddon } from '../models/earningAddon.model.js';
 import { FoodEarningAddonHistory } from '../models/earningAddonHistory.model.js';
-import { FoodRestaurantCommission } from '../models/restaurantCommission.model.js';
+import { FoodSellerCommission } from '../models/sellerCommission.model.js';
 import { FoodDeliveryCommissionRule } from '../models/deliveryCommissionRule.model.js';
 import { FoodFeeSettings } from '../models/feeSettings.model.js';
 import { FeedbackExperience } from '../models/feedbackExperience.model.js';
@@ -31,20 +31,20 @@ import { FoodDeliveryEmergencyHelp } from '../models/deliveryEmergencyHelp.model
 import { FoodReferralSettings } from '../models/referralSettings.model.js';
 import { FoodReferralLog } from '../models/referralLog.model.js';
 import { FoodSafetyEmergencyReport } from '../models/safetyEmergencyReport.model.js';
-import { FoodAddon } from '../../restaurant/models/foodAddon.model.js';
+import { FoodAddon } from '../../seller/models/foodAddon.model.js';
 import { FoodSupportTicket } from '../../user/models/supportTicket.model.js';
-import { FoodRestaurantSupportTicket } from '../../restaurant/models/supportTicket.model.js';
+import { FoodSellerSupportTicket } from '../../seller/models/supportTicket.model.js';
 import { FoodOrder } from '../../orders/models/order.model.js';
 import { isCancelledOrder, CANCELLED_ORDER_STATUSES } from '../../orders/services/order.helpers.js';
 import { FoodTransaction } from '../../orders/models/foodTransaction.model.js';
-import { FoodRestaurantWithdrawal } from '../../restaurant/models/foodRestaurantWithdrawal.model.js';
+import { FoodSellerWithdrawal } from '../../seller/models/foodSellerWithdrawal.model.js';
 import { FoodDeliveryWithdrawal } from '../../delivery/models/foodDeliveryWithdrawal.model.js';
 import { FoodDeliveryWallet } from '../../delivery/models/deliveryWallet.model.js';
 import { FoodDeliveryCashDeposit } from '../../delivery/models/foodDeliveryCashDeposit.model.js';
-import { FoodUnregisteredRestaurant } from '../../restaurant/models/unregisteredRestaurant.model.js';
+import { FoodUnregisteredSeller } from '../../seller/models/unregisteredSeller.model.js';
 import { FoodAdmin } from '../../../../core/admin/admin.model.js';
-import { getAdminRestaurantSubscriptionHistory as getAdminRestaurantSubscriptionHistoryFromRestaurant } from '../../restaurant/services/subscriptionHistory.service.js';
-import { FoodRestaurantSubscriptionHistory } from '../../restaurant/models/subscriptionHistory.model.js';
+import { getAdminSellerSubscriptionHistory as getAdminSellerSubscriptionHistoryFromSeller } from '../../seller/services/subscriptionHistory.service.js';
+import { FoodSellerSubscriptionHistory } from '../../seller/models/subscriptionHistory.model.js';
 import { ADMIN_FULL_PERMISSIONS, isValidPermissionPayload, sanitizeAdminPermissions } from '../../../../constants/permissions.js';
 import {
     backfillLegacyCategoryWorkflow,
@@ -62,9 +62,9 @@ import {
 } from './foodVariant.service.js';
 import { resolveDiscountSplit } from '../../shared/discountSplit.util.js';
 import {
-    isRestaurantEarnedOrder,
-    computeRestaurantOrderShare,
-} from '../../shared/restaurantPayout.util.js';
+    isSellerEarnedOrder,
+    computeSellerOrderShare,
+} from '../../shared/sellerPayout.util.js';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -84,7 +84,7 @@ const toFiniteNumber = (value) => {
     return Number.isFinite(num) ? num : null;
 };
 
-const normalizeRestaurantTime = (value) => {
+const normalizeSellerTime = (value) => {
     const raw = String(value || '').trim();
     if (!raw) return '';
 
@@ -120,7 +120,7 @@ const normalizeRestaurantTime = (value) => {
 };
 
 const timeToMinutes = (value) => {
-    const normalized = normalizeRestaurantTime(value);
+    const normalized = normalizeSellerTime(value);
     if (!normalized) return null;
     const [h, m] = normalized.split(':').map(Number);
     if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
@@ -148,15 +148,15 @@ const normalizeDayName = (value) => {
     return DAY_NAMES.find((d) => d.toLowerCase().startsWith(abbr)) || null;
 };
 
-const syncAdminRestaurantOutletTimings = async (restaurantDoc) => {
-    const openingTime = normalizeRestaurantTime(restaurantDoc?.openingTime) || '09:00';
-    const closingTime = normalizeRestaurantTime(restaurantDoc?.closingTime) || '22:00';
-    const normalizedOpenDays = Array.isArray(restaurantDoc?.openDays)
-        ? [...new Set(restaurantDoc.openDays.map(normalizeDayName).filter(Boolean))]
+const syncAdminSellerOutletTimings = async (sellerDoc) => {
+    const openingTime = normalizeSellerTime(sellerDoc?.openingTime) || '09:00';
+    const closingTime = normalizeSellerTime(sellerDoc?.closingTime) || '22:00';
+    const normalizedOpenDays = Array.isArray(sellerDoc?.openDays)
+        ? [...new Set(sellerDoc.openDays.map(normalizeDayName).filter(Boolean))]
         : [];
     const fallbackOpenDays = new Set(normalizedOpenDays.length ? normalizedOpenDays : DAY_NAMES);
 
-    const existing = await FoodRestaurantOutletTimings.findOne({ restaurantId: restaurantDoc._id })
+    const existing = await FoodSellerOutletTimings.findOne({ sellerId: sellerDoc._id })
         .select('timings')
         .lean();
     const existingTimings = Array.isArray(existing?.timings) ? existing.timings : [];
@@ -172,14 +172,14 @@ const syncAdminRestaurantOutletTimings = async (restaurantDoc) => {
         };
     });
 
-    await FoodRestaurantOutletTimings.updateOne(
-        { restaurantId: restaurantDoc._id },
+    await FoodSellerOutletTimings.updateOne(
+        { sellerId: sellerDoc._id },
         { $set: { timings } },
         { upsert: true }
     );
 };
 
-export async function getRestaurantComplaints(query = {}) {
+export async function getSellerComplaints(query = {}) {
     const limit = Math.min(Math.max(parseInt(query.limit, 10) || 50, 1), 500);
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
@@ -187,17 +187,17 @@ export async function getRestaurantComplaints(query = {}) {
     const filter = { type: 'order' };
     if (query.status && query.status !== 'all') filter.status = query.status;
     if (query.complaintType && query.complaintType !== 'all') filter.issueType = query.complaintType;
-    if (query.restaurantId && mongoose.Types.ObjectId.isValid(query.restaurantId)) {
-        filter.restaurantId = new mongoose.Types.ObjectId(query.restaurantId);
+    if (query.sellerId && mongoose.Types.ObjectId.isValid(query.sellerId)) {
+        filter.sellerId = new mongoose.Types.ObjectId(query.sellerId);
     }
     if (query.search) {
         const searchRegex = { $regex: query.search, $options: 'i' };
-        const restaurantIds = await FoodRestaurant.find({ restaurantName: searchRegex }).select('_id').lean();
+        const sellerIds = await FoodSeller.find({ sellerName: searchRegex }).select('_id').lean();
         const userIds = await FoodUser.find({ name: searchRegex }).select('_id').lean();
         const orderIds = await FoodOrder.find({ orderId: searchRegex }).select('_id').lean();
 
         filter.$or = [
-            { restaurantId: { $in: restaurantIds.map(r => r._id) } },
+            { sellerId: { $in: sellerIds.map(r => r._id) } },
             { userId: { $in: userIds.map(u => u._id) } },
             { orderId: { $in: orderIds.map(o => o._id) } },
             { description: searchRegex },
@@ -213,7 +213,7 @@ export async function getRestaurantComplaints(query = {}) {
     const [complaints, total] = await Promise.all([
         FoodSupportTicket.find(filter)
             .populate('userId', 'name phone profileImage')
-            .populate('restaurantId', 'restaurantName profileImage area city')
+            .populate('sellerId', 'sellerName profileImage area city')
             .populate('orderId', 'orderId orderStatus pricing createdAt')
             .sort({ createdAt: -1 })
             .skip(skip)
@@ -225,7 +225,7 @@ export async function getRestaurantComplaints(query = {}) {
     return { complaints, total, page, limit };
 }
 
-export async function getRestaurantComplaintStats(query = {}) {
+export async function getSellerComplaintStats(query = {}) {
     const baseFilter = { type: 'order' };
     if (query.complaintType && query.complaintType !== 'all') {
         baseFilter.issueType = query.complaintType;
@@ -247,7 +247,7 @@ export async function globalSearch(query = '') {
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = { $regex: escaped, $options: 'i' };
 
-    const [orders, users, restaurants, items, categories, addons] = await Promise.all([
+    const [orders, users, sellers, items, categories, addons] = await Promise.all([
         FoodOrder.find({
             $or: [{ orderId: regex }, { orderStatus: regex }]
         })
@@ -261,11 +261,11 @@ export async function globalSearch(query = '') {
             .limit(5)
             .select('name email phone')
             .lean(),
-        FoodRestaurant.find({
-            $or: [{ restaurantName: regex }, { ownerName: regex }, { city: regex }]
+        FoodSeller.find({
+            $or: [{ sellerName: regex }, { ownerName: regex }, { city: regex }]
         })
             .limit(5)
-            .select('restaurantName city area status')
+            .select('sellerName city area status')
             .lean(),
         FoodItem.find({
             $or: [{ name: regex }, { description: regex }]
@@ -301,12 +301,12 @@ export async function globalSearch(query = '') {
         path: `/admin/food/customers?userId=${u._id}`
     }));
 
-    restaurants.forEach(r => results.push({
+    sellers.forEach(r => results.push({
         id: r._id,
-        type: 'Restaurant',
-        title: r.restaurantName,
+        type: 'Seller',
+        title: r.sellerName,
         description: `${r.area || ''}, ${r.city || ''} (${r.status})`,
-        path: `/admin/food/restaurants?restaurantId=${r._id}`
+        path: `/admin/food/sellers?sellerId=${r._id}`
     }));
 
     items.forEach(i => results.push({
@@ -336,7 +336,7 @@ export async function globalSearch(query = '') {
     return results;
 }
 
-export async function updateRestaurantComplaint(id, updateData) {
+export async function updateSellerComplaint(id, updateData) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
         throw new ValidationError('Invalid complaint ID');
     }
@@ -356,7 +356,7 @@ export async function updateRestaurantComplaint(id, updateData) {
     return updated;
 }
 
-export async function getRestaurants(query) {
+export async function getSellers(query) {
     const limit = Math.min(Math.max(parseInt(query.limit, 10) || 100, 1), 1000);
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
@@ -376,14 +376,14 @@ export async function getRestaurants(query) {
         const normalized = raw.toLowerCase().trim().replace(/\s+/g, ' ');
         const phoneDigits = raw.replace(/\D/g, '');
         const or = [
-            { restaurantName: { $regex: escaped, $options: 'i' } },
+            { sellerName: { $regex: escaped, $options: 'i' } },
             { ownerName: { $regex: escaped, $options: 'i' } },
             { ownerEmail: { $regex: escaped, $options: 'i' } },
             { ownerPhone: { $regex: escaped, $options: 'i' } },
             { primaryContactNumber: { $regex: escaped, $options: 'i' } },
         ];
         if (normalized.length >= 2) {
-            or.push({ restaurantNameNormalized: { $regex: normalized, $options: 'i' } });
+            or.push({ sellerNameNormalized: { $regex: normalized, $options: 'i' } });
         }
         if (phoneDigits.length >= 4) {
             or.push({ ownerPhoneLast10: { $regex: phoneDigits } });
@@ -392,7 +392,7 @@ export async function getRestaurants(query) {
         filter.$or = or;
     }
     if (isActiveRaw === 'true' || isActiveRaw === true) {
-        // Treat missing isActive as active (legacy restaurants may not have the field).
+        // Treat missing isActive as active (legacy sellers may not have the field).
         filter.isActive = { $ne: false };
     } else if (isActiveRaw === 'false' || isActiveRaw === false) {
         filter.isActive = false;
@@ -401,8 +401,8 @@ export async function getRestaurants(query) {
     const sortMap = {
         'created-desc': { createdAt: -1 },
         'created-asc': { createdAt: 1 },
-        'name-asc': { restaurantName: 1 },
-        'name-desc': { restaurantName: -1 },
+        'name-asc': { sellerName: 1 },
+        'name-desc': { sellerName: -1 },
         'owner-asc': { ownerName: 1 },
         'owner-desc': { ownerName: -1 },
         'rating-asc': { rating: 1 },
@@ -412,33 +412,33 @@ export async function getRestaurants(query) {
     };
     const sort = sortMap[sortBy] || { createdAt: -1 };
 
-    const listPromise = FoodRestaurant.find(filter)
+    const listPromise = FoodSeller.find(filter)
         .sort(sort)
         .skip(skip)
         .limit(limit)
-        .select('restaurantName slug location area city status ownerName ownerPhone primaryContactNumber zoneId profileImage coverImages menuImages rating totalRatings isActive')
+        .select('sellerName slug location area city status ownerName ownerPhone primaryContactNumber zoneId profileImage coverImages menuImages rating totalRatings isActive')
         .populate('zoneId', 'name zoneName')
         .lean();
-    const countPromise = FoodRestaurant.countDocuments(filter);
+    const countPromise = FoodSeller.countDocuments(filter);
 
     const statsFilter = status && ['pending', 'approved', 'rejected'].includes(status)
         ? { status }
         : {};
     const statsPromises = includeStats
         ? [
-            FoodRestaurant.countDocuments(statsFilter),
-            FoodRestaurant.countDocuments({ ...statsFilter, isActive: true }),
-            FoodRestaurant.countDocuments({ ...statsFilter, isActive: { $ne: true } }),
+            FoodSeller.countDocuments(statsFilter),
+            FoodSeller.countDocuments({ ...statsFilter, isActive: true }),
+            FoodSeller.countDocuments({ ...statsFilter, isActive: { $ne: true } }),
         ]
         : [];
 
-    const [restaurants, total, statsTotal, statsActive, statsInactive] = await Promise.all([
+    const [sellers, total, statsTotal, statsActive, statsInactive] = await Promise.all([
         listPromise,
         countPromise,
         ...statsPromises,
     ]);
 
-    const result = { restaurants, total, page, limit };
+    const result = { sellers, total, page, limit };
     if (includeStats) {
         result.stats = {
             total: Number(statsTotal || 0),
@@ -512,29 +512,29 @@ export async function getDashboardStats(query = {}) {
         orderMatch.zoneId = zoneId;
     }
 
-    const restaurantMatch = {};
+    const sellerMatch = {};
     if (zoneId) {
-        restaurantMatch.zoneId = zoneId;
+        sellerMatch.zoneId = zoneId;
     }
 
-    const zoneRestaurantIds = zoneId
-        ? await FoodRestaurant.find({ zoneId }).distinct('_id')
+    const zoneSellerIds = zoneId
+        ? await FoodSeller.find({ zoneId }).distinct('_id')
         : null;
-    const zoneScopedRestaurantMatch = zoneId
-        ? { restaurantId: { $in: zoneRestaurantIds || [] } }
+    const zoneScopedSellerMatch = zoneId
+        ? { sellerId: { $in: zoneSellerIds || [] } }
         : {};
 
     const [
         orderTotalsAgg,
         monthlyAgg,
-        restaurantsTotal,
-        restaurantsPending,
+        sellersTotal,
+        sellersPending,
         deliveryTotal,
         deliveryPending,
         foodsTotal,
         addonsTotal,
         customersTotal,
-        recentPendingRestaurants,
+        recentPendingSellers,
         recentPendingDelivery,
         recentPendingOrders,
         recentDeliveredOrders,
@@ -565,7 +565,7 @@ export async function getDashboardStats(query = {}) {
                     },
                     commissionTotal: { 
                         $sum: { 
-                            $cond: [{ $eq: ['$orderStatus', 'delivered'] }, { $ifNull: ['$pricing.restaurantCommission', 0] }, 0] 
+                            $cond: [{ $eq: ['$orderStatus', 'delivered'] }, { $ifNull: ['$pricing.sellerCommission', 0] }, 0] 
                         } 
                     },
                     platformFeeTotal: { 
@@ -626,16 +626,16 @@ export async function getDashboardStats(query = {}) {
             },
             { $sort: { '_id.year': 1, '_id.month': 1 } }
         ]),
-        FoodRestaurant.countDocuments({ ...restaurantMatch, status: 'approved' }),
-        FoodRestaurant.countDocuments({ ...restaurantMatch, status: 'pending' }),
+        FoodSeller.countDocuments({ ...sellerMatch, status: 'approved' }),
+        FoodSeller.countDocuments({ ...sellerMatch, status: 'pending' }),
         FoodDeliveryPartner.countDocuments({ status: 'approved' }),
         FoodDeliveryPartner.countDocuments({ status: 'pending' }),
-        FoodItem.countDocuments({ approvalStatus: 'approved', ...zoneScopedRestaurantMatch }),
-        FoodAddon.countDocuments({ approvalStatus: 'approved', isDeleted: { $ne: true }, ...zoneScopedRestaurantMatch }),
+        FoodItem.countDocuments({ approvalStatus: 'approved', ...zoneScopedSellerMatch }),
+        FoodAddon.countDocuments({ approvalStatus: 'approved', isDeleted: { $ne: true }, ...zoneScopedSellerMatch }),
         zoneId
             ? FoodOrder.distinct('userId', { ...orderMatch, userId: { $ne: null } }).then((ids) => ids.length)
             : FoodUser.countDocuments({}),
-        FoodRestaurant.find({ ...restaurantMatch, status: 'pending' }).sort({ createdAt: -1 }).limit(5).select('restaurantName createdAt').lean(),
+        FoodSeller.find({ ...sellerMatch, status: 'pending' }).sort({ createdAt: -1 }).limit(5).select('sellerName createdAt').lean(),
         FoodDeliveryPartner.find({ status: 'pending' }).sort({ createdAt: -1 }).limit(5).select('name createdAt').lean(),
         FoodOrder.find({ 
             ...orderMatch,
@@ -680,11 +680,11 @@ export async function getDashboardStats(query = {}) {
 
     const liveSignals = [];
     
-    (recentPendingRestaurants || []).forEach(r => {
+    (recentPendingSellers || []).forEach(r => {
         liveSignals.push({
-            type: 'restaurant',
-            title: 'New Restaurant Request',
-            detail: `${r.restaurantName} is waiting for approval`,
+            type: 'seller',
+            title: 'New Seller Request',
+            detail: `${r.sellerName} is waiting for approval`,
             time: formatTimeAgo(r.createdAt),
             timestamp: r.createdAt
         });
@@ -785,9 +785,9 @@ export async function getDashboardStats(query = {}) {
         gst: { total: Number(totals.gstTotal || 0) },
         totalAdminEarnings: Number(totals.adminNetProfit || 0) + Number(totals.gstTotal || 0),
         deliveryProfit: Number(totals.adminNetProfit || 0) - Number(totals.commissionTotal || 0) - Number(totals.platformFeeTotal || 0),
-        restaurants: {
-            total: Number(restaurantsTotal || 0),
-            pendingRequests: Number(restaurantsPending || 0)
+        sellers: {
+            total: Number(sellersTotal || 0),
+            pendingRequests: Number(sellersPending || 0)
         },
         deliveryBoys: {
             total: Number(deliveryTotal || 0),
@@ -823,7 +823,7 @@ function formatTimeAgo(date) {
 
 
 export async function getTransactionReport(query = {}) {
-    const { fromDate, toDate, zone, restaurant, search } = query;
+    const { fromDate, toDate, zone, seller, search } = query;
     const match = {};
 
     if (fromDate && toDate) {
@@ -842,7 +842,7 @@ export async function getTransactionReport(query = {}) {
         ];
     }
 
-    if (zone || restaurant) {
+    if (zone || seller) {
         const restFilter = {};
 
         if (zone) {
@@ -859,25 +859,25 @@ export async function getTransactionReport(query = {}) {
                     if (matchedZone?._id) {
                         restFilter.zoneId = matchedZone._id;
                     } else {
-                        match.restaurantId = { $in: [] };
+                        match.sellerId = { $in: [] };
                     }
                 }
             }
         }
 
-        if (restaurant && restaurant !== 'All restaurants') {
-            const restaurantRaw = String(restaurant).trim();
-            if (restaurantRaw) {
+        if (seller && seller !== 'All sellers') {
+            const sellerRaw = String(seller).trim();
+            if (sellerRaw) {
                 let restDoc = null;
-                if (mongoose.Types.ObjectId.isValid(restaurantRaw)) {
+                if (mongoose.Types.ObjectId.isValid(sellerRaw)) {
                     restDoc = await mongoose
-                        .model('FoodRestaurant')
-                        .findById(restaurantRaw)
+                        .model('FoodSeller')
+                        .findById(sellerRaw)
                         .select('_id')
                         .lean();
                 } else {
-                    restDoc = await mongoose.model('FoodRestaurant').findOne({
-                        $or: [{ restaurantName: restaurantRaw }, { name: restaurantRaw }]
+                    restDoc = await mongoose.model('FoodSeller').findOne({
+                        $or: [{ sellerName: sellerRaw }, { name: sellerRaw }]
                     })
                         .select('_id')
                         .lean();
@@ -885,18 +885,18 @@ export async function getTransactionReport(query = {}) {
                 if (restDoc?._id) {
                     restFilter._id = restDoc._id;
                 } else {
-                    match.restaurantId = { $in: [] };
+                    match.sellerId = { $in: [] };
                 }
             }
         }
 
-        if (!match.restaurantId && Object.keys(restFilter).length > 0) {
-            const restaurantsList = await mongoose
-                .model('FoodRestaurant')
+        if (!match.sellerId && Object.keys(restFilter).length > 0) {
+            const sellersList = await mongoose
+                .model('FoodSeller')
                 .find(restFilter)
                 .select('_id')
                 .lean();
-            match.restaurantId = { $in: restaurantsList.map((r) => r._id) };
+            match.sellerId = { $in: sellersList.map((r) => r._id) };
         }
     }
 
@@ -905,7 +905,7 @@ export async function getTransactionReport(query = {}) {
     const transactionRows = await FoodTransaction.find(match)
         .populate('orderId')
         .populate('userId', 'name')
-        .populate('restaurantId', 'restaurantName')
+        .populate('sellerId', 'sellerName')
         .sort({ createdAt: -1 })
         .lean();
 
@@ -933,13 +933,13 @@ export async function getTransactionReport(query = {}) {
         return {
             id: tx._id,
             orderId: tx.orderReadableId || order.orderId || 'N/A',
-            restaurant: tx.restaurantId?.restaurantName || 'N/A',
+            seller: tx.sellerId?.sellerName || 'N/A',
             customerName: tx.userId?.name || 'Guest',
             totalItemAmount: subtotal,
             itemDiscount: pricing.discount || 0,
             couponDiscount: pricing.discount || 0,
             adminDiscountShare: Number(tx.amounts?.adminDiscountShare || 0),
-            restaurantDiscountShare: Number(tx.amounts?.restaurantDiscountShare || 0),
+            sellerDiscountShare: Number(tx.amounts?.sellerDiscountShare || 0),
             referralDiscount: 0, // Placeholder
             discountedAmount: Math.max(0, (pricing.subtotal || 0) - (pricing.discount || 0)),
             vatTax: tx.amounts?.taxAmount || pricing.tax || 0,
@@ -953,7 +953,7 @@ export async function getTransactionReport(query = {}) {
     let completedTransaction = 0;
     let refundedTransaction = 0;
     let adminEarning = 0;
-    let restaurantEarning = 0;
+    let sellerEarning = 0;
     let deliverymanEarning = 0;
 
     for (const tx of transactionRows) {
@@ -961,7 +961,7 @@ export async function getTransactionReport(query = {}) {
         if (tx.status === 'captured' || tx.status === 'settled' || (tx.orderId && tx.orderId.orderStatus === 'delivered')) {
             completedTransaction += tx.amounts?.totalCustomerPaid || 0;
             adminEarning += tx.amounts?.platformNetProfit || 0;
-            restaurantEarning += tx.amounts?.restaurantShare || 0;
+            sellerEarning += tx.amounts?.sellerShare || 0;
             deliverymanEarning += tx.amounts?.riderShare || 0;
         }
         if (tx.status === 'refunded' || (tx.orderId && tx.orderId.orderStatus === 'cancelled_by_admin')) {
@@ -974,14 +974,14 @@ export async function getTransactionReport(query = {}) {
         completedTransaction,
         refundedTransaction, // Returning amount instead of count for consistency, frontend might expect count though
         adminEarning,
-        restaurantEarning,
+        sellerEarning,
         deliverymanEarning,
     };
 
     return { transactions, summary };
 }
 
-export async function getRestaurantReport(query = {}) {
+export async function getSellerReport(query = {}) {
     const parseTimeRange = (timeLabel) => {
         const now = new Date();
         const start = new Date(now);
@@ -1028,18 +1028,18 @@ export async function getRestaurantReport(query = {}) {
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
 
-    const restaurantFilter = {};
+    const sellerFilter = {};
     const allFilter = String(query.all || '').trim().toLowerCase();
     if (allFilter === 'active') {
-        restaurantFilter.status = 'approved';
+        sellerFilter.status = 'approved';
     } else if (allFilter === 'inactive') {
-        restaurantFilter.status = { $ne: 'approved' };
+        sellerFilter.status = { $ne: 'approved' };
     }
 
     const zoneRaw = String(query.zone || '').trim();
     if (zoneRaw) {
         if (mongoose.Types.ObjectId.isValid(zoneRaw)) {
-            restaurantFilter.zoneId = new mongoose.Types.ObjectId(zoneRaw);
+            sellerFilter.zoneId = new mongoose.Types.ObjectId(zoneRaw);
         } else {
             const matchedZone = await FoodZone.findOne({
                 $or: [{ name: zoneRaw }, { zoneName: zoneRaw }]
@@ -1047,34 +1047,34 @@ export async function getRestaurantReport(query = {}) {
                 .select('_id')
                 .lean();
             if (matchedZone?._id) {
-                restaurantFilter.zoneId = matchedZone._id;
+                sellerFilter.zoneId = matchedZone._id;
             } else {
-                return { restaurants: [], total: 0, page, limit };
+                return { sellers: [], total: 0, page, limit };
             }
         }
     }
 
     const typeRaw = String(query.type || '').trim().toLowerCase();
     if (typeRaw === 'commission') {
-        const commissionRows = await FoodRestaurantCommission.find({ status: { $ne: false } })
-            .select('restaurantId')
+        const commissionRows = await FoodSellerCommission.find({ status: { $ne: false } })
+            .select('sellerId')
             .lean();
-        const commissionRestaurantIds = commissionRows
-            .map((row) => row?.restaurantId)
+        const commissionSellerIds = commissionRows
+            .map((row) => row?.sellerId)
             .filter((id) => mongoose.Types.ObjectId.isValid(id))
             .map((id) => new mongoose.Types.ObjectId(id));
 
-        if (!commissionRestaurantIds.length) {
-            return { restaurants: [], total: 0, page, limit };
+        if (!commissionSellerIds.length) {
+            return { sellers: [], total: 0, page, limit };
         }
-        restaurantFilter._id = { $in: commissionRestaurantIds };
+        sellerFilter._id = { $in: commissionSellerIds };
     }
 
     const searchRaw = String(query.search || '').trim();
     if (searchRaw) {
         const escaped = searchRaw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        restaurantFilter.$or = [
-            { restaurantName: { $regex: escaped, $options: 'i' } },
+        sellerFilter.$or = [
+            { sellerName: { $regex: escaped, $options: 'i' } },
             { ownerName: { $regex: escaped, $options: 'i' } },
             { ownerPhone: { $regex: escaped, $options: 'i' } },
             { city: { $regex: escaped, $options: 'i' } },
@@ -1082,20 +1082,20 @@ export async function getRestaurantReport(query = {}) {
         ];
     }
 
-    const [restaurantDocs, total] = await Promise.all([
-        FoodRestaurant.find(restaurantFilter)
+    const [sellerDocs, total] = await Promise.all([
+        FoodSeller.find(sellerFilter)
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .select('restaurantName profileImage rating totalRatings status zoneId')
+            .select('sellerName profileImage rating totalRatings status zoneId')
             .populate('zoneId', 'name zoneName')
             .lean(),
-        FoodRestaurant.countDocuments(restaurantFilter)
+        FoodSeller.countDocuments(sellerFilter)
     ]);
 
-    const restaurantIds = restaurantDocs.map((r) => r._id).filter(Boolean);
-    if (!restaurantIds.length) {
-        return { restaurants: [], total, page, limit };
+    const sellerIds = sellerDocs.map((r) => r._id).filter(Boolean);
+    if (!sellerIds.length) {
+        return { sellers: [], total, page, limit };
     }
 
     const orderCreatedAtFilter = (() => {
@@ -1112,7 +1112,7 @@ export async function getRestaurantReport(query = {}) {
         return parseTimeRange(query.time);
     })();
     const orderMatch = {
-        restaurantId: { $in: restaurantIds },
+        sellerId: { $in: sellerIds },
         $or: [
             { "payment.method": { $in: ["cash", "wallet"] } },
             { "payment.status": { $in: ["paid", "authorized", "captured", "settled", "refunded"] } },
@@ -1126,13 +1126,13 @@ export async function getRestaurantReport(query = {}) {
         FoodItem.aggregate([
             {
                 $match: {
-                    restaurantId: { $in: restaurantIds },
+                    sellerId: { $in: sellerIds },
                     approvalStatus: 'approved'
                 }
             },
             {
                 $group: {
-                    _id: '$restaurantId',
+                    _id: '$sellerId',
                     totalFood: { $sum: 1 }
                 }
             }
@@ -1141,7 +1141,7 @@ export async function getRestaurantReport(query = {}) {
             { $match: orderMatch },
             {
                 $group: {
-                    _id: '$restaurantId',
+                    _id: '$sellerId',
                     totalOrder: { $sum: 1 },
                     totalOrderAmount: { $sum: { $ifNull: ['$pricing.total', 0] } },
                     totalDiscountGiven: { $sum: { $ifNull: ['$pricing.discount', 0] } },
@@ -1170,8 +1170,8 @@ export async function getRestaurantReport(query = {}) {
         ])
     );
 
-    const restaurants = restaurantDocs.map((restaurant, index) => {
-        const key = String(restaurant._id);
+    const sellers = sellerDocs.map((seller, index) => {
+        const key = String(seller._id);
         const counts = orderMap.get(key) || {
             totalOrder: 0,
             totalOrderAmount: 0,
@@ -1181,24 +1181,24 @@ export async function getRestaurantReport(query = {}) {
         };
 
         return {
-            _id: restaurant._id,
+            _id: seller._id,
             sl: skip + index + 1,
-            icon: restaurant.profileImage || '',
-            restaurantName: restaurant.restaurantName || '',
+            icon: seller.profileImage || '',
+            sellerName: seller.sellerName || '',
             totalFood: foodMap.get(key) || 0,
             totalOrder: counts.totalOrder,
             totalOrderAmount: formatCurrency(counts.totalOrderAmount),
             totalDiscountGiven: formatCurrency(counts.totalDiscountGiven),
             totalAdminCommission: formatCurrency(counts.totalAdminCommission),
             totalVATTAX: formatCurrency(counts.totalVATTAX),
-            averageRatings: Number(restaurant.rating || 0),
-            reviews: Number(restaurant.totalRatings || 0),
-            status: restaurant.status || 'pending',
-            zoneName: restaurant.zoneId?.name || restaurant.zoneId?.zoneName || ''
+            averageRatings: Number(seller.rating || 0),
+            reviews: Number(seller.totalRatings || 0),
+            status: seller.status || 'pending',
+            zoneName: seller.zoneId?.name || seller.zoneId?.zoneName || ''
         };
     });
 
-    return { restaurants, total, page, limit };
+    return { sellers, total, page, limit };
 }
 
 function buildTaxReportDateMatch(fromDate, toDate) {
@@ -1269,9 +1269,9 @@ function computeOrderTaxAmount(pricing = {}, taxRate, calculateTax) {
     return Number(pricing.tax) || 0;
 }
 
-async function loadOffersByRestaurantIds(restaurantIds = []) {
+async function loadOffersBySellerIds(sellerIds = []) {
     const uniqueIds = [...new Set(
-        (restaurantIds || [])
+        (sellerIds || [])
             .map((id) => String(id || '').trim())
             .filter((id) => mongoose.Types.ObjectId.isValid(id)),
     )];
@@ -1280,39 +1280,39 @@ async function loadOffersByRestaurantIds(restaurantIds = []) {
     const objectIds = uniqueIds.map((id) => new mongoose.Types.ObjectId(id));
     const offers = await FoodOffer.find({
         $or: [
-            { restaurantScope: { $ne: 'selected' } },
-            { restaurantId: { $in: objectIds } },
-            { restaurantIds: { $in: objectIds } },
+            { sellerScope: { $ne: 'selected' } },
+            { sellerId: { $in: objectIds } },
+            { sellerIds: { $in: objectIds } },
         ],
     }).lean();
 
-    const offersByRestaurantId = new Map();
-    for (const restaurantId of uniqueIds) {
+    const offersBySellerId = new Map();
+    for (const sellerId of uniqueIds) {
         const scopedOffers = offers.filter((offer) => {
-            if (offer?.restaurantScope !== 'selected') return true;
-            const selectedIds = Array.isArray(offer.restaurantIds) && offer.restaurantIds.length > 0
-                ? offer.restaurantIds
-                : [offer.restaurantId].filter(Boolean);
-            return selectedIds.some((id) => String(id) === restaurantId);
+            if (offer?.sellerScope !== 'selected') return true;
+            const selectedIds = Array.isArray(offer.sellerIds) && offer.sellerIds.length > 0
+                ? offer.sellerIds
+                : [offer.sellerId].filter(Boolean);
+            return selectedIds.some((id) => String(id) === sellerId);
         });
-        offersByRestaurantId.set(restaurantId, scopedOffers);
+        offersBySellerId.set(sellerId, scopedOffers);
     }
-    return offersByRestaurantId;
+    return offersBySellerId;
 }
 
-async function summarizeRestaurantEarningsForTaxReport(orders = [], { taxRate, calculateTax } = {}) {
-    const earnedOrders = (orders || []).filter(isRestaurantEarnedOrder);
+async function summarizeSellerEarningsForTaxReport(orders = [], { taxRate, calculateTax } = {}) {
+    const earnedOrders = (orders || []).filter(isSellerEarnedOrder);
     if (!earnedOrders.length) {
         return { grouped: new Map(), totalEarnings: 0, totalTax: 0 };
     }
 
     const orderIds = earnedOrders.map((order) => order._id);
-    const restaurantIds = earnedOrders.map((order) => order.restaurantId);
-    const [transactions, offersByRestaurantId] = await Promise.all([
+    const sellerIds = earnedOrders.map((order) => order.sellerId);
+    const [transactions, offersBySellerId] = await Promise.all([
         FoodTransaction.find({ orderId: { $in: orderIds } })
             .select('orderId pricing amounts')
             .lean(),
-        loadOffersByRestaurantIds(restaurantIds),
+        loadOffersBySellerIds(sellerIds),
     ]);
     const txByOrderId = new Map(transactions.map((tx) => [String(tx.orderId), tx]));
 
@@ -1321,17 +1321,17 @@ async function summarizeRestaurantEarningsForTaxReport(orders = [], { taxRate, c
     let totalTax = 0;
 
     for (const order of earnedOrders) {
-        const restaurantId = String(order.restaurantId);
+        const sellerId = String(order.sellerId);
         const tx = txByOrderId.get(String(order._id));
         const pricing = tx?.pricing || order.pricing || {};
-        const offers = offersByRestaurantId.get(restaurantId) || [];
-        const earnings = computeRestaurantOrderShare(order, tx, offers, restaurantId);
+        const offers = offersBySellerId.get(sellerId) || [];
+        const earnings = computeSellerOrderShare(order, tx, offers, sellerId);
         const taxAmount = computeOrderTaxAmount(pricing, taxRate, calculateTax);
 
-        if (!grouped.has(restaurantId)) {
-            grouped.set(restaurantId, { totalEarnings: 0, totalTax: 0, orderCount: 0 });
+        if (!grouped.has(sellerId)) {
+            grouped.set(sellerId, { totalEarnings: 0, totalTax: 0, orderCount: 0 });
         }
-        const bucket = grouped.get(restaurantId);
+        const bucket = grouped.get(sellerId);
         bucket.totalEarnings += earnings;
         bucket.totalTax += taxAmount;
         bucket.orderCount += 1;
@@ -1358,28 +1358,28 @@ export async function getTaxReport(query = {}) {
     }
 
     const orders = await FoodOrder.find(match)
-        .select('restaurantId orderStatus status deliveryState pricing createdAt orderId')
+        .select('sellerId orderStatus status deliveryState pricing createdAt orderId')
         .lean();
 
-    const { grouped, totalEarnings, totalTax } = await summarizeRestaurantEarningsForTaxReport(
+    const { grouped, totalEarnings, totalTax } = await summarizeSellerEarningsForTaxReport(
         orders,
         { taxRate, calculateTax },
     );
 
-    const restaurantObjectIds = [...grouped.keys()]
+    const sellerObjectIds = [...grouped.keys()]
         .filter((id) => mongoose.Types.ObjectId.isValid(id))
         .map((id) => new mongoose.Types.ObjectId(id));
-    const restaurants = restaurantObjectIds.length
-        ? await FoodRestaurant.find({ _id: { $in: restaurantObjectIds } })
-            .select('restaurantName')
+    const sellers = sellerObjectIds.length
+        ? await FoodSeller.find({ _id: { $in: sellerObjectIds } })
+            .select('sellerName')
             .lean()
         : [];
-    const restaurantNameById = new Map(restaurants.map((row) => [String(row._id), row.restaurantName]));
+    const sellerNameById = new Map(sellers.map((row) => [String(row._id), row.sellerName]));
 
     const taxData = [...grouped.entries()]
-        .map(([restaurantId, item]) => ({
-            _id: restaurantId,
-            incomeSource: restaurantNameById.get(restaurantId) || 'Unknown Restaurant',
+        .map(([sellerId, item]) => ({
+            _id: sellerId,
+            incomeSource: sellerNameById.get(sellerId) || 'Unknown Seller',
             totalIncome: item.totalEarnings,
             totalTax: item.totalTax,
             orderCount: item.orderCount,
@@ -1404,14 +1404,14 @@ export async function getTaxReport(query = {}) {
     };
 }
 
-export async function getTaxReportDetail(restaurantId, query = {}) {
-    if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) {
+export async function getTaxReportDetail(sellerId, query = {}) {
+    if (!sellerId || !mongoose.Types.ObjectId.isValid(sellerId)) {
         throw new ValidationError('Invalid store ID');
     }
 
     const { fromDate, toDate, taxRate, calculateTax } = query;
     const match = {
-        restaurantId: new mongoose.Types.ObjectId(restaurantId),
+        sellerId: new mongoose.Types.ObjectId(sellerId),
         orderStatus: { $nin: ['pending_payment'] },
     };
 
@@ -1421,11 +1421,11 @@ export async function getTaxReportDetail(restaurantId, query = {}) {
     }
 
     const orders = await FoodOrder.find(match)
-        .select('orderId orderStatus status deliveryState pricing createdAt restaurantId')
+        .select('orderId orderStatus status deliveryState pricing createdAt sellerId')
         .sort({ createdAt: -1 })
         .lean();
 
-    const earnedOrders = orders.filter(isRestaurantEarnedOrder);
+    const earnedOrders = orders.filter(isSellerEarnedOrder);
     const orderIds = earnedOrders.map((order) => order._id);
     const [transactions, offers] = await Promise.all([
         orderIds.length
@@ -1433,18 +1433,18 @@ export async function getTaxReportDetail(restaurantId, query = {}) {
                 .select('orderId pricing amounts')
                 .lean()
             : [],
-        loadOffersByRestaurantIds([restaurantId]).then((map) => map.get(String(restaurantId)) || []),
+        loadOffersBySellerIds([sellerId]).then((map) => map.get(String(sellerId)) || []),
     ]);
     const txByOrderId = new Map(transactions.map((tx) => [String(tx.orderId), tx]));
 
-    const restaurant = await FoodRestaurant.findById(restaurantId).select('restaurantName').lean();
+    const seller = await FoodSeller.findById(sellerId).select('sellerName').lean();
 
     return {
-        restaurantName: restaurant?.restaurantName || 'Unknown Restaurant',
+        sellerName: seller?.sellerName || 'Unknown Seller',
         orders: earnedOrders.map((order) => {
             const tx = txByOrderId.get(String(order._id));
             const pricing = tx?.pricing || order.pricing || {};
-            const earnings = computeRestaurantOrderShare(order, tx, offers, restaurantId);
+            const earnings = computeSellerOrderShare(order, tx, offers, sellerId);
             const taxAmount = computeOrderTaxAmount(pricing, taxRate, calculateTax);
             return {
                 id: order._id,
@@ -1699,41 +1699,41 @@ export async function getSupportTickets(query = {}) {
     const category = query.category ? String(query.category) : '';
 
     const userFilter = {};
-    const restaurantFilter = {};
+    const sellerFilter = {};
     if (query.status && ['open', 'in-progress', 'resolved'].includes(String(query.status))) {
         userFilter.status = String(query.status);
-        restaurantFilter.status = String(query.status);
+        sellerFilter.status = String(query.status);
     }
-    if (type && ['order', 'restaurant', 'other'].includes(type)) {
+    if (type && ['order', 'seller', 'other'].includes(type)) {
         userFilter.type = type;
     }
-    if (category && ['orders', 'payments', 'menu', 'restaurant', 'technical', 'other'].includes(category)) {
-        restaurantFilter.category = category;
+    if (category && ['orders', 'payments', 'menu', 'seller', 'technical', 'other'].includes(category)) {
+        sellerFilter.category = category;
     }
 
     const userSearchOr = [];
-    const restaurantSearchOr = [];
+    const sellerSearchOr = [];
     if (search) {
         const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
         userSearchOr.push(
             { issueType: searchRegex },
             { description: searchRegex }
         );
-        restaurantSearchOr.push(
+        sellerSearchOr.push(
             { issueType: searchRegex },
             { subject: searchRegex },
             { description: searchRegex },
             { orderRef: searchRegex }
         );
-        const [restaurantIds, userIds, orderIds] = await Promise.all([
-            FoodRestaurant.find({ restaurantName: searchRegex }).select('_id').lean(),
+        const [sellerIds, userIds, orderIds] = await Promise.all([
+            FoodSeller.find({ sellerName: searchRegex }).select('_id').lean(),
             FoodUser.find({ name: searchRegex }).select('_id').lean(),
             FoodOrder.find({ orderId: searchRegex }).select('_id').lean()
         ]);
-        if (restaurantIds.length) {
-            const ids = restaurantIds.map((r) => r._id);
-            userSearchOr.push({ restaurantId: { $in: ids } });
-            restaurantSearchOr.push({ restaurantId: { $in: ids } });
+        if (sellerIds.length) {
+            const ids = sellerIds.map((r) => r._id);
+            userSearchOr.push({ sellerId: { $in: ids } });
+            sellerSearchOr.push({ sellerId: { $in: ids } });
         }
         if (userIds.length) {
             userSearchOr.push({ userId: { $in: userIds.map((u) => u._id) } });
@@ -1743,44 +1743,44 @@ export async function getSupportTickets(query = {}) {
         }
         if (mongoose.Types.ObjectId.isValid(search)) {
             userSearchOr.push({ _id: new mongoose.Types.ObjectId(search) });
-            restaurantSearchOr.push({ _id: new mongoose.Types.ObjectId(search) });
+            sellerSearchOr.push({ _id: new mongoose.Types.ObjectId(search) });
         }
     }
     if (userSearchOr.length) userFilter.$or = userSearchOr;
-    if (restaurantSearchOr.length) restaurantFilter.$or = restaurantSearchOr;
+    if (sellerSearchOr.length) sellerFilter.$or = sellerSearchOr;
 
     const shouldFetchUser = source === 'all' || source === 'user';
-    const shouldFetchRestaurant =
-        (source === 'all' || source === 'restaurant') && !type;
+    const shouldFetchSeller =
+        (source === 'all' || source === 'seller') && !type;
 
     const fetchCap = source === 'all' ? skip + limit : limit;
     const fetchSkip = source === 'all' ? 0 : skip;
 
-    const [userList, userTotal, restaurantList, restaurantTotal] = await Promise.all([
+    const [userList, userTotal, sellerList, sellerTotal] = await Promise.all([
         shouldFetchUser
             ? FoodSupportTicket.find(userFilter)
                   .sort({ createdAt: -1 })
                   .skip(fetchSkip)
                   .limit(fetchCap)
                   .populate('userId', 'name phone email')
-                  .populate('restaurantId', 'restaurantName city area')
+                  .populate('sellerId', 'sellerName city area')
                   .populate({
                       path: 'orderId',
-                      select: 'restaurantId',
-                      populate: { path: 'restaurantId', select: 'restaurantName city area' }
+                      select: 'sellerId',
+                      populate: { path: 'sellerId', select: 'sellerName city area' }
                   })
                   .lean()
             : Promise.resolve([]),
         shouldFetchUser ? FoodSupportTicket.countDocuments(userFilter) : Promise.resolve(0),
-        shouldFetchRestaurant
-            ? FoodRestaurantSupportTicket.find(restaurantFilter)
+        shouldFetchSeller
+            ? FoodSellerSupportTicket.find(sellerFilter)
                   .sort({ createdAt: -1 })
                   .skip(fetchSkip)
                   .limit(fetchCap)
-                  .populate('restaurantId', 'restaurantName city area')
+                  .populate('sellerId', 'sellerName city area')
                   .lean()
             : Promise.resolve([]),
-        shouldFetchRestaurant ? FoodRestaurantSupportTicket.countDocuments(restaurantFilter) : Promise.resolve(0)
+        shouldFetchSeller ? FoodSellerSupportTicket.countDocuments(sellerFilter) : Promise.resolve(0)
     ]);
 
     const mappedUserTickets = userList.map((t) => {
@@ -1796,36 +1796,36 @@ export async function getSupportTickets(query = {}) {
         const userId =
             t.userId && typeof t.userId === 'object' && t.userId !== null ? String(t.userId._id) : String(t.userId);
 
-        let restaurantDoc = null;
-        if (t.restaurantId && typeof t.restaurantId === 'object' && t.restaurantId !== null) {
-            restaurantDoc = t.restaurantId;
+        let sellerDoc = null;
+        if (t.sellerId && typeof t.sellerId === 'object' && t.sellerId !== null) {
+            sellerDoc = t.sellerId;
         } else if (t.orderId && typeof t.orderId === 'object' && t.orderId !== null) {
-            const rid = t.orderId.restaurantId;
+            const rid = t.orderId.sellerId;
             if (rid && typeof rid === 'object' && rid !== null) {
-                restaurantDoc = rid;
+                sellerDoc = rid;
             }
         }
 
-        const restaurant =
-            restaurantDoc && typeof restaurantDoc === 'object'
+        const seller =
+            sellerDoc && typeof sellerDoc === 'object'
                 ? {
-                      _id: restaurantDoc._id,
-                      name: restaurantDoc.restaurantName || '',
-                      city: restaurantDoc.city || '',
-                      area: restaurantDoc.area || ''
+                      _id: sellerDoc._id,
+                      name: sellerDoc.sellerName || '',
+                      city: sellerDoc.city || '',
+                      area: sellerDoc.area || ''
                   }
                 : null;
 
-        const restaurantId =
-            restaurant && restaurant._id
-                ? String(restaurant._id)
-                : t.restaurantId
-                ? String(t.restaurantId)
-                : t.orderId && typeof t.orderId === 'object' && t.orderId !== null && t.orderId.restaurantId
-                ? String(t.orderId.restaurantId)
+        const sellerId =
+            seller && seller._id
+                ? String(seller._id)
+                : t.sellerId
+                ? String(t.sellerId)
+                : t.orderId && typeof t.orderId === 'object' && t.orderId !== null && t.orderId.sellerId
+                ? String(t.orderId.sellerId)
                 : null;
 
-        const restaurantName = restaurant ? restaurant.name : '';
+        const sellerName = seller ? seller.name : '';
 
         return {
             _id: t._id,
@@ -1833,7 +1833,7 @@ export async function getSupportTickets(query = {}) {
             userId,
             type: t.type,
             orderId: t.orderId || null,
-            restaurantId,
+            sellerId,
             issueType: t.issueType,
             description: t.description,
             status: t.status,
@@ -1841,32 +1841,32 @@ export async function getSupportTickets(query = {}) {
             createdAt: t.createdAt,
             updatedAt: t.updatedAt,
             user,
-            restaurant,
-            restaurantName
+            seller,
+            sellerName
         };
     });
 
-    const mappedRestaurantTickets = restaurantList.map((t) => {
-        const restaurant =
-            t.restaurantId && typeof t.restaurantId === 'object'
+    const mappedSellerTickets = sellerList.map((t) => {
+        const seller =
+            t.sellerId && typeof t.sellerId === 'object'
                 ? {
-                      _id: t.restaurantId._id,
-                      name: t.restaurantId.restaurantName || '',
-                      city: t.restaurantId.city || '',
-                      area: t.restaurantId.area || ''
+                      _id: t.sellerId._id,
+                      name: t.sellerId.sellerName || '',
+                      city: t.sellerId.city || '',
+                      area: t.sellerId.area || ''
                   }
                 : null;
-        const restaurantId =
-            restaurant && restaurant._id ? String(restaurant._id) : t.restaurantId ? String(t.restaurantId) : null;
+        const sellerId =
+            seller && seller._id ? String(seller._id) : t.sellerId ? String(t.sellerId) : null;
         return {
             _id: t._id,
-            source: 'restaurant',
+            source: 'seller',
             userId: null,
-            type: 'restaurant-support',
+            type: 'seller-support',
             category: t.category || 'other',
             orderId: null,
             orderRef: t.orderRef || '',
-            restaurantId,
+            sellerId,
             issueType: t.issueType,
             subject: t.subject || '',
             description: t.description,
@@ -1876,8 +1876,8 @@ export async function getSupportTickets(query = {}) {
             createdAt: t.createdAt,
             updatedAt: t.updatedAt,
             user: null,
-            restaurant,
-            restaurantName: restaurant ? restaurant.name : ''
+            seller,
+            sellerName: seller ? seller.name : ''
         };
     });
 
@@ -1886,15 +1886,15 @@ export async function getSupportTickets(query = {}) {
     if (source === 'user') {
         tickets = mappedUserTickets;
         total = userTotal;
-    } else if (source === 'restaurant') {
-        tickets = mappedRestaurantTickets;
-        total = restaurantTotal;
+    } else if (source === 'seller') {
+        tickets = mappedSellerTickets;
+        total = sellerTotal;
     } else {
-        const merged = [...mappedUserTickets, ...mappedRestaurantTickets].sort(
+        const merged = [...mappedUserTickets, ...mappedSellerTickets].sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         tickets = merged.slice(skip, skip + limit);
-        total = userTotal + restaurantTotal;
+        total = userTotal + sellerTotal;
     }
 
     return { tickets, total, page, limit };
@@ -1906,17 +1906,17 @@ export async function getFoodSupportTicketStats(query = {}) {
     const category = query.category ? String(query.category) : '';
 
     const userFilter = {};
-    const restaurantFilter = {};
-    if (type && ['order', 'restaurant', 'other'].includes(type)) {
+    const sellerFilter = {};
+    if (type && ['order', 'seller', 'other'].includes(type)) {
         userFilter.type = type;
     }
-    if (category && ['orders', 'payments', 'menu', 'restaurant', 'technical', 'other'].includes(category)) {
-        restaurantFilter.category = category;
+    if (category && ['orders', 'payments', 'menu', 'seller', 'technical', 'other'].includes(category)) {
+        sellerFilter.category = category;
     }
 
     const shouldFetchUser = source === 'all' || source === 'user';
-    const shouldFetchRestaurant =
-        (source === 'all' || source === 'restaurant') && !type;
+    const shouldFetchSeller =
+        (source === 'all' || source === 'seller') && !type;
 
     const countStatuses = async (model, filter) => {
         const [open, inProgress, resolved, total] = await Promise.all([
@@ -1929,18 +1929,18 @@ export async function getFoodSupportTicketStats(query = {}) {
     };
 
     const empty = { open: 0, inProgress: 0, resolved: 0, total: 0 };
-    const [userCounts, restaurantCounts] = await Promise.all([
+    const [userCounts, sellerCounts] = await Promise.all([
         shouldFetchUser ? countStatuses(FoodSupportTicket, userFilter) : Promise.resolve(empty),
-        shouldFetchRestaurant
-            ? countStatuses(FoodRestaurantSupportTicket, restaurantFilter)
+        shouldFetchSeller
+            ? countStatuses(FoodSellerSupportTicket, sellerFilter)
             : Promise.resolve(empty),
     ]);
 
     return {
-        total: userCounts.total + restaurantCounts.total,
-        open: userCounts.open + restaurantCounts.open,
-        inProgress: userCounts.inProgress + restaurantCounts.inProgress,
-        resolved: userCounts.resolved + restaurantCounts.resolved,
+        total: userCounts.total + sellerCounts.total,
+        open: userCounts.open + sellerCounts.open,
+        inProgress: userCounts.inProgress + sellerCounts.inProgress,
+        resolved: userCounts.resolved + sellerCounts.resolved,
     };
 }
 
@@ -1955,13 +1955,13 @@ export async function updateSupportTicket(id, body = {}) {
         set.adminResponse = body.adminResponse;
     }
     if (!Object.keys(set).length) return null;
-    const model = source === 'restaurant' ? FoodRestaurantSupportTicket : FoodSupportTicket;
+    const model = source === 'seller' ? FoodSellerSupportTicket : FoodSupportTicket;
     const updated = await model.findByIdAndUpdate(id, { $set: set }, { new: true }).lean();
 
     // Send notification if admin response was added
     if (updated && set.adminResponse) {
-        const ownerType = source === 'restaurant' ? 'RESTAURANT' : 'USER';
-        const ownerId = updated.restaurantId || updated.userId;
+        const ownerType = source === 'seller' ? 'SELLER' : 'USER';
+        const ownerId = updated.sellerId || updated.userId;
 
         if (ownerId) {
             await FoodNotification.create({
@@ -1994,19 +1994,19 @@ export async function updateSupportTicket(id, body = {}) {
     return updated || null;
 }
 
-// ----- Restaurant Commission (admin) -----
-export async function getRestaurantCommissions() {
-    const list = await FoodRestaurantCommission.find({})
+// ----- Seller Commission (admin) -----
+export async function getSellerCommissions() {
+    const list = await FoodSellerCommission.find({})
         .sort({ createdAt: -1 })
-        .populate({ path: 'restaurantId', select: 'restaurantName' })
+        .populate({ path: 'sellerId', select: 'sellerName' })
         .lean();
 
     const commissions = list.map((c, index) => ({
         _id: c._id,
         sl: index + 1,
-        restaurantId: c.restaurantId?._id ? String(c.restaurantId._id) : String(c.restaurantId),
-        restaurantName: c.restaurantId?.restaurantName || '',
-        restaurant: c.restaurantId?._id ? { _id: c.restaurantId._id, name: c.restaurantId.restaurantName } : null,
+        sellerId: c.sellerId?._id ? String(c.sellerId._id) : String(c.sellerId),
+        sellerName: c.sellerId?.sellerName || '',
+        seller: c.sellerId?._id ? { _id: c.sellerId._id, name: c.sellerId.sellerName } : null,
         defaultCommission: c.defaultCommission || { type: 'percentage', value: 0 },
         notes: c.notes || '',
         status: c.status !== false
@@ -2015,51 +2015,51 @@ export async function getRestaurantCommissions() {
     return { commissions };
 }
 
-export async function getRestaurantCommissionBootstrap() {
-    const [commissionsData, restaurantsData] = await Promise.all([
-        getRestaurantCommissions(),
-        getRestaurants({ status: 'approved', limit: 1000, page: 1 })
+export async function getSellerCommissionBootstrap() {
+    const [commissionsData, sellersData] = await Promise.all([
+        getSellerCommissions(),
+        getSellers({ status: 'approved', limit: 1000, page: 1 })
     ]);
 
-    const commissionByRestaurantId = new Set(
-        (commissionsData.commissions || []).map((c) => String(c.restaurantId))
+    const commissionBySellerId = new Set(
+        (commissionsData.commissions || []).map((c) => String(c.sellerId))
     );
 
-    const restaurants = (restaurantsData.restaurants || []).map((r) => ({
+    const sellers = (sellersData.sellers || []).map((r) => ({
         _id: r._id,
-        name: r.restaurantName || r.name || '',
-        restaurantId: r._id ? `REST${r._id.toString().slice(-6).padStart(6, '0')}` : '',
+        name: r.sellerName || r.name || '',
+        sellerId: r._id ? `REST${r._id.toString().slice(-6).padStart(6, '0')}` : '',
         ownerName: r.ownerName || '',
-        hasCommissionSetup: commissionByRestaurantId.has(String(r._id))
+        hasCommissionSetup: commissionBySellerId.has(String(r._id))
     }));
 
-    return { commissions: commissionsData.commissions || [], restaurants };
+    return { commissions: commissionsData.commissions || [], sellers };
 }
 
-export async function getRestaurantCommissionById(id) {
+export async function getSellerCommissionById(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await FoodRestaurantCommission.findById(id)
-        .populate({ path: 'restaurantId', select: 'restaurantName' })
+    const doc = await FoodSellerCommission.findById(id)
+        .populate({ path: 'sellerId', select: 'sellerName' })
         .lean();
     if (!doc) return null;
     return {
         _id: doc._id,
-        restaurantId: doc.restaurantId?._id ? String(doc.restaurantId._id) : String(doc.restaurantId),
-        restaurant: doc.restaurantId?._id ? { _id: doc.restaurantId._id, name: doc.restaurantId.restaurantName } : null,
-        restaurantName: doc.restaurantId?.restaurantName || '',
+        sellerId: doc.sellerId?._id ? String(doc.sellerId._id) : String(doc.sellerId),
+        seller: doc.sellerId?._id ? { _id: doc.sellerId._id, name: doc.sellerId.sellerName } : null,
+        sellerName: doc.sellerId?.sellerName || '',
         defaultCommission: doc.defaultCommission || { type: 'percentage', value: 0 },
         notes: doc.notes || '',
         status: doc.status !== false
     };
 }
 
-export async function createRestaurantCommission(body) {
-    const exists = await FoodRestaurantCommission.findOne({ restaurantId: body.restaurantId }).lean();
+export async function createSellerCommission(body) {
+    const exists = await FoodSellerCommission.findOne({ sellerId: body.sellerId }).lean();
     if (exists) {
         throw new ValidationError('Commission already exists for this store');
     }
-    const created = await FoodRestaurantCommission.create({
-        restaurantId: body.restaurantId,
+    const created = await FoodSellerCommission.create({
+        sellerId: body.sellerId,
         defaultCommission: body.defaultCommission,
         notes: body.notes || '',
         status: true
@@ -2067,9 +2067,9 @@ export async function createRestaurantCommission(body) {
     return created.toObject();
 }
 
-export async function updateRestaurantCommission(id, body) {
+export async function updateSellerCommission(id, body) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const updated = await FoodRestaurantCommission.findByIdAndUpdate(
+    const updated = await FoodSellerCommission.findByIdAndUpdate(
         id,
         { $set: { defaultCommission: body.defaultCommission, notes: body.notes || '' } },
         { new: true }
@@ -2077,15 +2077,15 @@ export async function updateRestaurantCommission(id, body) {
     return updated;
 }
 
-export async function deleteRestaurantCommission(id) {
+export async function deleteSellerCommission(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const deleted = await FoodRestaurantCommission.findByIdAndDelete(id).lean();
+    const deleted = await FoodSellerCommission.findByIdAndDelete(id).lean();
     return deleted ? { id } : null;
 }
 
-export async function toggleRestaurantCommissionStatus(id) {
+export async function toggleSellerCommissionStatus(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await FoodRestaurantCommission.findById(id);
+    const doc = await FoodSellerCommission.findById(id);
     if (!doc) return null;
     doc.status = !Boolean(doc.status);
     await doc.save();
@@ -2383,12 +2383,12 @@ export async function getContactMessages(query = {}) {
         const term = String(query.search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const searchRegex = new RegExp(term, 'i');
         
-        const [users, restaurants, partners] = await Promise.all([
+        const [users, sellers, partners] = await Promise.all([
             FoodUser.find({
                 $or: [{ name: searchRegex }, { email: searchRegex }, { phone: searchRegex }]
             }).select('_id').lean(),
-            FoodRestaurant.find({
-                $or: [{ restaurantName: searchRegex }, { ownerEmail: searchRegex }, { ownerPhone: searchRegex }]
+            FoodSeller.find({
+                $or: [{ sellerName: searchRegex }, { ownerEmail: searchRegex }, { ownerPhone: searchRegex }]
             }).select('_id').lean(),
             FoodDeliveryPartner.find({
                 $or: [{ name: searchRegex }, { email: searchRegex }, { phone: searchRegex }]
@@ -2397,7 +2397,7 @@ export async function getContactMessages(query = {}) {
 
         filter.$or = [
             { comment: searchRegex },
-            { userId: { $in: [...users.map(u => u._id), ...restaurants.map(r => r._id), ...partners.map(p => p._id)] } }
+            { userId: { $in: [...users.map(u => u._id), ...sellers.map(r => r._id), ...partners.map(p => p._id)] } }
         ];
     }
 
@@ -2416,7 +2416,7 @@ export async function getContactMessages(query = {}) {
         return {
             _id: doc._id,
             customer: {
-                name: user.name || user.restaurantName || 'Unknown',
+                name: user.name || user.sellerName || 'Unknown',
                 email: user.email || user.ownerEmail || 'N/A',
                 phone: user.phone || user.ownerPhone || 'N/A'
             },
@@ -2528,21 +2528,21 @@ export async function upsertDeliveryEmergencyHelp(body = {}) {
     };
 }
 
-export async function getRestaurantReviews(query = {}) {
+export async function getSellerReviews(query = {}) {
     const limit = Math.min(Math.max(parseInt(query.limit, 10) || 50, 1), 1000);
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
 
     const filter = {
-        'ratings.restaurant.rating': { $exists: true, $ne: null }
+        'ratings.seller.rating': { $exists: true, $ne: null }
     };
 
     if (query.search && String(query.search).trim()) {
         const term = String(query.search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const searchRegex = new RegExp(term, 'i');
         
-        const restaurants = await FoodRestaurant.find({
-            $or: [{ restaurantName: searchRegex }]
+        const sellers = await FoodSeller.find({
+            $or: [{ sellerName: searchRegex }]
         }).select('_id').lean();
         
         const customers = await FoodUser.find({
@@ -2551,8 +2551,8 @@ export async function getRestaurantReviews(query = {}) {
 
         filter.$or = [
             { orderId: searchRegex },
-            { 'ratings.restaurant.comment': searchRegex },
-            { restaurantId: { $in: restaurants.map(r => r._id) } },
+            { 'ratings.seller.comment': searchRegex },
+            { sellerId: { $in: sellers.map(r => r._id) } },
             { userId: { $in: customers.map(c => c._id) } }
         ];
     }
@@ -2563,8 +2563,8 @@ export async function getRestaurantReviews(query = {}) {
             .skip(skip)
             .limit(limit)
             .populate('userId', 'name email phone')
-            .populate('restaurantId', 'restaurantName')
-            .select('orderId userId restaurantId ratings.restaurant createdAt')
+            .populate('sellerId', 'sellerName')
+            .select('orderId userId sellerId ratings.seller createdAt')
             .lean(),
         FoodOrder.countDocuments(filter)
     ]);
@@ -2572,21 +2572,21 @@ export async function getRestaurantReviews(query = {}) {
     const reviews = docs.map((doc, index) => ({
         sl: skip + index + 1,
         orderId: doc.orderId,
-        restaurant: doc.restaurantId?.restaurantName || 'Unknown',
-        restaurantId: doc.restaurantId?._id || 'N/A',
+        seller: doc.sellerId?.sellerName || 'Unknown',
+        sellerId: doc.sellerId?._id || 'N/A',
         customer: doc.userId?.name || 'Unknown',
         customerId: doc.userId?._id || 'N/A',
-        review: doc.ratings?.restaurant?.comment || '',
-        rating: doc.ratings?.restaurant?.rating || 0,
+        review: doc.ratings?.seller?.comment || '',
+        rating: doc.ratings?.seller?.rating || 0,
         submittedAt: doc.createdAt
     }));
 
     return { reviews, total, page, limit };
 }
 
-export async function getRestaurantById(id) {
+export async function getSellerById(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    return FoodRestaurant.findById(id)
+    return FoodSeller.findById(id)
         .select('-__v')
         .populate('zoneId', 'name zoneName serviceLocation isActive')
         .lean();
@@ -2605,17 +2605,17 @@ function formatSubscriptionPlanLabel(plan) {
  * Invoice-based subscription summary for the admin POS analytics view
  * (calendar-month postpaid billing).
  */
-async function buildRestaurantSubscriptionSummary(restaurantId) {
-    const rId = new mongoose.Types.ObjectId(String(restaurantId));
+async function buildSellerSubscriptionSummary(sellerId) {
+    const rId = new mongoose.Types.ObjectId(String(sellerId));
 
     const [
         { FoodSubscriptionInvoice },
         { FoodSubscriptionTransaction },
         billingService,
     ] = await Promise.all([
-        import('../../restaurant/models/subscriptionInvoice.model.js'),
-        import('../../restaurant/models/subscriptionTransaction.model.js'),
-        import('../../restaurant/services/subscriptionBilling.service.js'),
+        import('../../seller/models/subscriptionInvoice.model.js'),
+        import('../../seller/models/subscriptionTransaction.model.js'),
+        import('../../seller/services/subscriptionBilling.service.js'),
     ]);
 
     const currentMonth = billingService.formatBillingMonth(new Date());
@@ -2623,7 +2623,7 @@ async function buildRestaurantSubscriptionSummary(restaurantId) {
 
     const [invoiceAgg, latestInvoice, lastPaymentTx, currentGmv, invoices] = await Promise.all([
         FoodSubscriptionInvoice.aggregate([
-            { $match: { restaurantId: rId } },
+            { $match: { sellerId: rId } },
             {
                 $group: {
                     _id: null,
@@ -2635,24 +2635,24 @@ async function buildRestaurantSubscriptionSummary(restaurantId) {
                 },
             },
         ]),
-        FoodSubscriptionInvoice.findOne({ restaurantId: rId, billingMonth: { $ne: 'legacy' } })
+        FoodSubscriptionInvoice.findOne({ sellerId: rId, billingMonth: { $ne: 'legacy' } })
             .sort({ billingMonth: -1 })
             .lean(),
         FoodSubscriptionTransaction.findOne({
-            restaurantId: rId,
+            sellerId: rId,
             type: { $in: ['wallet_deduction', 'manual_payment'] },
         })
             .sort({ createdAt: -1 })
             .lean(),
         billingService.computeMonthlyGmv(rId, monthStart, new Date()),
-        FoodSubscriptionInvoice.find({ restaurantId: rId })
+        FoodSubscriptionInvoice.find({ sellerId: rId })
             .sort({ billingMonth: -1 })
             .limit(12)
             .lean(),
     ]);
 
     const walletDeductionAgg = await FoodSubscriptionTransaction.aggregate([
-        { $match: { restaurantId: rId, type: 'wallet_deduction' } },
+        { $match: { sellerId: rId, type: 'wallet_deduction' } },
         { $group: { _id: null, total: { $sum: { $ifNull: ['$amount', 0] } }, count: { $sum: 1 } } },
     ]);
 
@@ -2700,26 +2700,26 @@ async function buildRestaurantSubscriptionSummary(restaurantId) {
     };
 }
 
-export async function getRestaurantAnalytics(restaurantId) {
-    if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) return null;
-    const rId = new mongoose.Types.ObjectId(restaurantId);
-    const restaurantOrderMatch = {
+export async function getSellerAnalytics(sellerId) {
+    if (!sellerId || !mongoose.Types.ObjectId.isValid(sellerId)) return null;
+    const rId = new mongoose.Types.ObjectId(sellerId);
+    const sellerOrderMatch = {
         $or: [
-            { restaurantId: rId },
-            { restaurantId: String(restaurantId) },
+            { sellerId: rId },
+            { sellerId: String(sellerId) },
         ],
     };
 
-    const [restaurant, commissionDoc, orders, txRows, orderStatsRows, relevantOffers] = await Promise.all([
-        FoodRestaurant.findById(rId).lean(),
-        FoodRestaurantCommission.findOne({ restaurantId: rId, status: { $ne: false } }).lean(),
-        FoodOrder.find(restaurantOrderMatch).lean(),
-        FoodTransaction.find({ restaurantId: rId })
+    const [seller, commissionDoc, orders, txRows, orderStatsRows, relevantOffers] = await Promise.all([
+        FoodSeller.findById(rId).lean(),
+        FoodSellerCommission.findOne({ sellerId: rId, status: { $ne: false } }).lean(),
+        FoodOrder.find(sellerOrderMatch).lean(),
+        FoodTransaction.find({ sellerId: rId })
             .populate('orderId', 'orderStatus deliveryState createdAt pricing')
             .sort({ createdAt: -1 })
             .lean(),
         FoodOrder.aggregate([
-            { $match: restaurantOrderMatch },
+            { $match: sellerOrderMatch },
             {
                 $addFields: {
                     statusNormalized: {
@@ -2754,9 +2754,9 @@ export async function getRestaurantAnalytics(restaurantId) {
                             ],
                         },
                     },
-                    cancelledByRestaurant: {
+                    cancelledBySeller: {
                         $sum: {
-                            $cond: [{ $eq: ['$statusNormalized', 'cancelled_by_restaurant'] }, 1, 0],
+                            $cond: [{ $eq: ['$statusNormalized', 'cancelled_by_seller'] }, 1, 0],
                         },
                     },
                     cancelledByAdmin: {
@@ -2796,14 +2796,14 @@ export async function getRestaurantAnalytics(restaurantId) {
         ]),
         FoodOffer.find({
             $or: [
-                { restaurantScope: { $ne: 'selected' } },
-                { restaurantId: rId },
-                { restaurantIds: rId },
+                { sellerScope: { $ne: 'selected' } },
+                { sellerId: rId },
+                { sellerIds: rId },
             ],
         }).lean(),
     ]);
 
-    if (!restaurant) return null;
+    if (!seller) return null;
 
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -2821,13 +2821,13 @@ export async function getRestaurantAnalytics(restaurantId) {
         const value = row?.amounts?.[key];
         return value === undefined || value === null ? null : Number(value);
     };
-    const getRestaurantShare = (row) => {
-        const explicitShare = getAmount(row, 'restaurantShare');
+    const getSellerShare = (row) => {
+        const explicitShare = getAmount(row, 'sellerShare');
         if (Number.isFinite(explicitShare)) return explicitShare;
         const pricing = getPricing(row);
         const subtotal = Number(pricing?.subtotal) || 0;
         const packagingFee = Number(pricing?.packagingFee) || 0;
-        const commission = Number(pricing?.restaurantCommission) || 0;
+        const commission = Number(pricing?.sellerCommission) || 0;
         return Math.max(0, subtotal + packagingFee - commission);
     };
     const getOrderFromRow = (row) => (row?.orderId && typeof row.orderId === 'object' ? row.orderId : row);
@@ -2840,7 +2840,7 @@ export async function getRestaurantAnalytics(restaurantId) {
             pricing,
             amounts,
             offers: relevantOffers,
-            restaurantId: rId,
+            sellerId: rId,
         });
     };
 
@@ -2869,14 +2869,14 @@ export async function getRestaurantAnalytics(restaurantId) {
     // 1) Total order value (gross customer paid)
     const totalRevenue = sum(completedMoneyRows, (row) => getAmount(row, 'totalCustomerPaid') ?? getPricing(row)?.total);
 
-    // 2) Restaurant share (payout to restaurant)
-    const restaurantEarning = sum(completedMoneyRows, getRestaurantShare);
+    // 2) Seller share (payout to seller)
+    const sellerEarning = sum(completedMoneyRows, getSellerShare);
 
-    // 3) Restaurant commission paid to admin
-    const totalCommission = sum(completedMoneyRows, (row) => getAmount(row, 'restaurantCommission') ?? getPricing(row)?.restaurantCommission);
+    // 3) Seller commission paid to admin
+    const totalCommission = sum(completedMoneyRows, (row) => getAmount(row, 'sellerCommission') ?? getPricing(row)?.sellerCommission);
 
-    // 4) Restaurant profit (in this system, equals restaurant share)
-    const restaurantProfit = restaurantEarning;
+    // 4) Seller profit (in this system, equals seller share)
+    const sellerProfit = sellerEarning;
 
     const monthlyOrdersList = orders.filter(o => {
         const d = new Date(o.createdAt);
@@ -2886,7 +2886,7 @@ export async function getRestaurantAnalytics(restaurantId) {
         const d = new Date(row?.createdAt || row?.orderId?.createdAt || 0);
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
-    const monthlyProfit = sum(monthlyCompletedMoneyRows, getRestaurantShare);
+    const monthlyProfit = sum(monthlyCompletedMoneyRows, getSellerShare);
 
     const yearlyOrdersList = orders.filter(o => {
         const d = new Date(o.createdAt);
@@ -2896,7 +2896,7 @@ export async function getRestaurantAnalytics(restaurantId) {
         const d = new Date(row?.createdAt || row?.orderId?.createdAt || 0);
         return d.getFullYear() === currentYear;
     });
-    const yearlyProfit = sum(yearlyCompletedMoneyRows, getRestaurantShare);
+    const yearlyProfit = sum(yearlyCompletedMoneyRows, getSellerShare);
 
     const avgOrderValue = completedMoneyRows.length > 0 ? totalRevenue / completedMoneyRows.length : 0;
 
@@ -2908,7 +2908,7 @@ export async function getRestaurantAnalytics(restaurantId) {
     }, {});
     const repeatCustomers = Object.values(customerOrderCounts).filter(count => count > 1).length;
 
-    // 5) Restaurant commission percent
+    // 5) Seller commission percent
     const commissionType = commissionDoc?.defaultCommission?.type || 'percentage';
     const commissionValue = Number(commissionDoc?.defaultCommission?.value || 0) || 0;
     const completedSubtotal = sum(completedMoneyRows, (row) => getPricing(row)?.subtotal);
@@ -2924,25 +2924,25 @@ export async function getRestaurantAnalytics(restaurantId) {
         inProgressOrders: inProgressOrdersCount,
         notDeliveredOrders: notDeliveredOrdersCount,
         completedOrders: completedOrdersCount,
-        cancelledByRestaurant: Number(orderStats.cancelledByRestaurant) || 0,
+        cancelledBySeller: Number(orderStats.cancelledBySeller) || 0,
         cancelledByAdmin: Number(orderStats.cancelledByAdmin) || 0,
         cancelledByUser: Number(orderStats.cancelledByUser) || 0,
-        averageRating: Number(restaurant.rating || 0),
-        totalRatings: Number(restaurant.totalRatings || 0),
+        averageRating: Number(seller.rating || 0),
+        totalRatings: Number(seller.totalRatings || 0),
         commissionPercentage: computedCommissionPercent,
         monthlyProfit,
         yearlyProfit,
         averageOrderValue: avgOrderValue,
         totalRevenue,
         totalCommission,
-        restaurantEarning, // restaurant share
-        restaurantProfit,
+        sellerEarning, // seller share
+        sellerProfit,
         monthlyOrders: monthlyOrdersList.length,
         yearlyOrders: yearlyOrdersList.length,
         averageMonthlyProfit: monthlyProfit, // Placeholder: can be improved if historical data exists
         averageYearlyProfit: yearlyProfit,   // Placeholder: can be improved if historical data exists
-        status: restaurant.status === 'approved' ? 'active' : 'inactive',
-        joinDate: restaurant.createdAt,
+        status: seller.status === 'approved' ? 'active' : 'inactive',
+        joinDate: seller.createdAt,
         totalCustomers: uniqueCustomers,
         repeatCustomers,
         cancellationRate: totalOrdersCount > 0 ? (explicitlyCancelledOrdersCount / totalOrdersCount) * 100 : 0,
@@ -2959,32 +2959,32 @@ export async function getRestaurantAnalytics(restaurantId) {
         platformFee: sum(completedMoneyRows, (row) => getPricing(row)?.platformFee),
         discount: sum(completedMoneyRows, (row) => getPricing(row)?.discount),
         adminDiscountShare: sum(completedMoneyRows, (row) => getDiscountShares(row).adminDiscountShare),
-        restaurantDiscountShare: sum(completedMoneyRows, (row) => getDiscountShares(row).restaurantDiscountShare),
+        sellerDiscountShare: sum(completedMoneyRows, (row) => getDiscountShares(row).sellerDiscountShare),
         total: totalRevenue,
         currency: 'INR',
 
         // Split (who got what)
-        restaurantShare: restaurantEarning,
-        restaurantCommission: totalCommission,
+        sellerShare: sellerEarning,
+        sellerCommission: totalCommission,
         riderShare: sum(completedMoneyRows, (row) => getAmount(row, 'riderShare') ?? row?.riderEarning),
         platformNetProfit: sum(completedMoneyRows, (row) => getAmount(row, 'platformNetProfit') ?? row?.platformProfit),
     };
 
-    const subscriptionSummary = await buildRestaurantSubscriptionSummary(rId);
+    const subscriptionSummary = await buildSellerSubscriptionSummary(rId);
 
-    return { restaurant, analytics, paymentSummary, subscriptionSummary };
+    return { seller, analytics, paymentSummary, subscriptionSummary };
 }
 
-export async function getRestaurantMenuById(id) {
+export async function getSellerMenuById(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await FoodRestaurant.findById(id).select('menu').lean();
+    const doc = await FoodSeller.findById(id).select('menu').lean();
     if (!doc) return null;
     return doc.menu || { sections: [] };
 }
 
-export async function updateRestaurantMenuById(id, menu) {
+export async function updateSellerMenuById(id, menu) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await FoodRestaurant.findById(id);
+    const doc = await FoodSeller.findById(id);
     if (!doc) return null;
     const sections = Array.isArray(menu?.sections) ? menu.sections : [];
     doc.menu = { sections };
@@ -2992,8 +2992,8 @@ export async function updateRestaurantMenuById(id, menu) {
     return doc.menu || { sections: [] };
 }
 
-export async function getPendingRestaurants() {
-    const restaurants = await FoodRestaurant.find({
+export async function getPendingSellers() {
+    const sellers = await FoodSeller.find({
         $or: [
             { status: { $in: ['pending', 'rejected'] } },
             { locationUpdateStatus: 'pending' }
@@ -3003,7 +3003,7 @@ export async function getPendingRestaurants() {
         .populate('pendingZoneId', 'name zoneName')
         .sort({ createdAt: -1 })
         .lean();
-    return restaurants.map((r, i) => ({
+    return sellers.map((r, i) => ({
         ...r,
         sl: i + 1,
         zone: r.zoneId?.zoneName || r.zoneId?.name || null,
@@ -3011,8 +3011,8 @@ export async function getPendingRestaurants() {
     }));
 }
 
-export async function getUnregisteredRestaurants() {
-    const list = await FoodUnregisteredRestaurant.find()
+export async function getUnregisteredSellers() {
+    const list = await FoodUnregisteredSeller.find()
         .sort({ createdAt: -1 })
         .lean();
     return list.map((item, index) => ({
@@ -3021,15 +3021,15 @@ export async function getUnregisteredRestaurants() {
     }));
 }
 
-export async function deleteUnregisteredRestaurant(id) {
+export async function deleteUnregisteredSeller(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) throw new ValidationError('Invalid unregistered store id');
-    const deleted = await FoodUnregisteredRestaurant.findByIdAndDelete(id).lean();
+    const deleted = await FoodUnregisteredSeller.findByIdAndDelete(id).lean();
     return deleted;
 }
 
-export async function updateRestaurantById(id, body = {}) {
+export async function updateSellerById(id, body = {}) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await FoodRestaurant.findById(id);
+    const doc = await FoodSeller.findById(id);
     if (!doc) return null;
 
     const toStr = (v) => (v != null ? String(v).trim() : '');
@@ -3038,10 +3038,10 @@ export async function updateRestaurantById(id, body = {}) {
         return Number.isFinite(n) ? n : undefined;
     };
 
-    if (body.name !== undefined || body.restaurantName !== undefined) {
-        const name = toStr(body.name !== undefined ? body.name : body.restaurantName);
+    if (body.name !== undefined || body.sellerName !== undefined) {
+        const name = toStr(body.name !== undefined ? body.name : body.sellerName);
         if (!name) throw new ValidationError('Store name cannot be empty');
-        doc.restaurantName = name;
+        doc.sellerName = name;
     }
 
     if (body.ownerName !== undefined) doc.ownerName = toStr(body.ownerName);
@@ -3049,8 +3049,8 @@ export async function updateRestaurantById(id, body = {}) {
     if (body.ownerPhone !== undefined) doc.ownerPhone = toStr(body.ownerPhone);
     if (body.primaryContactNumber !== undefined) doc.primaryContactNumber = toStr(body.primaryContactNumber);
 
-    if (body.pureVegRestaurant !== undefined) {
-        doc.pureVegRestaurant = parseBooleanLike(body.pureVegRestaurant, 'pureVegRestaurant');
+    if (body.pureVegSeller !== undefined) {
+        doc.pureVegSeller = parseBooleanLike(body.pureVegSeller, 'pureVegSeller');
     }
 
     // Admin-only on purpose: a seller cannot grant themselves auto-accept.
@@ -3085,8 +3085,8 @@ export async function updateRestaurantById(id, body = {}) {
         }
     }
 
-    if (body.openingTime !== undefined) doc.openingTime = normalizeRestaurantTime(body.openingTime) || '';
-    if (body.closingTime !== undefined) doc.closingTime = normalizeRestaurantTime(body.closingTime) || '';
+    if (body.openingTime !== undefined) doc.openingTime = normalizeSellerTime(body.openingTime) || '';
+    if (body.closingTime !== undefined) doc.closingTime = normalizeSellerTime(body.closingTime) || '';
     validateOpeningClosingTimes(doc.openingTime, doc.closingTime);
     if (body.openDays !== undefined && Array.isArray(body.openDays)) {
         doc.openDays = body.openDays.map(d => toStr(d)).filter(Boolean);
@@ -3141,7 +3141,7 @@ export async function updateRestaurantById(id, body = {}) {
 
     if (body.menuImages !== undefined) doc.menuImages = toUrlList(body.menuImages, 10);
 
-    // Media images. These were missing, so an admin could edit a restaurant's
+    // Media images. These were missing, so an admin could edit a seller's
     // documents and menu photos but not the cover or premises gallery — the two
     // the customer app and the rider's pickup screen actually show.
     //
@@ -3155,7 +3155,7 @@ export async function updateRestaurantById(id, body = {}) {
     await doc.save();
 
     if (body.openingTime !== undefined || body.closingTime !== undefined) {
-        await syncAdminRestaurantOutletTimings(doc);
+        await syncAdminSellerOutletTimings(doc);
     }
 
     // Always invalidate, not only on a timings change. Name, cuisines and every
@@ -3164,15 +3164,15 @@ export async function updateRestaurantById(id, body = {}) {
     // upload silently failing.
     {
         const { invalidateCache } = await import('../../../../middleware/cache.js');
-        void invalidateCache('restaurants:*');
-        void invalidateCache('restaurant_detail:*');
-        void invalidateCache('restaurant_timings:*');
+        void invalidateCache('sellers:*');
+        void invalidateCache('seller_detail:*');
+        void invalidateCache('seller_timings:*');
     }
 
-    return FoodRestaurant.findById(id).select('-__v').populate('zoneId', 'name zoneName serviceLocation isActive').lean();
+    return FoodSeller.findById(id).select('-__v').populate('zoneId', 'name zoneName serviceLocation isActive').lean();
 }
 
-export async function updateRestaurantStatus(id, body = {}) {
+export async function updateSellerStatus(id, body = {}) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const raw = body.status !== undefined ? body.status : body.isActive;
     let status = null;
@@ -3193,7 +3193,7 @@ export async function updateRestaurantStatus(id, body = {}) {
     const rejectedAt = status === 'rejected' ? new Date() : undefined;
     const rejectionReason = status === 'rejected' ? 'Disabled by admin' : undefined;
 
-    return FoodRestaurant.findByIdAndUpdate(
+    return FoodSeller.findByIdAndUpdate(
         id,
         {
             $set: {
@@ -3207,9 +3207,9 @@ export async function updateRestaurantStatus(id, body = {}) {
     ).lean();
 }
 
-export async function updateRestaurantLocation(id, body = {}) {
+export async function updateSellerLocation(id, body = {}) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    const doc = await FoodRestaurant.findById(id);
+    const doc = await FoodSeller.findById(id);
     if (!doc) return null;
 
     const source = (body.location && typeof body.location === 'object') ? body.location : body;
@@ -3270,7 +3270,7 @@ export async function updateRestaurantLocation(id, body = {}) {
     }
 
     await doc.save();
-    return FoodRestaurant.findById(id).select('-__v').populate('zoneId', 'name zoneName serviceLocation isActive').lean();
+    return FoodSeller.findById(id).select('-__v').populate('zoneId', 'name zoneName serviceLocation isActive').lean();
 }
 
 // ----- Categories -----
@@ -3335,25 +3335,25 @@ export async function getCategories(query) {
     ]);
 
     const statsById = await backfillLegacyCategoryWorkflow(list);
-    const restaurantIds = Array.from(
+    const sellerIds = Array.from(
         new Set(
             list
-                .flatMap((category) => [category?.restaurantId, category?.createdByRestaurantId])
+                .flatMap((category) => [category?.sellerId, category?.createdBySellerId])
                 .map((value) => (value ? String(value) : ''))
                 .filter(Boolean)
         )
     );
-    const restaurants = restaurantIds.length
-        ? await FoodRestaurant.find({ _id: { $in: restaurantIds } })
-            .select('restaurantName ownerName ownerPhone')
+    const sellers = sellerIds.length
+        ? await FoodSeller.find({ _id: { $in: sellerIds } })
+            .select('sellerName ownerName ownerPhone')
             .lean()
         : [];
-    const restaurantMap = new Map(restaurants.map((restaurant) => [String(restaurant._id), restaurant]));
+    const sellerMap = new Map(sellers.map((seller) => [String(seller._id), seller]));
 
     const hydratedList = list.map((category) => ({
         ...category,
-        restaurantId: category?.restaurantId ? restaurantMap.get(String(category.restaurantId)) || category.restaurantId : category.restaurantId,
-        createdByRestaurantId: category?.createdByRestaurantId ? restaurantMap.get(String(category.createdByRestaurantId)) || category.createdByRestaurantId : category.createdByRestaurantId
+        sellerId: category?.sellerId ? sellerMap.get(String(category.sellerId)) || category.sellerId : category.sellerId,
+        createdBySellerId: category?.createdBySellerId ? sellerMap.get(String(category.createdBySellerId)) || category.createdBySellerId : category.createdBySellerId
     }));
     const categories = hydratedList.map((category) => serializeCategoryForResponse(category, { includeCounts: true, statsById }));
 
@@ -3417,8 +3417,8 @@ export async function createCategory(body) {
         isApproved: true,
         approvedAt: new Date(),
         rejectionReason: '',
-        restaurantId: undefined,
-        createdByRestaurantId: undefined
+        sellerId: undefined,
+        createdBySellerId: undefined
     });
     await doc.save();
     return doc.toObject();
@@ -3429,8 +3429,8 @@ export async function approveCategory(id) {
     const doc = await FoodCategory.findById(id);
     if (!doc) return null;
 
-    if (!doc.createdByRestaurantId && doc.restaurantId) {
-        doc.createdByRestaurantId = doc.restaurantId;
+    if (!doc.createdBySellerId && doc.sellerId) {
+        doc.createdBySellerId = doc.sellerId;
     }
     doc.approvalStatus = 'approved';
     doc.isApproved = true;
@@ -3445,12 +3445,12 @@ export async function rejectCategory(id, reason) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const doc = await FoodCategory.findById(id);
     if (!doc) return null;
-    if (!doc.restaurantId && !doc.createdByRestaurantId) {
+    if (!doc.sellerId && !doc.createdBySellerId) {
         throw new ValidationError('Only store-created categories can be rejected');
     }
 
-    if (!doc.createdByRestaurantId && doc.restaurantId) {
-        doc.createdByRestaurantId = doc.restaurantId;
+    if (!doc.createdBySellerId && doc.sellerId) {
+        doc.createdBySellerId = doc.sellerId;
     }
     doc.approvalStatus = 'rejected';
     doc.isApproved = false;
@@ -3466,15 +3466,15 @@ export async function makeCategoryGlobal(id) {
     const doc = await FoodCategory.findById(id);
     if (!doc) return null;
 
-    if (!doc.restaurantId && !doc.createdByRestaurantId) {
+    if (!doc.sellerId && !doc.createdBySellerId) {
         return doc.toObject();
     }
     if (String(doc.approvalStatus || '') !== 'approved' && doc.isApproved !== true) {
         throw new ValidationError('Only approved categories can be made global');
     }
 
-    doc.createdByRestaurantId = doc.createdByRestaurantId || doc.restaurantId;
-    doc.restaurantId = undefined;
+    doc.createdBySellerId = doc.createdBySellerId || doc.sellerId;
+    doc.sellerId = undefined;
     doc.zoneId = undefined;
     doc.approvalStatus = 'approved';
     doc.isApproved = true;
@@ -3508,7 +3508,7 @@ export async function updateCategory(id, body) {
     if (body.image !== undefined) doc.image = String(body.image || '').trim();
     if (body.type !== undefined) doc.type = String(body.type || '').trim();
     if (body.foodTypeScope !== undefined) doc.foodTypeScope = nextFoodTypeScope;
-    if (!doc.restaurantId && doc.createdByRestaurantId) {
+    if (!doc.sellerId && doc.createdBySellerId) {
         doc.zoneId = undefined;
     } else if (body.zoneId !== undefined) {
         const raw = String(body.zoneId || '').trim();
@@ -3522,8 +3522,8 @@ export async function updateCategory(id, body) {
     if (body.isActive !== undefined) doc.isActive = body.isActive !== false;
     if (body.sortOrder !== undefined) doc.sortOrder = Number(body.sortOrder) || 0;
     if (body.parentId !== undefined) doc.parentId = await resolveCategoryParentId(body.parentId, doc._id);
-    if (!doc.createdByRestaurantId && doc.restaurantId) {
-        doc.createdByRestaurantId = doc.restaurantId;
+    if (!doc.createdBySellerId && doc.sellerId) {
+        doc.createdBySellerId = doc.sellerId;
     }
     await doc.save();
     return doc.toObject();
@@ -3550,15 +3550,15 @@ export async function toggleCategoryStatus(id) {
     const doc = await FoodCategory.findById(id);
     if (!doc) return null;
     doc.isActive = !doc.isActive;
-    if (!doc.createdByRestaurantId && doc.restaurantId) {
-        doc.createdByRestaurantId = doc.restaurantId;
+    if (!doc.createdBySellerId && doc.sellerId) {
+        doc.createdBySellerId = doc.sellerId;
     }
     await doc.save();
     return doc.toObject();
 }
 
-// ----- Restaurant Add-ons approval (admin) -----
-export async function getRestaurantAddonsAdmin(query = {}) {
+// ----- Seller Add-ons approval (admin) -----
+export async function getSellerAddonsAdmin(query = {}) {
     const limit = Math.min(Math.max(parseInt(query.limit, 10) || 50, 1), 200);
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
@@ -3570,22 +3570,22 @@ export async function getRestaurantAddonsAdmin(query = {}) {
         filter.approvalStatus = approvalStatus;
     }
 
-    if (query.restaurantId && mongoose.Types.ObjectId.isValid(String(query.restaurantId))) {
-        filter.restaurantId = new mongoose.Types.ObjectId(String(query.restaurantId));
+    if (query.sellerId && mongoose.Types.ObjectId.isValid(String(query.sellerId))) {
+        filter.sellerId = new mongoose.Types.ObjectId(String(query.sellerId));
     }
 
     if (query.search && String(query.search).trim()) {
         const raw = String(query.search).trim().slice(0, 80);
         const term = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const matchingRestaurantIds = await FoodRestaurant.find({
-            restaurantName: { $regex: term, $options: 'i' }
+        const matchingSellerIds = await FoodSeller.find({
+            sellerName: { $regex: term, $options: 'i' }
         })
             .select('_id')
             .lean();
 
         filter.$or = [
             { 'draft.name': { $regex: term, $options: 'i' } },
-            { restaurantId: { $in: matchingRestaurantIds.map((restaurant) => restaurant._id) } }
+            { sellerId: { $in: matchingSellerIds.map((seller) => seller._id) } }
         ];
     }
 
@@ -3594,7 +3594,7 @@ export async function getRestaurantAddonsAdmin(query = {}) {
             .sort({ requestedAt: -1, createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .populate('restaurantId', 'restaurantName ownerName ownerPhone')
+            .populate('sellerId', 'sellerName ownerName ownerPhone')
             .lean(),
         FoodAddon.countDocuments(filter)
     ]);
@@ -3602,13 +3602,13 @@ export async function getRestaurantAddonsAdmin(query = {}) {
     const addons = list.map((a) => ({
         id: a._id,
         _id: a._id,
-        restaurantId: a.restaurantId?._id ? String(a.restaurantId._id) : String(a.restaurantId),
-        restaurant: a.restaurantId?._id
+        sellerId: a.sellerId?._id ? String(a.sellerId._id) : String(a.sellerId),
+        seller: a.sellerId?._id
             ? {
-                _id: a.restaurantId._id,
-                name: a.restaurantId.restaurantName || '',
-                ownerName: a.restaurantId.ownerName || '',
-                ownerPhone: a.restaurantId.ownerPhone || ''
+                _id: a.sellerId._id,
+                name: a.sellerId.sellerName || '',
+                ownerName: a.sellerId.ownerName || '',
+                ownerPhone: a.sellerId.ownerPhone || ''
             }
             : null,
         approvalStatus: a.approvalStatus || 'pending',
@@ -3626,7 +3626,7 @@ export async function getRestaurantAddonsAdmin(query = {}) {
     return { addons, total, page, limit };
 }
 
-export async function updateRestaurantAddonAdmin(addonId, body) {
+export async function updateSellerAddonAdmin(addonId, body) {
     if (!addonId || !mongoose.Types.ObjectId.isValid(String(addonId))) return null;
     const _id = new mongoose.Types.ObjectId(String(addonId));
     
@@ -3678,14 +3678,14 @@ export async function updateRestaurantAddonAdmin(addonId, body) {
     await addon.save();
     {
         const { invalidatePublicAddonCache } = await import(
-            '../../restaurant/services/restaurantAddon.service.js'
+            '../../seller/services/sellerAddon.service.js'
         );
         await invalidatePublicAddonCache();
     }
     return addon.toObject();
 }
 
-export async function approveRestaurantAddon(addonId) {
+export async function approveSellerAddon(addonId) {
     if (!addonId || !mongoose.Types.ObjectId.isValid(String(addonId))) return null;
     const _id = new mongoose.Types.ObjectId(String(addonId));
 
@@ -3710,16 +3710,16 @@ export async function approveRestaurantAddon(addonId) {
         // Approval flips draft -> published, which is what the public endpoint
         // serves. Without this the add-on stayed invisible for up to 600s.
         const { invalidatePublicAddonCache } = await import(
-            '../../restaurant/services/restaurantAddon.service.js'
+            '../../seller/services/sellerAddon.service.js'
         );
         await invalidatePublicAddonCache();
     }
 
-    if (updated?.restaurantId) {
+    if (updated?.sellerId) {
         try {
             const { notifyOwnersSafely } = await import('../../../../core/notifications/firebase.service.js');
             await notifyOwnersSafely(
-                [{ ownerType: 'RESTAURANT', ownerId: updated.restaurantId }],
+                [{ ownerType: 'SELLER', ownerId: updated.sellerId }],
                 {
                     title: 'Addon Approved! âœ…',
                     body: `Your addon "${updated.published?.name || 'New Addon'}" has been approved and is now live.`,
@@ -3727,7 +3727,7 @@ export async function approveRestaurantAddon(addonId) {
                     data: {
                         type: 'addon_approved',
                         addonId: String(updated._id),
-                        restaurantId: String(updated.restaurantId)
+                        sellerId: String(updated.sellerId)
                     }
                 }
             );
@@ -3739,7 +3739,7 @@ export async function approveRestaurantAddon(addonId) {
     return updated || null;
 }
 
-export async function rejectRestaurantAddon(addonId, reason) {
+export async function rejectSellerAddon(addonId, reason) {
     if (!addonId || !mongoose.Types.ObjectId.isValid(String(addonId))) return null;
     const _id = new mongoose.Types.ObjectId(String(addonId));
     const rejectionReason = String(reason || '').trim();
@@ -3758,11 +3758,11 @@ export async function rejectRestaurantAddon(addonId, reason) {
         { new: true }
     ).lean();
 
-    if (updated?.restaurantId) {
+    if (updated?.sellerId) {
         try {
             const { notifyOwnersSafely } = await import('../../../../core/notifications/firebase.service.js');
             await notifyOwnersSafely(
-                [{ ownerType: 'RESTAURANT', ownerId: updated.restaurantId }],
+                [{ ownerType: 'SELLER', ownerId: updated.sellerId }],
                 {
                     title: 'Addon Rejected âŒ',
                     body: `Your addon request for "${updated.draft?.name || 'New Addon'}" was rejected. Reason: ${rejectionReason}`,
@@ -3770,7 +3770,7 @@ export async function rejectRestaurantAddon(addonId, reason) {
                     data: {
                         type: 'addon_rejected',
                         addonId: String(updated._id),
-                        restaurantId: String(updated.restaurantId),
+                        sellerId: String(updated.sellerId),
                         reason: rejectionReason
                     }
                 }
@@ -3790,8 +3790,8 @@ export async function getFoods(query) {
     const skip = (page - 1) * limit;
     const filter = {};
 
-    if (query.restaurantId && mongoose.Types.ObjectId.isValid(query.restaurantId)) {
-        filter.restaurantId = query.restaurantId;
+    if (query.sellerId && mongoose.Types.ObjectId.isValid(query.sellerId)) {
+        filter.sellerId = query.sellerId;
     }
     if (query.search && String(query.search).trim()) {
         const term = String(query.search).trim();
@@ -3813,17 +3813,17 @@ export async function getFoods(query) {
         FoodItem.countDocuments(filter)
     ]);
 
-    const restaurantIds = Array.from(new Set(list.map((f) => String(f.restaurantId)).filter(Boolean)));
-    const restaurants = restaurantIds.length
-        ? await FoodRestaurant.find({ _id: { $in: restaurantIds } }).select('restaurantName').lean()
+    const sellerIds = Array.from(new Set(list.map((f) => String(f.sellerId)).filter(Boolean)));
+    const sellers = sellerIds.length
+        ? await FoodSeller.find({ _id: { $in: sellerIds } }).select('sellerName').lean()
         : [];
-    const restaurantMap = new Map(restaurants.map((r) => [String(r._id), r.restaurantName]));
+    const sellerMap = new Map(sellers.map((r) => [String(r._id), r.sellerName]));
 
     const foods = list.map((f) => ({
         id: f._id,
         _id: f._id,
-        restaurantId: f.restaurantId,
-        restaurantName: restaurantMap.get(String(f.restaurantId)) || 'Unknown Restaurant',
+        sellerId: f.sellerId,
+        sellerName: sellerMap.get(String(f.sellerId)) || 'Unknown Seller',
         categoryId: f.categoryId || null,
         categoryName: f.categoryName || '',
         name: f.name,
@@ -3850,7 +3850,7 @@ export async function getFoods(query) {
     return { foods, total, page, limit };
 }
 
-const resolveAdminFoodCategory = async ({ categoryId, categoryName, foodType, pureVegRestaurant }) => {
+const resolveAdminFoodCategory = async ({ categoryId, categoryName, foodType, pureVegSeller }) => {
     let resolvedCategoryId = null;
     let resolvedCategoryName = typeof categoryName === 'string' ? categoryName.trim() : '';
     let categoryDoc = null;
@@ -3874,7 +3874,7 @@ const resolveAdminFoodCategory = async ({ categoryId, categoryName, foodType, pu
     }
 
     if (categoryDoc?.foodTypeScope) {
-        if (pureVegRestaurant && String(categoryDoc.foodTypeScope || '') !== 'Veg') {
+        if (pureVegSeller && String(categoryDoc.foodTypeScope || '') !== 'Veg') {
             throw new ValidationError('Pure veg stores can only use veg categories');
         }
         if (!categoryAllowsFoodType(categoryDoc.foodTypeScope, foodType)) {
@@ -3958,20 +3958,20 @@ const getAdminFoodUpdatedPricing = (existing = {}, body = {}) => {
 };
 
 export async function createFood(body) {
-    const restaurantId = body.restaurantId;
-    if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) {
-        throw new ValidationError('Valid restaurantId is required');
+    const sellerId = body.sellerId;
+    if (!sellerId || !mongoose.Types.ObjectId.isValid(sellerId)) {
+        throw new ValidationError('Valid sellerId is required');
     }
-    const restaurant = await FoodRestaurant.findById(restaurantId)
-        .select('pureVegRestaurant')
+    const seller = await FoodSeller.findById(sellerId)
+        .select('pureVegSeller')
         .lean();
-    if (!restaurant?._id) {
+    if (!seller?._id) {
         throw new ValidationError('Store not found');
     }
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name) throw new ValidationError('Food name is required');
     const foodType = body.foodType === 'Veg' ? 'Veg' : 'Non-Veg';
-    if (restaurant.pureVegRestaurant === true && foodType !== 'Veg') {
+    if (seller.pureVegSeller === true && foodType !== 'Veg') {
         throw new ValidationError('Pure veg stores can only use veg foods');
     }
     const { price, otherPrice, variants } = getAdminFoodCreatePricing(body);
@@ -3982,11 +3982,11 @@ export async function createFood(body) {
         categoryId: body.categoryId,
         categoryName,
         foodType,
-        pureVegRestaurant: restaurant.pureVegRestaurant === true
+        pureVegSeller: seller.pureVegSeller === true
     });
 
     const doc = new FoodItem({
-        restaurantId,
+        sellerId,
         categoryId,
         categoryName: resolvedCategoryName,
         name,
@@ -4038,16 +4038,16 @@ export async function updateFood(id, body) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const doc = await FoodItem.findById(id);
     if (!doc) return null;
-    const restaurant = await FoodRestaurant.findById(doc.restaurantId)
-        .select('pureVegRestaurant')
+    const seller = await FoodSeller.findById(doc.sellerId)
+        .select('pureVegSeller')
         .lean();
-    if (!restaurant?._id) {
+    if (!seller?._id) {
         throw new ValidationError('Store not found');
     }
     if (body.name !== undefined) doc.name = String(body.name || '').trim();
     if (body.description !== undefined) doc.description = String(body.description || '').trim();
     const targetFoodType = body.foodType !== undefined ? (body.foodType === 'Veg' ? 'Veg' : 'Non-Veg') : (doc.foodType === 'Veg' ? 'Veg' : 'Non-Veg');
-    if (restaurant.pureVegRestaurant === true && targetFoodType !== 'Veg') {
+    if (seller.pureVegSeller === true && targetFoodType !== 'Veg') {
         throw new ValidationError('Pure veg stores can only use veg foods');
     }
     const pricingUpdate = getAdminFoodUpdatedPricing(doc.toObject(), body);
@@ -4076,7 +4076,7 @@ export async function updateFood(id, body) {
             categoryId: body.categoryId !== undefined ? body.categoryId : doc.categoryId,
             categoryName: nextCategoryName,
             foodType: targetFoodType,
-            pureVegRestaurant: restaurant.pureVegRestaurant === true
+            pureVegSeller: seller.pureVegSeller === true
         });
         doc.categoryId = categoryId;
         doc.categoryName = categoryName;
@@ -4088,10 +4088,10 @@ export async function updateFood(id, body) {
 export async function deleteFood(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
     const deleted = await FoodItem.findByIdAndDelete(id).lean();
-    if (deleted?.restaurantId) {
+    if (deleted?.sellerId) {
         try {
             const { invalidateCache } = await import('../../../../middleware/cache.js');
-            await invalidateCache(`restaurant_menu:${deleted.restaurantId}`);
+            await invalidateCache(`seller_menu:${deleted.sellerId}`);
         } catch (cacheErr) {
             console.error('Failed to invalidate cache after food delete:', cacheErr);
         }
@@ -4099,17 +4099,17 @@ export async function deleteFood(id) {
     return deleted ? { id } : null;
 }
 
-export async function bulkDeleteFoods({ restaurantId, foodIds = [], selectAll = false, search = '' }) {
-    if (!restaurantId || !mongoose.Types.ObjectId.isValid(restaurantId)) {
-        throw new ValidationError('Valid restaurantId is required');
+export async function bulkDeleteFoods({ sellerId, foodIds = [], selectAll = false, search = '' }) {
+    if (!sellerId || !mongoose.Types.ObjectId.isValid(sellerId)) {
+        throw new ValidationError('Valid sellerId is required');
     }
 
-    const restaurant = await FoodRestaurant.findById(restaurantId).select('_id').lean();
-    if (!restaurant?._id) {
+    const seller = await FoodSeller.findById(sellerId).select('_id').lean();
+    if (!seller?._id) {
         throw new ValidationError('Store not found');
     }
 
-    const filter = { restaurantId: new mongoose.Types.ObjectId(restaurantId) };
+    const filter = { sellerId: new mongoose.Types.ObjectId(sellerId) };
 
     if (selectAll) {
         const term = String(search || '').trim();
@@ -4134,7 +4134,7 @@ export async function bulkDeleteFoods({ restaurantId, foodIds = [], selectAll = 
     if (result.deletedCount > 0) {
         try {
             const { invalidateCache } = await import('../../../../middleware/cache.js');
-            await invalidateCache(`restaurant_menu:${restaurantId}`);
+            await invalidateCache(`seller_menu:${sellerId}`);
         } catch (cacheErr) {
             console.error('Failed to invalidate cache after bulk food delete:', cacheErr);
         }
@@ -4143,8 +4143,8 @@ export async function bulkDeleteFoods({ restaurantId, foodIds = [], selectAll = 
     return { deletedCount: result.deletedCount };
 }
 
-/** Admin creates a restaurant (JSON body with image URLs already uploaded). Single API. */
-export async function createRestaurantByAdmin(body) {
+/** Admin creates a seller (JSON body with image URLs already uploaded). Single API. */
+export async function createSellerByAdmin(body) {
     const loc = body.location || {};
     const toStr = (v) => (v != null && v !== undefined ? String(v).trim() : '');
     const toUrl = (v) => (v && (typeof v === 'string' ? v : v.url)) ? (typeof v === 'string' ? v : v.url) : undefined;
@@ -4157,18 +4157,18 @@ export async function createRestaurantByAdmin(body) {
         ? body.menuImages.map((m) => toUrl(m)).filter(Boolean)
         : [];
 
-    const normalizedOpeningTime = normalizeRestaurantTime(body.openingTime) || '09:00';
-    const normalizedClosingTime = normalizeRestaurantTime(body.closingTime) || '22:00';
+    const normalizedOpeningTime = normalizeSellerTime(body.openingTime) || '09:00';
+    const normalizedClosingTime = normalizeSellerTime(body.closingTime) || '22:00';
     validateOpeningClosingTimes(normalizedOpeningTime, normalizedClosingTime);
 
     const doc = {
-        restaurantName: toStr(body.restaurantName) || toStr(body.name),
+        sellerName: toStr(body.sellerName) || toStr(body.name),
         ownerName: toStr(body.ownerName),
         ownerEmail: toStr(body.ownerEmail),
         ownerPhone: toStr(body.ownerPhone),
         primaryContactNumber: toStr(body.primaryContactNumber) || toStr(body.ownerPhone),
-        pureVegRestaurant: body.pureVegRestaurant !== undefined
-            ? parseBooleanLike(body.pureVegRestaurant, 'pureVegRestaurant')
+        pureVegSeller: body.pureVegSeller !== undefined
+            ? parseBooleanLike(body.pureVegSeller, 'pureVegSeller')
             : false,
         addressLine1: toStr(loc.addressLine1),
         addressLine2: toStr(loc.addressLine2),
@@ -4242,15 +4242,15 @@ export async function createRestaurantByAdmin(body) {
         };
     }
 
-    if (!doc.restaurantName || !doc.ownerName) {
+    if (!doc.sellerName || !doc.ownerName) {
         throw new ValidationError('Store name and owner name are required');
     }
     if (!doc.ownerPhone && !doc.primaryContactNumber) {
         throw new ValidationError('Owner phone or primary contact number is required');
     }
 
-    // Prevent duplicate restaurant onboarding with the same contact number
-    // across existing restaurants and restaurant-auth users.
+    // Prevent duplicate seller onboarding with the same contact number
+    // across existing sellers and seller-auth users.
     const phoneCandidates = [doc.ownerPhone, doc.primaryContactNumber]
         .map((v) => String(v || '').trim())
         .filter(Boolean);
@@ -4265,7 +4265,7 @@ export async function createRestaurantByAdmin(body) {
     );
 
     if (normalizedPhoneCandidates.length) {
-        const duplicateRestaurant = await FoodRestaurant.findOne({
+        const duplicateSeller = await FoodSeller.findOne({
             $or: [
                 { ownerPhone: { $in: normalizedPhoneCandidates } },
                 { primaryContactNumber: { $in: normalizedPhoneCandidates } },
@@ -4273,33 +4273,33 @@ export async function createRestaurantByAdmin(body) {
                 { ownerPhoneLast10: { $in: normalizedPhoneCandidates } },
             ],
         })
-            .select('_id restaurantName ownerPhone primaryContactNumber')
+            .select('_id sellerName ownerPhone primaryContactNumber')
             .lean();
 
-        if (duplicateRestaurant?._id) {
+        if (duplicateSeller?._id) {
             throw new ValidationError('A store with this phone number already exists');
         }
 
-        const duplicateRestaurantUser = await FoodUser.findOne({
-            role: 'RESTAURANT',
+        const duplicateSellerUser = await FoodUser.findOne({
+            role: 'SELLER',
             phone: { $in: normalizedPhoneCandidates },
         })
             .select('_id phone')
             .lean();
 
-        if (duplicateRestaurantUser?._id) {
+        if (duplicateSellerUser?._id) {
             throw new ValidationError('A store account with this phone number already exists');
         }
     }
 
-    const restaurant = await FoodRestaurant.create(doc);
-    return restaurant.toObject();
+    const seller = await FoodSeller.create(doc);
+    return seller.toObject();
 }
 
-export async function approveRestaurant(id) {
+export async function approveSeller(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
 
-    const existing = await FoodRestaurant.findById(id).lean();
+    const existing = await FoodSeller.findById(id).lean();
     if (!existing) return null;
 
     const $set = {
@@ -4332,7 +4332,7 @@ export async function approveRestaurant(id) {
         $unset.locationRejectionReason = 1;
     }
 
-    const updated = await FoodRestaurant.findByIdAndUpdate(
+    const updated = await FoodSeller.findByIdAndUpdate(
         id,
         { $set, $unset },
         { new: true, runValidators: false }
@@ -4342,32 +4342,32 @@ export async function approveRestaurant(id) {
         try {
             const { notifyOwnersSafely } = await import('../../../../core/notifications/firebase.service.js');
             await notifyOwnersSafely(
-                [{ ownerType: 'RESTAURANT', ownerId: updated._id }],
+                [{ ownerType: 'SELLER', ownerId: updated._id }],
                 {
                     title: 'Congratulations! ',
-                    body: `Your restaurant "${updated.restaurantName}" has been approved.`,
+                    body: `Your seller "${updated.sellerName}" has been approved.`,
                     image: updated.profileImage || 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
                     data: {
-                        type: 'restaurant_approved',
-                        restaurantId: String(updated._id)
+                        type: 'seller_approved',
+                        sellerId: String(updated._id)
                     }
                 }
             );
         } catch (e) {
-            console.error('Failed to send restaurant approval notification:', e);
+            console.error('Failed to send seller approval notification:', e);
         }
     }
     return updated;
 }
 
-export async function rejectRestaurant(id, reason) {
+export async function rejectSeller(id, reason) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
 
-    const existing = await FoodRestaurant.findById(id).lean();
+    const existing = await FoodSeller.findById(id).lean();
     if (!existing) return null;
 
     if (existing.status === 'approved' && existing.locationUpdateStatus === 'pending') {
-        const updated = await FoodRestaurant.findByIdAndUpdate(
+        const updated = await FoodSeller.findByIdAndUpdate(
             id,
             {
                 $set: {
@@ -4386,7 +4386,7 @@ export async function rejectRestaurant(id, reason) {
         return updated;
     }
 
-    const updated = await FoodRestaurant.findByIdAndUpdate(
+    const updated = await FoodSeller.findByIdAndUpdate(
         id,
         {
             $set: {
@@ -4403,20 +4403,20 @@ export async function rejectRestaurant(id, reason) {
         try {
             const { notifyOwnersSafely } = await import('../../../../core/notifications/firebase.service.js');
             await notifyOwnersSafely(
-                [{ ownerType: 'RESTAURANT', ownerId: updated._id }],
+                [{ ownerType: 'SELLER', ownerId: updated._id }],
                 {
                     title: 'Update on Registration ðŸ“‹',
-                    body: `Your restaurant registration for "${updated.restaurantName}" has been rejected. Reason: ${reason || 'Incomplete documents'}.`,
+                    body: `Your seller registration for "${updated.sellerName}" has been rejected. Reason: ${reason || 'Incomplete documents'}.`,
                     image: 'https://i.ibb.co/5GzXz7r/Switcheats-Brand-Image.png',
                     data: {
-                        type: 'restaurant_rejected',
-                        restaurantId: String(updated._id),
+                        type: 'seller_rejected',
+                        sellerId: String(updated._id),
                         reason: reason || ''
                     }
                 }
             );
         } catch (e) {
-            console.error('Failed to send restaurant rejection notification:', e);
+            console.error('Failed to send seller rejection notification:', e);
         }
     }
     return updated;
@@ -4426,20 +4426,20 @@ export async function rejectRestaurant(id, reason) {
 export async function getAllOffers(_query = {}) {
     const list = await FoodOffer.find({})
         .sort({ createdAt: -1 })
-        .populate({ path: 'restaurantId', select: 'restaurantName' })
-        .populate({ path: 'restaurantIds', select: 'restaurantName' })
+        .populate({ path: 'sellerId', select: 'sellerName' })
+        .populate({ path: 'sellerIds', select: 'sellerName' })
         .lean();
 
     const offers = list.map((o, index) => {
         const now = Date.now();
         const endTs = o.endDate ? new Date(o.endDate).getTime() : null;
         const isExpired = Boolean(endTs && now >= endTs);
-        const selectedRestaurants = Array.isArray(o.restaurantIds) && o.restaurantIds.length > 0
-            ? o.restaurantIds
-            : (o.restaurantId ? [o.restaurantId] : []);
-        const restaurantName = o.restaurantScope === 'selected'
-            ? (selectedRestaurants.map((restaurant) => restaurant?.restaurantName).filter(Boolean).join(', ') || 'Selected Restaurants')
-            : 'All Restaurants';
+        const selectedSellers = Array.isArray(o.sellerIds) && o.sellerIds.length > 0
+            ? o.sellerIds
+            : (o.sellerId ? [o.sellerId] : []);
+        const sellerName = o.sellerScope === 'selected'
+            ? (selectedSellers.map((seller) => seller?.sellerName).filter(Boolean).join(', ') || 'Selected Sellers')
+            : 'All Sellers';
 
         const discountPercentage = o.discountType === 'percentage' ? Number(o.discountValue) : 0;
 
@@ -4450,7 +4450,7 @@ export async function getAllOffers(_query = {}) {
             sl: index + 1,
             offerId: String(o._id),
             dishId: 'all',
-            restaurantName,
+            sellerName,
             dishName: 'All Items',
             couponCode: o.couponCode,
             customerGroup: o.customerScope === 'first-time' ? 'new' : 'all',
@@ -4466,10 +4466,10 @@ export async function getAllOffers(_query = {}) {
             maxDiscount: o.maxDiscount ?? null,
             usageLimit: o.usageLimit ?? null,
             usedCount: o.usedCount ?? 0,
-            restaurantScope: o.restaurantScope,
+            sellerScope: o.sellerScope,
             createdByRole: o.createdByRole || 'ADMIN',
-            adminBearPercentage: Number(o.adminBearPercentage ?? (o.createdByRole === 'RESTAURANT' ? 0 : 100)),
-            restaurantBearPercentage: Number(o.restaurantBearPercentage ?? (o.createdByRole === 'RESTAURANT' ? 100 : 0))
+            adminBearPercentage: Number(o.adminBearPercentage ?? (o.createdByRole === 'SELLER' ? 0 : 100)),
+            sellerBearPercentage: Number(o.sellerBearPercentage ?? (o.createdByRole === 'SELLER' ? 100 : 0))
         };
     });
 
@@ -4487,9 +4487,9 @@ export async function createAdminOffer(body) {
         discountType: body.discountType,
         discountValue: body.discountValue,
         customerScope: body.customerScope,
-        restaurantScope: body.restaurantScope,
-        restaurantId: body.restaurantScope === 'selected' ? body.restaurantId : undefined,
-        restaurantIds: body.restaurantScope === 'selected' ? body.restaurantIds : [],
+        sellerScope: body.sellerScope,
+        sellerId: body.sellerScope === 'selected' ? body.sellerId : undefined,
+        sellerIds: body.sellerScope === 'selected' ? body.sellerIds : [],
         minOrderValue: body.minOrderValue ?? 0,
         maxDiscount: body.maxDiscount ?? null,
         usageLimit: body.usageLimit ?? null,
@@ -4501,17 +4501,17 @@ export async function createAdminOffer(body) {
         showInCart: true,
         createdByRole: 'ADMIN',
         adminBearPercentage: body.adminBearPercentage ?? 100,
-        restaurantBearPercentage: body.restaurantBearPercentage ?? 0
+        sellerBearPercentage: body.sellerBearPercentage ?? 0
     });
 
-    const selectedRestaurantIds = doc.restaurantScope === 'selected'
-        ? (doc.restaurantIds?.length ? doc.restaurantIds : [doc.restaurantId]).filter(Boolean)
+    const selectedSellerIds = doc.sellerScope === 'selected'
+        ? (doc.sellerIds?.length ? doc.sellerIds : [doc.sellerId]).filter(Boolean)
         : [];
-    if (selectedRestaurantIds.length > 0) {
+    if (selectedSellerIds.length > 0) {
         try {
             const { notifyOwnersSafely } = await import('../../../../core/notifications/firebase.service.js');
             await notifyOwnersSafely(
-                selectedRestaurantIds.map((ownerId) => ({ ownerType: 'RESTAURANT', ownerId })),
+                selectedSellerIds.map((ownerId) => ({ ownerType: 'SELLER', ownerId })),
                 {
                     title: 'New Campaign Invitation! ðŸ“¢',
                     body: `You have been invited to join a new campaign: "${doc.couponCode}". Check it out now!`,
@@ -4748,8 +4748,8 @@ export async function updateDeliverySupportTicket(id, body = {}) {
 /**
  * Subscription Settings
  */
-export const getRestaurantSubscriptionSettings = async () => {
-    const settings = await FoodRestaurantSubscriptionSettings.findOne();
+export const getSellerSubscriptionSettings = async () => {
+    const settings = await FoodSellerSubscriptionSettings.findOne();
     const raw = settings ? settings.toObject() : {};
     const starterPrice = Number(raw?.starterPrice ?? raw?.silverPrice ?? 999) || 999;
     const growthPrice = Number(raw?.growthPrice ?? raw?.goldPrice ?? 1999) || 1999;
@@ -4763,7 +4763,7 @@ export const getRestaurantSubscriptionSettings = async () => {
 
     let planCatalog = null;
     try {
-        const { buildPlanCatalog, GST_RATE } = await import('../../restaurant/services/subscriptionPlan.service.js');
+        const { buildPlanCatalog, GST_RATE } = await import('../../seller/services/subscriptionPlan.service.js');
         planCatalog = buildPlanCatalog({
             starterPrice,
             growthPrice,
@@ -4805,10 +4805,10 @@ export const getRestaurantSubscriptionSettings = async () => {
 };
 
 
-export const updateRestaurantSubscriptionSettings = async (data) => {
-    let settings = await FoodRestaurantSubscriptionSettings.findOne();
+export const updateSellerSubscriptionSettings = async (data) => {
+    let settings = await FoodSellerSubscriptionSettings.findOne();
     if (!settings) {
-        settings = new FoodRestaurantSubscriptionSettings();
+        settings = new FoodSellerSubscriptionSettings();
     }
 
     if (data.starterPrice !== undefined) settings.starterPrice = Math.max(0, Number(data.starterPrice) || 0);
@@ -4834,11 +4834,11 @@ export const updateRestaurantSubscriptionSettings = async (data) => {
     }
 
     await settings.save();
-    return getRestaurantSubscriptionSettings();
+    return getSellerSubscriptionSettings();
 };
 
-export const getAdminRestaurantSubscriptionHistory = async (query = {}) => {
-    return getAdminRestaurantSubscriptionHistoryFromRestaurant(query);
+export const getAdminSellerSubscriptionHistory = async (query = {}) => {
+    return getAdminSellerSubscriptionHistoryFromSeller(query);
 };
 
 // ----- Delivery partners (approved list) -----
@@ -5211,22 +5211,22 @@ export async function getDeliveryEarnings(query = {}) {
     if (search) {
         const regex = new RegExp(search, 'i');
 
-        const [partners, restaurants] = await Promise.all([
+        const [partners, sellers] = await Promise.all([
             FoodDeliveryPartner.find({
                 $or: [{ name: regex }, { phone: regex }, { email: regex }]
             }).select('_id').lean(),
-            FoodRestaurant.find({
-                $or: [{ restaurantName: regex }, { name: regex }]
+            FoodSeller.find({
+                $or: [{ sellerName: regex }, { name: regex }]
             }).select('_id').lean()
         ]);
 
         const partnerIds = partners.map((p) => p._id);
-        const restaurantIds = restaurants.map((r) => r._id);
+        const sellerIds = sellers.map((r) => r._id);
 
         filter.$or = [
             { orderId: regex },
             { 'dispatch.deliveryPartnerId': { $in: partnerIds } },
-            { restaurantId: { $in: restaurantIds } }
+            { sellerId: { $in: sellerIds } }
         ];
     }
 
@@ -5235,9 +5235,9 @@ export async function getDeliveryEarnings(query = {}) {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .select('orderId orderStatus createdAt pricing riderEarning deliveryPartnerSettlement dispatch.deliveryPartnerId restaurantId')
+            .select('orderId orderStatus createdAt pricing riderEarning deliveryPartnerSettlement dispatch.deliveryPartnerId sellerId')
             .populate({ path: 'dispatch.deliveryPartnerId', select: 'name phone' })
-            .populate({ path: 'restaurantId', select: 'restaurantName name' })
+            .populate({ path: 'sellerId', select: 'sellerName name' })
             .lean(),
         FoodOrder.countDocuments(filter),
         FoodOrder.aggregate([
@@ -5280,7 +5280,7 @@ export async function getDeliveryEarnings(query = {}) {
             deliveryPartnerId: partner?._id ? String(partner._id) : null,
             deliveryPartnerName: partner?.name || 'N/A',
             deliveryPartnerPhone: partner?.phone || 'N/A',
-            restaurantName: order?.restaurantId?.restaurantName || order?.restaurantId?.name || 'N/A',
+            sellerName: order?.sellerId?.sellerName || order?.sellerId?.name || 'N/A',
             amount,
             orderTotal: Number(order?.pricing?.total || 0) || 0,
             deliveryFee: Number(order?.pricing?.deliveryFee || 0) || 0,
@@ -5876,33 +5876,33 @@ export async function getWithdrawals(query = {}) {
     if (query.status && query.status !== 'all') {
         filter.status = query.status.toLowerCase();
     }
-    if (query.restaurantId && mongoose.Types.ObjectId.isValid(query.restaurantId)) {
-        filter.restaurantId = new mongoose.Types.ObjectId(query.restaurantId);
+    if (query.sellerId && mongoose.Types.ObjectId.isValid(query.sellerId)) {
+        filter.sellerId = new mongoose.Types.ObjectId(query.sellerId);
     }
 
     const [withdrawals, total] = await Promise.all([
-        FoodRestaurantWithdrawal.find(filter)
-            .populate('restaurantId', 'restaurantName profileImage ownerName phone ownerPhone accountHolderName accountNumber ifscCode accountType upiId upiQrImage')
+        FoodSellerWithdrawal.find(filter)
+            .populate('sellerId', 'sellerName profileImage ownerName phone ownerPhone accountHolderName accountNumber ifscCode accountType upiId upiQrImage')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
             .lean(),
-        FoodRestaurantWithdrawal.countDocuments(filter)
+        FoodSellerWithdrawal.countDocuments(filter)
     ]);
 
     // UI expects status with first letter capitalized, and data in 'requests' key
     const requests = withdrawals.map((w) => ({
         ...w,
         id: w._id,
-        restaurantName: w.restaurantId?.restaurantName || 'N/A',
-        restaurantIdString: w.restaurantId ? `REST${w.restaurantId._id.toString().slice(-6).padStart(6, '0')}` : 'N/A',
-        restaurantBankDetails: {
-            accountHolderName: w.restaurantId?.accountHolderName || '',
-            accountNumber: w.restaurantId?.accountNumber || '',
-            ifscCode: w.restaurantId?.ifscCode || '',
-            accountType: w.restaurantId?.accountType || '',
-            upiId: w.restaurantId?.upiId || '',
-            upiQrImage: w.restaurantId?.upiQrImage || ''
+        sellerName: w.sellerId?.sellerName || 'N/A',
+        sellerIdString: w.sellerId ? `REST${w.sellerId._id.toString().slice(-6).padStart(6, '0')}` : 'N/A',
+        sellerBankDetails: {
+            accountHolderName: w.sellerId?.accountHolderName || '',
+            accountNumber: w.sellerId?.accountNumber || '',
+            ifscCode: w.sellerId?.ifscCode || '',
+            accountType: w.sellerId?.accountType || '',
+            upiId: w.sellerId?.upiId || '',
+            upiQrImage: w.sellerId?.upiQrImage || ''
         },
         status: w.status.charAt(0).toUpperCase() + w.status.slice(1)
     }));
@@ -5921,11 +5921,11 @@ export async function updateWithdrawalStatus(id, { status, adminNote, rejectionR
         processedAt: new Date()
     };
 
-    const updated = await FoodRestaurantWithdrawal.findByIdAndUpdate(
+    const updated = await FoodSellerWithdrawal.findByIdAndUpdate(
         id,
         { $set: update },
         { new: true }
-    ).populate('restaurantId', 'restaurantName').lean();
+    ).populate('sellerId', 'sellerName').lean();
 
     if (!updated) throw new ValidationError('Withdrawal request not found');
     return updated;
@@ -6245,63 +6245,63 @@ export async function getCashLimitSettlements(query = {}) {
 export async function getSidebarBadges() {
     try {
         const [
-            pendingRestaurants,
+            pendingSellers,
             pendingDeliveryPartners,
             pendingFoods,
             pendingAddons,
             pendingOrders,
             pendingOfflinePayments,
-            pendingRestaurantWithdrawals,
+            pendingSellerWithdrawals,
             pendingDeliveryWithdrawals,
             openUserSupportTickets,
             openDeliverySupportTickets,
             pendingEarningAddons,
             pendingSafetyReports,
             pendingEmergencyHelp,
-            pendingRestaurantComplaints
+            pendingSellerComplaints
         ] = await Promise.all([
-            FoodRestaurant.countDocuments({ status: 'pending' }),
+            FoodSeller.countDocuments({ status: 'pending' }),
             FoodDeliveryPartner.countDocuments({ status: 'pending' }),
             FoodItem.countDocuments({ approvalStatus: 'pending' }),
             FoodAddon.countDocuments({ approvalStatus: 'pending' }),
             FoodOrder.countDocuments({ orderStatus: 'pending' }),
             FoodOrder.countDocuments({ paymentMethod: 'offline_payment', orderStatus: 'pending' }),
-            FoodRestaurantWithdrawal.countDocuments({ status: 'pending' }),
+            FoodSellerWithdrawal.countDocuments({ status: 'pending' }),
             FoodDeliveryWithdrawal.countDocuments({ status: 'pending' }),
-            FoodSupportTicket.countDocuments({ status: 'open', userId: { $exists: true }, restaurantId: { $exists: false } }),
+            FoodSupportTicket.countDocuments({ status: 'open', userId: { $exists: true }, sellerId: { $exists: false } }),
             DeliverySupportTicket.countDocuments({ status: 'open' }),
             FoodEarningAddonHistory.countDocuments({ status: 'pending' }),
             FoodSafetyEmergencyReport.countDocuments({ status: 'pending' }),
             FoodDeliveryEmergencyHelp.countDocuments({ status: 'pending' }),
-            FoodSupportTicket.countDocuments({ status: 'open', restaurantId: { $exists: true } })
+            FoodSupportTicket.countDocuments({ status: 'open', sellerId: { $exists: true } })
         ]);
 
         return {
-            restaurants: pendingRestaurants,
+            sellers: pendingSellers,
             deliveryPartners: pendingDeliveryPartners,
             foods: pendingFoods + pendingAddons,
             foodApprovals: pendingFoods,
             orders: pendingOrders,
             offlinePayments: pendingOfflinePayments,
-            restaurantWithdrawals: pendingRestaurantWithdrawals,
+            sellerWithdrawals: pendingSellerWithdrawals,
             deliveryWithdrawals: pendingDeliveryWithdrawals,
             userSupportTickets: openUserSupportTickets,
             deliverySupportTickets: openDeliverySupportTickets,
             earningAddons: pendingEarningAddons,
             safetyReports: pendingSafetyReports,
             emergencyHelp: pendingEmergencyHelp,
-            restaurantComplaints: pendingRestaurantComplaints
+            sellerComplaints: pendingSellerComplaints
         };
     } catch (error) {
         console.error('Error fetching sidebar badges:', error);
         return {};
     }
 }
-export async function bulkApproveFoodItems(restaurantId) {
+export async function bulkApproveFoodItems(sellerId) {
     const filter = { approvalStatus: 'pending', isDeleted: { $ne: true } };
     
-    if (restaurantId && mongoose.Types.ObjectId.isValid(restaurantId)) {
-        filter.restaurantId = new mongoose.Types.ObjectId(restaurantId);
+    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
+        filter.sellerId = new mongoose.Types.ObjectId(sellerId);
     }
 
     const now = new Date();
@@ -6337,11 +6337,11 @@ export async function bulkApproveFoodItems(restaurantId) {
         ]
     );
 
-    // 3. Invalidate Cache if restaurantId is provided
-    if (restaurantId && mongoose.Types.ObjectId.isValid(restaurantId)) {
+    // 3. Invalidate Cache if sellerId is provided
+    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
         try {
             const { invalidateCache } = await import('../../../../middleware/cache.js');
-            await invalidateCache(`restaurant_menu:${restaurantId}`);
+            await invalidateCache(`seller_menu:${sellerId}`);
         } catch (cacheErr) {
             console.error('Failed to invalidate cache after bulk approval:', cacheErr);
         }
@@ -6354,35 +6354,35 @@ export async function bulkApproveFoodItems(restaurantId) {
     };
 }
 
-export async function deleteRestaurant(id) {
+export async function deleteSeller(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
         throw new ValidationError('Invalid store ID');
     }
 
-    const restaurant = await FoodRestaurant.findById(id).lean();
-    if (!restaurant) {
+    const seller = await FoodSeller.findById(id).lean();
+    if (!seller) {
         return null;
     }
 
-    // Delete the restaurant
-    await FoodRestaurant.findByIdAndDelete(id);
+    // Delete the seller
+    await FoodSeller.findByIdAndDelete(id);
 
     // Delete associated food items
-    await FoodItem.deleteMany({ restaurantId: id });
+    await FoodItem.deleteMany({ sellerId: id });
 
     // Delete associated addons
-    await FoodAddon.deleteMany({ restaurantId: id });
+    await FoodAddon.deleteMany({ sellerId: id });
 
-    // Delete associated categories if they are restaurant-specific
-    // Assuming categories are global unless they have a restaurantId field (need to check FoodCategory model)
-    await FoodCategory.deleteMany({ restaurantId: id });
+    // Delete associated categories if they are seller-specific
+    // Assuming categories are global unless they have a sellerId field (need to check FoodCategory model)
+    await FoodCategory.deleteMany({ sellerId: id });
 
-    // Delete associated user/owner account if it's a restaurant role
-    if (restaurant.ownerPhone) {
-        await FoodUser.deleteOne({ phone: restaurant.ownerPhone, role: 'RESTAURANT' });
+    // Delete associated user/owner account if it's a seller role
+    if (seller.ownerPhone) {
+        await FoodUser.deleteOne({ phone: seller.ownerPhone, role: 'SELLER' });
     }
 
-    return restaurant;
+    return seller;
 }
 
 const toEmail = (value) => String(value || '').trim().toLowerCase();

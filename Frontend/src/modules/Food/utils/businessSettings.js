@@ -14,7 +14,7 @@ import {
 const SETTINGS_KEY = 'food_business_settings';
 const DEFAULT_MODULE_POWER_SCANNING = {
   user: { themeColor: "#FA0272", fontFamily: "Poppins" },
-  restaurant: { themeColor: "#2563EB", fontFamily: "Poppins" },
+  seller: { themeColor: "#2563EB", fontFamily: "Poppins" },
   delivery: { themeColor: "#00B761", fontFamily: "Poppins" },
 };
 
@@ -403,8 +403,8 @@ export const updateFavicon = (url) => {
 const resolveLogoByModule = (settings, moduleName = "user") => {
   if (!settings || typeof settings !== "object") return "";
   const moduleKey = String(moduleName || "").trim().toLowerCase();
-  if (moduleKey === "restaurant") {
-    return settings.restaurantLogo?.url || settings.logo?.url || "";
+  if (moduleKey === "seller") {
+    return settings.sellerLogo?.url || settings.logo?.url || "";
   }
   if (moduleKey === "delivery") {
     return settings.deliveryLogo?.url || settings.logo?.url || "";
@@ -415,8 +415,8 @@ const resolveLogoByModule = (settings, moduleName = "user") => {
 const resolveFaviconByModule = (settings, moduleName = "user") => {
   if (!settings || typeof settings !== "object") return "";
   const moduleKey = String(moduleName || "").trim().toLowerCase();
-  if (moduleKey === "restaurant") {
-    return settings.restaurantFavicon?.url || settings.favicon?.url || "";
+  if (moduleKey === "seller") {
+    return settings.sellerFavicon?.url || settings.favicon?.url || "";
   }
   if (moduleKey === "delivery") {
     return settings.deliveryFavicon?.url || settings.favicon?.url || "";

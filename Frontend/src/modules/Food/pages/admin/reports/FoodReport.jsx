@@ -10,7 +10,7 @@ export default function FoodReport() {
   const [foods, setFoods] = useState(emptyFoodReports)
   const [filters, setFilters] = useState({
     zone: "All Zones",
-    restaurant: "All restaurants",
+    seller: "All sellers",
     category: "All Categories",
     type: "All types",
     time: "All Time",
@@ -27,7 +27,7 @@ export default function FoodReport() {
       const query = searchQuery.toLowerCase().trim()
       result = result.filter(food =>
         food.name.toLowerCase().includes(query) ||
-        food.restaurant.toLowerCase().includes(query)
+        food.seller.toLowerCase().includes(query)
       )
     }
 
@@ -35,8 +35,8 @@ export default function FoodReport() {
       // Filter by zone if needed
     }
 
-    if (filters.restaurant !== "All restaurants") {
-      result = result.filter(f => f.restaurant === filters.restaurant)
+    if (filters.seller !== "All sellers") {
+      result = result.filter(f => f.seller === filters.seller)
     }
 
     if (filters.category !== "All Categories") {
@@ -60,7 +60,7 @@ export default function FoodReport() {
     const headers = [
       { key: "sl", label: "SI" },
       { key: "name", label: "Name" },
-      { key: "restaurant", label: "Restaurant" },
+      { key: "seller", label: "Seller" },
       { key: "orderCount", label: "Order Count" },
       { key: "price", label: "Price" },
       { key: "totalAmountSold", label: "Total Amount Sold" },
@@ -83,7 +83,7 @@ export default function FoodReport() {
   const handleResetFilters = () => {
     setFilters({
       zone: "All Zones",
-      restaurant: "All restaurants",
+      seller: "All sellers",
       category: "All Categories",
       type: "All types",
       time: "All Time",
@@ -92,7 +92,7 @@ export default function FoodReport() {
     })
   }
 
-  const activeFiltersCount = (filters.zone !== "All Zones" ? 1 : 0) + (filters.restaurant !== "All restaurants" ? 1 : 0) + (filters.category !== "All Categories" ? 1 : 0) + (filters.type !== "All types" ? 1 : 0) + (filters.time !== "All Time" ? 1 : 0)
+  const activeFiltersCount = (filters.zone !== "All Zones" ? 1 : 0) + (filters.seller !== "All sellers" ? 1 : 0) + (filters.category !== "All Categories" ? 1 : 0) + (filters.type !== "All types" ? 1 : 0) + (filters.time !== "All Time" ? 1 : 0)
 
   const renderStars = (rating, reviews) => {
     if (rating === 0) {
@@ -138,14 +138,14 @@ export default function FoodReport() {
 
               <div className="relative">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Restaurant
+                  Seller
                 </label>
                 <select
-                  value={filters.restaurant}
-                  onChange={(e) => setFilters(prev => ({ ...prev, restaurant: e.target.value }))}
+                  value={filters.seller}
+                  onChange={(e) => setFilters(prev => ({ ...prev, seller: e.target.value }))}
                   className="w-full px-4 py-2.5 pr-8 text-sm rounded-lg border border-slate-300 bg-white text-slate-700 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="All restaurants">All restaurants</option>
+                  <option value="All sellers">All sellers</option>
                   <option value="Hungry Puppets">Hungry Puppets</option>
                   <option value="Caf� Monarch">Caf� Monarch</option>
                   <option value="Redcliff Cafe">Redcliff Cafe</option>
@@ -425,7 +425,7 @@ export default function FoodReport() {
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
-                      <span>Restaurant</span>
+                      <span>Seller</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
@@ -499,7 +499,7 @@ export default function FoodReport() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-slate-700">{food.restaurant}</span>
+                        <span className="text-sm text-slate-700">{food.seller}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-slate-700">{food.orderCount}</span>

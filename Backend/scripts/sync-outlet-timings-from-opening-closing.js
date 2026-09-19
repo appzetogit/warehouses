@@ -1,14 +1,14 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
-import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
-import { FoodRestaurantOutletTimings } from '../src/modules/food/restaurant/models/outletTimings.model.js';
+import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
+import { FoodSellerOutletTimings } from '../src/modules/food/seller/models/outletTimings.model.js';
 
 dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-const normalizeRestaurantTime = (value) => {
+const normalizeSellerTime = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return '';
 
@@ -32,15 +32,15 @@ const main = async () => {
   let failed = 0;
 
   try {
-    const cursor = FoodRestaurant.find({})
+    const cursor = FoodSeller.find({})
       .select('_id openingTime closingTime')
       .lean()
       .cursor();
 
     for await (const r of cursor) {
       scanned += 1;
-      const openingTime = normalizeRestaurantTime(r?.openingTime);
-      const closingTime = normalizeRestaurantTime(r?.closingTime);
+      const openingTime = normalizeSellerTime(r?.openingTime);
+      const closingTime = normalizeSellerTime(r?.closingTime);
 
       if (!openingTime || !closingTime) {
         skipped += 1;
@@ -55,15 +55,15 @@ const main = async () => {
       }));
 
       try {
-        await FoodRestaurantOutletTimings.updateOne(
-          { restaurantId: r._id },
+        await FoodSellerOutletTimings.updateOne(
+          { sellerId: r._id },
           { $set: { timings } },
           { upsert: true }
         );
         updated += 1;
       } catch (err) {
         failed += 1;
-        console.error(`Failed restaurant ${String(r?._id)}:`, err?.message || err);
+        console.error(`Failed seller ${String(r?._id)}:`, err?.message || err);
       }
     }
 

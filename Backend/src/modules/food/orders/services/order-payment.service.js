@@ -164,7 +164,7 @@ export async function createCollectQr(
     $setOnInsert: {
       orderId: order._id,
       userId: order.userId?._id || order.userId,
-      restaurantId: order.restaurantId,
+      sellerId: order.sellerId,
       deliveryPartnerId: order.dispatch?.deliveryPartnerId,
       currency: 'INR',
       status: 'pending',
@@ -175,7 +175,7 @@ export async function createCollectQr(
         deliveryFee: order.pricing?.deliveryFee || 0,
         deliveryFeeGst: order.pricing?.deliveryFeeGst || 0,
         platformFee: order.pricing?.platformFee || 0,
-        restaurantCommission: order.pricing?.restaurantCommission || 0,
+        sellerCommission: order.pricing?.sellerCommission || 0,
         discount: order.pricing?.discount || 0,
         couponCode: order.pricing?.couponCode ? String(order.pricing.couponCode).trim().toUpperCase() : null,
         total: order.pricing?.total || 0,
@@ -183,7 +183,7 @@ export async function createCollectQr(
       },
       amounts: {
         totalCustomerPaid: order.pricing?.total || 0,
-        restaurantShare: 0, riderShare: 0, restaurantCommission: 0, platformNetProfit: 0,
+        sellerShare: 0, riderShare: 0, sellerCommission: 0, platformNetProfit: 0,
       },
       history: [{ kind: 'created', amount: amountDue, note: 'Transaction auto-created at QR generation' }],
     },

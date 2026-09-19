@@ -11,7 +11,7 @@ const foodVariantSchema = new mongoose.Schema(
 
 const foodSchema = new mongoose.Schema(
     {
-        restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodRestaurant', required: true, index: true },
+        sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodSeller', required: true, index: true },
         categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodCategory', index: true },
         categoryName: { type: String, trim: true, default: '' },
         name: { type: String, required: true, trim: true, index: true },
@@ -120,9 +120,9 @@ const foodSchema = new mongoose.Schema(
     }
 );
 
-foodSchema.index({ restaurantId: 1, createdAt: -1 });
+foodSchema.index({ sellerId: 1, createdAt: -1 });
 foodSchema.index({ approvalStatus: 1, createdAt: -1 });
 foodSchema.index({ approvalStatus: 1, requestedAt: -1 });
-foodSchema.index({ restaurantId: 1, approvalStatus: 1, createdAt: -1 });
+foodSchema.index({ sellerId: 1, approvalStatus: 1, createdAt: -1 });
 
 export const FoodItem = mongoose.model('FoodItem', foodSchema);

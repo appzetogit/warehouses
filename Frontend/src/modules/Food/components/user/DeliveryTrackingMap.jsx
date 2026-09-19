@@ -25,7 +25,7 @@ const RIDER_BIKE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="60" heigh
   </g>
 </svg>`;
 
-const RESTAURANT_PIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="#FF6B35">
+const SELLER_PIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="#FF6B35">
   <path d="M12 2C8.13 2 5 5.13 5 9c0 4.17 4.42 9.92 6.24 12.11.4.48 1.08.48 1.52 0C14.58 18.92 19 13.17 19 9c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/>
   <circle cx="12" cy="9" r="3" fill="#FFFFFF"/>
 </svg>`;
@@ -40,7 +40,7 @@ const debugLog = (...args) => console.log('[DeliveryTrackingMap]', ...args);
 const DeliveryTrackingMap = ({
   orderId,
   orderTrackingIds = [],
-  restaurantCoords,
+  sellerCoords,
   customerCoords,
   order = null,
   onEtaUpdate = null
@@ -191,7 +191,7 @@ const DeliveryTrackingMap = ({
   const lastCameraUpdateRef = useRef({ time: 0, status: null });
   
   useEffect(() => {
-    if (!map || !restaurantCoords || !customerCoords || !isLoaded) return;
+    if (!map || !sellerCoords || !customerCoords || !isLoaded) return;
     
     const now = Date.now();
     const statusChanged = lastCameraUpdateRef.current.status !== isOrderPickedUp;
@@ -209,7 +209,7 @@ const DeliveryTrackingMap = ({
       bounds.extend(customerCoords);
     } else {
       if (riderLocation) bounds.extend(riderLocation);
-      bounds.extend(restaurantCoords);
+      bounds.extend(sellerCoords);
     }
 
     map.fitBounds(bounds, { 
@@ -220,7 +220,7 @@ const DeliveryTrackingMap = ({
     });
     
     debugLog(`[Camera] Focusing on ${isOrderPickedUp ? 'Delivery' : 'Pickup'} leg`);
-  }, [map, riderLocation, restaurantCoords, customerCoords, isOrderPickedUp, isLoaded]);
+  }, [map, riderLocation, sellerCoords, customerCoords, isOrderPickedUp, isLoaded]);
 
   // 3. Directions Management
   const directionsCallback = useCallback((result, status) => {
@@ -246,31 +246,31 @@ const DeliveryTrackingMap = ({
 
   const directionsServiceOptions = useMemo(() => {
     if (!riderLocation) return null;
-    const dest = isOrderPickedUp ? customerCoords : restaurantCoords;
+    const dest = isOrderPickedUp ? customerCoords : sellerCoords;
     if (!dest) return null;
     return {
       origin: riderLocation,
       destination: dest,
       travelMode: 'DRIVING'
     };
-  }, [riderLocation?.lat, riderLocation?.lng, isOrderPickedUp, restaurantCoords?.lat, restaurantCoords?.lng, customerCoords?.lat, customerCoords?.lng]);
+  }, [riderLocation?.lat, riderLocation?.lng, isOrderPickedUp, sellerCoords?.lat, sellerCoords?.lng, customerCoords?.lat, customerCoords?.lng]);
 
   const center = useMemo(() => {
-    // Highly stable center: use restaurant or customer as anchor, not the moving rider
+    // Highly stable center: use seller or customer as anchor, not the moving rider
     if (isOrderPickedUp) return customerCoords || { lat: 0, lng: 0 };
-    return restaurantCoords || { lat: 0, lng: 0 };
-  }, [isOrderPickedUp, restaurantCoords, customerCoords]);
+    return sellerCoords || { lat: 0, lng: 0 };
+  }, [isOrderPickedUp, sellerCoords, customerCoords]);
 
   const zoom = useMemo(() => 15, []);
 
   const baselineDirectionsServiceOptions = useMemo(() => {
-    if (!restaurantCoords || !customerCoords) return null;
+    if (!sellerCoords || !customerCoords) return null;
     return {
-      origin: restaurantCoords,
+      origin: sellerCoords,
       destination: customerCoords,
       travelMode: 'DRIVING'
     };
-  }, [restaurantCoords?.lat, restaurantCoords?.lng, customerCoords?.lat, customerCoords?.lng]);
+  }, [sellerCoords?.lat, sellerCoords?.lng, customerCoords?.lat, customerCoords?.lng]);
 
   if (!isLoaded) return <div className="w-full h-full bg-gray-100 animate-pulse" />;
 
@@ -296,7 +296,7 @@ const DeliveryTrackingMap = ({
           ]
         }}
       >
-        {/* 1. PERSISTENT BASELINE (Full journey: Restaurant -> Customer) */}
+        {/* 1. PERSISTENT BASELINE (Full journey: Seller -> Customer) */}
         {!baselineDirections && baselineDirectionsServiceOptions && (
            <DirectionsService
              options={baselineDirectionsServiceOptions}
@@ -314,7 +314,7 @@ const DeliveryTrackingMap = ({
            />
         )}
 
-        {/* 1. PERSISTENT BASELINE (Full journey: Restaurant -> Customer) */}
+        {/* 1. PERSISTENT BASELINE (Full journey: Seller -> Customer) */}
         {baselineDirections && (
           <Polyline
             path={baselineDirections.routes[0].overview_path}
@@ -381,9 +381,9 @@ const DeliveryTrackingMap = ({
           />
         )}
 
-        {/* RESTAURANT PIN (OVERLAY VIEW FOR CUSTOM STLYE) */}
+        {/* SELLER PIN (OVERLAY VIEW FOR CUSTOM STLYE) */}
         <OverlayView
-          position={restaurantCoords}
+          position={sellerCoords}
           mapPaneName={OverlayView.MARKER_LAYER}
         >
           <div className="relative -translate-x-1/2 -translate-y-full mb-1 group">
@@ -399,10 +399,10 @@ const DeliveryTrackingMap = ({
              )}
              <div className="relative w-11 h-11 rounded-full p-1 bg-white shadow-xl border-2 border-orange-500 overflow-hidden group-hover:scale-110 transition-transform">
                 <img 
-                  src={order?.restaurantLogo || order?.restaurantId?.logo || order?.restaurantId?.profileImage || `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(RESTAURANT_PIN_SVG)}`}
-                  alt="Restaurant"
+                  src={order?.sellerLogo || order?.sellerId?.logo || order?.sellerId?.profileImage || `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(SELLER_PIN_SVG)}`}
+                  alt="Seller"
                   className="w-full h-full object-contain rounded-full bg-gray-50"
-                  onError={(e) => { e.target.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(RESTAURANT_PIN_SVG)}`; }}
+                  onError={(e) => { e.target.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(SELLER_PIN_SVG)}`; }}
                 />
              </div>
              {/* Pin Tip */}

@@ -20,8 +20,8 @@ function ToggleSwitch({ enabled, onToggle }) {
 export default function AppWebSettings() {
   const [generalSettings, setGeneralSettings] = useState({
     popularFoods: true,
-    newRestaurants: true,
-    popularRestaurants: true,
+    newSellers: true,
+    popularSellers: true,
     mostReviewedFoods: true
   })
 
@@ -35,12 +35,12 @@ export default function AppWebSettings() {
     downloadUrl: ""
   })
 
-  const [restaurantAppAndroid, setRestaurantAppAndroid] = useState({
+  const [sellerAppAndroid, setSellerAppAndroid] = useState({
     minVersion: "",
     downloadUrl: ""
   })
 
-  const [restaurantAppIOS, setRestaurantAppIOS] = useState({
+  const [sellerAppIOS, setSellerAppIOS] = useState({
     minVersion: "",
     downloadUrl: ""
   })
@@ -70,12 +70,12 @@ export default function AppWebSettings() {
     setUserAppIOS({ minVersion: "", downloadUrl: "" })
   }
 
-  const handleRestaurantAppAndroidReset = () => {
-    setRestaurantAppAndroid({ minVersion: "", downloadUrl: "" })
+  const handleSellerAppAndroidReset = () => {
+    setSellerAppAndroid({ minVersion: "", downloadUrl: "" })
   }
 
-  const handleRestaurantAppIOSReset = () => {
-    setRestaurantAppIOS({ minVersion: "", downloadUrl: "" })
+  const handleSellerAppIOSReset = () => {
+    setSellerAppIOS({ minVersion: "", downloadUrl: "" })
   }
 
   const handleDeliverymanAppAndroidReset = () => {
@@ -115,22 +115,22 @@ export default function AppWebSettings() {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-700">New Restaurants</span>
+                <span className="text-xs text-slate-700">New Sellers</span>
                 <Info className="w-3.5 h-3.5 text-slate-400" />
               </div>
               <ToggleSwitch
-                enabled={generalSettings.newRestaurants}
-                onToggle={() => handleGeneralToggle("newRestaurants")}
+                enabled={generalSettings.newSellers}
+                onToggle={() => handleGeneralToggle("newSellers")}
               />
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-700">Popular Restaurants</span>
+                <span className="text-xs text-slate-700">Popular Sellers</span>
                 <Info className="w-3.5 h-3.5 text-slate-400" />
               </div>
               <ToggleSwitch
-                enabled={generalSettings.popularRestaurants}
-                onToggle={() => handleGeneralToggle("popularRestaurants")}
+                enabled={generalSettings.popularSellers}
+                onToggle={() => handleGeneralToggle("popularSellers")}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -244,11 +244,11 @@ export default function AppWebSettings() {
           </div>
         </div>
 
-        {/* Restaurant App Version Control */}
+        {/* Seller App Version Control */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-3">
           <div className="flex items-center gap-2 mb-4">
             <Settings className="w-4 h-4 text-slate-600" />
-            <h2 className="text-sm font-semibold text-slate-900">Restaurant App Version Control</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Seller App Version Control</h2>
           </div>
 
           <div className="space-y-4">
@@ -261,26 +261,26 @@ export default function AppWebSettings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1">
-                    Minimum Restaurant App Version for Force Update (Android)
+                    Minimum Seller App Version for Force Update (Android)
                     <Info className="w-3 h-3 text-slate-400" />
                   </label>
                   <input
                     type="text"
-                    value={restaurantAppAndroid.minVersion}
-                    onChange={(e) => setRestaurantAppAndroid(prev => ({ ...prev, minVersion: e.target.value }))}
+                    value={sellerAppAndroid.minVersion}
+                    onChange={(e) => setSellerAppAndroid(prev => ({ ...prev, minVersion: e.target.value }))}
                     placeholder="App minimum version"
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1">
-                    Download URL for Restaurant App (Android)
+                    Download URL for Seller App (Android)
                     <Info className="w-3 h-3 text-slate-400" />
                   </label>
                   <input
                     type="text"
-                    value={restaurantAppAndroid.downloadUrl}
-                    onChange={(e) => setRestaurantAppAndroid(prev => ({ ...prev, downloadUrl: e.target.value }))}
+                    value={sellerAppAndroid.downloadUrl}
+                    onChange={(e) => setSellerAppAndroid(prev => ({ ...prev, downloadUrl: e.target.value }))}
                     placeholder="Download Url"
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
@@ -297,26 +297,26 @@ export default function AppWebSettings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1">
-                    Minimum Restaurant App Version for Force Update (Ios)
+                    Minimum Seller App Version for Force Update (Ios)
                     <Info className="w-3 h-3 text-slate-400" />
                   </label>
                   <input
                     type="text"
-                    value={restaurantAppIOS.minVersion}
-                    onChange={(e) => setRestaurantAppIOS(prev => ({ ...prev, minVersion: e.target.value }))}
+                    value={sellerAppIOS.minVersion}
+                    onChange={(e) => setSellerAppIOS(prev => ({ ...prev, minVersion: e.target.value }))}
                     placeholder="App minimum version"
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1">
-                    Download URL for Restaurant App (Ios)
+                    Download URL for Seller App (Ios)
                     <Info className="w-3 h-3 text-slate-400" />
                   </label>
                   <input
                     type="text"
-                    value={restaurantAppIOS.downloadUrl}
-                    onChange={(e) => setRestaurantAppIOS(prev => ({ ...prev, downloadUrl: e.target.value }))}
+                    value={sellerAppIOS.downloadUrl}
+                    onChange={(e) => setSellerAppIOS(prev => ({ ...prev, downloadUrl: e.target.value }))}
                     placeholder="Download Url"
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
@@ -328,7 +328,7 @@ export default function AppWebSettings() {
           <div className="flex justify-end gap-2 mt-4">
             <button
               type="button"
-              onClick={handleRestaurantAppAndroidReset}
+              onClick={handleSellerAppAndroidReset}
               className="px-4 py-2 text-xs font-medium bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
             >
               Reset

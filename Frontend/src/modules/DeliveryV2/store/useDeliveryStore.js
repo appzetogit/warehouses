@@ -11,7 +11,7 @@ import { persist } from 'zustand/middleware'
  * @typedef {Object} ActiveOrder
  * @property {string} orderId
  * @property {string} status
- * @property {Location} restaurantLocation
+ * @property {Location} sellerLocation
  * @property {Location} customerLocation
  * @property {number} orderAmount
  */

@@ -52,13 +52,13 @@ export const shouldSkipGlobalRateLimit = (req) => {
         return true;
     }
 
-    // Cached restaurant catalog reads (high volume on home/browse, server-side cache)
-    if (req.method === 'GET' && /\/food\/restaurant\/restaurants/.test(path)) {
+    // Cached seller catalog reads (high volume on home/browse, server-side cache)
+    if (req.method === 'GET' && /\/food\/seller\/sellers/.test(path)) {
         return true;
     }
 
     // Dining browse listings
-    if (req.method === 'GET' && /\/food\/dining\/(categories|restaurants)\/public/.test(path)) {
+    if (req.method === 'GET' && /\/food\/dining\/(categories|sellers)\/public/.test(path)) {
         return true;
     }
 
@@ -221,7 +221,7 @@ export const getRateLimitSummary = () => ({
         globalSkipped: [
             'GET */public/*',
             'GET */zones/detect',
-            'GET /api/v1/food/restaurant/restaurants/*',
+            'GET /api/v1/food/seller/sellers/*',
             'GET /api/v1/food/dining/*/public',
             'GET /api/v1/food/search/*',
             'GET /api/v1/food/auth/me',
@@ -232,8 +232,8 @@ export const getRateLimitSummary = () => ({
         auth: [
             'POST /api/v1/food/auth/user/request-otp',
             'POST /api/v1/food/auth/user/verify-otp',
-            'POST /api/v1/food/auth/restaurant/request-otp',
-            'POST /api/v1/food/auth/restaurant/verify-otp',
+            'POST /api/v1/food/auth/seller/request-otp',
+            'POST /api/v1/food/auth/seller/verify-otp',
             'POST /api/v1/food/auth/delivery/request-otp',
             'POST /api/v1/food/auth/delivery/verify-otp',
             'POST /api/v1/food/auth/admin/login',

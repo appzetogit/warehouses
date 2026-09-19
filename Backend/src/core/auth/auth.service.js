@@ -3,7 +3,7 @@ import ms from "ms";
 import { FoodUser } from "../users/user.model.js";
 import { FoodAdmin } from "../admin/admin.model.js";
 import { AdminResetOtp } from "../admin/adminResetOtp.model.js";
-import { FoodRestaurant } from "../../modules/food/restaurant/models/restaurant.model.js";
+import { FoodSeller } from "../../modules/food/seller/models/seller.model.js";
 import { FoodDeliveryPartner } from "../../modules/food/delivery/models/deliveryPartner.model.js";
 import { FoodOrder } from "../../modules/food/orders/models/order.model.js";
 import { FoodReferralSettings } from "../../modules/food/admin/models/referralSettings.model.js";
@@ -27,7 +27,7 @@ import {
 
 const ROLES = {
   USER: "USER",
-  RESTAURANT: "RESTAURANT",
+  SELLER: "SELLER",
   DELIVERY_PARTNER: "DELIVERY_PARTNER",
   ADMIN: "ADMIN",
 };
@@ -40,7 +40,7 @@ const ROLES = {
  */
 const SINGLE_DEVICE_ROLES = new Set([
   ROLES.USER,
-  ROLES.RESTAURANT,
+  ROLES.SELLER,
   ROLES.DELIVERY_PARTNER,
 ]);
 
@@ -67,8 +67,8 @@ const saveLoginFcmToken = async ({ ownerType, ownerId, fcmToken, platform, owner
       const model =
         ownerType === ROLES.USER
           ? FoodUser
-          : ownerType === ROLES.RESTAURANT
-            ? FoodRestaurant
+          : ownerType === ROLES.SELLER
+            ? FoodSeller
             : ownerType === ROLES.DELIVERY_PARTNER
               ? FoodDeliveryPartner
               : null;
@@ -336,7 +336,7 @@ export const adminLogin = async (email, password) => {
   return { accessToken, refreshToken, user: userObj };
 };
 
-export const requestRestaurantOtp = async (phone) => {
+export const requestSellerOtp = async (phone) => {
   if (!phone) {
     throw new ValidationError("Phone is required");
   }
@@ -347,16 +347,16 @@ export const requestRestaurantOtp = async (phone) => {
   return shouldExposeOtp ? { otp } : {};
 };
 
-export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform) => {
+export const verifySellerOtpAndLogin = async (phone, otp, fcmToken, platform) => {
   console.log(
-    `[FCM-LOGIN] Restaurant login platform received: rawPlatform=${String(platform ?? "") || "<empty>"}, hasToken=${Boolean(fcmToken)}`,
+    `[FCM-LOGIN] Seller login platform received: rawPlatform=${String(platform ?? "") || "<empty>"}, hasToken=${Boolean(fcmToken)}`,
   );
   const result = await verifyOtp(phone, otp);
   if (!result.valid) {
     throw new AuthError(result.reason || "OTP verification failed");
   }
 
-  // Restaurants may store ownerPhone with country code or formatting.
+  // Sellers may store ownerPhone with country code or formatting.
   // Match by exact phone, last-10 digits, or suffix match to avoid false "needsRegistration".
   const digits = String(phone || "").replace(/\D/g, "");
   const last10 = digits.slice(-10);
@@ -366,19 +366,19 @@ export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform
     ...(last10 ? [{ [field]: { $regex: new RegExp(last10 + "$") } }] : []),
   ];
 
-  console.log(`[AUTH] Verifying OTP for restaurant phone: ${phone}`);
-  const restaurant = await FoodRestaurant.findOne({
+  console.log(`[AUTH] Verifying OTP for seller phone: ${phone}`);
+  const seller = await FoodSeller.findOne({
     $or: [
       ...phoneOrFields("ownerPhone"),
       ...phoneOrFields("primaryContactNumber"),
     ],
   });
 
-  console.log(`[AUTH] Restaurant lookup result:`, restaurant ? { id: restaurant._id, status: restaurant.status, name: restaurant.restaurantName } : "NOT FOUND");
+  console.log(`[AUTH] Seller lookup result:`, seller ? { id: seller._id, status: seller.status, name: seller.sellerName } : "NOT FOUND");
 
-  if (!restaurant) {
-    console.log(`[AUTH] No restaurant found. Returning needsRegistration: true`);
-    // Phone has been successfully verified, but no restaurant exists yet.
+  if (!seller) {
+    console.log(`[AUTH] No seller found. Returning needsRegistration: true`);
+    // Phone has been successfully verified, but no seller exists yet.
     // Frontend will use this to redirect into registration/onboarding.
     return {
       needsRegistration: true,
@@ -389,21 +389,21 @@ export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform
   // Update FCM token if provided
   if (fcmToken) {
     await saveLoginFcmToken({
-      ownerType: ROLES.RESTAURANT,
-      ownerId: restaurant._id,
+      ownerType: ROLES.SELLER,
+      ownerId: seller._id,
       fcmToken,
       platform,
-      ownerDoc: restaurant,
+      ownerDoc: seller,
     });
   }
 
-  // Allow login for previously-operational restaurants even if they are temporarily
+  // Allow login for previously-operational sellers even if they are temporarily
   // moved to "pending" due to profile-change review requests.
-  if (restaurant.status && restaurant.status !== "approved") {
-    if (restaurant.status === "pending") {
-      const hasHistoricalApproval = Boolean(restaurant.approvedAt);
+  if (seller.status && seller.status !== "approved") {
+    if (seller.status === "pending") {
+      const hasHistoricalApproval = Boolean(seller.approvedAt);
       const hasOperationalHistory = await FoodOrder.exists({
-        restaurantId: restaurant._id,
+        sellerId: seller._id,
       });
 
       // New onboarding requests (no approval + no orders) must stay blocked.
@@ -421,9 +421,9 @@ export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform
   // is required to use the platform — dues are billed at each month end.
 
   const payload = {
-    userId: restaurant._id.toString(),
-    role: ROLES.RESTAURANT,
-    tokenVersion: await bumpTokenVersion(FoodRestaurant, restaurant._id),
+    userId: seller._id.toString(),
+    role: ROLES.SELLER,
+    tokenVersion: await bumpTokenVersion(FoodSeller, seller._id),
   };
   const accessToken = signAccessToken(payload);
   const refreshToken = signRefreshToken(payload);
@@ -431,7 +431,7 @@ export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform
   const expiresAt = new Date(Date.now() + ttlMs);
 
   await FoodRefreshToken.create({
-    userId: restaurant._id,
+    userId: seller._id,
     token: refreshToken,
     expiresAt,
   });
@@ -439,7 +439,7 @@ export const verifyRestaurantOtpAndLogin = async (phone, otp, fcmToken, platform
   return {
     accessToken,
     refreshToken,
-    user: restaurant,
+    user: seller,
     needsRegistration: false,
   };
 };
@@ -576,9 +576,9 @@ export const getProfile = async (userId, role) => {
           : sanitizeAdminPermissions(profile.permissions || {});
       }
       break;
-    case ROLES.RESTAURANT:
+    case ROLES.SELLER:
       {
-        const doc = await FoodRestaurant.findById(id).lean();
+        const doc = await FoodSeller.findById(id).lean();
         if (!doc) break;
 
         const location =
@@ -610,9 +610,9 @@ export const getProfile = async (userId, role) => {
         profile = {
           id: doc._id,
           _id: doc._id,
-          // Frontend expects "name" and "location" for restaurant screens.
-          name: doc.restaurantName || "",
-          restaurantName: doc.restaurantName || "",
+          // Frontend expects "name" and "location" for seller screens.
+          name: doc.sellerName || "",
+          sellerName: doc.sellerName || "",
           cuisines: Array.isArray(doc.cuisines) ? doc.cuisines : [],
           location,
           ownerName: doc.ownerName || "",
@@ -952,7 +952,7 @@ export const refreshAccessToken = async (token) => {
   // brand-new access token from its still-valid refresh token and stay signed in.
   const sessionModel = {
     USER: FoodUser,
-    RESTAURANT: FoodRestaurant,
+    SELLER: FoodSeller,
     DELIVERY_PARTNER: FoodDeliveryPartner,
   }[payload?.role];
 

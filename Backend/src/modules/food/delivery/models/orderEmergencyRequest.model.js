@@ -14,9 +14,9 @@ const orderEmergencyRequestSchema = new mongoose.Schema(
             required: true,
             index: true
         },
-        restaurantId: {
+        sellerId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'FoodRestaurant',
+            ref: 'FoodSeller',
             required: true,
             index: true
         },

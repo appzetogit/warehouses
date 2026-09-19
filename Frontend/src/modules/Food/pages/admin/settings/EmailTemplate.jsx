@@ -42,13 +42,13 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: "ï¿½ 2023 StackFood. All rights reserved."
     },
-    "new-restaurant": {
+    "new-seller": {
       icon: null,
-      mainTitle: "New Restaurant Registration",
-      mailBody: "A new restaurant has been registered on the platform. Restaurant Name: {restaurantName}, Owner: {ownerName}, Email: {email}, Phone: {phone}",
-      footerText: "Please review and approve the restaurant registration. Contact us for any queries.",
+      mainTitle: "New Seller Registration",
+      mailBody: "A new seller has been registered on the platform. Seller Name: {sellerName}, Owner: {ownerName}, Email: {email}, Phone: {phone}",
+      footerText: "Please review and approve the seller registration. Contact us for any queries.",
       pageLinks: {
         privacyPolicy: true,
         refundPolicy: true,
@@ -62,7 +62,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: "ï¿½ 2023 StackFood. All rights reserved."
     },
     "new-deliveryman": {
       icon: null,
@@ -82,7 +82,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: "ï¿½ 2023 StackFood. All rights reserved."
     },
     "withdraw-request": {
       icon: null,
@@ -102,12 +102,12 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: "ï¿½ 2023 StackFood. All rights reserved."
     },
     "campaign-join": {
       icon: null,
       mainTitle: "Campaign Join Request",
-      mailBody: "A new campaign join request has been received. Campaign: {campaignName}, Restaurant: {restaurantName}, Requested By: {requestedBy}",
+      mailBody: "A new campaign join request has been received. Campaign: {campaignName}, Seller: {sellerName}, Requested By: {requestedBy}",
       footerText: "Please review and approve the campaign join request. Contact us for any queries.",
       pageLinks: {
         privacyPolicy: true,
@@ -122,7 +122,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: "ï¿½ 2023 StackFood. All rights reserved."
     },
     "refund-request": {
       icon: null,
@@ -142,7 +142,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: "ï¿½ 2023 StackFood. All rights reserved."
     },
     "new-advertisement": {
       icon: null,
@@ -162,7 +162,7 @@ export default function EmailTemplate() {
         linkedin: true,
         pinterest: true
       },
-      copyrightContent: "© 2023 StackFood. All rights reserved."
+      copyrightContent: "ï¿½ 2023 StackFood. All rights reserved."
     }
   }
   
@@ -170,7 +170,7 @@ export default function EmailTemplate() {
 
   const templates = [
     { id: "forgot-password", label: "Forgot Password" },
-    { id: "new-restaurant", label: "New Restaurant Registration" },
+    { id: "new-seller", label: "New Seller Registration" },
     { id: "new-deliveryman", label: "New Deliveryman Registration" },
     { id: "withdraw-request", label: "Withdraw Request" },
     { id: "campaign-join", label: "Campaign Join Request" },
@@ -183,7 +183,7 @@ export default function EmailTemplate() {
     { id: "en", label: "English(EN)" },
     { id: "bn", label: "Bengali - à¦¬à¦¾à¦‚à¦²à¦¾ (BN)" },
     { id: "ar", label: "Arabic - Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© (AR)" },
-    { id: "es", label: "Spanish - español (ES)" }
+    { id: "es", label: "Spanish - espaï¿½ol (ES)" }
   ]
 
   const handleInputChange = (field, value) => {
@@ -238,7 +238,7 @@ export default function EmailTemplate() {
     // Replace placeholders with sample data
     return content
       .replace(/{userName}/g, "John Doe")
-      .replace(/{restaurantName}/g, "Café Monarch")
+      .replace(/{sellerName}/g, "Cafï¿½ Monarch")
       .replace(/{ownerName}/g, "Jane Smith")
       .replace(/{email}/g, "owner@example.com")
       .replace(/{phone}/g, "+1234567890")
@@ -246,7 +246,7 @@ export default function EmailTemplate() {
       .replace(/{vehicleType}/g, "Motorcycle")
       .replace(/{requestId}/g, "REQ-12345")
       .replace(/{amount}/g, "$500.00")
-      .replace(/{requestedBy}/g, "Restaurant Owner")
+      .replace(/{requestedBy}/g, "Seller Owner")
       .replace(/{accountDetails}/g, "Account: ****1234")
       .replace(/{campaignName}/g, "Summer Special")
       .replace(/{orderId}/g, "ORD-100156")
@@ -289,7 +289,7 @@ export default function EmailTemplate() {
             <div className="flex items-center gap-2">
               <label className="text-sm font-semibold text-slate-700">
                 {activeTemplate === "forgot-password" && "Send Mail On Forget Password"}
-                {activeTemplate === "new-restaurant" && "Send Mail On New Restaurant Registration"}
+                {activeTemplate === "new-seller" && "Send Mail On New Seller Registration"}
                 {activeTemplate === "new-deliveryman" && "Send Mail On New Deliveryman Registration"}
                 {activeTemplate === "withdraw-request" && "Send Mail On Withdraw Request"}
                 {activeTemplate === "campaign-join" && "Send Mail On Campaign Join Request"}
@@ -348,16 +348,16 @@ export default function EmailTemplate() {
                 formData.pageLinks.contactUs) && (
                 <div className="flex flex-wrap gap-2 mb-4 text-xs text-slate-600">
                   {formData.pageLinks.privacyPolicy && (
-                    <span>• Privacy Policy</span>
+                    <span>ï¿½ Privacy Policy</span>
                   )}
                   {formData.pageLinks.refundPolicy && (
-                    <span>• Refund Policy</span>
+                    <span>ï¿½ Refund Policy</span>
                   )}
                   {formData.pageLinks.cancellationPolicy && (
-                    <span>• Cancelation Policy</span>
+                    <span>ï¿½ Cancelation Policy</span>
                   )}
                   {formData.pageLinks.contactUs && (
-                    <span>• Contact us</span>
+                    <span>ï¿½ Contact us</span>
                   )}
                 </div>
               )}

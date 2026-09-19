@@ -12,14 +12,14 @@ const debugError = (...args) => {}
 
 
 const seoPages = [
-  { id: 1, name: "Restaurant list" },
+  { id: 1, name: "Seller list" },
   { id: 2, name: "Category list" },
   { id: 3, name: "Campaign" },
   { id: 4, name: "Cuisine list" },
   { id: 5, name: "Home page" },
   { id: 6, name: "Contact us page" },
   { id: 7, name: "About us page" },
-  { id: 8, name: "Restaurant join page" },
+  { id: 8, name: "Seller join page" },
   { id: 9, name: "Deliveryman join page" },
   { id: 10, name: "Terms and conditions page" },
   { id: 11, name: "Privacy policy page" },

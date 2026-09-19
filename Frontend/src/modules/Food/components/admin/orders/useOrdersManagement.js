@@ -101,7 +101,7 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
     maxAmount: "",
     fromDate: "",
     toDate: "",
-    restaurantId: "",
+    sellerId: "",
   })
   const [visibleColumns, setVisibleColumns] = useState({
     si: true,
@@ -109,7 +109,7 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
     orderDate: true,
     orderOtp: true,
     customer: true,
-    restaurant: true,
+    seller: true,
     foodItems: true,
     totalAmount: true,
     paymentType: true,
@@ -119,9 +119,9 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
     actions: true,
   })
 
-  // Get unique restaurants from orders
-  const restaurants = useMemo(() => {
-    return [...new Set(orders.map(o => o.restaurant))]
+  // Get unique sellers from orders
+  const sellers = useMemo(() => {
+    return [...new Set(orders.map(o => o.seller))]
   }, [orders])
 
   // Apply search and filters (client-side only when serverSideFiltering is false)
@@ -147,7 +147,7 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
           String(order.customerName || "")
             .toLowerCase()
             .includes(query) ||
-          String(order.restaurant || "")
+          String(order.seller || "")
             .toLowerCase()
             .includes(query) ||
           String(order.customerPhone || "").includes(query) ||
@@ -190,15 +190,15 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
       })
     }
 
-    if (filters.restaurantId) {
+    if (filters.sellerId) {
       result = result.filter((order) => {
-        const orderRestaurantId = String(
-          order.restaurantId?._id || order.restaurantId || "",
+        const orderSellerId = String(
+          order.sellerId?._id || order.sellerId || "",
         )
-        return orderRestaurantId === String(filters.restaurantId)
+        return orderSellerId === String(filters.sellerId)
       })
-    } else if (filters.restaurant) {
-      result = result.filter((order) => order.restaurant === filters.restaurant)
+    } else if (filters.seller) {
+      result = result.filter((order) => order.seller === filters.seller)
     }
 
     // Helper function to parse date format "16 JUL 2025"
@@ -255,7 +255,7 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
       maxAmount: "",
       fromDate: "",
       toDate: "",
-      restaurantId: "",
+      sellerId: "",
     })
   }
 
@@ -365,7 +365,7 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
       )
       const customerName = formatDisplayText(order.customerName)
       const customerPhone = formatDisplayText(order.customerPhone)
-      const restaurantName = formatDisplayText(order.restaurant)
+      const sellerName = formatDisplayText(order.seller)
       const deliveryType = formatDisplayText(order.deliveryType)
       const deliveryAddress = formatOrderAddress(order.address || order.customerAddress || order.deliveryAddress)
       const itemCount = items.reduce((sum, item) => sum + toNumber(item?.quantity || 1), 0) || items.length
@@ -454,8 +454,8 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
         { label: "Phone", value: customerPhone },
         { label: "Address", value: deliveryAddress },
       ])
-      const restaurantCardHeight = drawInfoCard("Restaurant", 76, 53, 58, [
-        { label: "Name", value: restaurantName },
+      const sellerCardHeight = drawInfoCard("Seller", 76, 53, 58, [
+        { label: "Name", value: sellerName },
         { label: "Delivery", value: deliveryType },
         { label: "Items", value: `${itemCount} item${itemCount === 1 ? "" : "s"}` },
       ], [37, 99, 235])
@@ -465,7 +465,7 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
         { label: "Payment", value: paymentType },
       ], [249, 115, 22])
 
-      const infoCardsBottomY = 53 + Math.max(customerCardHeight, restaurantCardHeight, deliveryCardHeight)
+      const infoCardsBottomY = 53 + Math.max(customerCardHeight, sellerCardHeight, deliveryCardHeight)
 
       autoTable(doc, {
         startY: infoCardsBottomY + 8,
@@ -575,7 +575,7 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
       doc.setFontSize(9)
       doc.setTextColor(100, 116, 139)
       doc.text(`Generated on ${new Date().toLocaleString()}`, 14, footerY)
-      doc.text("Includes customer, restaurant, and delivery partner details.", pageWidth - 14, footerY, { align: "right" })
+      doc.text("Includes customer, seller, and delivery partner details.", pageWidth - 14, footerY, { align: "right" })
 
       const filename = `Invoice_${orderId}_${new Date().toISOString().split("T")[0]}.pdf`
       doc.save(filename)
@@ -599,7 +599,7 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
       orderDate: true,
       orderOtp: true,
       customer: true,
-      restaurant: true,
+      seller: true,
       foodItems: true,
       totalAmount: true,
       paymentType: true,
@@ -626,7 +626,7 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
     filteredOrders,
     count,
     activeFiltersCount,
-    restaurants,
+    sellers,
     handleApplyFilters,
     handleResetFilters,
     handleExport,

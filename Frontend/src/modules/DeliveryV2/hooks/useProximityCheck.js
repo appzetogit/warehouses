@@ -31,7 +31,7 @@ export const useProximityCheck = () => {
     if (!activeOrder) return null;
 
     if (['PICKING_UP', 'REACHED_PICKUP'].includes(tripStatus)) {
-      return toPoint(activeOrder.restaurantLocation || activeOrder.restaurant_location);
+      return toPoint(activeOrder.sellerLocation || activeOrder.seller_location);
     }
 
     if (['PICKED_UP', 'REACHED_DROP'].includes(tripStatus)) {
@@ -61,15 +61,15 @@ export const useProximityCheck = () => {
 
   /**
    * Stage-based DISPLAY distance (road when possible):
-   * - Before pickup: delivery partner → restaurant (live Directions)
-   * - After pickup: restaurant → user (tripDistanceKm road), else live road remaining to customer
+   * - Before pickup: delivery partner → seller (live Directions)
+   * - After pickup: seller → user (tripDistanceKm road), else live road remaining to customer
    */
   const displayDistanceMeters = useMemo(() => {
     if (['PICKED_UP', 'REACHED_DROP'].includes(tripStatus)) {
       const roadTripKm = Number(
         activeOrder?.tripDistanceKm ?? activeOrder?.pricing?.roadDistanceKm,
       );
-      // Fixed restaurant ↔ customer road trip after food is taken
+      // Fixed seller ↔ customer road trip after food is taken
       if (Number.isFinite(roadTripKm) && roadTripKm > 0) {
         return roadTripKm * 1000;
       }
@@ -83,7 +83,7 @@ export const useProximityCheck = () => {
   }, [tripStatus, activeOrder, routeDistanceMeters, distanceToTarget]);
 
   const distanceLabel = useMemo(() => {
-    if (['PICKING_UP', 'REACHED_PICKUP'].includes(tripStatus)) return 'To restaurant';
+    if (['PICKING_UP', 'REACHED_PICKUP'].includes(tripStatus)) return 'To seller';
     if (['PICKED_UP', 'REACHED_DROP'].includes(tripStatus)) return 'To customer';
     return 'Distance';
   }, [tripStatus]);

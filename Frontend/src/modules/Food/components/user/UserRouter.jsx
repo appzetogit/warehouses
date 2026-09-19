@@ -9,7 +9,7 @@ import ProtectedRoute from "@food/components/ProtectedRoute"
 // Home & Discovery
 const Home = lazy(() => import("@food/pages/user/Home"))
 const Dining = lazy(() => import("@food/pages/user/Dining"))
-const DiningRestaurants = lazy(() => import("@food/pages/user/DiningRestaurants"))
+const DiningSellers = lazy(() => import("@food/pages/user/DiningSellers"))
 const DiningCategory = lazy(() => import("@food/pages/user/DiningCategory"))
 const DiningExplore50 = lazy(() => import("@food/pages/user/DiningExplore50"))
 const DiningExploreNear = lazy(() => import("@food/pages/user/DiningExploreNear"))
@@ -17,9 +17,9 @@ const Coffee = lazy(() => import("@food/pages/user/Coffee"))
 const Under250 = lazy(() => import("@food/pages/user/Under250"))
 const Categories = lazy(() => import("@food/pages/user/Categories"))
 const CategoryPage = lazy(() => import("@food/pages/user/CategoryPage"))
-const Restaurants = lazy(() => import("@food/pages/user/restaurants/Restaurants"))
-const RestaurantDetails = lazy(() => import("@food/pages/user/restaurants/RestaurantDetails"))
-const DiningRestaurantDetails = lazy(() => import("@food/pages/user/dining/DiningRestaurantDetails"))
+const Sellers = lazy(() => import("@food/pages/user/sellers/Sellers"))
+const SellerDetails = lazy(() => import("@food/pages/user/sellers/SellerDetails"))
+const DiningSellerDetails = lazy(() => import("@food/pages/user/dining/DiningSellerDetails"))
 const TableBooking = lazy(() => import("@food/pages/user/dining/TableBooking"))
 const TableBookingConfirmation = lazy(() => import("@food/pages/user/dining/TableBookingConfirmation"))
 const TableBookingSuccess = lazy(() => import("@food/pages/user/dining/TableBookingSuccess"))
@@ -98,12 +98,12 @@ export default function UserRouter() {
           {/* Home & Discovery */}
           <Route path="" element={<Home />} />
           <Route path="dining" element={<Dining />} />
-          <Route path="dining/restaurants" element={<DiningRestaurants />} />
+          <Route path="dining/sellers" element={<DiningSellers />} />
           <Route path="dining/:category" element={<DiningCategory />} />
           <Route path="dining/explore/upto50" element={<DiningExplore50 />} />
           <Route path="dining/explore/near-rated" element={<DiningExploreNear />} />
           <Route path="dining/coffee" element={<Coffee />} />
-          <Route path="dining/:diningType/:slug" element={<DiningRestaurantDetails />} />
+          <Route path="dining/:diningType/:slug" element={<DiningSellerDetails />} />
           <Route path="dining/book/:slug" element={<TableBooking />} />
           <Route path="dining/book-confirmation" element={<TableBookingConfirmation />} />
           <Route path="dining/book-success" element={<TableBookingSuccess />} />
@@ -118,8 +118,8 @@ export default function UserRouter() {
           <Route path="under-250" element={<Under250 />} />
           <Route path="categories" element={<Categories />} />
           <Route path="category/:category" element={<CategoryPage />} />
-          <Route path="restaurants" element={<Restaurants />} />
-          <Route path="restaurants/:slug" element={<RestaurantDetails />} />
+          <Route path="sellers" element={<Sellers />} />
+          <Route path="sellers/:slug" element={<SellerDetails />} />
           <Route path="search" element={<SearchResults />} />
           <Route path="product/:id" element={<ProductDetail />} />
 

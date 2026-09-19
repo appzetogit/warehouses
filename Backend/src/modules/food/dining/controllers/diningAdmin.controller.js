@@ -51,26 +51,26 @@ export async function deleteDiningCategory(req, res, next) {
     }
 }
 
-export async function getDiningRestaurants(req, res, next) {
+export async function getDiningSellers(req, res, next) {
     try {
-        const data = await diningService.listDiningRestaurantsAdmin();
+        const data = await diningService.listDiningSellersAdmin();
         res.status(200).json({ success: true, message: 'Dining stores fetched successfully', data });
     } catch (error) {
         next(error);
     }
 }
 
-export async function updateDiningRestaurant(req, res, next) {
+export async function updateDiningSeller(req, res, next) {
     try {
-        const { restaurantId } = req.params;
-        if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+        const { sellerId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(sellerId)) {
             return res.status(400).json({ success: false, message: 'Invalid store id' });
         }
-        const restaurant = await diningService.updateDiningRestaurant(restaurantId, req.body || {});
-        if (!restaurant) {
+        const seller = await diningService.updateDiningSeller(sellerId, req.body || {});
+        if (!seller) {
             return res.status(404).json({ success: false, message: 'Store not found' });
         }
-        res.status(200).json({ success: true, message: 'Dining store updated successfully', data: { restaurant } });
+        res.status(200).json({ success: true, message: 'Dining store updated successfully', data: { seller } });
     } catch (error) {
         next(error);
     }

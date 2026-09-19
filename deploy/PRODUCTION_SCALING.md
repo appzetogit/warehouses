@@ -45,11 +45,11 @@ Important pieces already included:
 
 ## MongoDB indexes to add next
 Add these if they are not already present:
-- `FoodRestaurant: { status: 1, zoneId: 1, rating: -1, createdAt: -1 }`
-- `FoodRestaurant: { status: 1, estimatedDeliveryTimeMinutes: 1 }`
-- `FoodRestaurant: { restaurantNameNormalized: 1, status: 1 }`
-- `FoodItem: { restaurantId: 1, approvalStatus: 1, isRecommended: 1, createdAt: -1 }`
-- `FoodItem: { categoryId: 1, approvalStatus: 1, restaurantId: 1 }`
+- `FoodSeller: { status: 1, zoneId: 1, rating: -1, createdAt: -1 }`
+- `FoodSeller: { status: 1, estimatedDeliveryTimeMinutes: 1 }`
+- `FoodSeller: { sellerNameNormalized: 1, status: 1 }`
+- `FoodItem: { sellerId: 1, approvalStatus: 1, isRecommended: 1, createdAt: -1 }`
+- `FoodItem: { categoryId: 1, approvalStatus: 1, sellerId: 1 }`
 - `FoodItem: { name: 1, approvalStatus: 1 }`
 
 ## Rollout order

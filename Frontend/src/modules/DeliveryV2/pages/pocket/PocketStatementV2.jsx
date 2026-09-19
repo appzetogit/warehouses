@@ -209,9 +209,9 @@ export const PocketStatementV2 = () => {
                                      Order #{orderId?.slice(-6) || '...'}
                                   </p>
                                   <p className="text-gray-400 text-[11px] font-bold mb-1 uppercase tracking-tight">{dateText}</p>
-                                  {trip.restaurantName && (
+                                  {trip.sellerName && (
                                      <p className="text-gray-500 text-xs font-medium italic">
-                                        {trip.restaurantName}
+                                        {trip.sellerName}
                                      </p>
                                   )}
                                </div>

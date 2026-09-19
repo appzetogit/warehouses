@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, ChevronDown } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import AnimatedPage from "@food/components/user/AnimatedPage"
-import { diningAPI, restaurantAPI } from "@food/api"
+import { diningAPI, sellerAPI } from "@food/api"
 import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
 import Loader from "@food/components/Loader"
 import { toast } from "sonner"
@@ -69,15 +69,15 @@ const buildSlots = (timing) => {
   return slots
 }
 
-const buildFallbackTiming = (restaurant) => {
+const buildFallbackTiming = (seller) => {
   const openingTime = String(
-    restaurant?.openingTime ||
-      restaurant?.diningSettings?.openingTime ||
+    seller?.openingTime ||
+      seller?.diningSettings?.openingTime ||
       "12:00",
   ).trim()
   const closingTime = String(
-    restaurant?.closingTime ||
-      restaurant?.diningSettings?.closingTime ||
+    seller?.closingTime ||
+      seller?.diningSettings?.closingTime ||
       "23:00",
   ).trim()
 
@@ -117,8 +117,8 @@ export default function TableBooking() {
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
 
-  const [restaurant, setRestaurant] = useState(location.state?.restaurant || null)
-  const [loading, setLoading] = useState(!location.state?.restaurant)
+  const [seller, setSeller] = useState(location.state?.seller || null)
+  const [loading, setLoading] = useState(!location.state?.seller)
   const [outletTimings, setOutletTimings] = useState({})
   const [selectedGuests, setSelectedGuests] = useState(location.state?.guestCount || 2)
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -129,37 +129,37 @@ export default function TableBooking() {
   const [selectedMealPeriod, setSelectedMealPeriod] = useState("lunch")
 
   useEffect(() => {
-    const fetchRestaurant = async () => {
+    const fetchSeller = async () => {
       try {
         setLoading(true)
-        const response = await diningAPI.getRestaurantBySlug(slug)
+        const response = await diningAPI.getSellerBySlug(slug)
         if (response?.data?.success) {
-          const apiRestaurant = response?.data?.data?.restaurant || response?.data?.data
-          setRestaurant(apiRestaurant || null)
+          const apiSeller = response?.data?.data?.seller || response?.data?.data
+          setSeller(apiSeller || null)
 
-          const restaurantId = apiRestaurant?._id || apiRestaurant?.id || slug
-          const timingsResponse = await restaurantAPI.getOutletTimingsByRestaurantId(restaurantId)
+          const sellerId = apiSeller?._id || apiSeller?.id || slug
+          const timingsResponse = await sellerAPI.getOutletTimingsBySellerId(sellerId)
           setOutletTimings(timingsResponse?.data?.data?.outletTimings || {})
         }
       } catch {
-        setRestaurant(null)
+        setSeller(null)
       } finally {
         setLoading(false)
       }
     }
 
-    if (location.state?.restaurant) {
-      const restaurantId = location.state.restaurant?._id || location.state.restaurant?.id || slug
-      restaurantAPI
-        .getOutletTimingsByRestaurantId(restaurantId)
+    if (location.state?.seller) {
+      const sellerId = location.state.seller?._id || location.state.seller?.id || slug
+      sellerAPI
+        .getOutletTimingsBySellerId(sellerId)
         .then((response) => setOutletTimings(response?.data?.data?.outletTimings || {}))
         .catch(() => setOutletTimings({}))
       setLoading(false)
       return
     }
 
-    fetchRestaurant()
-  }, [location.state?.restaurant, slug])
+    fetchSeller()
+  }, [location.state?.seller, slug])
 
   const dates = useMemo(() => buildDates(7), [])
   const selectedDayTiming = useMemo(() => {
@@ -167,8 +167,8 @@ export default function TableBooking() {
     if (fromOutletTimings && fromOutletTimings.isOpen !== false) {
       return fromOutletTimings
     }
-    return buildFallbackTiming(restaurant)
-  }, [outletTimings, selectedDate, restaurant])
+    return buildFallbackTiming(seller)
+  }, [outletTimings, selectedDate, seller])
   const allSlots = useMemo(() => buildSlots(selectedDayTiming), [selectedDayTiming])
   const filteredSlots = useMemo(
     () => allSlots.filter((slot) => getMealPeriod(slot) === selectedMealPeriod),
@@ -205,14 +205,14 @@ export default function TableBooking() {
   }, [allSlots, selectedMealPeriod])
 
   if (loading) return <Loader />
-  if (!restaurant) return <div className="p-6 text-center">Restaurant not found</div>
+  if (!seller) return <div className="p-6 text-center">Seller not found</div>
 
-  const isDiningEnabled = restaurant?.diningSettings?.isEnabled !== false
-  const canProceed = Boolean(isDiningEnabled && restaurant && selectedSlot && selectedDate && selectedGuests)
+  const isDiningEnabled = seller?.diningSettings?.isEnabled !== false
+  const canProceed = Boolean(isDiningEnabled && seller && selectedSlot && selectedDate && selectedGuests)
 
   const handleProceed = () => {
     if (!isDiningEnabled) {
-      toast.error("Dining bookings are currently paused for this restaurant.")
+      toast.error("Dining bookings are currently paused for this seller.")
       return
     }
     if (!canProceed) {
@@ -221,16 +221,16 @@ export default function TableBooking() {
     }
 
     const bookingDraft = {
-      restaurant: {
-        _id: restaurant?._id || restaurant?.id || restaurant?.restaurant?._id || restaurant?.restaurant?.id || null,
-        id: restaurant?.id || restaurant?._id || restaurant?.restaurant?.id || restaurant?.restaurant?._id || null,
-        name: restaurant?.name || restaurant?.restaurantName || "Restaurant",
-        restaurantName: restaurant?.restaurantName || restaurant?.name || "Restaurant",
-        profileImage: restaurant?.profileImage || restaurant?.restaurant?.profileImage || null,
-        image: restaurant?.image || restaurant?.restaurant?.image || restaurant?.profileImage?.url || "",
-        location: restaurant?.location || restaurant?.restaurant?.location || null,
-        slug: restaurant?.slug || slug || "",
-        diningSettings: restaurant?.diningSettings || restaurant?.restaurant?.diningSettings || null,
+      seller: {
+        _id: seller?._id || seller?.id || seller?.seller?._id || seller?.seller?.id || null,
+        id: seller?.id || seller?._id || seller?.seller?.id || seller?.seller?._id || null,
+        name: seller?.name || seller?.sellerName || "Seller",
+        sellerName: seller?.sellerName || seller?.name || "Seller",
+        profileImage: seller?.profileImage || seller?.seller?.profileImage || null,
+        image: seller?.image || seller?.seller?.image || seller?.profileImage?.url || "",
+        location: seller?.location || seller?.seller?.location || null,
+        slug: seller?.slug || slug || "",
+        diningSettings: seller?.diningSettings || seller?.seller?.diningSettings || null,
       },
       guests: selectedGuests,
       date: selectedDate,
@@ -260,7 +260,7 @@ export default function TableBooking() {
 
           <div className="mt-6 text-center">
             <h1 className="text-[30px] font-black tracking-tight text-[#25314a]">Book a table</h1>
-            <p className="mt-1 text-sm font-medium text-[#636363]">{restaurant.name || restaurant.restaurantName}</p>
+            <p className="mt-1 text-sm font-medium text-[#636363]">{seller.name || seller.sellerName}</p>
           </div>
         </div>
       </div>
@@ -268,7 +268,7 @@ export default function TableBooking() {
       <div className="mx-auto -mt-4 max-w-md space-y-4 px-4">
         {!isDiningEnabled && (
           <section className="rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <p className="text-sm font-semibold text-amber-900">Dining bookings are paused by this restaurant.</p>
+            <p className="text-sm font-semibold text-amber-900">Dining bookings are paused by this seller.</p>
             <p className="mt-1 text-xs text-amber-800">You can still view details, but new table bookings are disabled right now.</p>
           </section>
         )}
@@ -282,7 +282,7 @@ export default function TableBooking() {
                 onChange={(event) => setSelectedGuests(parseInt(event.target.value, 10))}
                 className="appearance-none rounded-full bg-[#f7f7fb] py-2 pl-4 pr-9 text-sm font-semibold text-[#404040] outline-none"
               >
-                {Array.from({ length: restaurant.diningSettings?.maxGuests || 10 }, (_, index) => index + 1).map((count) => (
+                {Array.from({ length: seller.diningSettings?.maxGuests || 10 }, (_, index) => index + 1).map((count) => (
                   <option key={count} value={count}>
                     {count}
                   </option>

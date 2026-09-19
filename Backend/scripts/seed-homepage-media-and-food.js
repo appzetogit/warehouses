@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
 import { FoodCategory } from '../src/modules/food/admin/models/category.model.js';
 import { FoodItem } from '../src/modules/food/admin/models/food.model.js';
 import { FoodHeroBanner } from '../src/modules/food/landing/models/heroBanner.model.js';
@@ -18,26 +18,26 @@ if (!mongoUri) {
 const uploadBaseUrl = String(process.env.UPLOAD_BASE_URL || 'http://localhost:5000/uploads').replace(/\/$/, '');
 const seedBase = `${uploadBaseUrl}/seed`;
 
-const seededRestaurantMedia = {
+const seededSellerMedia = {
   'Poha Junction': {
-    profileImage: `${seedBase}/restaurants/restaurant_profile_1.jpeg`,
-    coverImages: [`${seedBase}/restaurants/restaurant_cover_1.jpg`],
+    profileImage: `${seedBase}/sellers/seller_profile_1.jpeg`,
+    coverImages: [`${seedBase}/sellers/seller_cover_1.jpg`],
   },
   'Sarafa Sweets & Snacks': {
-    profileImage: `${seedBase}/restaurants/restaurant_profile_1.jpeg`,
-    coverImages: [`${seedBase}/restaurants/restaurant_cover_2.png`],
+    profileImage: `${seedBase}/sellers/seller_profile_1.jpeg`,
+    coverImages: [`${seedBase}/sellers/seller_cover_2.png`],
   },
   'Chatori Galli': {
-    profileImage: `${seedBase}/restaurants/restaurant_profile_1.jpeg`,
-    coverImages: [`${seedBase}/restaurants/restaurant_cover_1.jpg`],
+    profileImage: `${seedBase}/sellers/seller_profile_1.jpeg`,
+    coverImages: [`${seedBase}/sellers/seller_cover_1.jpg`],
   },
   'Narmada Family Dhaba': {
-    profileImage: `${seedBase}/restaurants/restaurant_profile_1.jpeg`,
-    coverImages: [`${seedBase}/restaurants/restaurant_cover_2.png`],
+    profileImage: `${seedBase}/sellers/seller_profile_1.jpeg`,
+    coverImages: [`${seedBase}/sellers/seller_cover_2.png`],
   },
   '56 Dukan Bites': {
-    profileImage: `${seedBase}/restaurants/restaurant_profile_1.jpeg`,
-    coverImages: [`${seedBase}/restaurants/restaurant_cover_1.jpg`],
+    profileImage: `${seedBase}/sellers/seller_profile_1.jpeg`,
+    coverImages: [`${seedBase}/sellers/seller_cover_1.jpg`],
   }
 };
 
@@ -49,7 +49,7 @@ const categorySeeds = [
   { name: 'Breads', sortOrder: 5, image: `${seedBase}/foods/roti.png`, foodTypeScope: 'Both' }
 ];
 
-const foodSeedsByRestaurant = {
+const foodSeedsBySeller = {
   'Poha Junction': [
     {
       name: 'Indori Poha',
@@ -184,7 +184,7 @@ const heroBannerSeeds = [
     title: 'Switch 99 Deals',
     ctaText: 'Order now',
     ctaLink: '/food/user/under250',
-    restaurantNames: ['56 Dukan Bites', 'Poha Junction'],
+    sellerNames: ['56 Dukan Bites', 'Poha Junction'],
     sortOrder: 1
   },
   {
@@ -193,7 +193,7 @@ const heroBannerSeeds = [
     title: 'Gourmet Picks in Indore',
     ctaText: 'Explore gourmet',
     ctaLink: '/food/user/gourmet',
-    restaurantNames: ['Sarafa Sweets & Snacks', 'Chatori Galli'],
+    sellerNames: ['Sarafa Sweets & Snacks', 'Chatori Galli'],
     sortOrder: 2
   }
 ];
@@ -285,7 +285,7 @@ async function upsertCategories() {
   const categories = new Map();
   for (const seed of categorySeeds) {
     const category = await FoodCategory.findOneAndUpdate(
-      { name: seed.name, restaurantId: { $exists: false } },
+      { name: seed.name, sellerId: { $exists: false } },
       {
         $set: {
           image: seed.image,
@@ -305,10 +305,10 @@ async function upsertCategories() {
   return categories;
 }
 
-async function updateRestaurantMedia() {
-  for (const [restaurantName, media] of Object.entries(seededRestaurantMedia)) {
-    await FoodRestaurant.updateOne(
-      { restaurantName },
+async function updateSellerMedia() {
+  for (const [sellerName, media] of Object.entries(seededSellerMedia)) {
+    await FoodSeller.updateOne(
+      { sellerName },
       {
         $set: {
           profileImage: media.profileImage,
@@ -321,23 +321,23 @@ async function updateRestaurantMedia() {
 }
 
 async function upsertFoodItems(categories) {
-  const restaurants = await FoodRestaurant.find({ restaurantName: { $in: Object.keys(foodSeedsByRestaurant) } })
-    .select('_id restaurantName')
+  const sellers = await FoodSeller.find({ sellerName: { $in: Object.keys(foodSeedsBySeller) } })
+    .select('_id sellerName')
     .lean();
 
-  const restaurantMap = new Map(restaurants.map((restaurant) => [restaurant.restaurantName, restaurant]));
+  const sellerMap = new Map(sellers.map((seller) => [seller.sellerName, seller]));
 
-  for (const [restaurantName, items] of Object.entries(foodSeedsByRestaurant)) {
-    const restaurant = restaurantMap.get(restaurantName);
-    if (!restaurant) continue;
+  for (const [sellerName, items] of Object.entries(foodSeedsBySeller)) {
+    const seller = sellerMap.get(sellerName);
+    if (!seller) continue;
 
     for (const item of items) {
       const category = categories.get(item.categoryName);
       await FoodItem.findOneAndUpdate(
-        { restaurantId: restaurant._id, name: item.name },
+        { sellerId: seller._id, name: item.name },
         {
           $set: {
-            restaurantId: restaurant._id,
+            sellerId: seller._id,
             categoryId: category?._id,
             categoryName: item.categoryName,
             description: item.description,
@@ -369,10 +369,10 @@ async function upsertTopBanners() {
 }
 
 async function upsertHeroBanners() {
-  const restaurants = await FoodRestaurant.find({ restaurantName: { $in: heroBannerSeeds.flatMap((banner) => banner.restaurantNames) } })
-    .select('_id restaurantName')
+  const sellers = await FoodSeller.find({ sellerName: { $in: heroBannerSeeds.flatMap((banner) => banner.sellerNames) } })
+    .select('_id sellerName')
     .lean();
-  const restaurantMap = new Map(restaurants.map((restaurant) => [restaurant.restaurantName, restaurant._id]));
+  const sellerMap = new Map(sellers.map((seller) => [seller.sellerName, seller._id]));
 
   for (const seed of heroBannerSeeds) {
     await FoodHeroBanner.findOneAndUpdate(
@@ -384,7 +384,7 @@ async function upsertHeroBanners() {
           title: seed.title,
           ctaText: seed.ctaText,
           ctaLink: seed.ctaLink,
-          linkedRestaurantIds: seed.restaurantNames.map((name) => restaurantMap.get(name)).filter(Boolean),
+          linkedSellerIds: seed.sellerNames.map((name) => sellerMap.get(name)).filter(Boolean),
           sortOrder: seed.sortOrder,
           isActive: true
         }
@@ -439,7 +439,7 @@ async function main() {
   console.log('Connected to MongoDB');
 
   const categories = await upsertCategories();
-  await updateRestaurantMedia();
+  await updateSellerMedia();
   await upsertFoodItems(categories);
   await upsertTopBanners();
   await upsertHeroBanners();
@@ -448,7 +448,7 @@ async function main() {
   await upsertHomePromotionBanners();
   await upsertExploreIcons();
 
-  console.log('Seeded homepage banners, restaurant media, categories, and dishes.');
+  console.log('Seeded homepage banners, seller media, categories, and dishes.');
 }
 
 main()

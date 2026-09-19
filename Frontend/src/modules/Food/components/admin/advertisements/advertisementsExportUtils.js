@@ -1,12 +1,12 @@
 // Export utility functions for advertisements
 export const exportAdvertisementsToCSV = (ads, filename = "advertisements") => {
-  const headers = ["SI", "Ads ID", "Ads Title", "Restaurant Name", "Restaurant Email", "Ads Type", "Duration"]
+  const headers = ["SI", "Ads ID", "Ads Title", "Seller Name", "Seller Email", "Ads Type", "Duration"]
   const rows = ads.map((ad, index) => [
     index + 1,
     ad.adsId || ad.sl,
     ad.adsTitle || ad.title || "",
-    ad.restaurantName || "",
-    ad.restaurantEmail || "",
+    ad.sellerName || "",
+    ad.sellerEmail || "",
     ad.adsType || ad.type || "",
     ad.duration || ""
   ])
@@ -28,13 +28,13 @@ export const exportAdvertisementsToCSV = (ads, filename = "advertisements") => {
 }
 
 export const exportAdvertisementsToExcel = (ads, filename = "advertisements") => {
-  const headers = ["SI", "Ads ID", "Ads Title", "Restaurant Name", "Restaurant Email", "Ads Type", "Duration"]
+  const headers = ["SI", "Ads ID", "Ads Title", "Seller Name", "Seller Email", "Ads Type", "Duration"]
   const rows = ads.map((ad, index) => [
     index + 1,
     ad.adsId || ad.sl,
     ad.adsTitle || ad.title || "",
-    ad.restaurantName || "",
-    ad.restaurantEmail || "",
+    ad.sellerName || "",
+    ad.sellerEmail || "",
     ad.adsType || ad.type || "",
     ad.duration || ""
   ])
@@ -56,13 +56,13 @@ export const exportAdvertisementsToExcel = (ads, filename = "advertisements") =>
 }
 
 export const exportAdvertisementsToPDF = (ads, filename = "advertisements") => {
-  const headers = ["SI", "Ads ID", "Ads Title", "Restaurant Name", "Restaurant Email", "Ads Type", "Duration"]
+  const headers = ["SI", "Ads ID", "Ads Title", "Seller Name", "Seller Email", "Ads Type", "Duration"]
   const rows = ads.map((ad, index) => [
     index + 1,
     ad.adsId || ad.sl,
     ad.adsTitle || ad.title || "",
-    ad.restaurantName || "",
-    ad.restaurantEmail || "",
+    ad.sellerName || "",
+    ad.sellerEmail || "",
     ad.adsType || ad.type || "",
     ad.duration || ""
   ])

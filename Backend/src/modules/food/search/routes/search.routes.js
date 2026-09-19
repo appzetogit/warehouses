@@ -20,7 +20,7 @@ router.get('/unified', cacheResponse(120, 'search_unified', { browserTtlSeconds:
 router.get('/products', cacheResponse(30, 'search_products', { browserTtlSeconds: 10 }), searchProductsController);
 
 /**
- * Admin Categories Only Endpoint (to avoid restaurant-created ones as requested)
+ * Admin Categories Only Endpoint (to avoid seller-created ones as requested)
  * GET /api/v1/food/search/categories/admin
  */
 router.get('/categories/admin', cacheResponse(1800, 'search_categories_admin', { browserTtlSeconds: 300 }), listAdminCategoriesController);

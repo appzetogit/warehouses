@@ -58,7 +58,7 @@ export default function TableBookingSuccess() {
                 className="text-center space-y-2 mb-10"
             >
                 <h1 className="text-3xl font-black text-gray-900">Table is Booked!</h1>
-                <p className="text-gray-500 font-medium tracking-wide italic">Restaurant will confirm your request soon</p>
+                <p className="text-gray-500 font-medium tracking-wide italic">Seller will confirm your request soon</p>
                 <div className="pt-2">
                     <span className="bg-[#FFF2EB] text-[#EB590E] px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest border border-[#EB590E]/20">
                         BOOKING ID: {booking.bookingId}
@@ -81,22 +81,22 @@ export default function TableBookingSuccess() {
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 flex-shrink-0 p-1">
                             <img
-                                src={booking.restaurant?.image || booking.restaurant?.profileImage?.url || ""}
+                                src={booking.seller?.image || booking.seller?.profileImage?.url || ""}
                                 className="w-full h-full object-cover rounded-xl"
-                                alt="restaurant"
+                                alt="seller"
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none'
                                 }}
                             />
                         </div>
                         <div className="min-w-0">
-                            <h2 className="font-black text-lg text-gray-900 truncate">{booking.restaurant?.name || "The Great Indian Restaurant"}</h2>
+                            <h2 className="font-black text-lg text-gray-900 truncate">{booking.seller?.name || "The Great Indian Seller"}</h2>
                             <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                                 <MapPin className="w-3 h-3" />
                                 <span className="truncate">
-                                    {typeof booking.restaurant?.location === 'string'
-                                        ? booking.restaurant.location
-                                        : (booking.restaurant?.location?.formattedAddress || booking.restaurant?.location?.address || `${booking.restaurant?.location?.city || ''}${booking.restaurant?.location?.area ? ', ' + booking.restaurant.location.area : ''}`)}
+                                    {typeof booking.seller?.location === 'string'
+                                        ? booking.seller.location
+                                        : (booking.seller?.location?.formattedAddress || booking.seller?.location?.address || `${booking.seller?.location?.city || ''}${booking.seller?.location?.area ? ', ' + booking.seller.location.area : ''}`)}
                                 </span>
                             </p>
                         </div>
@@ -166,7 +166,7 @@ export default function TableBookingSuccess() {
             </motion.div>
 
             <p className="mt-8 text-[10px] font-bold text-slate-300 uppercase tracking-widest px-10 text-center">
-                Show this ticket at the restaurant for a smooth entry
+                Show this ticket at the seller for a smooth entry
             </p>
         </AnimatedPage>
     )

@@ -13,31 +13,31 @@ const PointOfSale = lazy(() => import("@food/pages/admin/PointOfSale"));
 const AdminProfile = lazy(() => import("@food/pages/admin/AdminProfile"));
 const AdminSettings = lazy(() => import("@food/pages/admin/AdminSettings"));
 const NewRefundRequests = lazy(() => import("@food/pages/admin/refunds/NewRefundRequests"));
-const FoodApproval = lazy(() => import("@food/pages/admin/restaurant/FoodApproval"));
+const FoodApproval = lazy(() => import("@food/pages/admin/seller/FoodApproval"));
 const OrdersPage = lazy(() => import("@food/pages/admin/orders/OrdersPage"));
 const UserCarts = lazy(() => import("@food/pages/admin/orders/UserCarts"));
 const OrderDetectDelivery = lazy(() => import("@food/pages/admin/OrderDetectDelivery"));
 const Category = lazy(() => import("@food/pages/admin/categories/Category"));
 const FeeSettings = lazy(() => import("@food/pages/admin/fee-settings/FeeSettings"));
 const ReferralSettings = lazy(() => import("@food/pages/admin/referral-settings/ReferralSettings"));
-// Restaurant Management
-const ZoneSetup = lazy(() => import("@food/pages/admin/restaurant/ZoneSetup"));
-const AddZone = lazy(() => import("@food/pages/admin/restaurant/AddZone"));
-const ViewZone = lazy(() => import("@food/pages/admin/restaurant/ViewZone"));
-const AllZonesMap = lazy(() => import("@food/pages/admin/restaurant/AllZonesMap"));
-const DeliveryBoyViewMap = lazy(() => import("@food/pages/admin/restaurant/DeliveryBoyViewMap"));
-const RestaurantsList = lazy(() => import("@food/pages/admin/restaurant/RestaurantsList"));
-const AddRestaurant = lazy(() => import("@food/pages/admin/restaurant/AddRestaurant"));
-const JoiningRequest = lazy(() => import("@food/pages/admin/restaurant/JoiningRequest"));
-const UnregisteredRestaurants = lazy(() => import("@food/pages/admin/restaurant/UnregisteredRestaurants"));
-const RestaurantCommission = lazy(() => import("@food/pages/admin/restaurant/RestaurantCommission"));
-const RestaurantComplaints = lazy(() => import("@food/pages/admin/restaurant/RestaurantComplaints"));
-const RestaurantReviews = lazy(() => import("@food/pages/admin/restaurant/RestaurantReviews"));
-const RestaurantsBulkImport = lazy(() => import("@food/pages/admin/restaurant/RestaurantsBulkImport"));
-const RestaurantsBulkExport = lazy(() => import("@food/pages/admin/restaurant/RestaurantsBulkExport"));
-const SubscriptionSettings = lazy(() => import("@food/pages/admin/restaurant/SubscriptionSettings"));
-const SubscriptionHistory = lazy(() => import("@food/pages/admin/restaurant/SubscriptionHistory"));
-const RestaurantSettings = lazy(() => import("@food/pages/admin/restaurant/RestaurantSettings"));
+// Seller Management
+const ZoneSetup = lazy(() => import("@food/pages/admin/seller/ZoneSetup"));
+const AddZone = lazy(() => import("@food/pages/admin/seller/AddZone"));
+const ViewZone = lazy(() => import("@food/pages/admin/seller/ViewZone"));
+const AllZonesMap = lazy(() => import("@food/pages/admin/seller/AllZonesMap"));
+const DeliveryBoyViewMap = lazy(() => import("@food/pages/admin/seller/DeliveryBoyViewMap"));
+const SellersList = lazy(() => import("@food/pages/admin/seller/SellersList"));
+const AddSeller = lazy(() => import("@food/pages/admin/seller/AddSeller"));
+const JoiningRequest = lazy(() => import("@food/pages/admin/seller/JoiningRequest"));
+const UnregisteredSellers = lazy(() => import("@food/pages/admin/seller/UnregisteredSellers"));
+const SellerCommission = lazy(() => import("@food/pages/admin/seller/SellerCommission"));
+const SellerComplaints = lazy(() => import("@food/pages/admin/seller/SellerComplaints"));
+const SellerReviews = lazy(() => import("@food/pages/admin/seller/SellerReviews"));
+const SellersBulkImport = lazy(() => import("@food/pages/admin/seller/SellersBulkImport"));
+const SellersBulkExport = lazy(() => import("@food/pages/admin/seller/SellersBulkExport"));
+const SubscriptionSettings = lazy(() => import("@food/pages/admin/seller/SubscriptionSettings"));
+const SubscriptionHistory = lazy(() => import("@food/pages/admin/seller/SubscriptionHistory"));
+const SellerSettings = lazy(() => import("@food/pages/admin/seller/SellerSettings"));
 // Food Management
 const FoodsList = lazy(() => import("@food/pages/admin/foods/FoodsList"));
 const AddonsList = lazy(() => import("@food/pages/admin/addons/AddonsList"));
@@ -85,16 +85,16 @@ const DeliveryEarnings = lazy(() => import("@food/pages/admin/delivery-partners/
 // Report Management
 const TransactionReport = lazy(() => import("@food/pages/admin/reports/TransactionReport"));
 const ExpenseReport = lazy(() => import("@food/pages/admin/reports/ExpenseReport"));
-const DisbursementReportRestaurants = lazy(() => import("@food/pages/admin/reports/DisbursementReportRestaurants"));
+const DisbursementReportSellers = lazy(() => import("@food/pages/admin/reports/DisbursementReportSellers"));
 const DisbursementReportDeliverymen = lazy(() => import("@food/pages/admin/reports/DisbursementReportDeliverymen"));
 const RegularOrderReport = lazy(() => import("@food/pages/admin/reports/RegularOrderReport"));
 const CampaignOrderReport = lazy(() => import("@food/pages/admin/reports/CampaignOrderReport"));
-const RestaurantReport = lazy(() => import("@food/pages/admin/reports/RestaurantReport"));
+const SellerReport = lazy(() => import("@food/pages/admin/reports/SellerReport"));
 const FeedbackExperienceReport = lazy(() => import("@food/pages/admin/reports/FeedbackExperienceReport"));
 const TaxReport = lazy(() => import("@food/pages/admin/reports/TaxReport"));
-const RestaurantVATReport = lazy(() => import("@food/pages/admin/reports/RestaurantVATReport"));
+const SellerVATReport = lazy(() => import("@food/pages/admin/reports/SellerVATReport"));
 // Transaction Management
-const RestaurantWithdraws = lazy(() => import("@food/pages/admin/transactions/RestaurantWithdraws"));
+const SellerWithdraws = lazy(() => import("@food/pages/admin/transactions/SellerWithdraws"));
 const WithdrawMethod = lazy(() => import("@food/pages/admin/transactions/WithdrawMethod"));
 // Employee Management
 const EmployeeRole = lazy(() => import("@food/pages/admin/employees/EmployeeRole"));
@@ -136,7 +136,7 @@ const AddonActivation = lazy(() => import("@food/pages/admin/system/AddonActivat
 const LandingPageManagement = lazy(() => import("@food/pages/admin/system/LandingPageManagement"));
 // import DiningManagement from "@food/pages/admin/system/DiningManagement");
 // import DiningList from "@food/pages/admin/system/DiningList");
-const EditRestaurant = lazy(() => import("@food/pages/admin/restaurant/EditRestaurant"));
+const EditSeller = lazy(() => import("@food/pages/admin/seller/EditSeller"));
 const AdminLogin = lazy(() => import("@food/pages/admin/auth/AdminLogin"));
 const AdminSignup = lazy(() => import("@food/pages/admin/auth/AdminSignup"));
 const AdminForgotPassword = lazy(() => import("@food/pages/admin/auth/AdminForgotPassword"));
@@ -157,7 +157,7 @@ function SuperPowersRouteGuard({ children }) {
   return children;
 }
 
-function UnregisteredRestaurantsRouteGuard() {
+function UnregisteredSellersRouteGuard() {
   const [loading, setLoading] = useState(true);
   const [isEnabled, setIsEnabled] = useState(true);
 
@@ -195,7 +195,7 @@ function UnregisteredRestaurantsRouteGuard() {
 
   if (loading) return <Loader />;
   if (!isEnabled) return <Navigate to="/admin/sellers" replace />;
-  return <UnregisteredRestaurants />;
+  return <UnregisteredSellers />;
 }
 
 /**
@@ -264,7 +264,7 @@ export default function AdminRouter() {
             <Route path="orders/food-on-the-way" element={<OrdersPage statusKey="food-on-the-way" />} />
             <Route path="orders/delivered" element={<OrdersPage statusKey="delivered" />} />
             <Route path="orders/canceled" element={<OrdersPage statusKey="canceled" />} />
-            <Route path="orders/restaurant-cancelled" element={<OrdersPage statusKey="restaurant-cancelled" />} />
+            <Route path="orders/seller-cancelled" element={<OrdersPage statusKey="seller-cancelled" />} />
             <Route path="orders/payment-failed" element={<OrdersPage statusKey="payment-failed" />} />
             <Route path="orders/refunded" element={<OrdersPage statusKey="refunded" />} />
             <Route path="orders/offline-payments" element={<OrdersPage statusKey="offline-payments" />} />
@@ -272,7 +272,7 @@ export default function AdminRouter() {
             <Route path="order-detect-delivery" element={<OrderDetectDelivery />} />
             <Route path="order-refunds/new" element={<NewRefundRequests />} />
 
-            {/* RESTAURANT MANAGEMENT */}
+            {/* SELLER MANAGEMENT */}
             <Route path="zone-setup" element={<ZoneSetup />} />
             <Route path="zone-setup/map" element={<AllZonesMap />} />
             <Route path="zone-setup/delivery-boy-view" element={<DeliveryBoyViewMap />} />
@@ -281,36 +281,36 @@ export default function AdminRouter() {
             <Route path="zone-setup/view/:id" element={<ViewZone />} />
             <Route path="food-approval" element={<FoodApproval />} />
             {/* Canonical paths are products/ and sellers/. The foods/ and
-                restaurants/ twins below them are kept so existing bookmarks and
+                sellers/ twins below them are kept so existing bookmarks and
                 links in already-sent email keep resolving. */}
             {/* products/ and sellers/ are the canonical paths. The foods/ and
-                restaurants/ twins beside them render the same screens and are kept
+                sellers/ twins beside them render the same screens and are kept
                 so existing bookmarks and already-sent links keep resolving. */}
-            <Route path="restaurants" element={<RestaurantsList />} />
-            <Route path="sellers" element={<RestaurantsList />} />
-            <Route path="restaurants/add" element={<AddRestaurant />} />
-            <Route path="sellers/add" element={<AddRestaurant />} />
-            <Route path="restaurants/edit/:id" element={<EditRestaurant />} />
-            <Route path="sellers/edit/:id" element={<EditRestaurant />} />
-            <Route path="restaurants/joining-request" element={<JoiningRequest />} />
+            <Route path="sellers" element={<SellersList />} />
+            <Route path="sellers" element={<SellersList />} />
+            <Route path="sellers/add" element={<AddSeller />} />
+            <Route path="sellers/add" element={<AddSeller />} />
+            <Route path="sellers/edit/:id" element={<EditSeller />} />
+            <Route path="sellers/edit/:id" element={<EditSeller />} />
             <Route path="sellers/joining-request" element={<JoiningRequest />} />
-            <Route path="restaurants/unregistered" element={<UnregisteredRestaurantsRouteGuard />} />
-            <Route path="sellers/unregistered" element={<UnregisteredRestaurantsRouteGuard />} />
-            <Route path="restaurants/commission" element={<RestaurantCommission />} />
-            <Route path="sellers/commission" element={<RestaurantCommission />} />
-            <Route path="restaurants/complaints" element={<RestaurantComplaints />} />
-            <Route path="sellers/complaints" element={<RestaurantComplaints />} />
-            <Route path="restaurants/reviews" element={<RestaurantReviews />} />
-            <Route path="sellers/reviews" element={<RestaurantReviews />} />
-            <Route path="restaurants/bulk-import" element={<RestaurantsBulkImport />} />
-            <Route path="sellers/bulk-import" element={<RestaurantsBulkImport />} />
-            <Route path="restaurants/bulk-export" element={<RestaurantsBulkExport />} />
-            <Route path="sellers/bulk-export" element={<RestaurantsBulkExport />} />
-            <Route path="restaurants/settings" element={<RestaurantSettings />} />
-            <Route path="sellers/settings" element={<RestaurantSettings />} />
-            <Route path="restaurants/subscription-settings" element={<SubscriptionSettings />} />
+            <Route path="sellers/joining-request" element={<JoiningRequest />} />
+            <Route path="sellers/unregistered" element={<UnregisteredSellersRouteGuard />} />
+            <Route path="sellers/unregistered" element={<UnregisteredSellersRouteGuard />} />
+            <Route path="sellers/commission" element={<SellerCommission />} />
+            <Route path="sellers/commission" element={<SellerCommission />} />
+            <Route path="sellers/complaints" element={<SellerComplaints />} />
+            <Route path="sellers/complaints" element={<SellerComplaints />} />
+            <Route path="sellers/reviews" element={<SellerReviews />} />
+            <Route path="sellers/reviews" element={<SellerReviews />} />
+            <Route path="sellers/bulk-import" element={<SellersBulkImport />} />
+            <Route path="sellers/bulk-import" element={<SellersBulkImport />} />
+            <Route path="sellers/bulk-export" element={<SellersBulkExport />} />
+            <Route path="sellers/bulk-export" element={<SellersBulkExport />} />
+            <Route path="sellers/settings" element={<SellerSettings />} />
+            <Route path="sellers/settings" element={<SellerSettings />} />
             <Route path="sellers/subscription-settings" element={<SubscriptionSettings />} />
-            <Route path="restaurants/subscription-history" element={<SubscriptionHistory />} />
+            <Route path="sellers/subscription-settings" element={<SubscriptionSettings />} />
+            <Route path="sellers/subscription-history" element={<SubscriptionHistory />} />
             <Route path="sellers/subscription-history" element={<SubscriptionHistory />} />
 
             {/* FOOD & CATEGORY MANAGEMENT */}
@@ -365,16 +365,16 @@ export default function AdminRouter() {
             {/* REPORTS & SETTINGS */}
             <Route path="transaction-report" element={<TransactionReport />} />
             <Route path="expense-report" element={<ExpenseReport />} />
-            <Route path="disbursement-report/restaurants" element={<DisbursementReportRestaurants />} />
+            <Route path="disbursement-report/sellers" element={<DisbursementReportSellers />} />
             <Route path="disbursement-report/deliverymen" element={<DisbursementReportDeliverymen />} />
             <Route path="order-report/regular" element={<RegularOrderReport />} />
             <Route path="order-report/campaign" element={<CampaignOrderReport />} />
-            <Route path="restaurant-report" element={<RestaurantReport />} />
+            <Route path="seller-report" element={<SellerReport />} />
             <Route path="customer-report/feedback-experience" element={<FeedbackExperienceReport />} />
             <Route path="tax-report" element={<TaxReport />} />
-            <Route path="restaurant-vat-report" element={<RestaurantVATReport />} />
+            <Route path="seller-vat-report" element={<SellerVATReport />} />
             
-            <Route path="restaurant-withdraws" element={<RestaurantWithdraws />} />
+            <Route path="seller-withdraws" element={<SellerWithdraws />} />
             <Route path="withdraw-method" element={<WithdrawMethod />} />
             
             <Route path="employee-role" element={<EmployeeRole />} />

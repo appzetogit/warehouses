@@ -34,17 +34,17 @@ import { useOrders } from "@food/context/OrdersContext"
 import { useProfile } from "@food/context/ProfileContext"
 import { useLocation as useUserLocation } from "@food/hooks/useLocation"
 import DeliveryTrackingMap from "@food/components/user/DeliveryTrackingMap"
-import { orderAPI, restaurantAPI } from "@food/api"
+import { orderAPI, sellerAPI } from "@food/api"
 import { useCompanyName } from "@food/hooks/useCompanyName"
 import { useUserNotifications } from "@food/hooks/useUserNotifications"
 import circleIcon from "@food/assets/circleicon.png"
-import { RESTAURANT_PIN_SVG, CUSTOMER_PIN_SVG, RIDER_BIKE_SVG } from "@food/constants/mapIcons"
+import { SELLER_PIN_SVG, CUSTOMER_PIN_SVG, RIDER_BIKE_SVG } from "@food/constants/mapIcons"
 
 // Fallback definitions in case imports fail at runtime or are shadowed
 const DEFAULT_CUSTOMER_PIN = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="#10B981"><path d="M12 2C8.13 2 5 5.13 5 9c0 4.17 4.42 9.92 6.24 12.11.4.48 1.08.48 1.52 0C14.58 18.92 19 13.17 19 9c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/><circle cx="12" cy="9" r="3" fill="#FFFFFF"/></svg>`;
 const SAFE_CUSTOMER_PIN = typeof CUSTOMER_PIN_SVG !== 'undefined' ? CUSTOMER_PIN_SVG : DEFAULT_CUSTOMER_PIN;
-const DEFAULT_RESTAURANT_PIN = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="#FF6B35"><path d="M12 2C8.13 2 5 5.13 5 9c0 4.17 4.42 9.92 6.24 12.11.4.48 1.08.48 1.52 0C14.58 18.92 19 13.17 19 9c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/><circle cx="12" cy="9" r="3" fill="#FFFFFF"/></svg>`;
-const SAFE_RESTAURANT_PIN = typeof RESTAURANT_PIN_SVG !== 'undefined' ? RESTAURANT_PIN_SVG : DEFAULT_RESTAURANT_PIN;
+const DEFAULT_SELLER_PIN = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="#FF6B35"><path d="M12 2C8.13 2 5 5.13 5 9c0 4.17 4.42 9.92 6.24 12.11.4.48 1.08.48 1.52 0C14.58 18.92 19 13.17 19 9c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/><circle cx="12" cy="9" r="3" fill="#FFFFFF"/></svg>`;
+const SAFE_SELLER_PIN = typeof SELLER_PIN_SVG !== 'undefined' ? SELLER_PIN_SVG : DEFAULT_SELLER_PIN;
 
 const debugLog = (...args) => console.log('[OrderTracking]', ...args)
 const debugWarn = (...args) => console.warn('[OrderTracking]', ...args)
@@ -97,34 +97,34 @@ const DeliveryMap = React.memo(({ orderId, order, isVisible, fallbackCustomerCoo
   };
 
   // Memoize coordinates to prevent re-calculating on every parent render
-  const restaurantCoords = useMemo(() => {
-    // Try multiple sources for restaurant coordinates
+  const sellerCoords = useMemo(() => {
+    // Try multiple sources for seller coordinates
     let coords = null;
 
-    if (order?.restaurantLocation?.coordinates &&
-      Array.isArray(order.restaurantLocation.coordinates) &&
-      order.restaurantLocation.coordinates.length >= 2) {
-      coords = order.restaurantLocation.coordinates;
+    if (order?.sellerLocation?.coordinates &&
+      Array.isArray(order.sellerLocation.coordinates) &&
+      order.sellerLocation.coordinates.length >= 2) {
+      coords = order.sellerLocation.coordinates;
     }
-    else if (order?.restaurantId?.location?.coordinates &&
-      Array.isArray(order.restaurantId.location.coordinates) &&
-      order.restaurantId.location.coordinates.length >= 2) {
-      coords = order.restaurantId.location.coordinates;
+    else if (order?.sellerId?.location?.coordinates &&
+      Array.isArray(order.sellerId.location.coordinates) &&
+      order.sellerId.location.coordinates.length >= 2) {
+      coords = order.sellerId.location.coordinates;
     }
-    else if (order?.restaurantId?.location?.latitude && order?.restaurantId?.location?.longitude) {
-      coords = [order.restaurantId.location.longitude, order.restaurantId.location.latitude];
+    else if (order?.sellerId?.location?.latitude && order?.sellerId?.location?.longitude) {
+      coords = [order.sellerId.location.longitude, order.sellerId.location.latitude];
     }
 
     const fromCoords = toPointFromGeoJSON(coords);
     if (fromCoords) return fromCoords;
 
-    const fallbackLat = Number(order?.restaurantId?.location?.latitude || order?.restaurant?.location?.latitude);
-    const fallbackLng = Number(order?.restaurantId?.location?.longitude || order?.restaurant?.location?.longitude);
+    const fallbackLat = Number(order?.sellerId?.location?.latitude || order?.seller?.location?.latitude);
+    const fallbackLng = Number(order?.sellerId?.location?.longitude || order?.seller?.location?.longitude);
     if (Number.isFinite(fallbackLat) && Number.isFinite(fallbackLng)) {
       return { lat: fallbackLat, lng: fallbackLng };
     }
     return null;
-  }, [order?.restaurantId, order?.restaurantLocation, order?.restaurant]);
+  }, [order?.sellerId, order?.sellerLocation, order?.seller]);
 
   const customerCoords = useMemo(() => {
     const coords = order?.address?.coordinates || order?.address?.location?.coordinates;
@@ -156,7 +156,7 @@ const DeliveryMap = React.memo(({ orderId, order, isVisible, fallbackCustomerCoo
     order?.id
   ].filter(Boolean), [order?.orderId, order?.mongoId, order?._id, orderId, order?.id]);
 
-  if (!isVisible || !orderId || !order || !restaurantCoords || !customerCoords) {
+  if (!isVisible || !orderId || !order || !sellerCoords || !customerCoords) {
     return (
       <div
         className="relative min-h-[250px] bg-gradient-to-b from-gray-100 to-gray-200"
@@ -173,7 +173,7 @@ const DeliveryMap = React.memo(({ orderId, order, isVisible, fallbackCustomerCoo
       <DeliveryTrackingMap
         orderId={orderId}
         orderTrackingIds={orderTrackingIdsList}
-        restaurantCoords={restaurantCoords}
+        sellerCoords={sellerCoords}
         customerCoords={customerCoords}
 
         userLiveCoords={userLiveCoords}
@@ -212,33 +212,33 @@ const SectionItem = ({ icon: Icon, iconNode, title, subtitle, onClick, showArrow
   </motion.button>
 )
 
-const getRestaurantCoordsFromOrder = (apiOrder, fallback = null) => {
+const getSellerCoordsFromOrder = (apiOrder, fallback = null) => {
   if (
-    apiOrder?.restaurantId?.location?.coordinates &&
-    Array.isArray(apiOrder.restaurantId.location.coordinates) &&
-    apiOrder.restaurantId.location.coordinates.length >= 2
+    apiOrder?.sellerId?.location?.coordinates &&
+    Array.isArray(apiOrder.sellerId.location.coordinates) &&
+    apiOrder.sellerId.location.coordinates.length >= 2
   ) {
-    return apiOrder.restaurantId.location.coordinates
+    return apiOrder.sellerId.location.coordinates
   }
-  if (apiOrder?.restaurantId?.location?.latitude && apiOrder?.restaurantId?.location?.longitude) {
-    return [apiOrder.restaurantId.location.longitude, apiOrder.restaurantId.location.latitude]
+  if (apiOrder?.sellerId?.location?.latitude && apiOrder?.sellerId?.location?.longitude) {
+    return [apiOrder.sellerId.location.longitude, apiOrder.sellerId.location.latitude]
   }
   if (
-    apiOrder?.restaurant?.location?.coordinates &&
-    Array.isArray(apiOrder.restaurant.location.coordinates) &&
-    apiOrder.restaurant.location.coordinates.length >= 2
+    apiOrder?.seller?.location?.coordinates &&
+    Array.isArray(apiOrder.seller.location.coordinates) &&
+    apiOrder.seller.location.coordinates.length >= 2
   ) {
-    return apiOrder.restaurant.location.coordinates
+    return apiOrder.seller.location.coordinates
   }
   return fallback || null
 }
 
-const getRestaurantAddressFromOrder = (apiOrder, previousOrder = null, explicitRestaurantAddress = null) => {
-  if (explicitRestaurantAddress && String(explicitRestaurantAddress).trim()) {
-    return String(explicitRestaurantAddress).trim()
+const getSellerAddressFromOrder = (apiOrder, previousOrder = null, explicitSellerAddress = null) => {
+  if (explicitSellerAddress && String(explicitSellerAddress).trim()) {
+    return String(explicitSellerAddress).trim()
   }
 
-  const location = apiOrder?.restaurantId?.location || apiOrder?.restaurant?.location || {}
+  const location = apiOrder?.sellerId?.location || apiOrder?.seller?.location || {}
 
   if (location?.formattedAddress && String(location.formattedAddress).trim()) {
     return String(location.formattedAddress).trim()
@@ -256,7 +256,7 @@ const getRestaurantAddressFromOrder = (apiOrder, previousOrder = null, explicitR
 
   if (parts.length > 0) return parts.join(', ')
 
-  return previousOrder?.restaurantAddress || apiOrder?.restaurantAddress || apiOrder?.restaurant?.address || 'Restaurant location'
+  return previousOrder?.sellerAddress || apiOrder?.sellerAddress || apiOrder?.seller?.address || 'Seller location'
 }
 
 const getCustomerCoordsFromApiOrder = (apiOrder, previousOrder = null) => {
@@ -270,9 +270,9 @@ const getCustomerCoordsFromApiOrder = (apiOrder, previousOrder = null) => {
   return null
 }
 
-const transformOrderForTracking = (apiOrder, previousOrder = null, explicitRestaurantCoords = null, explicitRestaurantAddress = null) => {
-  const restaurantCoords = explicitRestaurantCoords || getRestaurantCoordsFromOrder(apiOrder, previousOrder?.restaurantLocation?.coordinates)
-  const restaurantAddress = getRestaurantAddressFromOrder(apiOrder, previousOrder, explicitRestaurantAddress)
+const transformOrderForTracking = (apiOrder, previousOrder = null, explicitSellerCoords = null, explicitSellerAddress = null) => {
+  const sellerCoords = explicitSellerCoords || getSellerCoordsFromOrder(apiOrder, previousOrder?.sellerLocation?.coordinates)
+  const sellerAddress = getSellerAddressFromOrder(apiOrder, previousOrder, explicitSellerAddress)
   // API returns `deliveryAddress`; some paths use `address`
   const addr = apiOrder?.address || apiOrder?.deliveryAddress || {}
   const customerCoordsResolved = getCustomerCoordsFromApiOrder(apiOrder, previousOrder)
@@ -281,17 +281,17 @@ const transformOrderForTracking = (apiOrder, previousOrder = null, explicitResta
     id: apiOrder?.orderId || apiOrder?._id,
     mongoId: apiOrder?._id || null,
     orderId: apiOrder?.orderId || apiOrder?._id,
-    restaurant: apiOrder?.restaurantName || previousOrder?.restaurant || 'Restaurant',
-    restaurantPhone:
-      apiOrder?.restaurantPhone ||
-      apiOrder?.restaurantId?.phone ||
-      apiOrder?.restaurantId?.ownerPhone ||
-      apiOrder?.restaurant?.phone ||
-      apiOrder?.restaurant?.ownerPhone ||
-      previousOrder?.restaurantPhone ||
+    seller: apiOrder?.sellerName || previousOrder?.seller || 'Seller',
+    sellerPhone:
+      apiOrder?.sellerPhone ||
+      apiOrder?.sellerId?.phone ||
+      apiOrder?.sellerId?.ownerPhone ||
+      apiOrder?.seller?.phone ||
+      apiOrder?.seller?.ownerPhone ||
+      previousOrder?.sellerPhone ||
       '',
-    restaurantAddress,
-    restaurantId: apiOrder?.restaurantId || previousOrder?.restaurantId || null,
+    sellerAddress,
+    sellerId: apiOrder?.sellerId || previousOrder?.sellerId || null,
     userId: apiOrder?.userId || previousOrder?.userId || null,
     userName: apiOrder?.userName || apiOrder?.userId?.name || apiOrder?.userId?.fullName || previousOrder?.userName || '',
     userPhone: apiOrder?.userPhone || apiOrder?.userId?.phone || previousOrder?.userPhone || '',
@@ -307,8 +307,8 @@ const transformOrderForTracking = (apiOrder, previousOrder = null, explicitResta
           : previousOrder?.address?.formattedAddress || addr?.city || ''),
       coordinates: customerCoordsResolved || addr?.location?.coordinates || previousOrder?.address?.coordinates || null
     },
-    restaurantLocation: {
-      coordinates: restaurantCoords
+    sellerLocation: {
+      coordinates: sellerCoords
     },
     items: apiOrder?.items?.map(item => ({
       name: item.name,
@@ -731,28 +731,28 @@ export default function OrderTracking() {
     return `${minutes}:${String(seconds).padStart(2, '0')}`
   }, [editWindowRemainingMs])
 
-  const handleCallRestaurant = (e) => {
+  const handleCallSeller = (e) => {
     // Prevent event bubbling if necessary
     if (e && e.stopPropagation) e.stopPropagation();
 
     const rawPhone =
-      order?.restaurantPhone ||
-      order?.restaurantId?.phone ||
-      order?.restaurantId?.ownerPhone ||
-      order?.restaurantId?.contact?.phone ||
-      order?.restaurant?.phone ||
-      order?.restaurant?.ownerPhone ||
-      order?.restaurantId?.location?.phone ||
+      order?.sellerPhone ||
+      order?.sellerId?.phone ||
+      order?.sellerId?.ownerPhone ||
+      order?.sellerId?.contact?.phone ||
+      order?.seller?.phone ||
+      order?.seller?.ownerPhone ||
+      order?.sellerId?.location?.phone ||
       '';
 
     const cleanPhone = String(rawPhone).replace(/[^\d+]/g, '');
 
     if (!cleanPhone || cleanPhone.length < 5) {
-      toast.error('Restaurant phone number not available');
+      toast.error('Seller phone number not available');
       return;
     }
 
-    debugLog('?? Attempting to call restaurant:', cleanPhone);
+    debugLog('?? Attempting to call seller:', cleanPhone);
 
     // Most compatible way to trigger dialer on overall mobile/web environments:
     // Create a temporary hidden anchor and programmatically click it.
@@ -1055,7 +1055,7 @@ export default function OrderTracking() {
     if (!order) return;
 
     if (isAdminAccepted) {
-      toast.error('Order has already been accepted by the restaurant and cannot be cancelled.');
+      toast.error('Order has already been accepted by the seller and cannot be cancelled.');
       return;
     }
 
@@ -1134,47 +1134,47 @@ export default function OrderTracking() {
       if (response.data?.success && response.data.data?.order) {
         const apiOrder = response.data.data.order
 
-        // Extract restaurant location coordinates with multiple fallbacks
-        let restaurantCoords = null;
-        let restaurantAddress = null;
+        // Extract seller location coordinates with multiple fallbacks
+        let sellerCoords = null;
+        let sellerAddress = null;
 
-        // Priority 1: restaurantId.location.coordinates (GeoJSON format: [lng, lat])
-        if (apiOrder.restaurantId?.location?.coordinates &&
-          Array.isArray(apiOrder.restaurantId.location.coordinates) &&
-          apiOrder.restaurantId.location.coordinates.length >= 2) {
-          restaurantCoords = apiOrder.restaurantId.location.coordinates;
+        // Priority 1: sellerId.location.coordinates (GeoJSON format: [lng, lat])
+        if (apiOrder.sellerId?.location?.coordinates &&
+          Array.isArray(apiOrder.sellerId.location.coordinates) &&
+          apiOrder.sellerId.location.coordinates.length >= 2) {
+          sellerCoords = apiOrder.sellerId.location.coordinates;
         }
-        // Priority 2: restaurantId.location with latitude/longitude properties
-        else if (apiOrder.restaurantId?.location?.latitude && apiOrder.restaurantId?.location?.longitude) {
-          restaurantCoords = [apiOrder.restaurantId.location.longitude, apiOrder.restaurantId.location.latitude];
+        // Priority 2: sellerId.location with latitude/longitude properties
+        else if (apiOrder.sellerId?.location?.latitude && apiOrder.sellerId?.location?.longitude) {
+          sellerCoords = [apiOrder.sellerId.location.longitude, apiOrder.sellerId.location.latitude];
         }
-        // Priority 3: Check nested restaurant data
-        else if (apiOrder.restaurant?.location?.coordinates) {
-          restaurantCoords = apiOrder.restaurant.location.coordinates;
+        // Priority 3: Check nested seller data
+        else if (apiOrder.seller?.location?.coordinates) {
+          sellerCoords = apiOrder.seller.location.coordinates;
         }
-        // Priority 4: Check if restaurantId is a string ID and fetch restaurant details
-        else if (typeof apiOrder.restaurantId === 'string') {
-          debugLog('?? restaurantId is a string ID, fetching restaurant details...', apiOrder.restaurantId);
+        // Priority 4: Check if sellerId is a string ID and fetch seller details
+        else if (typeof apiOrder.sellerId === 'string') {
+          debugLog('?? sellerId is a string ID, fetching seller details...', apiOrder.sellerId);
           try {
-            const restaurantResponse = await restaurantAPI.getRestaurantById(apiOrder.restaurantId);
-            if (restaurantResponse?.data?.success && restaurantResponse.data.data?.restaurant) {
-              const restaurant = restaurantResponse.data.data.restaurant;
-              if (restaurant.location?.coordinates && Array.isArray(restaurant.location.coordinates) && restaurant.location.coordinates.length >= 2) {
-                restaurantCoords = restaurant.location.coordinates;
-                debugLog('? Fetched restaurant coordinates from API:', restaurantCoords);
+            const sellerResponse = await sellerAPI.getSellerById(apiOrder.sellerId);
+            if (sellerResponse?.data?.success && sellerResponse.data.data?.seller) {
+              const seller = sellerResponse.data.data.seller;
+              if (seller.location?.coordinates && Array.isArray(seller.location.coordinates) && seller.location.coordinates.length >= 2) {
+                sellerCoords = seller.location.coordinates;
+                debugLog('? Fetched seller coordinates from API:', sellerCoords);
               }
-              restaurantAddress =
-                restaurant?.location?.formattedAddress ||
-                restaurant?.location?.address ||
-                restaurant?.address ||
+              sellerAddress =
+                seller?.location?.formattedAddress ||
+                seller?.location?.address ||
+                seller?.address ||
                 null;
             }
           } catch (err) {
-            debugError('? Error fetching restaurant details:', err);
+            debugError('? Error fetching seller details:', err);
           }
         }
 
-        setOrder(transformOrderForTracking(apiOrder, order, restaurantCoords, restaurantAddress))
+        setOrder(transformOrderForTracking(apiOrder, order, sellerCoords, sellerAddress))
       }
     } catch (err) {
       debugError('Error refreshing order:', err)
@@ -1217,13 +1217,13 @@ export default function OrderTracking() {
   const statusConfig = {
     placed: {
       title: "Order Placed",
-      subtitle: "Waiting for restaurant to accept",
+      subtitle: "Waiting for seller to accept",
       color: "bg-green-600",
       iconType: 'food'
     },
     confirmed: {
       title: "Order Confirmed",
-      subtitle: "Restaurant has accepted your order",
+      subtitle: "Seller has accepted your order",
       color: "bg-green-600",
       iconType: 'food'
     },
@@ -1235,12 +1235,12 @@ export default function OrderTracking() {
     },
     assigned: {
       title: "Rider is arriving",
-      subtitle: "A delivery partner is arriving at the restaurant",
+      subtitle: "A delivery partner is arriving at the seller",
       color: "bg-green-600",
       iconType: 'rider'
     },
     at_pickup: {
-      title: "Rider at restaurant",
+      title: "Rider at seller",
       subtitle: "Rider is waiting for your order",
       color: "bg-green-600",
       iconType: 'rider'
@@ -1287,19 +1287,19 @@ export default function OrderTracking() {
     orderStatus === "cancelled" ||
     isFoodOrderCancelledStatus(order?.status)
 
-  const restaurantNameCandidates = [
-    order?.restaurantName,
-    order?.restaurantId?.name,
-    order?.restaurantId?.restaurantName,
-    order?.restaurant,
+  const sellerNameCandidates = [
+    order?.sellerName,
+    order?.sellerId?.name,
+    order?.sellerId?.sellerName,
+    order?.seller,
   ]
     .map((value) => (value == null ? "" : String(value).trim()))
     .filter(Boolean)
 
-  const restaurantDisplayName =
-    restaurantNameCandidates.find((name) => name.toLowerCase() !== "restaurant") ||
-    restaurantNameCandidates[0] ||
-    "Restaurant"
+  const sellerDisplayName =
+    sellerNameCandidates.find((name) => name.toLowerCase() !== "seller") ||
+    sellerNameCandidates[0] ||
+    "Seller"
 
   const complaintOrderId = encodeURIComponent(
     String(order?.orderId || order?.id || orderId || "")
@@ -1411,13 +1411,13 @@ export default function OrderTracking() {
               <h2 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
                 {isDeliveredOrder
                   ? "Delivered!"
-                  : (isCancelledOrder && order?.status === 'cancelled_by_restaurant')
-                    ? "Cancelled by Restaurant"
+                  : (isCancelledOrder && order?.status === 'cancelled_by_seller')
+                    ? "Cancelled by Seller"
                     : isCancelledOrder
                       ? "Order Cancelled"
                       : currentStatus.subtitle}
               </h2>
-              {isCancelledOrder && order?.status === 'cancelled_by_restaurant' && order?.note && (
+              {isCancelledOrder && order?.status === 'cancelled_by_seller' && order?.note && (
                 <p className="mt-2 text-gray-500 dark:text-gray-400 font-medium">
                   {order.note}
                 </p>
@@ -1433,7 +1433,7 @@ export default function OrderTracking() {
           </div>
         </div>
 
-        {/* Cancel button visible ONLY until restaurant accepts (confirmed) */}
+        {/* Cancel button visible ONLY until seller accepts (confirmed) */}
         {!isAdminAccepted && !isCancelledOrder && !isDeliveredOrder && (
           <motion.div
             className="bg-white dark:bg-zinc-900 rounded-xl p-4 shadow-sm border border-red-50 dark:border-zinc-800"
@@ -1541,7 +1541,7 @@ export default function OrderTracking() {
           </Link>
         )}
 
-        {/* Order Summary & Restaurant Info */}
+        {/* Order Summary & Seller Info */}
         <div className="bg-white dark:bg-zinc-900 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-zinc-800">
           <div className="flex items-center justify-between gap-4 mb-5">
             <div className="flex items-center gap-4 min-w-0">
@@ -1549,20 +1549,20 @@ export default function OrderTracking() {
               <Store className="w-6 h-6 text-gray-400" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-bold text-gray-900 dark:text-white truncate">{restaurantDisplayName}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{order.restaurantAddress || 'Location'}</p>
+              <h3 className="font-bold text-gray-900 dark:text-white truncate">{sellerDisplayName}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{order.sellerAddress || 'Location'}</p>
             </div>
           </div>
             {!isDeliveredOrder && !isCancelledOrder && (
               <button
                 type="button"
-                onClick={handleCallRestaurant}
+                onClick={handleCallSeller}
                 className="w-10 h-10 rounded-full border flex items-center justify-center shrink-0"
                 style={{
                   backgroundColor: `rgba(${themeRgb}, 0.12)`,
                   borderColor: `rgba(${themeRgb}, 0.35)`,
                 }}
-                aria-label="Call restaurant"
+                aria-label="Call seller"
               >
                 <Phone className="w-4 h-4" style={{ color: themeColor }} />
               </button>

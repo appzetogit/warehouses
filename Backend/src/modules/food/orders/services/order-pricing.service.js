@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { FoodOrder } from '../models/order.model.js';
-import { FoodRestaurant } from '../../restaurant/models/restaurant.model.js';
+import { FoodSeller } from '../../seller/models/seller.model.js';
 import { FoodFeeSettings } from '../../admin/models/feeSettings.model.js';
 import { FoodOffer } from '../../admin/models/offer.model.js';
 import { FoodOfferUsage } from '../../admin/models/offerUsage.model.js';
@@ -9,12 +9,12 @@ import { ValidationError } from '../../../../core/auth/errors.js';
 import {
   calculateDistanceKm,
   normalizeDeliveryAddress,
-  normalizeRestaurantLocation,
+  normalizeSellerLocation,
   parseGeoPoint,
 } from '../../shared/geo.utils.js';
 import { fetchDrivingRoute } from '../utils/googleMaps.js';
-import { attachOutletTimingsToRestaurants } from '../../restaurant/services/outletTimings.service.js';
-import { getRestaurantAvailabilityStatus } from '../../restaurant/helpers/restaurantAvailability.helper.js';
+import { attachOutletTimingsToSellers } from '../../seller/services/outletTimings.service.js';
+import { getSellerAvailabilityStatus } from '../../seller/helpers/sellerAvailability.helper.js';
 import { resolveOrderCartItems } from '../helpers/order-cart-items.helper.js';
 import { AVG_SPEED_KMPH, PACKING_MINUTES } from './order.helpers.js';
 
@@ -50,34 +50,34 @@ const applyDeliveryModePricing = (pricing, deliveryMode, quickSurcharge = 0) => 
   };
 };
 
-export async function loadRestaurantForOrdering(restaurantId) {
-  if (!restaurantId || !mongoose.Types.ObjectId.isValid(String(restaurantId))) {
+export async function loadSellerForOrdering(sellerId) {
+  if (!sellerId || !mongoose.Types.ObjectId.isValid(String(sellerId))) {
     throw new ValidationError('Store not found');
   }
 
-  const doc = await FoodRestaurant.findById(restaurantId)
+  const doc = await FoodSeller.findById(sellerId)
     .select(
       // autoAcceptOrders is read at order creation to decide whether the order
       // waits for a seller. Left out of this projection it is always undefined,
       // so the flag silently does nothing however it is set.
-      'status restaurantName zoneId location isAcceptingOrders autoAcceptOrders outsideHoursOverride openingTime closingTime openDays deliveryTimings isActive',
+      'status sellerName zoneId location isAcceptingOrders autoAcceptOrders outsideHoursOverride openingTime closingTime openDays deliveryTimings isActive',
     )
     .lean();
 
   if (!doc) throw new ValidationError('Store not found');
   if (doc.status !== 'approved') throw new ValidationError('Store not available');
 
-  const [withTimings] = await attachOutletTimingsToRestaurants([doc], {
+  const [withTimings] = await attachOutletTimingsToSellers([doc], {
     useDefaults: false,
   });
   if (withTimings?.location) {
-    withTimings.location = normalizeRestaurantLocation(withTimings.location);
+    withTimings.location = normalizeSellerLocation(withTimings.location);
   }
   return withTimings;
 }
 
-export function assertRestaurantOpenForOrdering(restaurant, at = new Date()) {
-  const availability = getRestaurantAvailabilityStatus(restaurant, at);
+export function assertSellerOpenForOrdering(seller, at = new Date()) {
+  const availability = getSellerAvailabilityStatus(seller, at);
   if (availability.isOpen) return availability;
 
   if (availability.reason === 'not-accepting-orders') {
@@ -88,22 +88,22 @@ export function assertRestaurantOpenForOrdering(restaurant, at = new Date()) {
 }
 
 /**
- * Single source of truth for restaurant ↔ customer trip distance.
+ * Single source of truth for seller ↔ customer trip distance.
  * Prefer Google driving/road km (matches delivery partner Rest→User UI);
  * fall back to Haversine when Directions is unavailable.
  */
-export async function getDeliveryDistanceKm(restaurant, deliveryAddress) {
-  const straightLineKm = calculateDistanceKm(restaurant, deliveryAddress);
+export async function getDeliveryDistanceKm(seller, deliveryAddress) {
+  const straightLineKm = calculateDistanceKm(seller, deliveryAddress);
 
-  const restaurantPoint = parseGeoPoint(restaurant);
+  const sellerPoint = parseGeoPoint(seller);
   const customerPoint = parseGeoPoint(deliveryAddress);
-  if (!restaurantPoint || !customerPoint) {
+  if (!sellerPoint || !customerPoint) {
     return straightLineKm;
   }
 
   try {
     const route = await fetchDrivingRoute(
-      { lat: restaurantPoint.lat, lng: restaurantPoint.lng },
+      { lat: sellerPoint.lat, lng: sellerPoint.lng },
       { lat: customerPoint.lat, lng: customerPoint.lng },
     );
     if (route?.distanceKm != null && Number.isFinite(Number(route.distanceKm))) {
@@ -341,18 +341,18 @@ async function resolveDeliveryAddress(userId, dto) {
 
 export async function calculateOrderPricing(userId, dto, options = {}) {
   const at = options.at instanceof Date ? options.at : new Date();
-  const restaurant =
-    options.restaurant || (await loadRestaurantForOrdering(dto.restaurantId));
+  const seller =
+    options.seller || (await loadSellerForOrdering(dto.sellerId));
 
   if (!options.skipAvailabilityCheck) {
-    assertRestaurantOpenForOrdering(restaurant, at);
+    assertSellerOpenForOrdering(seller, at);
   }
 
   const deliveryAddress = normalizeDeliveryAddress(
     await resolveDeliveryAddress(userId, dto),
   );
 
-  const resolvedItems = await resolveOrderCartItems(dto.restaurantId, dto.items);
+  const resolvedItems = await resolveOrderCartItems(dto.sellerId, dto.items);
   const items = resolvedItems.map((item) => ({
     ...item,
     price: Number(item.price) || 0,
@@ -370,8 +370,8 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
   const packagingFee = 0;
   const platformFee = Number(feeSettings.platformFee || 0);
 
-  let distanceKm = await getDeliveryDistanceKm(restaurant, deliveryAddress);
-  const straightLineKm = calculateDistanceKm(restaurant, deliveryAddress);
+  let distanceKm = await getDeliveryDistanceKm(seller, deliveryAddress);
+  const straightLineKm = calculateDistanceKm(seller, deliveryAddress);
 
   const deliveryFeeResult = resolveUserDeliveryFee(feeSettings, { subtotal, distanceKm });
   const deliveryFee = round2(deliveryFeeResult.deliveryFee);
@@ -394,12 +394,12 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
       const endOk = !offerEnd || now <= offerEnd;
       const startOk = !offer.startDate || now >= new Date(offer.startDate);
       const statusOk = offer.status === "active" && offer.showInCart !== false;
-      const selectedRestaurantIds = Array.isArray(offer.restaurantIds) && offer.restaurantIds.length > 0
-        ? offer.restaurantIds
-        : [offer.restaurantId].filter(Boolean);
+      const selectedSellerIds = Array.isArray(offer.sellerIds) && offer.sellerIds.length > 0
+        ? offer.sellerIds
+        : [offer.sellerId].filter(Boolean);
       const scopeOk =
-        offer.restaurantScope !== "selected" ||
-        selectedRestaurantIds.some((id) => String(id) === String(dto.restaurantId || ""));
+        offer.sellerScope !== "selected" ||
+        selectedSellerIds.some((id) => String(id) === String(dto.sellerId || ""));
       const minOk = subtotal >= (Number(offer.minOrderValue) || 0);
       let usageOk = true;
       if (

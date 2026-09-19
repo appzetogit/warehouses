@@ -1,6 +1,6 @@
 /**
  * One-time sync: recalculate gmv + orderCount on existing subscription invoices
- * using restaurant net share (same formula as wallet payout).
+ * using seller net share (same formula as wallet payout).
  *
  * Safe by default — only updates the display/audit gmv fields, NOT plan amounts
  * or outstanding balances. Invoice fees stay as originally generated.
@@ -13,13 +13,13 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { connectDB, disconnectDB } from '../src/config/db.js';
-import { FoodSubscriptionInvoice } from '../src/modules/food/restaurant/models/subscriptionInvoice.model.js';
-import { FoodRestaurant } from '../src/modules/food/restaurant/models/restaurant.model.js';
+import { FoodSubscriptionInvoice } from '../src/modules/food/seller/models/subscriptionInvoice.model.js';
+import { FoodSeller } from '../src/modules/food/seller/models/seller.model.js';
 import {
     computeMonthlyGmv,
     getMonthWindow,
     billingMonthLabel,
-} from '../src/modules/food/restaurant/services/subscriptionBilling.service.js';
+} from '../src/modules/food/seller/services/subscriptionBilling.service.js';
 
 const isLive = process.argv.includes('--live');
 const monthArg = process.argv.find((arg) => arg.startsWith('--month='));
@@ -34,8 +34,8 @@ const main = async () => {
     };
 
     const invoices = await FoodSubscriptionInvoice.find(query)
-        .select('restaurantId billingMonth gmv orderCount planName totalAmount outstandingAmount status')
-        .sort({ billingMonth: 1, restaurantId: 1 })
+        .select('sellerId billingMonth gmv orderCount planName totalAmount outstandingAmount status')
+        .sort({ billingMonth: 1, sellerId: 1 })
         .lean();
 
     console.log(
@@ -50,7 +50,7 @@ const main = async () => {
         try {
             const { start, end } = getMonthWindow(invoice.billingMonth);
             const { gmv: newGmv, orderCount: newOrderCount } = await computeMonthlyGmv(
-                invoice.restaurantId,
+                invoice.sellerId,
                 start,
                 end,
             );
@@ -64,12 +64,12 @@ const main = async () => {
                 continue;
             }
 
-            const restaurant = await FoodRestaurant.findById(invoice.restaurantId)
-                .select('restaurantName')
+            const seller = await FoodSeller.findById(invoice.sellerId)
+                .select('sellerName')
                 .lean();
 
             console.log(
-                `  ${restaurant?.restaurantName || invoice.restaurantId} | ${billingMonthLabel(invoice.billingMonth)} | GMV ₹${oldGmv} → ₹${newGmv} (${gmvDiff >= 0 ? '+' : ''}${gmvDiff}) | orders ${oldCount} → ${newOrderCount} | plan ${invoice.planName} | due ₹${invoice.outstandingAmount}`,
+                `  ${seller?.sellerName || invoice.sellerId} | ${billingMonthLabel(invoice.billingMonth)} | GMV ₹${oldGmv} → ₹${newGmv} (${gmvDiff >= 0 ? '+' : ''}${gmvDiff}) | orders ${oldCount} → ${newOrderCount} | plan ${invoice.planName} | due ₹${invoice.outstandingAmount}`,
             );
 
             if (isLive) {

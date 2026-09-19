@@ -6,7 +6,7 @@ import Loader from "@food/components/Loader"
 import PushSoundEnableButton from "@food/components/PushSoundEnableButton"
 import { registerWebPushForCurrentModule } from "@food/utils/firebaseMessaging"
 import { isModuleAuthenticated } from "@food/utils/auth"
-import { useRestaurantNotifications } from "@food/hooks/useRestaurantNotifications"
+import { useSellerNotifications } from "@food/hooks/useSellerNotifications"
 import { applyModulePowerScanning, getCachedSettings } from "@food/utils/businessSettings"
 import { PublicAppConfigProvider } from "@food/context/PublicAppConfigContext"
 import { shouldSkipScrollResetForHome } from "@food/utils/homeScrollRestore"
@@ -14,8 +14,8 @@ import { shouldSkipScrollResetForHome } from "@food/utils/homeScrollRestore"
 // Lazy Loading Components
 const UserRouter = lazy(() => import("@food/components/user/UserRouter"))
 
-// Restaurant Module
-const RestaurantRouter = lazy(() => import("@food/components/restaurant/RestaurantRouter"))
+// Seller Module
+const SellerRouter = lazy(() => import("@food/components/seller/SellerRouter"))
 
 // Admin Module
 const AdminRouter = lazy(() => import("@food/components/admin/AdminRouter"))
@@ -43,17 +43,17 @@ function ScrollToTop() {
   return null;
 }
 
-function RestaurantGlobalNotificationListenerInner() {
-  useRestaurantNotifications()
+function SellerGlobalNotificationListenerInner() {
+  useSellerNotifications()
   return null
 }
 
-function RestaurantGlobalNotificationListener() {
+function SellerGlobalNotificationListener() {
   const location = useLocation()
-  const isRestaurantRoute =
+  const isSellerRoute =
     location.pathname.startsWith("/seller") &&
     !location.pathname.startsWith("/sellers")
-  const isRestaurantAuthRoute =
+  const isSellerAuthRoute =
     location.pathname === "/seller/login" ||
     location.pathname === "/seller/auth/sign-in" ||
     location.pathname === "/seller/signup" ||
@@ -68,16 +68,16 @@ function RestaurantGlobalNotificationListener() {
     location.pathname.startsWith("/seller/orders/")
 
   const shouldListen =
-    isRestaurantRoute &&
-    !isRestaurantAuthRoute &&
+    isSellerRoute &&
+    !isSellerAuthRoute &&
     !isOrderManagedRoute &&
-    isModuleAuthenticated("restaurant")
+    isModuleAuthenticated("seller")
 
   if (!shouldListen) {
     return null
   }
 
-  return <RestaurantGlobalNotificationListenerInner />
+  return <SellerGlobalNotificationListenerInner />
 }
 
 export default function App() {
@@ -89,7 +89,7 @@ export default function App() {
 
   useEffect(() => {
     const resolveModule = () => {
-      if (location.pathname.startsWith("/seller")) return "restaurant"
+      if (location.pathname.startsWith("/seller")) return "seller"
       if (location.pathname.startsWith("/food/delivery")) return "delivery"
       return "user"
     }
@@ -103,7 +103,7 @@ export default function App() {
   return (
     <PublicAppConfigProvider>
       <ScrollToTop />
-      <RestaurantGlobalNotificationListener />
+      <SellerGlobalNotificationListener />
       <PushSoundEnableButton />
       <Suspense fallback={<Loader />}>
         <Routes>
@@ -113,11 +113,11 @@ export default function App() {
             element={<UserRouter />}
           />
 
-          {/* Restaurant Module - Already mapped to /restaurant */}
+          {/* Seller Module - Already mapped to /seller */}
           <Route
-            path="restaurant/*"
+            path="seller/*"
             element={
-              <RestaurantRouter />
+              <SellerRouter />
             }
           />
 

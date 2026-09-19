@@ -14,7 +14,7 @@ export const emptyIncentivesHistory = [];
 export const emptyLoyaltyPointTransactions = [];
 export const emptyNotifications = [];
 export const emptyOrders = [];
-export const emptyRestaurantVATReports = [];
+export const emptySellerVATReports = [];
 export const emptySubscribedEmails = [];
 export const emptySubscriptionOrders = [];
 export const emptySubscriptionReports = [];
@@ -34,7 +34,7 @@ export const emptyCampaignOrderStats = {
 };
 
 
-export const emptyRestaurantVATStats = {
+export const emptySellerVATStats = {
   totalOrders: 0,
   totalOrderAmount: 0,
   totalTaxAmount: 0,
@@ -50,7 +50,7 @@ export const emptyYearlySalesData = {
   chartData: [],
 };
 
-export const emptyDisbursementReportRestaurants = [];
+export const emptyDisbursementReportSellers = [];
 export const emptyDisbursementReportDeliverymen = [];
 
 export const emptyDisbursementStats = {

@@ -27,7 +27,7 @@ const statusConfig = {
   "all": { title: "All Orders", color: "emerald", icon: FileText },
   "pending": {
     title: "Pending Orders",
-    subtitle: "Cash orders awaiting restaurant acceptance",
+    subtitle: "Cash orders awaiting seller acceptance",
     color: "amber",
     icon: Package,
   },
@@ -45,7 +45,7 @@ const statusConfig = {
   },
   "delivered": { title: "Delivered Orders", color: "emerald", icon: Package },
   "canceled": { title: "Canceled Orders", color: "rose", icon: Package },
-  "restaurant-cancelled": { title: "Restaurant Cancelled Orders", color: "red", icon: Package },
+  "seller-cancelled": { title: "Seller Cancelled Orders", color: "red", icon: Package },
   "payment-failed": { title: "Payment Failed Orders", color: "red", icon: Package },
   "refunded": { title: "Refunded Orders", color: "sky", icon: Package },
   "offline-payments": { title: "Offline Payments", color: "slate", icon: Package },
@@ -59,7 +59,7 @@ const EMPTY_ORDER_FILTERS = {
   maxAmount: "",
   fromDate: "",
   toDate: "",
-  restaurantId: "",
+  sellerId: "",
 }
 
 export default function OrdersPage({ statusKey = "all" }) {
@@ -100,7 +100,7 @@ export default function OrdersPage({ statusKey = "all" }) {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [draftFilters, setDraftFilters] = useState(EMPTY_ORDER_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_ORDER_FILTERS)
-  const [restaurantOptions, setRestaurantOptions] = useState([])
+  const [sellerOptions, setSellerOptions] = useState([])
   const ALERT_LOOP_INTERVAL_MS = 4500
   const ALERT_LOOP_MAX_MS = 120000
   const sanitizeNotificationText = useCallback((value) => {
@@ -116,7 +116,7 @@ export default function OrdersPage({ statusKey = "all" }) {
       }
     })()
     return repaired
-      .replace(/^\s*(?:[\uD800-\uDBFF][\uDC00-\uDFFF]\s*)*\[(user|shop|restaurant|delivery|admin)\]\s*/i, "")
+      .replace(/^\s*(?:[\uD800-\uDBFF][\uDC00-\uDFFF]\s*)*\[(user|shop|seller|delivery|admin)\]\s*/i, "")
       .replace(/[ÂÃâð][^\s]{0,3}/g, " ")
       .replace(/[^\x20-\x7E\n\r\t]+/g, " ")
       .replace(/\s+/g, " ")
@@ -411,7 +411,7 @@ export default function OrdersPage({ statusKey = "all" }) {
       maxAmount: filters.maxAmount !== "" ? filters.maxAmount : undefined,
       startDate: filters.fromDate || undefined,
       endDate: filters.toDate || undefined,
-      restaurantId: filters.restaurantId || undefined,
+      sellerId: filters.sellerId || undefined,
     }
   }, [])
 
@@ -447,10 +447,10 @@ export default function OrdersPage({ statusKey = "all" }) {
         status:
           currentStatusKey === "all"
             ? undefined
-            : currentStatusKey === "restaurant-cancelled"
+            : currentStatusKey === "seller-cancelled"
               ? "cancelled"
               : currentStatusKey,
-        cancelledBy: currentStatusKey === "restaurant-cancelled" ? "restaurant" : undefined,
+        cancelledBy: currentStatusKey === "seller-cancelled" ? "seller" : undefined,
         ...buildServerQueryParams(),
       }
 
@@ -488,8 +488,8 @@ export default function OrdersPage({ statusKey = "all" }) {
             .filter(Boolean),
         )
 
-        // Only orders still awaiting restaurant acceptance should ring. Once the
-        // restaurant accepts, the order moves to 'confirmed' (or beyond) and drops
+        // Only orders still awaiting seller acceptance should ring. Once the
+        // seller accepts, the order moves to 'confirmed' (or beyond) and drops
         // out of this set, so the alarm stops instead of ringing forever.
         const actionableOrderIds = new Set(
           nextOrders
@@ -672,8 +672,8 @@ export default function OrdersPage({ statusKey = "all" }) {
         displayStatus = "Food On The Way"
       } else if (backendStatus === "delivered") {
         displayStatus = "Delivered"
-      } else if (backendStatus === "cancelled_by_restaurant") {
-        displayStatus = "Cancelled by Restaurant"
+      } else if (backendStatus === "cancelled_by_seller") {
+        displayStatus = "Cancelled by Seller"
       } else if (backendStatus === "cancelled_by_user") {
         displayStatus = "Cancelled by User"
       } else if (backendStatus === "cancelled_by_admin") {
@@ -700,10 +700,10 @@ export default function OrdersPage({ statusKey = "all" }) {
 
       const customerName = order.customerName || order.userId?.name || "N/A"
       const customerPhone = order.customerPhone || order.userId?.phone || "N/A"
-      const restaurant =
-        order.restaurant ||
-        order.restaurantName ||
-        order.restaurantId?.restaurantName ||
+      const seller =
+        order.seller ||
+        order.sellerName ||
+        order.sellerId?.sellerName ||
         ""
 
       return {
@@ -714,7 +714,7 @@ export default function OrdersPage({ statusKey = "all" }) {
         time,
         customerName,
         customerPhone,
-        restaurant,
+        seller,
         items,
         subtotal,
         totalItemAmount: subtotal,
@@ -792,32 +792,32 @@ export default function OrdersPage({ statusKey = "all" }) {
   }, [appliedFilters])
 
   useEffect(() => {
-    const fetchRestaurantOptions = async () => {
+    const fetchSellerOptions = async () => {
       try {
-        const response = await adminAPI.getRestaurants({
+        const response = await adminAPI.getSellers({
           status: "approved",
           limit: 1000,
           page: 1,
         })
         const rows =
-          response?.data?.data?.restaurants ||
+          response?.data?.data?.sellers ||
           response?.data?.data?.data ||
           []
-        setRestaurantOptions(
+        setSellerOptions(
           rows
             .map((row) => ({
               id: row._id || row.id,
-              name: row.restaurantName || row.name || "Restaurant",
+              name: row.sellerName || row.name || "Seller",
             }))
             .filter((row) => row.id)
             .sort((a, b) => a.name.localeCompare(b.name)),
         )
       } catch {
-        setRestaurantOptions([])
+        setSellerOptions([])
       }
     }
 
-    fetchRestaurantOptions()
+    fetchSellerOptions()
   }, [])
 
   useEffect(() => {
@@ -902,8 +902,8 @@ export default function OrdersPage({ statusKey = "all" }) {
       recentRealtimeOrderRef.current.set(orderId, now)
 
       const title = "New order received"
-      const body = payload?.restaurantName
-        ? `${payload.restaurantName} • ${orderId}`
+      const body = payload?.sellerName
+        ? `${payload.sellerName} • ${orderId}`
         : `Order ${orderId}`
 
       activeOrderAlertRef.current = payload || { orderId }
@@ -921,7 +921,7 @@ export default function OrdersPage({ statusKey = "all" }) {
     socket.on("disconnect", () => {
       socketConnectedRef.current = false
     })
-    // An order moving past 'created' (restaurant accepted / cancelled) means it no longer
+    // An order moving past 'created' (seller accepted / cancelled) means it no longer
     // needs admin action — stop the alarm and refresh so the popup clears.
     const handleRealtimeStatusChange = (payload = {}) => {
       const status = String(payload?.orderStatus || payload?.status || "").toLowerCase()
@@ -1340,7 +1340,7 @@ export default function OrdersPage({ statusKey = "all" }) {
         setFilters={setDraftFilters}
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
-        restaurantOptions={restaurantOptions}
+        sellerOptions={sellerOptions}
       />
       <SettingsDialog
         isOpen={isSettingsOpen}
@@ -1354,7 +1354,7 @@ export default function OrdersPage({ statusKey = "all" }) {
           orderDate: "Order Date",
           orderOtp: "Order OTP",
           customer: "Customer Information",
-          restaurant: "Restaurant",
+          seller: "Seller",
           foodItems: "Food Items",
           totalAmount: "Total Amount",
           paymentType: "Payment Type",

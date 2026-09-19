@@ -6,7 +6,7 @@ export const useDiningData = (location) => {
   const [categories, setCategories] = useState([]);
   const [limelightItems, setLimelightItems] = useState([]);
   const [mustTryItems, setMustTryItems] = useState([]);
-  const [restaurantList, setRestaurantList] = useState([]);
+  const [sellerList, setSellerList] = useState([]);
   const [bankOfferItems, setBankOfferItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [diningHeroBanner, setDiningHeroBanner] = useState(null);
@@ -18,7 +18,7 @@ export const useDiningData = (location) => {
         diningAPI.getCategories(),
         diningAPI.getOfferBanners(),
         diningAPI.getStories(),
-        diningAPI.getRestaurants(location?.city ? { city: location.city } : {}),
+        diningAPI.getSellers(location?.city ? { city: location.city } : {}),
         diningAPI.getBankOffers(),
         api.get('/food/hero-banners/dining/public').catch(() => ({ data: { success: false } }))
       ]);
@@ -26,7 +26,7 @@ export const useDiningData = (location) => {
       if (cats.data?.success) setCategories(cats.data.data);
       if (limes.data?.success) setLimelightItems(limes.data.data);
       if (tries.data?.success) setMustTryItems(tries.data.data);
-      if (rests.data?.success) setRestaurantList(rests.data.data);
+      if (rests.data?.success) setSellerList(rests.data.data);
       if (offers.data?.success) setBankOfferItems(offers.data.data);
       
       if (hero.data?.success && hero.data.data.banners?.length > 0) {
@@ -42,7 +42,7 @@ export const useDiningData = (location) => {
   }, [fetchDiningData]);
 
   return {
-    categories, limelightItems, mustTryItems, restaurantList, bankOfferItems,
+    categories, limelightItems, mustTryItems, sellerList, bankOfferItems,
     loading, diningHeroBanner
   };
 };

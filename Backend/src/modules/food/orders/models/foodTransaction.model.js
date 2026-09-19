@@ -5,7 +5,7 @@ const foodTransactionSchema = new mongoose.Schema({
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodOrder', required: true, unique: true, index: true },
 
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodUser', required: true, index: true },
-    restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodRestaurant', required: true, index: true },
+    sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodSeller', required: true, index: true },
     deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodDeliveryPartner', index: true },
 
     // Core Payment Info
@@ -30,7 +30,7 @@ const foodTransactionSchema = new mongoose.Schema({
         deliveryFee: { type: Number, default: 0, min: 0 },
         deliveryFeeGst: { type: Number, default: 0, min: 0 },
         platformFee: { type: Number, default: 0, min: 0 },
-        restaurantCommission: { type: Number, default: 0, min: 0 },
+        sellerCommission: { type: Number, default: 0, min: 0 },
         discount: { type: Number, default: 0, min: 0 },
         couponCode: { type: String, default: null, trim: true, uppercase: true },
         total: { type: Number, default: 0, min: 0 },
@@ -60,16 +60,16 @@ const foodTransactionSchema = new mongoose.Schema({
     // Financial Breakdown (The Split)
     amounts: {
         totalCustomerPaid: { type: Number, required: true, min: 0 },
-        restaurantShare: { type: Number, required: true, min: 0 },
-        restaurantCommission: { type: Number, required: true, min: 0 },
+        sellerShare: { type: Number, required: true, min: 0 },
+        sellerCommission: { type: Number, required: true, min: 0 },
         riderShare: { type: Number, required: true, min: 0 },
         // Can be negative when discounts/rider pay exceed platform income; store the real value.
         platformNetProfit: { type: Number, required: true },
         taxAmount: { type: Number, default: 0, min: 0 },
         adminDiscountShare: { type: Number, default: 0, min: 0 },
-        restaurantDiscountShare: { type: Number, default: 0, min: 0 },
+        sellerDiscountShare: { type: Number, default: 0, min: 0 },
         discountAdminBearPercentage: { type: Number, default: 0, min: 0, max: 100 },
-        discountRestaurantBearPercentage: { type: Number, default: 0, min: 0, max: 100 }
+        discountSellerBearPercentage: { type: Number, default: 0, min: 0, max: 100 }
     },
 
     // Gateway / Provider Metadata
@@ -84,8 +84,8 @@ const foodTransactionSchema = new mongoose.Schema({
 
     // Settlement Tracking
     settlement: {
-        isRestaurantSettled: { type: Boolean, default: false },
-        restaurantSettledAt: Date,
+        isSellerSettled: { type: Boolean, default: false },
+        sellerSettledAt: Date,
         isRiderSettled: { type: Boolean, default: false },
         riderSettledAt: Date
     },
@@ -108,7 +108,7 @@ const foodTransactionSchema = new mongoose.Schema({
 
 // Powerful indexes for Finance & Analytics
 foodTransactionSchema.index({ createdAt: -1 });
-foodTransactionSchema.index({ 'settlement.isRestaurantSettled': 1, restaurantId: 1 });
+foodTransactionSchema.index({ 'settlement.isSellerSettled': 1, sellerId: 1 });
 foodTransactionSchema.index({ 'status': 1, paymentMethod: 1 });
 
 export const FoodTransaction = mongoose.model('FoodTransaction', foodTransactionSchema);

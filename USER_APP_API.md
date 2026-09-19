@@ -9,7 +9,7 @@ Anything not listed here does not exist.
 - **Errors:** `{ "success": false, "message": "<human readable>" }` with a 4xx/5xx status
 
 Two route groups are mounted with a hard role gate — `/v1/food/user/*` and
-`/v1/food/orders/*` both require `requireRoles('USER')`. A restaurant or delivery
+`/v1/food/orders/*` both require `requireRoles('USER')`. A seller or delivery
 token gets 403 on those, not 404.
 
 ---
@@ -39,17 +39,17 @@ token gets 403 on those, not 404.
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/v1/food/restaurant/restaurants` | Restaurant list (supports lat/lng, paging) |
-| GET | `/v1/food/restaurant/restaurants/:id` | Restaurant detail |
-| GET | `/v1/food/restaurant/restaurants/:id/menu` | Menu |
-| GET | `/v1/food/restaurant/restaurants/:id/addons` | **Add-ons — see §3** |
-| GET | `/v1/food/restaurant/restaurants/:id/outlet-timings` | Opening hours |
-| GET | `/v1/food/restaurant/public/foods` | Flat dish list |
-| GET | `/v1/food/restaurant/offers` | Offers |
-| GET | `/v1/food/restaurant/categories/public` | Categories |
+| GET | `/v1/food/seller/sellers` | Seller list (supports lat/lng, paging) |
+| GET | `/v1/food/seller/sellers/:id` | Seller detail |
+| GET | `/v1/food/seller/sellers/:id/menu` | Menu |
+| GET | `/v1/food/seller/sellers/:id/addons` | **Add-ons — see §3** |
+| GET | `/v1/food/seller/sellers/:id/outlet-timings` | Opening hours |
+| GET | `/v1/food/seller/public/foods` | Flat dish list |
+| GET | `/v1/food/seller/offers` | Offers |
+| GET | `/v1/food/seller/categories/public` | Categories |
 | GET | `/v1/food/search/unified` | Unified search |
 | GET | `/v1/food/dining/categories/public` | Dining categories |
-| GET | `/v1/food/dining/restaurants/public` | Dining restaurants |
+| GET | `/v1/food/dining/sellers/public` | Dining sellers |
 
 ### Landing / banners — all Public
 
@@ -66,11 +66,11 @@ token gets 403 on those, not 404.
 ## 3. Add-ons (per-item, Zomato-style)
 
 ```
-GET /v1/food/restaurant/restaurants/:restaurantId/addons?foodId=<menuItemId>
+GET /v1/food/seller/sellers/:sellerId/addons?foodId=<menuItemId>
 ```
 
 `foodId` is optional. With it you get that dish's add-ons **plus** any whole-menu
-ones. Without it you get everything the restaurant offers.
+ones. Without it you get everything the seller offers.
 
 ```jsonc
 {
@@ -153,7 +153,7 @@ published record — client prices are ignored.
 ```jsonc
 POST /v1/food/orders
 {
-  "restaurantId": "6a633bd2bacbe2b007e206e7",
+  "sellerId": "6a633bd2bacbe2b007e206e7",
   "items": [
     { "itemId": "6a646591e53ad2837c40e3d4", "quantity": 1, "variantId": "", "notes": "" },
     { "itemId": "<addonId>", "quantity": 1 }
@@ -199,7 +199,7 @@ GET /v1/food/orders/:orderId/route
     "polyline": "<encoded polyline>",
     "distanceKm": 2.94, "distanceMeters": 2940,
     "durationSeconds": 660, "durationMins": 11,
-    "target": "restaurant",              // "restaurant" pre-pickup, "customer" after
+    "target": "seller",              // "seller" pre-pickup, "customer" after
     "origin": { "lat": 22.72, "lng": 75.88 },   // the RIDER's position
     "destination": { "lat": 22.71, "lng": 75.88 }
   }
@@ -212,13 +212,13 @@ GET /v1/food/orders/:orderId/route
   rider is actually on.
 - Poll roughly every 12s while an order is active, plus immediately on any status
   change. `polyline` may be `""` before a rider is assigned and located — draw a
-  dotted arc between restaurant and address until then.
+  dotted arc between seller and address until then.
 - `origin` doubles as the rider marker position when no socket fix has arrived.
 
 Live position also arrives over Socket.IO (`location-update` in room
 `tracking:<orderId>`) and Firebase RTDB at `active_orders/{orderMongoId}`.
 
-> RTDB caveat: `boy_lat`/`boy_lng` in that node are seeded with the **restaurant's**
+> RTDB caveat: `boy_lat`/`boy_lng` in that node are seeded with the **seller's**
 > coordinates at accept time. They are not a rider fix until the rider actually
 > pings. Do not treat them as a position.
 
@@ -232,8 +232,8 @@ PATCH /v1/food/orders/:orderId/ratings
 
 ```jsonc
 {
-  "restaurantRating": 5,
-  "restaurantComment": "Great food",
+  "sellerRating": 5,
+  "sellerComment": "Great food",
   "deliveryPartnerRating": 4,
   "deliveryPartnerComment": "Fast and polite",
   "itemRatings": [
@@ -254,7 +254,7 @@ Constraints the UI must respect:
 
 | Direction | Where |
 |---|---|
-| Customer → restaurant | `restaurantRating` |
+| Customer → seller | `sellerRating` |
 | Customer → delivery boy | `deliveryPartnerRating` |
 | Customer → each dish | `itemRatings[]` |
 | Rider → customer | `PATCH /v1/food/delivery/orders/:orderId/rate-customer` (rider token) |

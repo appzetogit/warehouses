@@ -26,10 +26,10 @@ const diningCategorySchema = new mongoose.Schema(
             type: Number,
             default: 0
         },
-        restaurantIds: [
+        sellerIds: [
             {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'FoodRestaurant'
+                ref: 'FoodSeller'
             }
         ]
     },
