@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react"
 import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import { Phone, User, AlertCircle, Loader2, Truck } from "lucide-react"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@food/components/ui/card"
-import { Button } from "@food/components/ui/button"
-import { Input } from "@food/components/ui/input"
-import { Label } from "@food/components/ui/label"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@store/components/ui/card"
+import { Button } from "@store/components/ui/button"
+import { Input } from "@store/components/ui/input"
+import { Label } from "@store/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@food/components/ui/select"
-import { deliveryAPI } from "@food/api"
-import { clearModuleAuth } from "@food/utils/auth"
-import loginBg from "@food/assets/deliveryloginbanner.png"
-import { useCompanyName } from "@food/hooks/useCompanyName"
+} from "@store/components/ui/select"
+import { deliveryAPI } from "@store/api"
+import { clearModuleAuth } from "@store/utils/auth"
+import loginBg from "@store/assets/deliveryloginbanner.png"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}

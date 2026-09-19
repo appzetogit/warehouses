@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link } from "react-router-dom"
-import { deliveryAPI } from "@food/api"
-import { clearModuleAuth } from "@food/utils/auth"
-import { useCompanyName } from "@food/hooks/useCompanyName"
+import { deliveryAPI } from "@store/api"
+import { clearModuleAuth } from "@store/utils/auth"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 import { motion, AnimatePresence } from "framer-motion"
 import { Bike, Loader2, AlertCircle } from "lucide-react"
-import { Button } from "@food/components/ui/button"
+import { Button } from "@store/components/ui/button"
 
 export default function DeliverySignIn() {
   const companyName = useCompanyName()

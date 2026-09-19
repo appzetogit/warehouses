@@ -1,4 +1,4 @@
-import { formatCurrency } from "@food/utils/currency"
+import { formatCurrency } from "@store/utils/currency"
 
 export default function AvailableCashLimit({ onClose, walletData = {} }) {
   const rawLimit = Number(walletData.totalCashLimit)

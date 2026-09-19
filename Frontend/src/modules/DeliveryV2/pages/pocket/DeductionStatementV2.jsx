@@ -5,8 +5,8 @@ import {
   Clock
 } from 'lucide-react';
 import WeekSelector from '@delivery/components/WeekSelector';
-import { deliveryAPI } from '@food/api';
-import { formatCurrency } from '@food/utils/currency';
+import { deliveryAPI } from '@store/api';
+import { formatCurrency } from '@store/utils/currency';
 import { toast } from 'sonner';
 import useDeliveryBackNavigation from '../../hooks/useDeliveryBackNavigation';
 

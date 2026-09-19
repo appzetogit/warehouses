@@ -1,9 +1,9 @@
 import React from "react";
 import { addDays, startOfWeek, endOfWeek } from "date-fns";
-import { cn } from "@food/utils/utils";
-import { Button } from "@food/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@food/components/ui/popover";
-import { Calendar } from "@food/components/ui/calendar";
+import { cn } from "@store/utils/utils";
+import { Button } from "@store/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@store/components/ui/popover";
+import { Calendar } from "@store/components/ui/calendar";
 import { ChevronDown } from "lucide-react";
 
 /**

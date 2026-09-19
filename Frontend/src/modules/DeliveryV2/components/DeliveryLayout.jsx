@@ -1,8 +1,8 @@
 import { useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import BottomNavigation from "./BottomNavigation"
-import { getUnreadDeliveryNotificationCount } from "@food/utils/deliveryNotifications"
-import { deliveryAPI } from "@food/api"
+import { getUnreadDeliveryNotificationCount } from "@store/utils/deliveryNotifications"
+import { deliveryAPI } from "@store/api"
 
 export default function DeliveryLayout({
   children,

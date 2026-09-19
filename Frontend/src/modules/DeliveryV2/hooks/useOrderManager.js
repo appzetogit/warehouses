@@ -1,6 +1,6 @@
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
 import { resolveCustomerAddress } from '@/modules/DeliveryV2/utils/orderAddress';
-import { deliveryAPI } from '@food/api';
+import { deliveryAPI } from '@store/api';
 import { toast } from 'sonner';
 
 /**

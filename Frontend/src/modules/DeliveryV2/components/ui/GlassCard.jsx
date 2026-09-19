@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { cn } from '@food/utils/utils';
+import { cn } from '@store/utils/utils';
 
 /**
  * GlassCard - A premium container with glassmorphism effects.

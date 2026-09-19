@@ -4,7 +4,7 @@ import {
   ArrowLeft, Plus, Clock, CheckCircle, 
   XCircle, Loader2, Eye, MessageSquare, ChevronRight, AlertTriangle
 } from 'lucide-react';
-import { deliveryAPI } from '@food/api';
+import { deliveryAPI } from '@store/api';
 import { toast } from 'sonner';
 import useDeliveryBackNavigation from '../../hooks/useDeliveryBackNavigation';
 

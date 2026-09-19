@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom"
 import { Suspense, lazy } from "react"
-import Loader from "@food/components/Loader"
+import Loader from "@store/components/Loader"
 
 const Login = lazy(() => import("./pages/Login"))
 

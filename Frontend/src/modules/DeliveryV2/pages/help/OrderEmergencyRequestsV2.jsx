@@ -8,7 +8,7 @@ import {
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
-import { deliveryAPI } from "@food/api";
+import { deliveryAPI } from "@store/api";
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation";
 
 const getOrderId = (order) =>

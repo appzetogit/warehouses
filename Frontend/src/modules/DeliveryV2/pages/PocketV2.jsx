@@ -7,11 +7,11 @@ import {
   Sparkles, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { deliveryAPI, sellerAPI } from '@food/api';
+import { deliveryAPI, sellerAPI } from '@store/api';
 import { toast } from 'sonner';
-import { formatCurrency } from '@food/utils/currency';
-import { initRazorpayPayment } from "@food/utils/razorpay";
-import { getCompanyNameAsync } from "@food/utils/businessSettings";
+import { formatCurrency } from '@store/utils/currency';
+import { initRazorpayPayment } from "@store/utils/razorpay";
+import { getCompanyNameAsync } from "@store/utils/businessSettings";
 import useDeliveryBackNavigation from '../hooks/useDeliveryBackNavigation';
 
 const toNum = (value) => {

@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { User } from "lucide-react"
-import { deliveryAPI } from "@food/api"
+import { deliveryAPI } from "@store/api"
 
 // Heroicons Outline
 import {

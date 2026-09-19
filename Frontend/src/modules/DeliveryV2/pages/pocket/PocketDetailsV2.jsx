@@ -9,9 +9,9 @@ import {
   ChevronRight,
   TrendingUp
 } from "lucide-react";
-import { formatCurrency } from "@food/utils/currency";
+import { formatCurrency } from "@store/utils/currency";
 import WeekSelector from "@delivery/components/WeekSelector";
-import { deliveryAPI } from "@food/api";
+import { deliveryAPI } from "@store/api";
 import { motion, AnimatePresence } from "framer-motion";
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation";
 

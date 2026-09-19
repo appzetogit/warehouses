@@ -3,7 +3,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@food/*": ["./src/modules/commerce/frontend/src/*"]
+      "@store/*": ["./src/modules/Store/*"]
     }
   },
   "include": ["src"]

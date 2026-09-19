@@ -5,8 +5,8 @@ import {
   getDeliveryNotifications,
   saveDeliveryNotifications,
   markDeliveryNotificationAsRead,
-} from "@food/utils/deliveryNotifications";
-import useNotificationInbox from "@food/hooks/useNotificationInbox";
+} from "@store/utils/deliveryNotifications";
+import useNotificationInbox from "@store/hooks/useNotificationInbox";
 
 const toTimeLabel = (value) => {
   const date = value ? new Date(value) : null;

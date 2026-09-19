@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { HelpCircle, ArrowRight, Phone, Ambulance, AlertTriangle, Shield, ShieldCheck, User } from "lucide-react";
 import { toast } from "sonner";
-import { deliveryAPI } from "@food/api";
-import { useCompanyName } from "@food/hooks/useCompanyName";
-import { getCachedSettings, getModuleLogoUrl, loadBusinessSettings } from "@food/utils/businessSettings";
+import { deliveryAPI } from "@store/api";
+import { useCompanyName } from "@store/hooks/useCompanyName";
+import { getCachedSettings, getModuleLogoUrl, loadBusinessSettings } from "@store/utils/businessSettings";
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}

@@ -6,9 +6,9 @@ import {
   Navigation, CheckCircle2, Camera, Loader2, Image as ImageIcon
 } from 'lucide-react';
 import { ActionSlider } from '@/modules/DeliveryV2/components/ui/ActionSlider';
-import { uploadAPI } from '@food/api';
+import { uploadAPI } from '@store/api';
 import { toast } from 'sonner';
-import { openCamera } from "@food/utils/imageUploadUtils";
+import { openCamera } from "@store/utils/imageUploadUtils";
 
 /**
  * PickupActionModal - Unified White/Green Theme with Slider Actions.

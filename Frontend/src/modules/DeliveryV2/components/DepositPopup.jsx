@@ -1,9 +1,9 @@
 ﻿import { useState } from "react"
 import { IndianRupee, Loader2 } from "lucide-react"
-import { deliveryAPI } from "@food/api"
-import { initRazorpayPayment } from "@food/utils/razorpay"
+import { deliveryAPI } from "@store/api"
+import { initRazorpayPayment } from "@store/utils/razorpay"
 import { toast } from "sonner"
-import { getCompanyNameAsync } from "@food/utils/businessSettings"
+import { getCompanyNameAsync } from "@store/utils/businessSettings"
 
 export default function DepositPopup({ onSuccess, cashInHand = 0 }) {
   const [amount, setAmount] = useState("")

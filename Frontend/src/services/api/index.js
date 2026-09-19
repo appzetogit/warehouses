@@ -42,7 +42,7 @@ async function resolveLogoutFcmToken(moduleName) {
   // Prefer full resolver (Flutter + cache + live web getToken) when available.
   try {
     const { resolveDeviceFcmToken } = await import(
-      "../../modules/Food/utils/firebaseMessaging.js"
+      "../../modules/Store/utils/firebaseMessaging.js"
     );
     if (typeof resolveDeviceFcmToken === "function") {
       return await resolveDeviceFcmToken(moduleName);

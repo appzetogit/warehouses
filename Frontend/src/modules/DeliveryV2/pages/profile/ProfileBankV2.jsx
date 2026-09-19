@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Edit2, Loader2, Save } from 'lucide-react';
-import { deliveryAPI } from '@food/api';
+import { deliveryAPI } from '@store/api';
 import { toast } from 'sonner';
 import useDeliveryBackNavigation from '../../hooks/useDeliveryBackNavigation';
 

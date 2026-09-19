@@ -3,11 +3,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
 import { useProximityCheck } from '@/modules/DeliveryV2/hooks/useProximityCheck';
 import { useOrderManager } from '@/modules/DeliveryV2/hooks/useOrderManager';
-import { useDeliveryNotifications } from '@food/hooks/useDeliveryNotifications';
-import { writeDeliveryLocation, writeOrderTracking } from '@food/realtimeTracking';
-import { deliveryAPI } from '@food/api';
+import { useDeliveryNotifications } from '@store/hooks/useDeliveryNotifications';
+import { writeDeliveryLocation, writeOrderTracking } from '@store/realtimeTracking';
+import { deliveryAPI } from '@store/api';
 import { toast } from 'sonner';
-import { logoutDeliverySession } from '@food/utils/moduleLogout';
+import { logoutDeliverySession } from '@store/utils/moduleLogout';
 
 // Components
 import LiveMap from '@/modules/DeliveryV2/components/map/LiveMap';
@@ -32,9 +32,9 @@ import {
 } from 'lucide-react';
 
 import { getHaversineDistance, calculateETA, calculateHeading } from '@/modules/DeliveryV2/utils/geo';
-import { useCompanyName } from "@food/hooks/useCompanyName";
+import { useCompanyName } from "@store/hooks/useCompanyName";
 import { useNavigate } from 'react-router-dom';
-import useNotificationInbox from "@food/hooks/useNotificationInbox";
+import useNotificationInbox from "@store/hooks/useNotificationInbox";
 
 const getStoredDeliveryPartnerId = () => {
   if (typeof localStorage === 'undefined') return '';

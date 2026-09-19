@@ -7,7 +7,7 @@ import {
   Loader2
 } from 'lucide-react';
 import WeekSelector from '@delivery/components/WeekSelector';
-import { deliveryAPI } from '@food/api';
+import { deliveryAPI } from '@store/api';
 import { toast } from 'sonner';
 import useDeliveryBackNavigation from '../../hooks/useDeliveryBackNavigation';
 

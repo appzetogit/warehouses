@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom"
 import { useState, useEffect } from "react"
 import { ArrowLeft, Lock, Loader2, Mail, Phone, MessageSquare, Clock, ShieldCheck } from "lucide-react"
 import { motion } from "framer-motion"
-import api from "@food/api"
+import api from "@store/api"
 
 export default function DeliveryCMSPage({ endpoint, title: defaultTitle, module = "DELIVERY" }) {
   const navigate = useNavigate()

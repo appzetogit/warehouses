@@ -6,7 +6,7 @@ import {
   Clock,
   XCircle
 } from 'lucide-react';
-import { deliveryAPI } from '@food/api';
+import { deliveryAPI } from '@store/api';
 import { toast } from 'sonner';
 import useDeliveryBackNavigation from '../../hooks/useDeliveryBackNavigation';
 

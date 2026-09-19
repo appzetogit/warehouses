@@ -5,11 +5,11 @@ import {
   Share2, LogOut, X, Loader2, Briefcase, Trash2, HelpCircle, History, ArrowLeft
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { deliveryAPI } from "@food/api"
-import DeleteAccountModal from "@food/components/DeleteAccountModal";
+import { deliveryAPI } from "@store/api"
+import DeleteAccountModal from "@store/components/DeleteAccountModal";
 import { toast } from "sonner"
-import { clearModuleAuth } from "@food/utils/auth"
-import { logoutDeliverySession } from "@food/utils/moduleLogout"
+import { clearModuleAuth } from "@store/utils/auth"
+import { logoutDeliverySession } from "@store/utils/moduleLogout"
 import useDeliveryBackNavigation from "../hooks/useDeliveryBackNavigation";
 
 export const ProfileV2 = () => {

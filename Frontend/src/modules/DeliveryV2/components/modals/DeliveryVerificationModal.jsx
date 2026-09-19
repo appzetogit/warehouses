@@ -4,7 +4,7 @@ import {
   ShieldCheck, DollarSign, CheckCircle2, 
   QrCode, Loader2, Info, X, RefreshCw, Package, Phone
 } from 'lucide-react';
-import { deliveryAPI } from '@food/api';
+import { deliveryAPI } from '@store/api';
 import { toast } from 'sonner';
 import { ActionSlider } from '@/modules/DeliveryV2/components/ui/ActionSlider';
 

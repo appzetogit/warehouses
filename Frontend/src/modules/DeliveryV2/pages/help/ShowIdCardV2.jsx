@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
-import { deliveryAPI } from "@food/api";
+import { deliveryAPI } from "@store/api";
 import { toast } from "sonner";
-import { useCompanyName } from "@food/hooks/useCompanyName";
+import { useCompanyName } from "@store/hooks/useCompanyName";
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation";
 
 export default function ShowIdCardV2() {

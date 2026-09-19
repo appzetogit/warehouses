@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Upload, X, Check, Camera, Image as ImageIcon } from "lucide-react"
-import { deliveryAPI } from "@food/api"
+import { deliveryAPI } from "@store/api"
 import { toast } from "sonner"
-import { openCamera, openGallery } from "@food/utils/imageUploadUtils"
-import { clearModuleAuth, isModuleAuthenticated } from "@food/utils/auth"
+import { openCamera, openGallery } from "@store/utils/imageUploadUtils"
+import { clearModuleAuth, isModuleAuthenticated } from "@store/utils/auth"
 import useDeliveryBackNavigation from "../../hooks/useDeliveryBackNavigation"
 import { useDeliveryOnboardingStore } from "../../store/useDeliveryOnboardingStore"
 const debugLog = (...args) => {}

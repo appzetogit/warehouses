@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { cn } from '@food/utils/utils';
+import { cn } from '@store/utils/utils';
 
 /**
  * PremiumButton - A State-of-the-Art button for Delivery V2

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { getGoogleMapsApiKeySync } from '@food/utils/googleMapsApiKey'
+import { getGoogleMapsApiKeySync } from '@store/utils/googleMapsApiKey'
 import { 
   GoogleMap, 
   Marker, 
@@ -10,7 +10,7 @@ import {
   OverlayView
 } from '@react-google-maps/api';
 import { useDeliveryStore } from '@/modules/DeliveryV2/store/useDeliveryStore';
-import { zoneAPI } from '@food/api';
+import { zoneAPI } from '@store/api';
 
 const mapContainerStyle = {
   width: '100%',

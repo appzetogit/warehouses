@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { MapPin, Clock } from 'lucide-react';
 import { ActionSlider } from '@/modules/DeliveryV2/components/ui/ActionSlider';
 import { resolveCustomerAddress } from '@/modules/DeliveryV2/utils/orderAddress';
-import { getUserSellerDistance, normalizeSellerLocation } from '@food/utils/geo';
-import { fetchDrivingDistanceKm, formatDistanceLabel } from '@food/utils/roadDistance';
+import { getUserSellerDistance, normalizeSellerLocation } from '@store/utils/geo';
+import { fetchDrivingDistanceKm, formatDistanceLabel } from '@store/utils/roadDistance';
 
 /**
  * NewOrderModal — Rest → User distance.

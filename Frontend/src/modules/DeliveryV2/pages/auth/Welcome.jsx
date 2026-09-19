@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { CheckCircle2, Play, Pause, IndianRupee } from "lucide-react"
 import BottomPopup from "@delivery/components/BottomPopup"
-import { useCompanyName } from "@food/hooks/useCompanyName"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}

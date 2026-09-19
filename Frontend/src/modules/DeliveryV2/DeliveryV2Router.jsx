@@ -1,9 +1,9 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
-import AuthRedirect from "@food/components/AuthRedirect"
-import Loader from "@food/components/Loader";
-import { applyModuleBranding, getCachedSettings, loadBusinessSettings } from "@food/utils/businessSettings";
+import AuthRedirect from "@store/components/AuthRedirect"
+import Loader from "@store/components/Loader";
+import { applyModuleBranding, getCachedSettings, loadBusinessSettings } from "@store/utils/businessSettings";
 
 // Auth Pages (Lazy loaded)
 const Welcome = lazy(() => import("./pages/auth/Welcome"))

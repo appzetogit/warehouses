@@ -7,8 +7,8 @@
 
 import { useState } from "react"
 import BottomPopup from "./BottomPopup"
-import { Button } from "@food/components/ui/button"
-import { useDeliveryStore } from "@food/store/deliveryStore"
+import { Button } from "@store/components/ui/button"
+import { useDeliveryStore } from "@store/store/deliveryStore"
 
 // Example 1: Basic Usage
 export function BasicPopupExample() {

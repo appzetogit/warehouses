@@ -3,9 +3,9 @@ import {
   ArrowLeft, Loader2, IndianRupee, HelpCircle,
   ShieldCheck, AlertTriangle
 } from 'lucide-react';
-import { deliveryAPI } from '@food/api';
+import { deliveryAPI } from '@store/api';
 import { toast } from 'sonner';
-import { formatCurrency } from '@food/utils/currency';
+import { formatCurrency } from '@store/utils/currency';
 import useDeliveryBackNavigation from '../../hooks/useDeliveryBackNavigation';
 
 /**

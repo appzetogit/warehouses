@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Eye, Edit2, Loader2, Camera, X, Plus, FileText, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { deliveryAPI } from '@food/api';
+import { deliveryAPI } from '@store/api';
 import { toast } from 'sonner';
-import { openCamera } from "@food/utils/imageUploadUtils";
+import { openCamera } from "@store/utils/imageUploadUtils";
 import useDeliveryBackNavigation from '../../hooks/useDeliveryBackNavigation';
 import useCloseOnBrowserBack from '../../hooks/useCloseOnBrowserBack';
 

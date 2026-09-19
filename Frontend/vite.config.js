@@ -6,18 +6,18 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-const productSrc = path.resolve(__dirname, './src/modules/Food')
+const storeSrc = path.resolve(__dirname, './src/modules/Store')
 const servicesApi = path.resolve(__dirname, './src/services/api')
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      // More specific first so @food/api/* resolves to services (no backend)
-      '@food/api/axios': path.resolve(servicesApi, 'axios.js'),
-      '@food/api/config': path.resolve(servicesApi, 'config.js'),
-      '@food/api': servicesApi,
-      '@food': productSrc,
+      // More specific first so @store/api/* resolves to services (no backend)
+      '@store/api/axios': path.resolve(servicesApi, 'axios.js'),
+      '@store/api/config': path.resolve(servicesApi, 'config.js'),
+      '@store/api': servicesApi,
+      '@store': storeSrc,
       '@delivery': path.resolve(__dirname, './src/modules/DeliveryV2'),
       '@': path.resolve(__dirname, './src'),
     },

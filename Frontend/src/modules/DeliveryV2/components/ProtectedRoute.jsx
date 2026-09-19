@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Navigate, useLocation } from "react-router-dom"
-import { ensureValidAccessToken, isModuleAuthenticated } from "@food/utils/auth"
+import { ensureValidAccessToken, isModuleAuthenticated } from "@store/utils/auth"
 
 export default function ProtectedRoute({ children }) {
   const location = useLocation()

@@ -4,7 +4,7 @@ import {
   CheckCircle2, Clock, Search, History, Calendar, Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { deliveryAPI, sellerAPI } from '@food/api';
+import { deliveryAPI, sellerAPI } from '@store/api';
 import { toast } from 'sonner';
 import useDeliveryBackNavigation from '../hooks/useDeliveryBackNavigation';
 import useCloseOnBrowserBack from '../hooks/useCloseOnBrowserBack';

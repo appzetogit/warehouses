@@ -1,15 +1,15 @@
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { AppShellSkeleton } from '@food/components/ui/loading-skeletons'
+import { AppShellSkeleton } from '@store/components/ui/loading-skeletons'
 import LandingPage from './LandingPage'
-import { isFeatureEnabled, loadCorePublicAppConfig } from '@food/services/publicAppConfig'
+import { isFeatureEnabled, loadCorePublicAppConfig } from '@store/services/publicAppConfig'
 
 const NATIVE_LAST_ROUTE_KEY = 'native_last_route'
 
 // Lazy load the Food service module (Quick-spicy app)
-const StoreApp = lazy(() => import('../modules/Food/routes'))
+const StoreApp = lazy(() => import('../modules/Store/routes'))
 const AuthApp = lazy(() => import('../modules/auth/routes'))
-import ProtectedRoute from '@food/components/ProtectedRoute'
+import ProtectedRoute from '@store/components/ProtectedRoute'
 
 const PageLoader = () => <AppShellSkeleton />
 
@@ -63,8 +63,8 @@ const RootEntryRoute = () => {
 }
 
 
-const AdminRouter = lazy(() => import('../modules/Food/components/admin/AdminRouter'))
-const SellerRouter = lazy(() => import('../modules/Food/components/seller/SellerRouter'))
+const AdminRouter = lazy(() => import('../modules/Store/components/admin/AdminRouter'))
+const SellerRouter = lazy(() => import('../modules/Store/components/seller/SellerRouter'))
 
 /**
  * Sends the old /food/seller/* addresses to /seller/*.

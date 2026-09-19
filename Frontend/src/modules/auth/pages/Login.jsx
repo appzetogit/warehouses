@@ -3,8 +3,8 @@ import { motion } from "framer-motion"
 import { Routes, Route, Navigate, Link, useNavigate } from "react-router-dom"
 import { Phone, Lock, ArrowRight, ShieldCheck, Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { authAPI } from "@food/api"
-import { setAuthData } from "@food/utils/auth"
+import { authAPI } from "@store/api"
+import { setAuthData } from "@store/utils/auth"
 
 export default function UnifiedOTPFastLogin() {
   const RESEND_COOLDOWN_SECONDS = 60

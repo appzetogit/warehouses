@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Loader2, Timer, RefreshCw, AlertCircle, ShieldCheck, User } from "lucide-react"
-import { Input } from "@food/components/ui/input"
-import { Button } from "@food/components/ui/button"
-import { deliveryAPI } from "@food/api"
-import { setAuthData as storeAuthData } from "@food/utils/auth"
-import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@food/utils/firebaseMessaging"
-import { useCompanyName } from "@food/hooks/useCompanyName"
+import { Input } from "@store/components/ui/input"
+import { Button } from "@store/components/ui/button"
+import { deliveryAPI } from "@store/api"
+import { setAuthData as storeAuthData } from "@store/utils/auth"
+import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@store/utils/firebaseMessaging"
+import { useCompanyName } from "@store/hooks/useCompanyName"
 import { motion, AnimatePresence } from "framer-motion"
 
 export default function DeliveryOTP() {
