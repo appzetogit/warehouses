@@ -13,7 +13,7 @@ import axios from "axios";
 const baseURL =
   typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL
     ? String(import.meta.env.VITE_API_BASE_URL).replace(/\/$/, "")
-    : "";
+    : "/api/v1"; // same origin: the dev server and the production host proxy it
 
 const apiClient = axios.create({
   baseURL: baseURL || undefined,
