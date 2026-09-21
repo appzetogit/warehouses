@@ -114,7 +114,7 @@ export async function getSellerFinance(sellerId, query = {}) {
             : 0;
 
         return {
-            orderId: order.orderId || order.order_id || `FOD-${order._id.toString().slice(-6).toUpperCase()}`,
+            orderId: order.orderId || order.order_id || `ORD-${order._id.toString().slice(-6).toUpperCase()}`,
             createdAt: order.createdAt,
             items,
             productNames,

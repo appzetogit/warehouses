@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 /**
  * Canonical id for API calls: always the Mongo _id when available.
- * Display ids (FOD-xxxx) are NOT guaranteed unique — accepting by them
+ * Display ids (ORD-xxxx) are NOT guaranteed unique — accepting by them
  * can match a different order with the same display id on the backend.
  */
 const canonicalOrderId = (order) =>

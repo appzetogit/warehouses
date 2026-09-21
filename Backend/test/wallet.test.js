@@ -69,7 +69,7 @@ test('an order is refunded to the wallet only once', async () => {
 
 test('cashback is credited once per order', async () => {
     const userId = newUser();
-    const order = { _id: new mongoose.Types.ObjectId(), order_id: 'FOD-1' };
+    const order = { _id: new mongoose.Types.ObjectId(), order_id: 'ORD-1' };
     const [a, b] = await Promise.all([creditCashback(userId, 20, order), creditCashback(userId, 20, order)]);
     assert.deepEqual([a, b].sort(), [false, true]);
     assert.equal((await getUserWallet(userId)).balance, 20);

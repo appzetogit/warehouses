@@ -48,7 +48,7 @@ test('credits what Razorpay captured, not what the client claims', async () => {
 
 test('refuses a payment made for something other than a top-up', async () => {
     const userId = new mongoose.Types.ObjectId();
-    rz.orders.set('order_product', { id: 'order_product', amount: 50000, receipt: 'FOD-123', notes: {} });
+    rz.orders.set('order_product', { id: 'order_product', amount: 50000, receipt: 'ORD-123', notes: {} });
     const proof = pay('order_product', 50000);
 
     await assert.rejects(verifyWalletTopupPayment(userId, { ...proof, amount: 500 }), /not a wallet top-up/);
