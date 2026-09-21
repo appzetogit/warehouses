@@ -71,7 +71,7 @@ export default function ProductReport() {
     switch (format) {
       case "csv": exportReportsToCSV(filteredProducts, headers, "product_report"); break
       case "excel": exportReportsToExcel(filteredProducts, headers, "product_report"); break
-      case "pdf": exportReportsToPDF(filteredProducts, headers, "product_report", "Food Report"); break
+      case "pdf": exportReportsToPDF(filteredProducts, headers, "product_report", "Product Report"); break
       case "json": exportReportsToJSON(filteredProducts, "product_report"); break
     }
   }
@@ -111,7 +111,7 @@ export default function ProductReport() {
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Food Report</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Product Report</h1>
         </div>
 
         {/* Search Data Section */}
@@ -351,16 +351,16 @@ export default function ProductReport() {
           </div>
         </div>
 
-        {/* Food Report Table Section */}
+        {/* Product Report Table Section */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <h2 className="text-xl font-bold text-slate-900">Food Report Table {totalProducts}</h2>
+            <h2 className="text-xl font-bold text-slate-900">Product Report Table {totalProducts}</h2>
 
             <div className="flex items-center gap-3">
               <div className="relative flex-1 sm:flex-initial min-w-[250px]">
                 <input
                   type="text"
-                  placeholder="Search by food name"
+                  placeholder="Search by product name"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-4 pr-10 py-2.5 w-full text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

@@ -669,7 +669,7 @@ export default function OrdersPage({ statusKey = "all" }) {
       ) {
         displayStatus = "Processing"
       } else if (backendStatus === "picked_up") {
-        displayStatus = "Food On The Way"
+        displayStatus = "Out For Delivery"
       } else if (backendStatus === "delivered") {
         displayStatus = "Delivered"
       } else if (backendStatus === "cancelled_by_seller") {
@@ -1355,7 +1355,7 @@ export default function OrdersPage({ statusKey = "all" }) {
           orderOtp: "Order OTP",
           customer: "Customer Information",
           seller: "Seller",
-          products: "Food Items",
+          products: "Items",
           totalAmount: "Total Amount",
           paymentType: "Payment Type",
           paymentCollectionStatus: "Payment Status",

@@ -71,7 +71,7 @@ const debugError = (...args) => {}
 
 const PRODUCT_IMAGE_FALLBACK = "https://picsum.photos/seed/food-fallback/800/600"
 const RUPEE_SYMBOL = "\u20B9"
-const SELLER_DETAILS_FILTERS_STORAGE_KEY = "food-seller-details-filters"
+const SELLER_DETAILS_FILTERS_STORAGE_KEY = "store-seller-details-filters"
 
 const resolveSellerImageUrl = (image) => {
   if (!image) return null

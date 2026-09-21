@@ -255,7 +255,7 @@ export default function EmailTemplate() {
       .replace(/{customerName}/g, "John Doe")
       .replace(/{reason}/g, "Order not delivered")
       .replace(/{adTitle}/g, "Summer Promotion")
-      .replace(/{advertiserName}/g, "Food Company")
+      .replace(/{advertiserName}/g, "Acme Traders")
       .replace(/{startDate}/g, "2024-06-01")
       .replace(/{endDate}/g, "2024-08-31")
   }

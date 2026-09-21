@@ -148,8 +148,8 @@ const helpCategories = [
         answer: "Refunds are typically processed within 5-7 business days, depending on your payment method. You'll receive a confirmation email."
       },
       {
-        question: "Can I return food items?",
-        answer: "Due to food safety regulations, we cannot accept returns of food items. However, we'll provide a full refund for quality issues."
+        question: "Can I return an item?",
+        answer: "Perishable items such as groceries can't be returned for safety reasons, but we'll give a full refund for quality issues. For other items, contact support and we'll help you with a return."
       },
       {
         question: "What if I received the wrong order?",

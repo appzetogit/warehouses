@@ -468,7 +468,7 @@ export default function ProductsList() {
       return
     }
     if (!productForm.name.trim()) {
-      toast.error("Food name is required")
+      toast.error("Product name is required")
       return
     }
 
@@ -562,7 +562,7 @@ export default function ProductsList() {
       } else {
         await adminAPI.createProduct(payload)
       }
-      toast.success(productFormMode === "edit" ? "Food updated successfully" : "Food added successfully")
+      toast.success(productFormMode === "edit" ? "Product updated successfully" : "Product added successfully")
       setShowProductFormModal(false)
       setEditingProduct(null)
       setProductForm(createProductForm())
@@ -571,8 +571,8 @@ export default function ProductsList() {
       setProductImages([])
       await fetchAllProducts()
     } catch (error) {
-      debugError("Error saving food:", error)
-      toast.error(error?.response?.data?.message || "Failed to save food")
+      debugError("Error saving product:", error)
+      toast.error(error?.response?.data?.message || "Failed to save product")
     } finally {
       setSubmittingProduct(false)
     }
@@ -591,10 +591,10 @@ export default function ProductsList() {
       setDeleting(true)
       await adminAPI.deleteProduct(food?._id || food?.id)
       await fetchAllProducts()
-      toast.success("Food item deleted successfully")
+      toast.success("Product deleted successfully")
     } catch (error) {
-      debugError("Error deleting food:", error)
-      toast.error(error?.response?.data?.message || "Failed to delete food item")
+      debugError("Error deleting product:", error)
+      toast.error(error?.response?.data?.message || "Failed to delete product")
     } finally {
       setDeleting(false)
     }
@@ -707,7 +707,7 @@ export default function ProductsList() {
       return
     }
     if (selectedDeleteCount === 0) {
-      toast.error("Select at least one food item")
+      toast.error("Select at least one product")
       return
     }
 
@@ -717,7 +717,7 @@ export default function ProductsList() {
 
     if (
       !window.confirm(
-        `Delete ${selectedDeleteCount} food item(s) from ${sellerName}? This cannot be undone.`
+        `Delete ${selectedDeleteCount} product(s) from ${sellerName}? This cannot be undone.`
       )
     ) {
       return
@@ -732,7 +732,7 @@ export default function ProductsList() {
         search: selectAllForSeller ? debouncedSearchQuery : undefined,
       })
       const deletedCount = response?.data?.data?.deletedCount ?? selectedDeleteCount
-      toast.success(`Deleted ${deletedCount} food item(s)`)
+      toast.success(`Deleted ${deletedCount} product(s)`)
       setSelectedProductIds(new Set())
       setSelectAllForSeller(false)
       await fetchAllProducts()
@@ -762,12 +762,12 @@ export default function ProductsList() {
               <div className="w-2 h-2 bg-white rounded-sm"></div>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Food</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Products</h1>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-slate-900">Food List</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Product List</h2>
             <span className="px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700">
               {totalProducts}
             </span>
@@ -780,7 +780,7 @@ export default function ProductsList() {
               className="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 inline-flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              <span>Add Food</span>
+              <span>Add Product</span>
             </button>
             <button
               type="button"
@@ -919,7 +919,7 @@ export default function ProductsList() {
                   <td colSpan={isSellerSelected ? 7 : 6} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <p className="text-lg font-semibold text-slate-700 mb-1">No Data Found</p>
-                      <p className="text-sm text-slate-500">No food items match your search or seller filter</p>
+                      <p className="text-sm text-slate-500">No products match your search or seller filter</p>
                     </div>
                   </td>
                 </tr>
@@ -1064,7 +1064,7 @@ export default function ProductsList() {
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
         <DialogContent className="max-w-xl p-0 overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-            <DialogTitle className="text-lg font-semibold text-slate-900">Food Details</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-slate-900">Product Details</DialogTitle>
           </DialogHeader>
           {selectedProduct && (
             <div className="p-6 space-y-5">
@@ -1086,7 +1086,7 @@ export default function ProductsList() {
                 <p><span className="font-semibold text-slate-700">Seller:</span> <span className="text-slate-900">{selectedProduct.sellerName || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Price:</span> <span className="text-slate-900">{selectedProduct.variants?.length ? `Starting from \u20B9${selectedProduct.price}` : `\u20B9${selectedProduct.price}`}</span></p>
                 <p><span className="font-semibold text-slate-700">Category:</span> <span className="text-slate-900">{selectedProduct.categoryName || "-"}</span></p>
-                <p><span className="font-semibold text-slate-700">Food Type:</span> <span className="text-slate-900">{selectedProduct.foodType || "-"}</span></p>
+                <p><span className="font-semibold text-slate-700">Veg / Non-veg:</span> <span className="text-slate-900">{selectedProduct.foodType || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Approval:</span> <span className="text-slate-900 capitalize">{selectedProduct.approvalStatus || "-"}</span></p>
               </div>
               {selectedProduct.variants?.length ? (
@@ -1131,7 +1131,7 @@ export default function ProductsList() {
         <DialogContent className="max-w-2xl p-0 overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b border-slate-200 bg-slate-50">
             <DialogTitle className="text-lg font-semibold text-slate-900">
-              {productFormMode === "edit" ? "Edit Food" : "Add Food"}
+              {productFormMode === "edit" ? "Edit Product" : "Add Product"}
             </DialogTitle>
           </DialogHeader>
           <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
@@ -1205,7 +1205,7 @@ export default function ProductsList() {
                 </Popover>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Food Name</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Product Name</label>
                 <input
                   type="text"
                   value={productForm.name}
@@ -1243,7 +1243,7 @@ export default function ProductsList() {
                 <p className="mt-1 text-xs text-slate-500">Shown with strikethrough when higher than selling price.</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Food Type</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Veg / Non-veg</label>
                 <select
                   value={productForm.foodType}
                   onChange={(e) => setProductForm((prev) => ({ ...prev, foodType: e.target.value }))}
@@ -1307,7 +1307,7 @@ export default function ProductsList() {
                         <div className="w-28 h-28">
                           <img
                             src={img.previewUrl}
-                            alt={`Food ${index + 1}`}
+                            alt={`Product ${index + 1}`}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -1424,7 +1424,7 @@ export default function ProductsList() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">No variants added. This food will use the single base price.</p>
+                <p className="text-sm text-slate-500">No variants added. This product will use the single base price.</p>
               )}
             </div>
             <div className="flex justify-end">
@@ -1435,7 +1435,7 @@ export default function ProductsList() {
                 className="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-60 inline-flex items-center gap-2"
               >
                 {submittingProduct ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                <span>{submittingProduct ? "Saving..." : productFormMode === "edit" ? "Update Food" : "Add Food"}</span>
+                <span>{submittingProduct ? "Saving..." : productFormMode === "edit" ? "Update Product" : "Add Product"}</span>
               </button>
             </div>
           </div>

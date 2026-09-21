@@ -223,7 +223,7 @@ export default function AboutUs() {
                 id="description"
                 value={aboutData.description}
                 onChange={(e) => setAboutData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Your trusted food delivery partner..."
+                placeholder="Your trusted local store..."
                 rows={4}
                 className="mt-1 w-full"
               />

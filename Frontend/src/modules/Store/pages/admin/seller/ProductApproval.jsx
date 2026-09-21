@@ -38,10 +38,10 @@ export default function ProductApproval() {
       if (!isMountedRef.current) return
       setProductRequests(data)
     } catch (error) {
-      debugError('Error fetching food approval requests:', error)
+      debugError('Error fetching product approval requests:', error)
       if (!isMountedRef.current) return
       if (!silent) {
-        toast.error('Failed to load food approval requests')
+        toast.error('Failed to load product approval requests')
       }
       setProductRequests([])
     } finally {
@@ -107,7 +107,7 @@ export default function ProductApproval() {
       const id = request._id || request.id
       
       await adminAPI.approveProduct(id)
-      toast.success('Food item approved successfully')
+      toast.success('Product approved successfully')
       
       await fetchProductRequests()
       setShowDetailModal(false)
@@ -136,7 +136,7 @@ export default function ProductApproval() {
       const id = selectedRequest._id || selectedRequest.id
       
       await adminAPI.rejectProduct(id, rejectReason)
-      toast.success('Food item rejected')
+      toast.success('Product rejected')
       
       await fetchProductRequests()
       setShowRejectModal(false)
@@ -182,7 +182,7 @@ export default function ProductApproval() {
           {/* Section Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-gray-900">Pending Food Approvals</h2>
+              <h2 className="text-base font-semibold text-gray-900">Pending Product Approvals</h2>
               <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-600">
                 {totalRequests}
               </span>
@@ -270,7 +270,7 @@ export default function ProductApproval() {
                     {filteredRequests.length === 0 ? (
                       <tr>
                         <td colSpan="8" className="px-3 py-8 text-center text-sm text-gray-500">
-                          {loading ? "Loading..." : "No food records found."}
+                          {loading ? "Loading..." : "No products found."}
                         </td>
                       </tr>
                     ) : (
@@ -396,7 +396,7 @@ export default function ProductApproval() {
                 <div className="space-y-4">
                     {(selectedRequest.foodType === 'Veg' || selectedRequest.foodType === 'Non-Veg') && (
                         <div>
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Food Type</label>
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Veg / Non-veg</label>
                             <p className="text-sm text-gray-700">{selectedRequest.foodType}</p>
                         </div>
                     )}

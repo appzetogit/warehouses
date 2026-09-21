@@ -131,8 +131,8 @@ const sellerNotifications = [
   },
   {
     id: 8,
-    topic: "Food Out of Stock",
-    description: "Choose How Seller Will Get Notified About Food Items Out of Stock.",
+    topic: "Product Out of Stock",
+    description: "Choose How Seller Will Get Notified About Products Out of Stock.",
     pushNotification: "N/A",
     mail: true,
     sms: false

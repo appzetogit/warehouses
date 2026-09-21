@@ -82,7 +82,7 @@ export default function RushHour() {
           <h2 className="text-base font-bold text-gray-900 mb-4">How this helps you</h2>
           <div className="space-y-3">
             {[
-              "Get more time to prepare food",
+              "Get more time to pack orders",
               "Show correct delivery time to customers",
               "Avoid crowding of riders at your seller"
             ].map((benefit, index) => (

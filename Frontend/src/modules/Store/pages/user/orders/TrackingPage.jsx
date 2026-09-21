@@ -19,7 +19,7 @@ const TrackingPage = () => {
         <div className="text-center text-white">
           <h2 className="text-2xl font-bold mb-3">Order placed</h2>
           <div className="flex items-center justify-center gap-2 bg-[#D94F0C] w-fit mx-auto px-4 py-2 rounded-full">
-            <span className="text-sm font-medium">Food preparation will begin shortly</span>
+            <span className="text-sm font-medium">Packing will begin shortly</span>
             <RefreshCcw className="w-4 h-4 text-orange-200" />
           </div>
         </div>
@@ -56,7 +56,7 @@ const TrackingPage = () => {
               <div className="w-12 h-12 rounded-full bg-red-900/30 flex items-center justify-center">
                 <UtensilsCrossed className="w-6 h-6 text-red-400" />
               </div>
-              <p className="font-semibold text-white">Food is Cooking</p>
+              <p className="font-semibold text-white">Packing Your Order</p>
             </div>
           </div>
 

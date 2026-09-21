@@ -1227,7 +1227,7 @@ export default function OrderTracking() {
       iconType: 'food'
     },
     preparing: {
-      title: "Food is being prepared",
+      title: "Your order is being packed",
       subtitle: typeof estimatedTime === 'number' ? `Arriving in ${estimatedTime} mins` : "Cooking your meal",
       color: "bg-green-600",
       iconType: 'food'

@@ -32,7 +32,7 @@ const filterOptions = [
 
 // Mock data removed - using backend data only
 
-const CATEGORY_PAGE_FILTERS_STORAGE_KEY = "food-category-page-filters-v1"
+const CATEGORY_PAGE_FILTERS_STORAGE_KEY = "store-category-page-filters-v1"
 
 
 

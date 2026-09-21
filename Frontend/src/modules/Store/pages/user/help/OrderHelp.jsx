@@ -77,7 +77,7 @@ const commonIssues = [
     id: "quality-issue",
     title: "Quality Issue",
     icon: AlertCircle,
-    description: "Food quality doesn't meet expectations",
+    description: "Product quality doesn't meet expectations",
     solutions: [
       "Contact support within 24 hours of delivery",
       "Describe the issue in detail",

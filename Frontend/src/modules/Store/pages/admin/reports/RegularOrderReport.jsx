@@ -27,7 +27,7 @@ const statusMeta = {
   Pending: { label: "Pending Orders", color: "text-blue-600", bg: "bg-blue-50", icon: pendingIcon },
   Accepted: { label: "Accepted Orders", color: "text-sky-600", bg: "bg-sky-50", icon: acceptedIcon },
   Processing: { label: "Processing Orders", color: "text-indigo-600", bg: "bg-indigo-50", icon: processingIcon },
-  "Food On The Way": { label: "Food On The Way", color: "text-cyan-600", bg: "bg-cyan-50", icon: onTheWayIcon },
+  "Out For Delivery": { label: "Out For Delivery", color: "text-cyan-600", bg: "bg-cyan-50", icon: onTheWayIcon },
   Delivered: { label: "Delivered", color: "text-emerald-600", bg: "bg-emerald-50", icon: deliveredIcon },
   Canceled: { label: "Canceled", color: "text-red-600", bg: "bg-red-50", icon: canceledIcon },
   "Payment Failed": { label: "Payment Failed", color: "text-orange-600", bg: "bg-orange-50", icon: paymentFailedIcon },
@@ -201,7 +201,7 @@ export default function RegularOrderReport() {
           } else if (backendStatus === "preparing" || backendStatus === "ready_for_pickup") {
             displayStatus = "Processing"
           } else if (backendStatus === "picked_up") {
-            displayStatus = "Food On The Way"
+            displayStatus = "Out For Delivery"
           } else if (backendStatus === "delivered") {
             displayStatus = "Delivered"
           } else if (backendStatus === "cancelled_by_seller") {
@@ -334,7 +334,7 @@ export default function RegularOrderReport() {
           Pending: 0,
           Accepted: 0,
           Processing: 0,
-          "Food On The Way": 0,
+          "Out For Delivery": 0,
           Delivered: 0,
           Canceled: 0,
           "Payment Failed": 0,
@@ -540,7 +540,7 @@ export default function RegularOrderReport() {
           {renderStatusRow("Scheduled")}
           {renderStatusRow("Pending")}
           {renderStatusRow("Processing")}
-          {renderStatusRow("Food On The Way")}
+          {renderStatusRow("Out For Delivery")}
           {renderStatusRow("Accepted")}
           {renderStatusRow("Delivered")}
           {renderStatusRow("Canceled")}

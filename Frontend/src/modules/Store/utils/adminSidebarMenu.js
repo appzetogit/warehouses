@@ -18,7 +18,7 @@ export const adminSidebarMenu = [
       {
         type: "link",
         label: "Product Approval",
-        path: "/admin/store/food-approval",
+        path: "/admin/store/product-approval",
         icon: "CheckCircle2",
       },
       {

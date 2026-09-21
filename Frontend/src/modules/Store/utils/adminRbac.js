@@ -29,7 +29,7 @@ const PATH_PREFIX_TO_SECTION = [
   { prefix: "/admin/store/delivery-emergency-help", section: "delivery_management" },
   { prefix: "/admin/store/delivery-support-tickets", section: "delivery_management" },
   { prefix: "/admin/store/delivery-order-reassignment-requests", section: "delivery_management" },
-  { prefix: "/admin/store/food-approval", section: "product_management" },
+  { prefix: "/admin/store/product-approval", section: "product_management" },
   { prefix: "/admin/store/products", section: "product_management" },
   // Legacy twins of the routes above. The router still serves them so old
   // bookmarks resolve, and without a prefix here those visits would match no
@@ -120,7 +120,7 @@ export function findFirstAllowedAdminPath(adminUser) {
   const sectionHomePath = {
     dashboard: "/admin/store",
     point_of_sale: "/admin/store/point-of-sale",
-    product_management: "/admin/store/food-approval",
+    product_management: "/admin/store/product-approval",
     seller_management: "/admin/store/sellers",
     order_management: "/admin/store/orders/all",
     promotions_management: "/admin/store/coupons",

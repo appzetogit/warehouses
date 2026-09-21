@@ -98,10 +98,10 @@ export default function AddEditProductCampaignDialog({ isOpen, onOpenChange, cam
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-200">
           <DialogTitle className="flex items-center gap-2">
             {campaign ? <Pencil className="w-5 h-5 text-blue-600" /> : <Plus className="w-5 h-5 text-blue-600" />}
-            {campaign ? "Edit Food Campaign" : "Add New Food Campaign"}
+            {campaign ? "Edit Product Campaign" : "Add New Product Campaign"}
           </DialogTitle>
           <DialogDescription>
-            {campaign ? "Update food campaign information" : "Create a new food campaign"}
+            {campaign ? "Update product campaign information" : "Create a new product campaign"}
           </DialogDescription>
         </DialogHeader>
         

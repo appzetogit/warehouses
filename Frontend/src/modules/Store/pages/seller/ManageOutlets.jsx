@@ -16,7 +16,7 @@ export default function ManageOutlets() {
   const options = [
     "Timings",
     "Contacts",
-    "FSSAI Food License",
+    "FSSAI License",
     "Bank account details",
     "Profile picture",
     "Name, address, location",
@@ -30,7 +30,7 @@ export default function ManageOutlets() {
       case "Timings":
         navigate("/seller/outlet-timings")
         break
-      case "FSSAI Food License":
+      case "FSSAI License":
         navigate("/seller/fssai")
         break
       case "Bank account details":

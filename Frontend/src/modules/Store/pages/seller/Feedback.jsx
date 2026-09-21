@@ -51,7 +51,7 @@ const toComparableId = (value) =>
   String(value?._id || value || "").trim()
 
 const COMPLAINT_ISSUE_OPTIONS = [
-  { label: "Food Quality", value: "Food Quality" },
+  { label: "Product Quality", value: "Product Quality" },
   { label: "Late Delivery", value: "Late Delivery" },
   { label: "Missing Item", value: "Missing Item" },
   { label: "Wrong Item", value: "Wrong Item" },

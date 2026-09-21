@@ -276,7 +276,7 @@ export default function AdminRouter() {
             <Route path="zone-setup/add" element={<AddZone />} />
             <Route path="zone-setup/edit/:id" element={<AddZone />} />
             <Route path="zone-setup/view/:id" element={<ViewZone />} />
-            <Route path="food-approval" element={<ProductApproval />} />
+            <Route path="product-approval" element={<ProductApproval />} />
             {/* Canonical paths are products/ and sellers/. The products/ and
                 sellers/ twins below them are kept so existing bookmarks and
                 links in already-sent email keep resolving. */}

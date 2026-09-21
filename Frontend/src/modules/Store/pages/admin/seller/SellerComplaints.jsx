@@ -35,7 +35,7 @@ const STATUS_OPTIONS = [
 
 const COMPLAINT_TYPE_OPTIONS = [
   { value: "", label: "All Types" },
-  { value: "product_quality", label: "Food Quality" },
+  { value: "product_quality", label: "Product Quality" },
   { value: "wrong_item", label: "Wrong Item" },
   { value: "missing_item", label: "Missing Item" },
   { value: "delivery_issue", label: "Delivery Issue" },

@@ -7,7 +7,7 @@ import SettingsDialog from "@store/components/admin/orders/SettingsDialog"
 import { useOrdersManagement } from "@store/components/admin/orders/useOrdersManagement"
 
 const onTheWayOrders = emptyOrders.filter(
-  (order) => order.orderStatus === "Food On The Way"
+  (order) => order.orderStatus === "Out For Delivery"
 )
 
 export default function OnTheWayOrders() {

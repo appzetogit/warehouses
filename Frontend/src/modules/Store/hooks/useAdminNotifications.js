@@ -101,12 +101,12 @@ const mapProductApprovals = (response) => {
     [];
 
   return (Array.isArray(rows) ? rows : []).map((item) => ({
-    id: `approval-food-${String(item?._id || item?.id || "")}`,
-    title: "Food Approval Pending",
-    message: `${item?.itemName || "Food item"} from ${item?.sellerName || "Seller"} is waiting for review. Category: ${item?.category || item?.type || "N/A"}.`,
+    id: `approval-product-${String(item?._id || item?.id || "")}`,
+    title: "Product Approval Pending",
+    message: `${item?.itemName || "Product"} from ${item?.sellerName || "Seller"} is waiting for review. Category: ${item?.category || item?.type || "N/A"}.`,
     type: "approval",
     category: "product_approval",
-    path: "/admin/store/food-approval",
+    path: "/admin/store/product-approval",
     createdAt: item?.requestedAt || item?.createdAt || item?.updatedAt,
     timeLabel: toDateLabel(item?.requestedAt || item?.createdAt || item?.updatedAt),
     metaLabel: joinMeta(item?.sellerName, item?.itemName, item?.category || item?.type),

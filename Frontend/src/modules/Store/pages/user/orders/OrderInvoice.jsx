@@ -211,7 +211,7 @@ export default function OrderInvoice() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                   <div>
                     <p className="text-xs sm:text-sm text-muted-foreground">{companyName}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Food Delivery Platform</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Online Store</p>
                   </div>
                   <Badge className="bg-[#EB590E] text-white text-sm sm:text-base md:text-lg px-3 sm:px-4 py-1.5 sm:py-2 w-fit">
                     {order.status.toUpperCase()}

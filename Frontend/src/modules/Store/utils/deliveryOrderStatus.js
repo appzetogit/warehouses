@@ -71,7 +71,7 @@ export const getDeliveryStatusMessage = (status) => {
   
   const statusMessages = {
     [DELIVERY_ORDER_STATUS.ACCEPTED]: {
-      message: "Food is waiting for cook",
+      message: "Order is waiting to be packed",
       description: "When it's ready for cooking, you will be notified."
     },
     [DELIVERY_ORDER_STATUS.PICKED_UP]: {

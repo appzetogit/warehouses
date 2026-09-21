@@ -1,5 +1,5 @@
 const SELLER_TIMEZONE =
-  process.env.RESTAURANT_TIMEZONE?.trim() || 'Asia/Kolkata';
+  process.env.STORE_TIMEZONE?.trim() || 'Asia/Kolkata';
 
 const DAY_NAMES = [
   'Sunday',

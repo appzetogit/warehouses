@@ -96,9 +96,9 @@ const formatFullAddress = (address) => {
 }
 
 const RUPEE_SYMBOL = "\u20B9"
-const CART_RECIPIENT_DETAILS_STORAGE_KEY = "food-cart-recipient-details-v1"
-const CART_ORDER_NOTE_STORAGE_KEY = "food-cart-order-note-v1"
-const CART_DELIVERY_PREFS_STORAGE_KEY = "food-cart-delivery-prefs-v1"
+const CART_RECIPIENT_DETAILS_STORAGE_KEY = "store-cart-recipient-details-v1"
+const CART_ORDER_NOTE_STORAGE_KEY = "store-cart-order-note-v1"
+const CART_DELIVERY_PREFS_STORAGE_KEY = "store-cart-delivery-prefs-v1"
 const RECIPIENT_NAME_REGEX = /^[A-Za-z ]+$/
 const INDIAN_MOBILE_REGEX = /^[6-9]\d{9}$/
 
@@ -3149,7 +3149,7 @@ export default function Cart() {
                   style={{ animation: 'slideUp 0.5s ease-out 0.8s both' }}
                 >
                   <h3 className="text-3xl font-bold text-[#EB590E] dark:text-orange-400 mb-2">Order Placed!</h3>
-                  <p className="text-gray-600 dark:text-gray-300">Your delicious food is on its way</p>
+                  <p className="text-gray-600 dark:text-gray-300">Your order is on its way</p>
                 </div>
 
                 {/* Action Button */}

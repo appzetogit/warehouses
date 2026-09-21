@@ -14,7 +14,7 @@ export default function SettingsDialog({ isOpen, onOpenChange, visibleColumns, t
     orderOtp: "Order OTP",
     customer: "Customer Information",
     seller: "Seller",
-    products: "Food Items",
+    products: "Items",
     totalAmount: "Total Amount",
     paymentType: "Payment Type",
     paymentCollectionStatus: "Payment Status",

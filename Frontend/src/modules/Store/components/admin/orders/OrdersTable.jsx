@@ -8,7 +8,7 @@ const getStatusColor = (orderStatus) => {
     "Scheduled": "bg-blue-100 text-blue-700",
     "Accepted": "bg-green-100 text-green-700",
     "Processing": "bg-orange-100 text-orange-700",
-    "Food On The Way": "bg-yellow-100 text-yellow-700",
+    "Out For Delivery": "bg-yellow-100 text-yellow-700",
     "Canceled": "bg-rose-100 text-rose-700",
     "Cancelled by Seller": "bg-red-100 text-red-700",
     "Cancelled by User": "bg-orange-100 text-orange-700",
@@ -92,7 +92,7 @@ export default function OrdersTable({
       "pending",
       "accepted",
       "processing",
-      "food on the way",
+      "out for delivery",
     ].includes(currentStatus)
   }
 
@@ -220,7 +220,7 @@ export default function OrdersTable({
               {visibleColumns.products && (
                 <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider min-w-[200px]">
                   <div className="flex items-center gap-2">
-                    <span>Food Items / Item Price</span>
+                    <span>Items / Item Price</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400 cursor-pointer hover:text-slate-600" />
                   </div>
                 </th>

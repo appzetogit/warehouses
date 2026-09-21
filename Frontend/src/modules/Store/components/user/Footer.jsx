@@ -211,7 +211,7 @@ export default function Footer() {
               >
                 <Heart className="h-4 w-4 fill-red-500 text-red-500" />
               </span>
-              <span>for food lovers</span>
+              <span>for our customers</span>
             </div>
           </div>
         </div>
