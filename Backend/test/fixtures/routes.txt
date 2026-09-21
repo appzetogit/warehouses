@@ -131,6 +131,7 @@ GET /api/v1/catalog/stores
 GET /api/v1/catalog/stores/:id
 GET /api/v1/catalog/stores/:id/products
 GET /api/v1/catalog/stores/:id/timings
+GET /api/v1/catalog/stores/nearby
 GET /api/v1/chat/conversations
 GET /api/v1/chat/messages
 GET /api/v1/content/explore-icons/public

@@ -1,4 +1,4 @@
-import { searchUnified, searchProducts, getAdminCategories } from '../services/search.service.js';
+import { searchUnified, searchProducts, searchNearbyStores, getAdminCategories } from '../services/search.service.js';
 import { sendResponse, sendError } from '../../../../utils/response.js';
 
 /**
@@ -34,17 +34,7 @@ export const searchController = async (req, res, next) => {
  */
 export const searchProductsController = async (req, res, next) => {
     try {
-        const { q, categoryId, zoneId, isVeg, inStockOnly, page, limit } = req.query;
-
-        const results = await searchProducts({
-            q,
-            categoryId,
-            zoneId,
-            isVeg,
-            inStockOnly,
-            page: parseInt(page, 10) || 1,
-            limit: parseInt(limit, 10) || 20
-        });
+        const results = await searchProducts(req.query);
 
         return sendResponse(res, 200, 'Products fetched successfully', results);
     } catch (error) {
@@ -61,6 +51,17 @@ export const listAdminCategoriesController = async (req, res, next) => {
         const categories = await getAdminCategories({ zoneId });
         
         return sendResponse(res, 200, 'Admin categories fetched successfully', { categories });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Stores near a point, nearest first.
+ */
+export const nearbyStoresController = async (req, res, next) => {
+    try {
+        return sendResponse(res, 200, 'Stores fetched successfully', await searchNearbyStores(req.query));
     } catch (error) {
         next(error);
     }

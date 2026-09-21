@@ -11,6 +11,7 @@ import { getPublicSellerMenuController } from '../../seller/controllers/sellerMe
 import { listPublicProductsController } from '../../seller/controllers/publicProducts.controller.js';
 import { getOutletTimingsBySellerIdController } from '../../seller/controllers/outletTimings.controller.js';
 import { listPublicAttributesController, getCategoryAttributesController } from '../../admin/controllers/attribute.controller.js';
+import { nearbyStoresController } from '../../search/controllers/search.controller.js';
 import searchRoutes from '../../search/routes/search.routes.js';
 
 /**
@@ -23,6 +24,8 @@ import searchRoutes from '../../search/routes/search.routes.js';
 const router = express.Router();
 
 router.get('/stores', cacheResponse(300, 'sellers'), listApprovedSellersController);
+// Before /stores/:id, which would otherwise read "nearby" as an id.
+router.get('/stores/nearby', cacheResponse(60, 'stores_nearby', { browserTtlSeconds: 30 }), nearbyStoresController);
 router.get('/stores/:id', cacheResponse(600, 'seller_detail'), getApprovedSellerController);
 router.get('/stores/:id/products', cacheResponse(600, 'seller_menu'), getPublicSellerMenuController);
 router.get('/stores/:id/timings', cacheResponse(600, 'seller_timings'), getOutletTimingsBySellerIdController);
