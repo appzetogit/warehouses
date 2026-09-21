@@ -18,6 +18,7 @@ import { getQueuesController } from '../controllers/admin.controller.js';
 import webhookRoutes from '../core/payments/routes/webhook.routes.js';
 import catalogRoutes from '../modules/commerce/catalog/routes/catalog.routes.js';
 import chatRoutes from '../modules/commerce/chat/routes/chat.routes.js';
+import aiRoutes from '../modules/commerce/ai/routes/ai.routes.js';
 import { getCashbackSettingsPublicController } from '../modules/commerce/user/controllers/cashback.controller.js';
 import { config } from '../config/env.js';
 import { getRateLimitSummary } from '../middleware/rateLimit.js';
@@ -43,6 +44,7 @@ router.use('/v1/uploads', uploadRoutes);
 // Anyone browsing, signed in or not.
 router.use('/v1/catalog', catalogRoutes);
 router.use('/v1/content', landingRoutes);
+router.use('/v1/ai', aiRoutes);
 router.get('/v1/settings/business', businessSettingsController.getBusinessSettings);
 router.get('/v1/settings/power-scanning', businessSettingsController.getPowerScanningSettings);
 router.get('/v1/settings/seller-subscription', adminController.getSellerSubscriptionSettings);

@@ -178,6 +178,19 @@ export const uploadRateLimiter = createLimiter({
     keyGenerator: userOrIpRateLimitKey,
 });
 
+/**
+ * The shopping assistant can call a paid model, so it is capped per user (or
+ * per IP when signed out) independently of the global limiter.
+ */
+export const aiChatRateLimiter = createLimiter({
+    name: 'ai-chat',
+    windowMs: 60 * 1000,
+    max: 20,
+    message: 'Too many messages. Please wait a minute and try again.',
+    keyGenerator: userOrIpRateLimitKey,
+    prefix: 'rl:ai:',
+});
+
 export const getRateLimitSummary = () => ({
     enabled: config.rateLimitEnabled,
     environment: config.nodeEnv,

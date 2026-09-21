@@ -47,6 +47,10 @@ import {
     getUserCoinBalanceController,
     getUserCoinLedgerController,
 } from '../../coins/controllers/coin.controller.js';
+import {
+    getSpinStatusController,
+    playSpinController,
+} from '../../spin/controllers/spin.controller.js';
 
 const router = express.Router();
 
@@ -67,6 +71,10 @@ router.get('/refunds', getRefundHistoryController);
 // Promotional platform coins
 router.get('/coins/balance', getUserCoinBalanceController);
 router.get('/coins/ledger', getUserCoinLedgerController);
+
+// Spin wheel engagement
+router.get('/spin/status', getSpinStatusController);
+router.post('/spin/play', playSpinController);
 
 // Referral stats (Bearer USER)
 router.get('/referrals/stats', getUserReferralStatsController);
