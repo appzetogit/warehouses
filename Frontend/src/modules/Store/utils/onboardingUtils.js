@@ -1,4 +1,3 @@
-import { api, sellerAPI } from "@store/api"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -218,45 +217,5 @@ export const determineStepToShow = (data) => {
   // All steps complete - onboarding step 4 (payment) is handled on backend
   // User should be redirected to explore/dashboard after step 3 submission
   return null
-}
-
-
-// Check onboarding status from API and return the step to navigate to
-export const checkOnboardingStatus = async () => {
-  try {
-    const sellerResponse = await sellerAPI.getMe()
-    const seller =
-      sellerResponse?.data?.data?.user ||
-      sellerResponse?.data?.data?.seller ||
-      sellerResponse?.data?.seller ||
-      sellerResponse?.data?.user ||
-      null
-
-    if (seller && isSellerOnboardingComplete(seller)) {
-      return null
-    }
-
-    const res = await api.get("/seller/onboarding")
-    const data = res?.data?.data?.onboarding
-    if (data) {
-      const stepToShow = determineStepToShow(data)
-      return stepToShow
-    }
-    // No onboarding data, start from step 1
-    return 1
-  } catch (err) {
-    // If API call fails, check localStorage
-    try {
-      const localData = localStorage.getItem(getOnboardingStorageKey())
-      if (localData) {
-        const parsed = JSON.parse(localData)
-        return parsed.currentStep || 1
-      }
-    } catch (localErr) {
-      debugError("Failed to check localStorage:", localErr)
-    }
-    // Default to step 1 if everything fails
-    return 1
-  }
 }
 
