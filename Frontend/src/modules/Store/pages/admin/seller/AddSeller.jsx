@@ -471,11 +471,12 @@ export default function AddSeller() {
       errors.push("Name on PAN must contain characters only")
     }
     if (!step3.panImage) errors.push("PAN image is required")
-    if (!step3.fssaiNumber?.trim()) errors.push("FSSAI number is required")
+    // FSSAI is optional; once any part is entered, number and expiry are required.
+    const hasFssai = Boolean(step3.fssaiNumber?.trim() || step3.fssaiExpiry?.trim() || step3.fssaiImage)
+    if (hasFssai && !step3.fssaiNumber?.trim()) errors.push("FSSAI number is required when adding an FSSAI licence")
     if (step3.fssaiNumber?.trim() && !FSSAI_REGEX.test(step3.fssaiNumber.trim())) errors.push("FSSAI number must be 14 digits")
-    if (!step3.fssaiExpiry?.trim()) errors.push("FSSAI expiry date is required")
+    if (hasFssai && !step3.fssaiExpiry?.trim()) errors.push("FSSAI expiry date is required when adding an FSSAI licence")
     if (step3.fssaiExpiry?.trim() && step3.fssaiExpiry < getTodayLocalYMD()) errors.push("FSSAI expiry date cannot be in the past")
-    if (!step3.fssaiImage) errors.push("FSSAI image is required")
     if (step3.gstRegistered) {
       if (!step3.gstNumber?.trim()) errors.push("GST number is required when GST registered")
       if (step3.gstNumber?.trim() && !GST_REGEX.test(step3.gstNumber.trim())) errors.push("GST number must be in valid format")
@@ -1365,11 +1366,11 @@ export default function AddSeller() {
         <h2 className="text-lg font-semibold text-black">FSSAI details</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs text-gray-700 mb-1 block">FSSAI number*</Label>
+            <Label className="text-xs text-gray-700 mb-1 block">FSSAI number (optional)</Label>
             <Input value={step3.fssaiNumber || ""} onChange={(e) => setStep3({ ...step3, fssaiNumber: sanitizeFssai(e.target.value) })} className="bg-white text-sm" placeholder="FSSAI number*" inputMode="numeric" maxLength={14} />
           </div>
           <div>
-            <Label className="text-xs text-gray-700 mb-1 block">FSSAI expiry date*</Label>
+            <Label className="text-xs text-gray-700 mb-1 block">FSSAI expiry date</Label>
             <Input
               type="date"
               value={step3.fssaiExpiry || ""}

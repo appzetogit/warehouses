@@ -1513,26 +1513,28 @@ export default function SellerOnboarding() {
       }
     }
 
-    if (!step3.fssaiNumber?.trim()) {
-      errors.push("FSSAI number is required")
-    } else if (!FSSAI_NUMBER_REGEX.test(step3.fssaiNumber.trim())) {
-      errors.push("FSSAI number must contain exactly 14 digits")
-    }
-    if (!step3.fssaiExpiry?.trim()) {
-      errors.push("FSSAI expiry date is required")
-    } else if (step3.fssaiExpiry < getTodayLocalYMD()) {
-      errors.push("FSSAI expiry date cannot be in the past")
-    }
-    // Validate FSSAI image - must be a File or existing URL
-    if (!step3.fssaiImage) {
-      errors.push("FSSAI image is required")
-    } else {
-      const isValidFssaiImage =
-        isUploadableFile(step3.fssaiImage) ||
-        (step3.fssaiImage?.url && typeof step3.fssaiImage.url === 'string') ||
-        (typeof step3.fssaiImage === 'string' && step3.fssaiImage.trim())
-      if (!isValidFssaiImage) {
-        errors.push("Please upload a valid FSSAI image")
+    // FSSAI is optional: many sellers don't sell food. Once any part of the
+    // licence is entered, the number and expiry must both be there and valid.
+    const hasFssai = Boolean(step3.fssaiNumber?.trim() || step3.fssaiExpiry?.trim() || step3.fssaiImage)
+    if (hasFssai) {
+      if (!step3.fssaiNumber?.trim()) {
+        errors.push("FSSAI number is required when adding an FSSAI licence")
+      } else if (!FSSAI_NUMBER_REGEX.test(step3.fssaiNumber.trim())) {
+        errors.push("FSSAI number must contain exactly 14 digits")
+      }
+      if (!step3.fssaiExpiry?.trim()) {
+        errors.push("FSSAI expiry date is required when adding an FSSAI licence")
+      } else if (step3.fssaiExpiry < getTodayLocalYMD()) {
+        errors.push("FSSAI expiry date cannot be in the past")
+      }
+      if (step3.fssaiImage) {
+        const isValidFssaiImage =
+          isUploadableFile(step3.fssaiImage) ||
+          (step3.fssaiImage?.url && typeof step3.fssaiImage.url === 'string') ||
+          (typeof step3.fssaiImage === 'string' && step3.fssaiImage.trim())
+        if (!isValidFssaiImage) {
+          errors.push("Please upload a valid FSSAI image")
+        }
       }
     }
 
@@ -1662,9 +1664,8 @@ export default function SellerOnboarding() {
 
     formData.append('fssaiNumber', step3.fssaiNumber || '')
     formData.append('fssaiExpiry', step3.fssaiExpiry || '')
-    if (!step3.fssaiImage) throw new Error('FSSAI image is required')
     if (isUploadableFile(step3.fssaiImage)) formData.append('fssaiImage', step3.fssaiImage)
-    else formData.append('fssaiImage', typeof step3.fssaiImage === 'string' ? step3.fssaiImage : step3.fssaiImage.url)
+    else if (step3.fssaiImage) formData.append('fssaiImage', typeof step3.fssaiImage === 'string' ? step3.fssaiImage : step3.fssaiImage.url)
 
     formData.append('accountNumber', step3.accountNumber || '')
     formData.append('ifscCode', (step3.ifscCode || '').toUpperCase())
