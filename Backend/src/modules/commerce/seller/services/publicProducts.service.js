@@ -86,8 +86,8 @@ export async function listPublicProducts(query = {}) {
             // checkout — which reads the dish from the database — correctly
             // refused with "please select a size". The customer was left with an
             // error and no control that could clear it.
-            variants: serializeProductVariants(product.variants),
-            variations: serializeProductVariants(product.variants),
+            variants: serializeProductVariants(product.variants, { productStockQty: product.stockQty ?? null }),
+            variations: serializeProductVariants(product.variants, { productStockQty: product.stockQty ?? null }),
             image: product.image || '',
             // Falls back to the single image so a dish saved before galleries
             // existed still returns a one-entry list — the app can then always
@@ -96,6 +96,8 @@ export async function listPublicProducts(query = {}) {
                 ? product.images
                 : (product.image ? [product.image] : []),
             foodType: product.foodType || null,
+            quickEligible: product.quickEligible !== false,
+            tags: Array.isArray(product.tags) ? product.tags : [],
             isAvailable: product.isAvailable !== false,
             preparationTime: product.preparationTime || '',
             approvalStatus: product.approvalStatus || 'approved'

@@ -56,7 +56,7 @@ export async function listPendingProductApprovals(query = {}) {
         approvalStatus: f.approvalStatus || 'pending',
         price: getProductDisplayPrice(f),
         otherPrice: getProductDisplayOtherPrice(f),
-        variants: serializeProductVariants(f.variants),
+        variants: serializeProductVariants(f.variants, { productStockQty: f.stockQty ?? null }),
         image: f.image || '',
         images: f.image ? [f.image] : [],
         requestedAt: f.requestedAt || f.createdAt,

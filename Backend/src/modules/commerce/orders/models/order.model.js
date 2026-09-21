@@ -6,6 +6,12 @@ const orderItemSchema = new mongoose.Schema(
         name: { type: String, required: true, trim: true },
         variantId: { type: String, trim: true, default: '' },
         variantName: { type: String, trim: true, default: '' },
+        /** The variant's attributes when ordered ("Size: M, Color: Red"), kept in case the product changes. */
+        variantAttributes: {
+            type: [{ _id: false, name: { type: String, trim: true }, value: { type: String, trim: true } }],
+            default: [],
+        },
+        sku: { type: String, trim: true, default: '' },
         variantPrice: { type: Number, min: 0, default: 0 },
         price: { type: Number, required: true, min: 0 },
         /** Compare-at / other-platform unit price snapshot at order time. */
@@ -332,6 +338,17 @@ const orderSchema = new mongoose.Schema(
         sellerNotifiedAt: { type: Date, default: null },
         /** Set once stock was decremented for this order; absent on pre-inventory orders. */
         stockReservedAt: { type: Date, default: null },
+        /**
+         * Exactly what was taken off the shelf: which product, which variant
+         * (when the variant is counted on its own; '' means the product's count),
+         * and how many. A restock returns stock to the same place, even if the
+         * seller has since switched a variant to or from its own count.
+         * Empty on orders placed before variants had stock; those restock by item.
+         */
+        stockReservations: {
+            type: [{ _id: false, itemId: String, variantId: { type: String, default: '' }, qty: Number }],
+            default: [],
+        },
         /**
          * Set once stock was given back. Guards the restock, which is reachable
          * from user cancel, seller cancel, admin cancel, the acceptance-timeout

@@ -699,7 +699,10 @@ export async function createOrder(userId, dto) {
     // on the payment sheet, or two people pay for the same last unit. The
     // pending-payment cleanup gives them back.
     const reservation = await reserveStockForItems(resolvedItems);
-    if (reservation.length > 0) order.stockReservedAt = new Date();
+    if (reservation.length > 0) {
+      order.stockReservedAt = new Date();
+      order.stockReservations = reservation;
+    }
 
     try {
       await order.save();

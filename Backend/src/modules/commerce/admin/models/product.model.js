@@ -1,10 +1,44 @@
 import mongoose from 'mongoose';
 
+/** One attribute value a variant carries, e.g. { name: 'Size', value: 'M' }. */
+const variantAttributeSchema = new mongoose.Schema(
+    {
+        name: { type: String, required: true, trim: true },
+        value: { type: String, required: true, trim: true },
+    },
+    { _id: false }
+);
+
+/**
+ * One sellable version of a product: a size, a colour, a pack.
+ *
+ * Every field beyond name/price is optional, so the {name, price} variants that
+ * already exist are valid as they stand and need no migration.
+ *
+ * Stock: `stockQty: null` means the variant has no count of its own and draws on
+ * the product's `stockQty`, which is how pack-size variants of one shelf item
+ * have always worked. A number means the variant is counted separately, as a
+ * T-shirt in size M is.
+ */
 const productVariantSchema = new mongoose.Schema(
     {
         name: { type: String, required: true, trim: true },
         price: { type: Number, required: true, min: 0 },
-        otherPrice: { type: Number, min: 0, default: 0 }
+        otherPrice: { type: Number, min: 0, default: 0 },
+        /** Attribute values that identify this variant, in the order the seller picked them. */
+        attributes: { type: [variantAttributeSchema], default: [] },
+        sku: { type: String, trim: true, default: '' },
+        barcode: { type: String, trim: true, default: '' },
+        /** Printed MRP for this variant; falls back to the product's `mrp` when null. */
+        mrp: { type: Number, min: 0, default: null },
+        stockQty: { type: Number, min: 0, default: null },
+        lowStockThreshold: { type: Number, min: 0, default: null },
+        /** Variant-specific photos, e.g. the red one. Empty means use the product's images. */
+        images: { type: [String], default: [] },
+        /** The seller's switch. Running out of stock does not change it; see `stockQty`. */
+        isActive: { type: Boolean, default: true },
+        /** Whether this variant can go by quick delivery; null inherits the product's setting. */
+        quickEligible: { type: Boolean, default: null },
     },
     { _id: true }
 );
@@ -83,14 +117,20 @@ const productSchema = new mongoose.Schema(
         gstRate: { type: Number, min: 0, max: 100, default: null },
         isAvailable: { type: Boolean, default: true, index: true },
         /**
+         * Whether the product can go by quick (~30 min) delivery. Bulky or
+         * made-to-order items are standard-delivery only. Defaults to true
+         * because every existing product is a quick-commerce product.
+         */
+        quickEligible: { type: Boolean, default: true },
+        /** Free-text search keywords the seller adds ("tee", "cotton", "gift"). */
+        tags: { type: [String], default: [] },
+        /**
          * Units on hand. `null` means untracked — the item behaves exactly as it
          * did before inventory existed, which is what every already-created
          * document gets, so nothing needs a migration to keep selling.
          *
-         * Tracked at item level, not per variant: a variant is a pack size, and
-         * a seller counting "12 left" is counting the item.
-         * ponytail: per-variant stock if sellers start listing sizes that
-         * genuinely deplete independently.
+         * Variants with their own `stockQty` are counted there instead; this
+         * count covers the product itself and any variants without one.
          */
         stockQty: { type: Number, default: null, min: 0 },
         /** Below this, the item is flagged to the seller. `null` disables the flag. */
@@ -125,5 +165,13 @@ productSchema.index({ sellerId: 1, createdAt: -1 });
 productSchema.index({ approvalStatus: 1, createdAt: -1 });
 productSchema.index({ approvalStatus: 1, requestedAt: -1 });
 productSchema.index({ sellerId: 1, approvalStatus: 1, createdAt: -1 });
+// Search: relevance-ranked words over what a shopper types. Weights favour the
+// name, then brand and tags; the description only breaks ties.
+productSchema.index(
+    { name: 'text', brand: 'text', tags: 'text', categoryName: 'text', description: 'text' },
+    { name: 'product_text', weights: { name: 10, brand: 5, tags: 5, categoryName: 3, description: 1 }, default_language: 'english' }
+);
+// Attribute filters ("size M", "colour red") match on variants.
+productSchema.index({ 'variants.attributes.name': 1, 'variants.attributes.value': 1 });
 
 export const Product = mongoose.model('Product', productSchema);

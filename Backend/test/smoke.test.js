@@ -310,3 +310,64 @@ test('abandoning an online payment deletes the order and releases its stock', as
     assert.equal(await orderDoc(id), null, 'order removed');
     assert.equal(await stockOf(), before, 'stock released');
 });
+
+test('a product with attribute variants: the seller creates it, a customer orders one variant', async () => {
+    const seller = tokenFor('SELLER', ids.seller);
+    const customer = tokenFor('USER', ids.user);
+
+    const created = ok(await call('POST', '/seller/products', {
+        as: seller,
+        body: {
+            name: 'Cotton Tee',
+            tags: 'tee, Cotton',
+            variants: [
+                { attributes: [{ name: 'Size', value: 'M' }, { name: 'Color', value: 'Red' }], price: 399, mrp: 499, stockQty: 2 },
+                { attributes: { Size: 'L', Color: 'Red' }, price: 399, mrp: 499, stockQty: 0 },
+            ],
+        },
+    }), 'create product', 201).product;
+    assert.deepEqual(created.tags, ['tee', 'cotton']);
+    assert.equal(created.variants[0].name, 'M / Red', 'named after its attributes');
+    await ids.db.collection('products').updateOne({ _id: new mongoose.Types.ObjectId(String(created._id)) }, { $set: { approvalStatus: 'approved' } });
+
+    const [m, l] = created.variants.map((v) => String(v._id));
+    const lineFor = (variantId, quantity) => ({ itemId: String(created._id), variantId, name: 'Cotton Tee', price: 399, quantity });
+
+    const soldOut = await call('POST', '/orders/calculate', {
+        as: customer, body: { sellerId: String(ids.seller), items: [lineFor(l, 1)], zoneId: String(ids.zone) },
+    });
+    assert.equal(soldOut.status, 400);
+    assert.match(soldOut.body.message, /Cotton Tee \(L \/ Red\) just went out of stock/);
+
+    const quote = ok(await call('POST', '/orders/calculate', {
+        as: customer, body: { sellerId: String(ids.seller), items: [lineFor(m, 2)], zoneId: String(ids.zone) },
+    }), 'calculate');
+    const placed = ok(await call('POST', '/orders', {
+        as: customer,
+        body: {
+            sellerId: String(ids.seller), items: [lineFor(m, 2)], address,
+            pricing: { subtotal: quote.pricing.subtotal, total: quote.pricing.total }, paymentMethod: 'cash',
+        },
+    }), 'place', 201);
+
+    const line = placed.order.items[0];
+    assert.deepEqual(line.variantAttributes, [{ name: 'Size', value: 'M' }, { name: 'Color', value: 'Red' }]);
+    const product = await ids.db.collection('products').findOne({ _id: new mongoose.Types.ObjectId(String(created._id)) });
+    assert.equal(product.variants[0].stockQty, 0);
+    assert.equal(product.isAvailable, false, 'every variant is sold out');
+
+    // The seller restocks L alone.
+    const restock = ok(await call('PATCH', '/seller/products/stock', {
+        as: seller, body: [{ itemId: String(created._id), variantId: l, stockQty: 5 }],
+    }), 'restock variant');
+    assert.equal(restock.updated[0].stockQty, 5);
+    const after = await ids.db.collection('products').findOne({ _id: product._id });
+    assert.equal(after.isAvailable, true, 'listed again');
+
+    const dup = await call('POST', '/seller/products', {
+        as: seller,
+        body: { name: 'Dup', variants: [{ attributes: { Size: 'M' }, price: 1 }, { attributes: { size: 'm' }, price: 2 }] },
+    });
+    assert.equal(dup.status, 400);
+    assert.match(dup.body.message, /same options/);
+});

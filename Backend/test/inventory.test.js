@@ -109,3 +109,98 @@ test('an order dying on several paths at once is restocked once', async () => {
     assert.equal(claims.filter(Boolean).length, 1);
     assert.equal((await stockOf(id)).stockQty, 4);
 });
+
+// ---- Variants -------------------------------------------------------------
+
+const variant = (name, fields = {}) => ({ _id: new mongoose.Types.ObjectId(), name, price: 100, ...fields });
+const vline = (itemId, variantId, quantity) => ({ itemId: String(itemId), variantId: String(variantId), quantity });
+const variantsOf = async (id) => (await Product.findById(id).select('variants stockQty isAvailable').lean());
+
+test('a variant with its own count is decremented there, not on the product', async () => {
+    const m = variant('M', { stockQty: 5 });
+    const l = variant('L', { stockQty: 2 });
+    const id = await product({ stockQty: 50, variants: [m, l] });
+
+    const taken = await reserveStockForItems([vline(id, m._id, 3)]);
+
+    assert.deepEqual(taken, [{ itemId: String(id), variantId: String(m._id), qty: 3 }]);
+    const doc = await variantsOf(id);
+    assert.equal(doc.variants[0].stockQty, 2);
+    assert.equal(doc.variants[1].stockQty, 2);
+    assert.equal(doc.stockQty, 50, 'product count untouched');
+});
+
+test('two buyers racing for the last unit of a variant: exactly one gets it', async () => {
+    const m = variant('M', { stockQty: 1 });
+    const l = variant('L', { stockQty: 4 });
+    const id = await product({ variants: [m, l], stockQty: null });
+
+    const results = await Promise.allSettled(
+        Array.from({ length: 8 }, () => reserveStockForItems([vline(id, m._id, 1)]))
+    );
+
+    assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
+    assert.match(results.find((r) => r.status === 'rejected').reason.message, /\(M\) just went out of stock/);
+    const doc = await variantsOf(id);
+    assert.equal(doc.variants[0].stockQty, 0);
+    assert.equal(doc.isAvailable, true, 'L is still for sale');
+});
+
+test('variants without their own count share the product count, summed across lines', async () => {
+    const half = variant('500 g');
+    const kilo = variant('1 kg');
+    const id = await product({ stockQty: 3, variants: [half, kilo] });
+
+    await assert.rejects(
+        reserveStockForItems([vline(id, half._id, 2), vline(id, kilo._id, 2)]),
+        /Only 3 left/
+    );
+    assert.equal((await variantsOf(id)).stockQty, 3, 'nothing taken');
+
+    const taken = await reserveStockForItems([vline(id, half._id, 1), vline(id, kilo._id, 2)]);
+    assert.deepEqual(taken, [{ itemId: String(id), variantId: '', qty: 3 }]);
+    const doc = await variantsOf(id);
+    assert.equal(doc.stockQty, 0);
+    assert.equal(doc.isAvailable, false, 'hidden once the shared count is gone');
+});
+
+test('a product hides when its last counted variant sells out, and returns on restock', async () => {
+    const m = variant('M', { stockQty: 1 });
+    const l = variant('L', { stockQty: 0 });
+    const off = variant('XL', { stockQty: 9, isActive: false });
+    const id = await product({ stockQty: null, variants: [m, l, off] });
+
+    const taken = await reserveStockForItems([vline(id, m._id, 1)]);
+    assert.equal((await variantsOf(id)).isAvailable, false, 'an inactive variant does not keep it listed');
+
+    const _id = new mongoose.Types.ObjectId();
+    await Order.collection.insertOne({
+        _id, items: [vline(id, m._id, 1)], stockReservations: taken, stockReservedAt: new Date(), stockRestoredAt: null,
+    });
+    await restoreOrderStock({ _id, stockReservedAt: new Date() });
+
+    const doc = await variantsOf(id);
+    assert.equal(doc.variants[0].stockQty, 1);
+    assert.equal(doc.isAvailable, true);
+});
+
+test('a restock returns units to where they were taken from, even if the variant changed since', async () => {
+    const m = variant('M');
+    const id = await product({ stockQty: 5, variants: [m] });
+
+    const taken = await reserveStockForItems([vline(id, m._id, 2)]);
+    assert.deepEqual(taken, [{ itemId: String(id), variantId: '', qty: 2 }], 'from the shared count');
+
+    // The seller starts counting M separately before the order is cancelled.
+    await Product.updateOne({ _id: id, 'variants._id': m._id }, { $set: { 'variants.$.stockQty': 10 } });
+
+    const _id = new mongoose.Types.ObjectId();
+    await Order.collection.insertOne({
+        _id, items: [vline(id, m._id, 2)], stockReservations: taken, stockReservedAt: new Date(), stockRestoredAt: null,
+    });
+    await restoreOrderStock({ _id, stockReservedAt: new Date() });
+
+    const doc = await variantsOf(id);
+    assert.equal(doc.stockQty, 5, 'the shared count got its 2 back');
+    assert.equal(doc.variants[0].stockQty, 10, 'the new variant count was not inflated');
+});

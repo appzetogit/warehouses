@@ -15,8 +15,8 @@ function resolveProductPrice(productDoc, rawItem) {
 
   if (variantId) {
     const variant = variants.find((entry) => String(entry?._id) === variantId);
-    if (!variant) {
-      throw new ValidationError(`${productDoc.name} is no longer available in the selected size`);
+    if (!variant || variant.isActive === false) {
+      throw new ValidationError(`${productDoc.name} is no longer available in the selected option`);
     }
     const price = Number(variant.price) || 0;
     const otherPrice = Number(variant.otherPrice) || 0;
@@ -26,11 +26,16 @@ function resolveProductPrice(productDoc, rawItem) {
       variantId,
       variantName: String(variant.name || rawItem?.variantName || '').trim(),
       variantPrice: price,
+      variantAttributes: Array.isArray(variant.attributes)
+        ? variant.attributes.map((a) => ({ name: a.name, value: a.value }))
+        : [],
+      sku: String(variant.sku || productDoc.sku || ''),
+      variant,
     };
   }
 
   if (variants.length > 0) {
-    throw new ValidationError(`Please select a size for ${productDoc.name}`);
+    throw new ValidationError(`Please select an option for ${productDoc.name}`);
   }
 
   const price = Number(productDoc.price) || 0;
@@ -41,6 +46,9 @@ function resolveProductPrice(productDoc, rawItem) {
     variantId: '',
     variantName: '',
     variantPrice: price,
+    variantAttributes: [],
+    sku: String(productDoc.sku || ''),
+    variant: null,
   };
 }
 
@@ -85,16 +93,20 @@ export async function resolveOrderCartItems(sellerId, rawItems = []) {
         throw new ValidationError(`You can order at most ${cap} of ${productDoc.name}`);
       }
 
-      const onHand = productDoc.stockQty;
+      const { variant, ...pricing } = resolveProductPrice(productDoc, rawItem);
+
+      // A variant with its own count is checked against that; otherwise the
+      // product's count applies.
+      const counted = variant && variant.stockQty !== null && variant.stockQty !== undefined;
+      const onHand = counted ? variant.stockQty : productDoc.stockQty;
+      const label = variant ? `${productDoc.name} (${variant.name})` : productDoc.name;
       if (onHand !== null && onHand !== undefined && Number(onHand) < quantity) {
         throw new ValidationError(
           Number(onHand) > 0
-            ? `Only ${Number(onHand)} left of ${productDoc.name}. Please reduce the quantity.`
-            : `${productDoc.name} just went out of stock`,
+            ? `Only ${Number(onHand)} left of ${label}. Please reduce the quantity.`
+            : `${label} just went out of stock`,
         );
       }
-
-      const pricing = resolveProductPrice(productDoc, rawItem);
 
       resolved.push({
         itemId,
@@ -114,7 +126,7 @@ export async function resolveOrderCartItems(sellerId, rawItems = []) {
         categoryName: String(productDoc.categoryName || ''),
         // true / false for the veg / non-veg mark, null where the product has none.
         isVeg: productDoc.foodType ? productDoc.foodType === 'Veg' : null,
-        image: String(productDoc.image || rawItem?.image || ''),
+        image: String(variant?.images?.[0] || productDoc.image || rawItem?.image || ''),
         notes: String(rawItem?.notes || ''),
       });
       continue;

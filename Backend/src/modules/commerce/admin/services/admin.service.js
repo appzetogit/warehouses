@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { syncProductAvailability } from '../../orders/services/inventory.service.js';
 // NotFoundError was already used further down this file (deleteDeliveryPartner)
 // without ever being imported — that path threw a ReferenceError instead of a 404
 // whenever the partner was missing.
@@ -3534,8 +3535,8 @@ export async function getProducts(query) {
         description: f.description || '',
         price: getProductDisplayPrice(f),
         otherPrice: getProductDisplayOtherPrice(f),
-        variants: serializeProductVariants(f.variants),
-        variations: serializeProductVariants(f.variants),
+        variants: serializeProductVariants(f.variants, { productStockQty: f.stockQty ?? null }),
+        variations: serializeProductVariants(f.variants, { productStockQty: f.stockQty ?? null }),
         image: f.image || '',
         // Falls back to the single image so a dish saved before galleries existed
         // still returns a one-entry list, rather than the panel having to special
@@ -3695,7 +3696,8 @@ export async function createProduct(body) {
         approvalStatus: 'approved'
     });
     await doc.save();
-    return doc.toObject();
+    await syncProductAvailability(doc._id);
+    return (await Product.findById(doc._id).lean()) || doc.toObject();
 }
 
 /** Grocery fields shared by the admin create and update paths. Undefined leaves the schema default. */
@@ -3720,7 +3722,12 @@ function buildAdminCatalogFields(body = {}) {
         gstRate: num(body.gstRate, { max: 100 }),
         stockQty: num(body.stockQty),
         lowStockThreshold: num(body.lowStockThreshold),
-        maxQtyPerOrder: num(body.maxQtyPerOrder, { min: 1 })
+        maxQtyPerOrder: num(body.maxQtyPerOrder, { min: 1 }),
+        tags: body.tags === undefined
+            ? undefined
+            : [...new Set((Array.isArray(body.tags) ? body.tags : String(body.tags || '').split(','))
+                .map((t) => String(t).trim().toLowerCase()).filter(Boolean))].slice(0, 20),
+        quickEligible: body.quickEligible === undefined ? undefined : body.quickEligible !== false && body.quickEligible !== 'false'
     };
 }
 
@@ -3766,7 +3773,8 @@ export async function updateProduct(id, body) {
         doc.categoryName = categoryName;
     }
     await doc.save();
-    return doc.toObject();
+    await syncProductAvailability(doc._id);
+    return (await Product.findById(doc._id).lean()) || doc.toObject();
 }
 
 export async function deleteProduct(id) {

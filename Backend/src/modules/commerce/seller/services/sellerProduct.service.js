@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { syncProductAvailability } from '../../orders/services/inventory.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { Product } from '../../admin/models/product.model.js';
 import { Category } from '../../admin/models/category.model.js';
@@ -129,6 +130,11 @@ const buildCatalogUpdate = (body = {}) => {
     const update = {};
 
     if (body.brand !== undefined) update.brand = toStr(body.brand);
+    if (body.tags !== undefined) {
+        const raw = Array.isArray(body.tags) ? body.tags : String(body.tags || '').split(',');
+        update.tags = [...new Set(raw.map((t) => toStr(t).toLowerCase()).filter(Boolean))].slice(0, 20);
+    }
+    if (body.quickEligible !== undefined) update.quickEligible = body.quickEligible !== false && body.quickEligible !== 'false';
     if (body.packSize !== undefined) update.packSize = toStr(body.packSize);
     if (body.sku !== undefined) update.sku = toStr(body.sku);
     if (body.barcode !== undefined) update.barcode = toStr(body.barcode);
@@ -174,9 +180,10 @@ const buildCatalogUpdate = (body = {}) => {
 /** Selling above the printed maximum retail price is illegal, so it is refused outright. */
 const assertPriceWithinMrp = (price, mrp, variants = []) => {
     if (!Number.isFinite(Number(mrp)) || Number(mrp) <= 0) return;
+    // A variant with its own MRP was checked against it already.
     const highest = Math.max(
         Number(price) || 0,
-        ...(Array.isArray(variants) ? variants.map((v) => Number(v?.price) || 0) : []),
+        ...(Array.isArray(variants) ? variants.filter((v) => !(Number(v?.mrp) > 0)).map((v) => Number(v?.price) || 0) : []),
     );
     if (highest > Number(mrp)) {
         throw new ValidationError(`Price cannot be above the MRP of ${mrp}`);
@@ -353,6 +360,16 @@ export async function updateSellerProductStock(sellerId, entries = []) {
             continue;
         }
 
+        const variantId = toStr(entry?.variantId);
+        if (variantId) {
+            try {
+                updated.push(await updateVariantStock(context.sellerId, productId, variantId, entry));
+            } catch (err) {
+                failed.push({ itemId: productId, variantId, reason: err?.message || 'Update failed' });
+            }
+            continue;
+        }
+
         try {
             const { update, unset } = buildAvailabilityUpdate({
                 stockQty: entry?.stockQty,
@@ -381,13 +398,50 @@ export async function updateSellerProductStock(sellerId, entries = []) {
                 failed.push({ itemId: productId, reason: 'Item not found for this seller' });
                 continue;
             }
-            updated.push(doc);
+            // A zero shared count must not hide variants that are counted on their own.
+            await syncProductAvailability(doc._id);
+            const fresh = await Product.findById(doc._id).select('isAvailable').lean();
+            updated.push({ ...doc, isAvailable: fresh?.isAvailable !== false });
         } catch (err) {
             failed.push({ itemId: productId, reason: err?.message || 'Update failed' });
         }
     }
 
     return { updated, failed, updatedCount: updated.length, failedCount: failed.length };
+}
+
+/**
+ * Sets one variant's count, low-stock mark or on/off switch.
+ * `stockQty: null` hands the variant back to the product's shared count.
+ */
+async function updateVariantStock(sellerId, productId, variantId, entry = {}) {
+    if (!mongoose.Types.ObjectId.isValid(variantId)) throw new ValidationError('Invalid variant id');
+    const set = {};
+    const stockQty = parseStockNumber(entry.stockQty);
+    if (stockQty !== undefined) set['variants.$.stockQty'] = stockQty;
+    const low = parseStockNumber(entry.lowStockThreshold);
+    if (low !== undefined) set['variants.$.lowStockThreshold'] = low;
+    if (entry.isActive !== undefined) set['variants.$.isActive'] = entry.isActive !== false;
+    if (!Object.keys(set).length) throw new ValidationError('Nothing to update');
+
+    const doc = await Product.findOneAndUpdate(
+        { _id: new mongoose.Types.ObjectId(productId), sellerId, 'variants._id': new mongoose.Types.ObjectId(variantId) },
+        { $set: set },
+        { new: true },
+    ).select('_id name isAvailable variants').lean();
+    if (!doc) throw new ValidationError('Variant not found for this seller');
+
+    await syncProductAvailability(productId);
+    const variant = doc.variants.find((v) => String(v._id) === variantId);
+    return {
+        _id: doc._id,
+        name: doc.name,
+        variantId,
+        variantName: variant?.name || '',
+        stockQty: variant?.stockQty ?? null,
+        lowStockThreshold: variant?.lowStockThreshold ?? null,
+        isActive: variant?.isActive !== false,
+    };
 }
 
 /** Products at or below their own low-stock mark, so the seller knows what to reorder. */
@@ -406,6 +460,31 @@ export async function listLowStockProducts(sellerId) {
     // of the same document in a plain find, and a seller's catalogue is small
     // enough that filtering here is cheaper than an aggregation pipeline.
     const low = items.filter((item) => Number(item.stockQty) <= Number(item.lowStockThreshold));
+
+    // Variants counted on their own, at or below their own mark.
+    const withVariants = await Product.find({
+        sellerId: context.sellerId,
+        variants: { $elemMatch: { stockQty: { $ne: null }, lowStockThreshold: { $ne: null } } },
+    })
+        .select('_id name brand packSize image isAvailable variants')
+        .lean();
+    for (const product of withVariants) {
+        for (const v of product.variants || []) {
+            if (v.stockQty === null || v.stockQty === undefined || v.lowStockThreshold === null || v.lowStockThreshold === undefined) continue;
+            if (v.isActive === false || Number(v.stockQty) > Number(v.lowStockThreshold)) continue;
+            low.push({
+                _id: product._id,
+                name: `${product.name} (${v.name})`,
+                brand: product.brand,
+                packSize: product.packSize,
+                image: v.images?.[0] || product.image,
+                variantId: String(v._id),
+                stockQty: v.stockQty,
+                lowStockThreshold: v.lowStockThreshold,
+                isAvailable: product.isAvailable,
+            });
+        }
+    }
     low.sort((a, b) => Number(a.stockQty) - Number(b.stockQty));
 
     return { items: low, total: low.length };
@@ -453,6 +532,7 @@ export async function createSellerProduct(sellerId, body = {}) {
         approvalStatus: 'pending',
         requestedAt: new Date()
     });
+    await syncProductAvailability(doc._id);
 
     try {
         const { notifyAdminsSafely } = await import('../../../../core/notifications/firebase.service.js');
@@ -547,6 +627,7 @@ export async function updateSellerProduct(sellerId, productId, body = {}) {
         },
         { new: true }
     ).lean();
+    if (updated) await syncProductAvailability(updated._id);
 
     if (updated && shouldResubmitForApproval) {
         try {
