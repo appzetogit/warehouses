@@ -28,22 +28,30 @@ function nextStoreDayStart(at = new Date()) {
     return t;
 }
 
+/**
+ * The wheel customers see, or null when an admin has switched every wheel off.
+ * A default wheel is created only the first time, when there is none at all.
+ */
 export async function getActiveCampaign() {
-    let campaign = await SpinCampaign.findOne({ isActive: true }).lean();
-    if (!campaign) {
-        campaign = (await SpinCampaign.create({
+    const campaign = await SpinCampaign.findOne({ isActive: true }).lean();
+    if (campaign) return campaign;
+    if (await SpinCampaign.exists({})) return null;
+    try {
+        return (await SpinCampaign.create({
             title: 'Daily Lucky Wheel',
             isActive: true,
             segments: DEFAULT_SPIN_SEGMENTS,
             dailyLimit: 1,
         })).toObject();
+    } catch {
+        return SpinCampaign.findOne({ isActive: true }).lean();
     }
-    return campaign;
 }
 
 export async function getSpinStatus(userId) {
     const user = toOid(userId, 'user id');
     const campaign = await getActiveCampaign();
+    if (!campaign) return { canSpin: false, spinsRemaining: 0, dailyLimit: 0, nextSpinAt: null, segments: [], isActive: false };
     const spinsToday = await SpinResult.countDocuments({ userId: user, day: storeDay() });
     const dailyLimit = campaign.dailyLimit || 1;
     const coinBalance = await getCoinBalance(user).catch(() => ({ usable: 0 }));
@@ -55,6 +63,7 @@ export async function getSpinStatus(userId) {
         nextSpinAt: nextStoreDayStart(),
         segments: campaign.segments,
         coinBalance: coinBalance.usable,
+        isActive: true,
     };
 }
 
@@ -100,6 +109,7 @@ async function drawFromBudget(campaign, coins, at = new Date()) {
 export async function playSpin(userId, { ip = '' } = {}) {
     const user = toOid(userId, 'user id');
     const campaign = await getActiveCampaign();
+    if (!campaign) throw new ValidationError('The wheel is not running right now');
     const dailyLimit = campaign.dailyLimit || 1;
     const day = storeDay();
     const segments = campaign.segments?.length ? campaign.segments : DEFAULT_SPIN_SEGMENTS;
@@ -169,5 +179,117 @@ export async function playSpin(userId, { ip = '' } = {}) {
         coinsAwarded: pays ? segment.value : 0,
         balance: balance.usable,
         spinsRemaining: Math.max(0, dailyLimit - result.seq),
+    };
+}
+
+// ---- admin -----------------------------------------------------------------
+
+const SEGMENT_TYPES = ['coins', 'none'];
+
+function cleanSegments(raw) {
+    if (!Array.isArray(raw) || raw.length < 2 || raw.length > 12) {
+        throw new ValidationError('A wheel needs between 2 and 12 segments');
+    }
+    return raw.map((seg, i) => {
+        const type = SEGMENT_TYPES.includes(seg?.type) ? seg.type : null;
+        if (!type) throw new ValidationError(`Segment ${i + 1}: type must be coins or none`);
+        const value = type === 'coins' ? Math.floor(Number(seg.value)) : 0;
+        if (type === 'coins' && !(value > 0)) throw new ValidationError(`Segment ${i + 1}: coins must be a positive whole number`);
+        const weight = Math.floor(Number(seg.weight));
+        if (!(weight >= 1)) throw new ValidationError(`Segment ${i + 1}: weight must be at least 1`);
+        const label = String(seg.label || '').trim() || (type === 'coins' ? `${value} Coins` : 'Better Luck');
+        return { id: i + 1, label, type, value, weight, color: String(seg.color || '').trim() || '#6b7280' };
+    });
+}
+
+function cleanCampaign(body = {}, { partial = false } = {}) {
+    const out = {};
+    if (!partial || body.title !== undefined) {
+        const title = String(body.title || '').trim();
+        if (!title) throw new ValidationError('Title is required');
+        out.title = title;
+    }
+    if (!partial || body.segments !== undefined) out.segments = cleanSegments(body.segments);
+    if (body.dailyLimit !== undefined) {
+        const n = Math.floor(Number(body.dailyLimit));
+        if (!(n >= 1 && n <= 10)) throw new ValidationError('Daily limit must be between 1 and 10');
+        out.dailyLimit = n;
+    }
+    if (body.monthlyCoinBudget !== undefined) {
+        const n = Math.floor(Number(body.monthlyCoinBudget));
+        if (!(n >= 0)) throw new ValidationError('Monthly budget must be 0 (no cap) or more');
+        out.monthlyCoinBudget = n;
+    }
+    return out;
+}
+
+/** Each segment's chance, as the admin will see it before saving. */
+const withChances = (campaign) => {
+    const total = (campaign.segments || []).reduce((s, x) => s + Math.max(1, Number(x.weight) || 1), 0);
+    return {
+        ...campaign,
+        segments: (campaign.segments || []).map((s) => ({
+            ...s,
+            chancePercent: total ? Math.round((Math.max(1, Number(s.weight) || 1) / total) * 1000) / 10 : 0,
+        })),
+    };
+};
+
+export async function listCampaigns() {
+    const campaigns = await SpinCampaign.find({}).sort({ isActive: -1, updatedAt: -1 }).lean();
+    return campaigns.map(withChances);
+}
+
+export async function createCampaign(body) {
+    const doc = await SpinCampaign.create({ ...cleanCampaign(body), isActive: false });
+    return withChances(doc.toObject());
+}
+
+export async function updateCampaign(id, body) {
+    const doc = await SpinCampaign.findByIdAndUpdate(toOid(id, 'campaign id'), { $set: cleanCampaign(body, { partial: true }) }, { new: true }).lean();
+    if (!doc) throw new ValidationError('Campaign not found');
+    return withChances(doc);
+}
+
+/** Only one wheel runs at a time: switching one on switches the others off. */
+export async function setCampaignActive(id, isActive) {
+    const oid = toOid(id, 'campaign id');
+    if (isActive) await SpinCampaign.updateMany({ _id: { $ne: oid } }, { $set: { isActive: false } });
+    const doc = await SpinCampaign.findByIdAndUpdate(oid, { $set: { isActive: Boolean(isActive) } }, { new: true }).lean();
+    if (!doc) throw new ValidationError('Campaign not found');
+    return withChances(doc);
+}
+
+/** A month of spins: how many, what they paid, and against what budget. */
+export async function getSpinReport({ month } = {}) {
+    const m = /^\d{4}-\d{2}$/.test(String(month || '')) ? String(month) : storeDay().slice(0, 7);
+    const days = { $regex: `^${m}-` };
+    const [totals] = await SpinResult.aggregate([
+        { $match: { day: days } },
+        {
+            $group: {
+                _id: null,
+                spins: { $sum: 1 },
+                players: { $addToSet: '$userId' },
+                coinsAwarded: { $sum: '$coinsAwarded' },
+                failedCredits: { $sum: { $cond: [{ $eq: ['$rewardStatus', 'failed'] }, 1, 0] } },
+            },
+        },
+    ]);
+    const bySegment = await SpinResult.aggregate([
+        { $match: { day: days } },
+        { $group: { _id: '$segmentWon.label', wins: { $sum: 1 }, coins: { $sum: '$coinsAwarded' } } },
+        { $sort: { wins: -1 } },
+    ]);
+    const active = await SpinCampaign.findOne({ isActive: true }).lean();
+    const budget = active ? await SpinBudget.findOne({ campaignId: active._id, month: m }).lean() : null;
+    return {
+        month: m,
+        spins: totals?.spins || 0,
+        players: totals?.players?.length || 0,
+        coinsAwarded: totals?.coinsAwarded || 0,
+        failedCredits: totals?.failedCredits || 0,
+        budget: active ? { limit: active.monthlyCoinBudget || 0, used: budget?.used || 0 } : null,
+        bySegment: bySegment.map((s) => ({ label: s._id, wins: s.wins, coins: s.coins })),
     };
 }

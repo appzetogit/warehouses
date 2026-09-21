@@ -115,6 +115,8 @@ GET /api/v1/admin/sellers/pending
 GET /api/v1/admin/sellers/reviews
 GET /api/v1/admin/sellers/unregistered
 GET /api/v1/admin/sidebar-badges
+GET /api/v1/admin/spin/campaigns
+GET /api/v1/admin/spin/report
 GET /api/v1/admin/sub-admins
 GET /api/v1/admin/sub-admins/:id
 GET /api/v1/admin/sub-admins/permission-catalog
@@ -288,6 +290,8 @@ PATCH /api/v1/admin/sellers/:id/location
 PATCH /api/v1/admin/sellers/:id/reject
 PATCH /api/v1/admin/sellers/:id/status
 PATCH /api/v1/admin/sellers/complaints/:id
+PATCH /api/v1/admin/spin/campaigns/:id
+PATCH /api/v1/admin/spin/campaigns/:id/active
 PATCH /api/v1/admin/sub-admins/:id
 PATCH /api/v1/admin/sub-admins/:id/permissions
 PATCH /api/v1/admin/sub-admins/:id/status
@@ -364,6 +368,7 @@ POST /api/v1/admin/seller-subscriptions/invoices/:invoiceId/mark-paid
 POST /api/v1/admin/seller-subscriptions/invoices/:invoiceId/waive
 POST /api/v1/admin/seller-subscriptions/run-billing
 POST /api/v1/admin/sellers
+POST /api/v1/admin/spin/campaigns
 POST /api/v1/admin/sub-admins
 POST /api/v1/admin/zones
 POST /api/v1/ai/chat

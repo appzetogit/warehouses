@@ -141,3 +141,46 @@ test('once the monthly budget is spent, the wheel stops paying', async () => {
     const lots = await CoinLot.find({ source: 'spin', userId: { $ne: userId } }).lean();
     assert.ok(lots.reduce((s, l) => s + l.amount, 0) <= 10 + 100, 'the earlier race test may have paid one prize');
 });
+
+test('admins build wheels, run one at a time, and can switch the wheel off', async () => {
+    const adminId = new mongoose.Types.ObjectId();
+    const { default: mongooseLib } = await import('mongoose');
+    await mongooseLib.connection.db.collection('admins').insertOne({
+        _id: adminId, email: 'spin-admin@example.com', role: 'ADMIN', adminType: 'super_admin', isActive: true,
+    });
+    const admin = tokenFor('ADMIN', adminId, { adminType: 'super_admin' });
+
+    const bad = await call('POST', '/admin/spin/campaigns', {
+        as: admin, body: { title: 'Broken', segments: [{ type: 'coins', value: 0, weight: 1 }, { type: 'none', weight: 1 }] },
+    });
+    assert.equal(bad.status, 400, 'a coin segment worth nothing is refused');
+
+    const created = ok(await call('POST', '/admin/spin/campaigns', {
+        as: admin,
+        body: { title: 'Festive', dailyLimit: 2, segments: [
+            { type: 'coins', value: 20, weight: 1 },
+            { type: 'none', weight: 3 },
+        ] },
+    }), 'create', 201);
+    assert.deepEqual(created.segments.map((s) => s.chancePercent), [25, 75]);
+    assert.equal(created.isActive, false, 'new wheels start switched off');
+
+    ok(await call('PATCH', `/admin/spin/campaigns/${created._id}/active`, { as: admin, body: { isActive: true } }), 'activate');
+    const list = ok(await call('GET', '/admin/spin/campaigns', { as: admin }), 'list');
+    assert.equal(list.filter((c) => c.isActive).length, 1, 'only one wheel runs');
+    assert.equal(list.find((c) => c.isActive).title, 'Festive');
+    const status = ok(await call('GET', '/user/spin/status', { as: userToken }), 'status');
+    assert.equal(status.dailyLimit, 2);
+
+    ok(await call('PATCH', `/admin/spin/campaigns/${created._id}/active`, { as: admin, body: { isActive: false } }), 'switch off');
+    const off = ok(await call('GET', '/user/spin/status', { as: userToken }), 'status off');
+    assert.equal(off.canSpin, false);
+    assert.equal((await call('POST', '/user/spin/play', { as: userToken, body: {} })).status, 400);
+
+    const report = ok(await call('GET', '/admin/spin/report', { as: admin }), 'report');
+    assert.ok(report.spins >= 1, 'counts this month');
+    assert.ok(Array.isArray(report.bySegment));
+
+    const customerTry = await call('GET', '/admin/spin/campaigns', { as: userToken });
+    assert.ok([401, 403].includes(customerTry.status), 'customers cannot reach it');
+});

@@ -22,6 +22,7 @@ import * as driverRegField from '../../delivery/controllers/driverRegistrationFi
 import * as cashbackSettings from '../controllers/cashbackSettings.controller.js';
 import * as sellerAppBanner from '../controllers/sellerAppBanner.controller.js';
 import * as coinController from '../../coins/controllers/coin.controller.js';
+import * as spinController from '../../spin/controllers/spin.controller.js';
 import * as dailyMetricsController from '../controllers/dailyMetrics.controller.js';
 
 const router = express.Router();
@@ -73,7 +74,7 @@ const resolveSectionFromRequest = (path = '', method = '') => {
         path.startsWith('/attributes') ||
         path.startsWith('/attribute-sets')
     ) return 'product_management';
-    if (path.startsWith('/offers')) return 'promotions_management';
+    if (path.startsWith('/offers') || path.startsWith('/spin')) return 'promotions_management';
     if (path.startsWith('/orders') || path.startsWith('/order-detect-delivery')) return 'order_management';
     if (path.startsWith('/delivery')) return 'delivery_management';
     if (path.startsWith('/withdrawals') || path.startsWith('/coins')) return 'transaction_management';
@@ -492,6 +493,13 @@ router.get('/sidebar-badges', adminController.getSidebarBadges);
 router.get('/notifications/fssai-expired', adminController.getExpiredFssaiNotifications);
 
 // ----- Platform Coins (Promotional liability ledger & settings) -----
+// ----- Spin wheel -----
+router.get('/spin/campaigns', spinController.listSpinCampaignsController);
+router.post('/spin/campaigns', spinController.createSpinCampaignController);
+router.patch('/spin/campaigns/:id', spinController.updateSpinCampaignController);
+router.patch('/spin/campaigns/:id/active', spinController.setSpinCampaignActiveController);
+router.get('/spin/report', spinController.getSpinReportController);
+
 router.get('/coins/settings', coinController.getCoinSettingsController);
 router.patch('/coins/settings', coinController.updateCoinSettingsController);
 router.post('/coins/adjust', coinController.adjustCoinsController);
