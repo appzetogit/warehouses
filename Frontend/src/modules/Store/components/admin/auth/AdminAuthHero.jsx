@@ -1,14 +1,14 @@
 import { motion, useReducedMotion } from "framer-motion"
-import { Boxes, Timer, Store } from "lucide-react"
+import { Store, Zap, Truck, Coins } from "lucide-react"
 import { useCompanyName } from "@store/hooks/useCompanyName"
-import QuickCommerceArt from "./QuickCommerceArt"
+import MarketplaceArt from "./MarketplaceArt"
 
 /**
  * Left-hand hero on the admin auth screens.
  *
- * Reads as a grocery marketplace rather than a seller platform: the three
- * figures below are the ones a quick-commerce operator actually watches —
- * delivery time, stock, and how many sellers are trading.
+ * Says what the platform is: many sellers, one marketplace, delivered either
+ * in minutes by a rider or shipped by courier. What it can do, not made-up
+ * numbers: the login screen has no live data to show.
  */
 export default function AdminAuthHero({ themeColor, logoUrl }) {
   const companyName = useCompanyName()
@@ -30,10 +30,11 @@ export default function AdminAuthHero({ themeColor, logoUrl }) {
         transition: { duration: 6, repeat: Infinity, ease: "easeInOut" },
       }
 
-  const stats = [
-    { icon: Timer, label: "Avg delivery", value: "12 min" },
-    { icon: Boxes, label: "In stock", value: "1,240 SKUs" },
-    { icon: Store, label: "Sellers live", value: "24" },
+  const pillars = [
+    { icon: Store, label: "Multi-vendor", detail: "sellers, stock, payouts" },
+    { icon: Zap, label: "Quick", detail: "rider, in minutes" },
+    { icon: Truck, label: "Shipped", detail: "courier, tracked" },
+    { icon: Coins, label: "Rewards", detail: "coins, spin, offers" },
   ]
 
   return (
@@ -79,7 +80,7 @@ export default function AdminAuthHero({ themeColor, logoUrl }) {
               Admin Portal
             </p>
             <p className="text-lg font-bold leading-tight text-white">
-              Suvio <span style={{ color: themeColor }}>Quick Commerce</span>
+              {companyName} <span style={{ color: themeColor }}>Admin</span>
             </p>
           </div>
         </motion.div>
@@ -88,25 +89,25 @@ export default function AdminAuthHero({ themeColor, logoUrl }) {
         <div className="flex flex-col gap-7">
           <motion.div {...fadeUp(0.1)}>
             <h1 className="text-[2rem] font-bold leading-[1.15] tracking-tight text-white xl:text-[2.6rem]">
-              Groceries at the door
+              Every store, one marketplace
               <span className="block" style={{ color: themeColor }}>
-                in minutes, not hours
+                delivered fast or shipped far
               </span>
             </h1>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/55">
-              Sellers, stock, riders and orders — one console for the whole
-              marketplace, updating as it happens.
+              Sellers, catalogue, orders, riders and couriers, payments and
+              rewards: one console for the whole platform.
             </p>
           </motion.div>
 
           <motion.div {...fadeUp(0.18)} className="relative">
             <motion.div {...float}>
-              <QuickCommerceArt accent={themeColor} className="h-auto w-full max-w-[330px]" />
+              <MarketplaceArt accent={themeColor} className="h-auto w-full max-w-[360px]" />
             </motion.div>
           </motion.div>
 
-          <motion.div {...fadeUp(0.26)} className="grid max-w-sm grid-cols-3 gap-2.5">
-            {stats.map(({ icon: Icon, label, value }) => (
+          <motion.div {...fadeUp(0.26)} className="grid max-w-md grid-cols-2 gap-2.5 xl:grid-cols-4">
+            {pillars.map(({ icon: Icon, label, detail }) => (
               <div
                 key={label}
                 className="rounded-xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-sm"
@@ -116,15 +117,15 @@ export default function AdminAuthHero({ themeColor, logoUrl }) {
                   style={{ color: themeColor }}
                   aria-hidden="true"
                 />
-                <p className="text-[10px] font-medium text-white/40">{label}</p>
-                <p className="mt-0.5 text-sm font-bold text-white">{value}</p>
+                <p className="text-sm font-bold text-white">{label}</p>
+                <p className="mt-0.5 text-[10px] font-medium leading-snug text-white/45">{detail}</p>
               </div>
             ))}
           </motion.div>
         </div>
 
         <motion.p {...fadeUp(0.32)} className="text-[11px] text-white/30">
-          &copy; {new Date().getFullYear()} {companyName || "Suvio Quick Commerce"}
+          &copy; {new Date().getFullYear()} {companyName}
         </motion.p>
       </div>
     </div>

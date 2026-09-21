@@ -66,7 +66,7 @@ import {
   isStatusAdvance,
   STATUS_PRIORITY,
 } from './order.helpers.js';
-import { defaultShippingProvider } from '../../delivery/services/shipping/mockShipping.provider.js';
+import { getShippingProvider } from '../../delivery/services/shipping/index.js';
 
 
 
@@ -2962,12 +2962,16 @@ export async function createOrderShipmentSeller(orderId, sellerId) {
   const originPincode = seller?.location?.pincode || '560001';
   const destPincode = order.deliveryAddress?.zipCode || '560001';
 
-  const shipmentData = await defaultShippingProvider.createShipment({
+  const shipmentData = await getShippingProvider().createShipment({
     orderId: order.orderId || order._id.toString(),
     originPincode,
     destPincode,
     customerName: order.customerName,
+    customerPhone: order.customerPhone,
     deliveryAddress: order.deliveryAddress,
+    items: order.items,
+    subTotal: order.pricing?.subtotal,
+    paymentMethod: order.payment?.method,
     weightGrams: 500,
   });
 
@@ -3010,6 +3014,6 @@ export async function trackOrderShipmentSeller(orderId, sellerId) {
     throw new ValidationError("No courier shipment generated for this order yet");
   }
 
-  const tracking = await defaultShippingProvider.trackShipment(awb);
+  const tracking = await getShippingProvider().trackShipment(awb);
   return { awb, shipment: order.shipment, tracking };
 }

@@ -318,20 +318,20 @@ Each week one of these slips moves launch by about a week.
 
 ---
 
-## 5. Decisions needed from the client before build
+## 5. Decisions (all settled; the client can override any by config or admin settings)
 
 | # | Decision | Why it blocks | Suggested default |
 |---|---|---|---|
-| B1 | Which refund reasons pay out in coins and which go back to the original payment | Refund logic | Coins for cancellations and missing items; original method for failed payments and gateway errors |
+| B1 | Which refund reasons pay out in coins and which go back to the original payment | Refund logic | **Decided (2026-09-21):** refunds go back to the original payment method by default; at cancellation the customer may choose coins instead, credited in full with the 80% rule applied. Coins spent on the order always come back as coins. Cash orders have nothing to refund |
 | B2 | ~~How the 80% rule applies~~ | — | **Decided (2026-09-21):** 1,000 coins credited, at most 800 ever spendable; the other 20% is never redeemable |
 | B3 | ~~Coin expiry and per-order limit~~ | — | **Decided:** 90 days, oldest coins used first; coins pay at most 50% of an order. Both editable in admin |
-| B4 | Courier/shipping provider (Shiprocket, Delhivery, …) | Real shipping only | **Decided:** build a `ShippingProvider` interface with a mock provider now; the client picks the courier later |
-| B5 | Payment gateway | Gateway adapter | Razorpay (already integrated) |
+| B4 | Courier/shipping provider (Shiprocket, Delhivery, …) | Real shipping only | **Decided (2026-09-21):** Shiprocket, an aggregator in front of Delhivery, Blue Dart, Xpressbees, Ekart and others, so coverage is not tied to one network. `ShiprocketProvider` is used when `SHIPROCKET_*` is set; the mock otherwise |
+| B5 | Payment gateway | Gateway adapter | **Decided:** Razorpay, behind a `PaymentGateway` interface (`core/payments/gateway`) with a reconciliation report |
 | B6 | ~~Mix quick and standard in one checkout?~~ | — | **Decided:** no. Separate storefronts and carts; a checkout is all quick or all standard |
-| B7 | Commission basis (per seller, per category, flat + %) | Settlement | **Partly decided:** the platform bears coins and platform coupons; sellers bear their own coupons. Commission basis still open (default: existing per-seller rules) |
-| B8 | Spin eligibility and budget (daily / after order) | Spin rules | 1 spin after each delivered order, monthly budget cap |
-| B9 | AI use cases in scope (SOW §11 lists 5 as "potential") | AI effort | Chatbot + order status + search help; recommendations without the LLM |
-| B10 | Brand name, domain, app ids | Rename, store listings | — |
+| B7 | Commission basis (per seller, per category, flat + %) | Settlement | **Decided (2026-09-21):** a seller-specific rule (percentage or flat) wins; otherwise each line pays its category's `commissionPercent` (inherited from the parent) on its share of the subtotal after discounts. Tax, delivery and packaging are never commissioned. The platform bears coins and platform coupons; sellers bear their own coupons |
+| B8 | Spin eligibility and budget (daily / after order) | Spin rules | **Decided (2026-09-21):** one spin per customer per day (store timezone), weighted rewards, a monthly coin budget per wheel, campaigns scheduled from admin. Daily rather than per order, so it brings customers back without rewarding order-splitting |
+| B9 | AI use cases in scope (SOW §11 lists 5 as "potential") | AI effort | **Decided (2026-09-21):** shopping assistant (product search and help) and order-status answers on Gemini 2.5 Flash, key in `GEMINI_API_KEY`, 20 messages a minute per customer. Recommendations stay rule-based (no LLM cost per page view) |
+| B10 | Brand name, domain, app ids | Rename, store listings | **Decided (2026-09-21):** brand from `BRAND_NAME` (default "Warehouses"); domain is `FRONTEND_URL`; app ids `com.warehouses.customer`, `.seller`, `.delivery` for the Flutter apps. Both can be swapped by config |
 | B11 | ~~Keep the old `/api/v1/food` alias until when?~~ | — | Settled: no alias, since nothing is live |
 
 ---

@@ -32,7 +32,9 @@ const upsertSchema = z.object({
     parentId: z.string().max(100).optional(),
     /** Empty string or null clears it. */
     attributeSetId: z.string().max(100).nullable().optional(),
-    requiresFssai: booleanQuerySchema.optional()
+    requiresFssai: booleanQuerySchema.optional(),
+    /** Empty string or null clears it (no category commission). */
+    commissionPercent: z.union([z.coerce.number().min(0).max(100), z.literal(''), z.null()]).optional()
 });
 
 const rejectSchema = z.object({

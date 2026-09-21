@@ -172,3 +172,14 @@ export const getRefundsByOrderController = async (req, res, next) => {
         next(err);
     }
 };
+
+export const getPaymentReconciliationController = async (req, res, next) => {
+    try {
+        const { reconcilePayments } = await import('./reconciliation.service.js');
+        const { from, to, limit } = req.query;
+        const report = await reconcilePayments({ from, to, limit: Math.min(Number(limit) || 500, 2000) });
+        return sendResponse(res, 200, 'Payment reconciliation fetched successfully', report);
+    } catch (error) {
+        next(error);
+    }
+};

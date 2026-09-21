@@ -89,6 +89,7 @@ GET /api/v1/admin/products/bulk-upload/template
 GET /api/v1/admin/products/pending-approvals
 GET /api/v1/admin/queues
 GET /api/v1/admin/referral-settings
+GET /api/v1/admin/reports/payments/reconciliation
 GET /api/v1/admin/reports/sellers
 GET /api/v1/admin/reports/tax
 GET /api/v1/admin/reports/tax/:id

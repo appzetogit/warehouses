@@ -3316,6 +3316,13 @@ export async function getCategories(query) {
  * the chain -- a category cannot be its own grandparent if there are no
  * grandparents. Empty promotes back to top level.
  */
+/** '' or null clears a category's commission; otherwise a 0-100 percent. */
+function toCommissionPercent(value) {
+    if (value === '' || value === null || value === undefined) return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : null;
+}
+
 async function resolveCategoryParentId(value, selfId = null) {
     const raw = String(value ?? '').trim();
     if (!raw || raw === 'none') return undefined;
@@ -3371,6 +3378,7 @@ export async function createCategory(body) {
         parentId: await resolveCategoryParentId(body.parentId),
         attributeSetId: await resolveAttributeSetId(body.attributeSetId),
         requiresFssai: body.requiresFssai === true || body.requiresFssai === 'true',
+        commissionPercent: toCommissionPercent(body.commissionPercent),
         // Admin-created categories are globally available immediately.
         approvalStatus: 'approved',
         isApproved: true,
@@ -3467,6 +3475,7 @@ export async function updateCategory(id, body) {
     if (body.sortOrder !== undefined) doc.sortOrder = Number(body.sortOrder) || 0;
     if (body.attributeSetId !== undefined) doc.attributeSetId = await resolveAttributeSetId(body.attributeSetId);
     if (body.requiresFssai !== undefined) doc.requiresFssai = body.requiresFssai === true || body.requiresFssai === 'true';
+    if (body.commissionPercent !== undefined) doc.commissionPercent = toCommissionPercent(body.commissionPercent);
     if (body.parentId !== undefined) doc.parentId = await resolveCategoryParentId(body.parentId, doc._id);
     if (!doc.createdBySellerId && doc.sellerId) {
         doc.createdBySellerId = doc.sellerId;

@@ -1,4 +1,5 @@
 import express from 'express';
+import * as paymentController from '../../../../core/payments/payment.controller.js';
 import * as attributeController from '../controllers/attribute.controller.js';
 import { AuthError } from '../../../../core/auth/errors.js';
 import * as adminController from '../controllers/admin.controller.js';
@@ -183,6 +184,7 @@ router.get('/dashboard-stats', adminController.getDashboardStats);
 router.get('/reports/sellers', adminController.getSellerReport);
 router.get('/reports/transactions', adminController.getTransactionReport);
 router.get('/reports/tax', adminController.getTaxReport);
+router.get('/reports/payments/reconciliation', paymentController.getPaymentReconciliationController);
 router.get('/reports/tax/:id', adminController.getTaxReportDetail);
 router.get('/sellers/pending', adminController.getPendingSellers);
 router.get('/sellers/unregistered', adminController.getUnregisteredSellers);

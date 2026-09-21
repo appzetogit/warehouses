@@ -49,6 +49,12 @@ const categorySchema = new mongoose.Schema(
         attributeSetId: { type: mongoose.Schema.Types.ObjectId, ref: 'AttributeSet', default: null },
         /** Sellers need a valid FSSAI licence to list products here (food, groceries). */
         requiresFssai: { type: Boolean, default: false },
+        /**
+         * Platform commission on items in this category, as a percentage of
+         * the line value. Used when the seller has no commission rule of its
+         * own; null falls back to the parent category, then to none.
+         */
+        commissionPercent: { type: Number, min: 0, max: 100, default: null },
         isActive: { type: Boolean, default: true, index: true },
         sortOrder: { type: Number, default: 0, index: true }
     },

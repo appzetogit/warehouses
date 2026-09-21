@@ -2,6 +2,7 @@ import { OrderTransaction } from '../models/orderTransaction.model.js';
 import { SellerCommission } from '../../admin/models/sellerCommission.model.js';
 import { resolveDiscountSplitByCoupon } from '../../shared/discountSplit.util.js';
 import mongoose from 'mongoose';
+import { Category } from '../../admin/models/category.model.js';
 
 const SELLER_COMMISSION_CACHE_MS = 60 * 1000;
 let sellerCommissionRulesCache = null;
@@ -69,16 +70,65 @@ export async function getSellerCommissionSnapshot(orderDoc) {
     rules.find((r) => String(r.seller || r.seller_id || '') === String(sellerIdRaw)) ||
     null;
 
-  if (!rule) {
-    return {
-      commissionAmount: 0,
-      commissionType: 'percentage',
-      commissionValue: 0,
-      baseAmount,
-    };
-  }
+  if (!rule) return getCategoryCommission(orderDoc, baseAmount);
 
   return computeSellerCommissionAmount(baseAmount, rule);
+}
+
+/**
+ * Commission by category, for sellers without a rule of their own. Each line
+ * pays its category's rate (or its parent's) on its share of the subtotal, so
+ * an order-level discount lowers the base in proportion.
+ */
+export async function getCategoryCommission(orderDoc, baseAmount) {
+  const none = { commissionAmount: 0, commissionType: 'percentage', commissionValue: 0, baseAmount };
+  const items = Array.isArray(orderDoc?.items) ? orderDoc.items : [];
+  const lines = items.map((i) => ({ categoryId: i.categoryId ? String(i.categoryId) : null, value: (Number(i.price) || 0) * (Number(i.quantity) || 0) }));
+  const gross = lines.reduce((s, l) => s + l.value, 0);
+  if (!gross || !baseAmount) return none;
+
+  const rates = await getCategoryRates();
+  const scale = baseAmount / gross;
+  let amount = 0;
+  for (const l of lines) amount += l.value * scale * ((l.categoryId && rates.get(l.categoryId)) || 0) / 100;
+  amount = Math.max(0, Math.min(Math.round(amount * 100) / 100, baseAmount));
+  if (!amount) return none;
+  return {
+    commissionAmount: amount,
+    commissionType: 'category',
+    commissionValue: Math.round((amount / baseAmount) * 10000) / 100,
+    baseAmount,
+  };
+}
+
+let categoryRatesCache = null;
+let categoryRatesLoadedAt = 0;
+
+/** categoryId -> effective percent, a child inheriting its parent's rate. */
+async function getCategoryRates() {
+  if (categoryRatesCache && Date.now() - categoryRatesLoadedAt < SELLER_COMMISSION_CACHE_MS) return categoryRatesCache;
+  const cats = await Category.find({}).select('_id parentId commissionPercent').lean();
+  const byId = new Map(cats.map((c) => [String(c._id), c]));
+  const rates = new Map();
+  for (const c of cats) {
+    let cur = c;
+    for (let depth = 0; cur && depth < 10; depth++) {
+      if (cur.commissionPercent !== null && cur.commissionPercent !== undefined) {
+        rates.set(String(c._id), Number(cur.commissionPercent));
+        break;
+      }
+      cur = cur.parentId ? byId.get(String(cur.parentId)) : null;
+    }
+  }
+  categoryRatesCache = rates;
+  categoryRatesLoadedAt = Date.now();
+  return rates;
+}
+
+/** Tests and the admin category editor call this after a rate changes. */
+export function clearCommissionCaches() {
+  categoryRatesCache = null;
+  sellerCommissionRulesCache = null;
 }
 
 /**

@@ -340,7 +340,6 @@ export default function AdminRouter() {
             <Route path="support-tickets" element={<SupportTickets />} />
             <Route path="wallet/add-fund" element={<AddFund />} />
             <Route path="wallet/bonus" element={<Bonus />} />
-            <Route path="loyalty-point/report" element={<LoyaltyPointReport />} />
             <Route path="subscribed-mail-list" element={<SubscribedMailList />} />
 
             <Route path="delivery-boy-commission" element={<DeliveryBoyCommission />} />
