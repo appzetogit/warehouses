@@ -121,7 +121,7 @@ export default function Navbar() {
           </div>
 
           {/* Company Logo or Name - Centered between sections */}
-          <Link to="/food/user" className="flex items-center justify-center flex-shrink-0">
+          <Link to="/" className="flex items-center justify-center flex-shrink-0">
             {logoUrl ? (
               <img
                 src={logoUrl}
@@ -159,7 +159,7 @@ export default function Navbar() {
             </Button>
 
             {/* Cart */}
-            <Link to="/food/cart">
+            <Link to="/cart">
               <Button variant="ghost" size="icon" className="relative h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 hover:bg-gray-100">
                 <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 dark:text-gray-300" />
                 {cartCount > 0 && (
@@ -187,22 +187,22 @@ export default function Navbar() {
                     🛡️ Admin Portal
                   </DropdownMenuItem>
                 </Link>
-                <Link to="/food/user/cart">
+                <Link to="/cart">
                   <DropdownMenuItem>YOUR CART</DropdownMenuItem>
                 </Link>
-                <Link to="/food/user/profile">
+                <Link to="/profile">
                   <DropdownMenuItem>Profile</DropdownMenuItem>
                 </Link>
-                <Link to="/food/user/orders">
+                <Link to="/orders">
                   <DropdownMenuItem>My Orders</DropdownMenuItem>
                 </Link>
-                <Link to="/food/user/offers">
+                <Link to="/offers">
                   <DropdownMenuItem>Offers</DropdownMenuItem>
                 </Link>
-                <Link to="/food/user/help">
+                <Link to="/help">
                   <DropdownMenuItem>Help</DropdownMenuItem>
                 </Link>
-                <Link to="/food/user/auth/login">
+                <Link to="/auth/login">
                   <DropdownMenuItem>Sign Out</DropdownMenuItem>
                 </Link>
               </DropdownMenuContent>

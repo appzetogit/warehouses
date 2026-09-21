@@ -31,8 +31,8 @@ export default function PromoRow({ navigate }) {
           whileTap={{ scale: 0.95 }}
           className="flex flex-col items-center gap-1.5 group cursor-pointer w-full"
           onClick={() => {
-            if (promo.id === 'offers') navigate('/food/user/offers');
-            else if (promo.id === 'collections') navigate('/food/user/profile/favorites');
+            if (promo.id === 'offers') navigate('/offers');
+            else if (promo.id === 'collections') navigate('/profile/favorites');
           }}
         >
           {/* Floating Minimalist Image */}

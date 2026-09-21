@@ -58,10 +58,10 @@ export default function DesktopNavbar() {
     }
 
     // Check active routes - support both /user/* and /* paths
-    const isProfile = location.pathname.startsWith("/food/user/profile") || location.pathname.startsWith("/food/profile")
-    const isDelivery = !isProfile && (location.pathname === "/food/user" || location.pathname === "/food" || (location.pathname.startsWith("/food/user") && !location.pathname.includes("/profile")))
+    const isProfile = location.pathname.startsWith("/profile") || location.pathname.startsWith("/profile")
+    const isDelivery = !isProfile && (location.pathname === "/" || location.pathname === "/food" || (location.pathname.startsWith("/") && !location.pathname.includes("/profile")))
     const isBannerRoute =
-        location.pathname === "/food/user" ||
+        location.pathname === "/" ||
         location.pathname === "/food"
 
     // Load business settings logo
@@ -160,7 +160,7 @@ export default function DesktopNavbar() {
                         <div className="flex items-center gap-4 lg:gap-6 flex-shrink-0">
                             {/* Logo */}
                             <Link
-                              to="/food/user"
+                              to="/"
                               onClick={() => clearHomeScrollState()}
                               className="flex items-center justify-center flex-shrink-0"
                             >
@@ -281,7 +281,7 @@ export default function DesktopNavbar() {
                             </Link>
 
                             {/* Wallet Icon */}
-                            <Link to="/food/user/wallet">
+                            <Link to="/wallet">
                                 <Button
                                     variant="ghost"
                                     className="h-10 w-10 lg:h-12 lg:w-12 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -292,7 +292,7 @@ export default function DesktopNavbar() {
                             </Link>
 
                             {/* Cart Icon */}
-                            <Link to="/food/user/cart">
+                            <Link to="/cart">
                                 <Button
                                     variant="ghost"
                                     className="relative h-10 w-10 lg:h-12 lg:w-12 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -318,7 +318,7 @@ export default function DesktopNavbar() {
                         {/* Navigation Links */}
                         <div className="flex items-center space-x-6">
                             <Link
-                                to="/food/user"
+                                to="/"
                                 onClick={() => clearHomeScrollState()}
                                 className={`text-xs font-bold tracking-wide uppercase transition-colors ${
                                     isDelivery ? "text-orange-600 dark:text-orange-500" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -327,19 +327,19 @@ export default function DesktopNavbar() {
                                 Storefront
                             </Link>
                             <Link
-                                to="/food/user/categories"
+                                to="/categories"
                                 className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                             >
                                 Categories
                             </Link>
                             <Link
-                                to="/food/user/sellers"
+                                to="/sellers"
                                 className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                             >
                                 Stores & Sellers
                             </Link>
                             <Link
-                                to="/food/user/offers"
+                                to="/offers"
                                 className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                             >
                                 Offers & Deals
@@ -377,7 +377,7 @@ export default function DesktopNavbar() {
                         {/* Profile Tab */}
                         <div className="flex items-center">
                             <Link
-                                to="/food/user/profile"
+                                to="/profile"
                                 className={`text-xs font-bold tracking-wide uppercase transition-colors ${
                                     isProfile ? "text-orange-600 dark:text-orange-500" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                                 }`}

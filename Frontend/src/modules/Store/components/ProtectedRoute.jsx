@@ -13,7 +13,7 @@ import { ensureValidAccessToken, isModuleAuthenticated } from "@store/utils/auth
  * dues are billed at month end and settled by the admin, so no payment
  * gate exists here anymore.
  */
-export default function ProtectedRoute({ children, requiredRole, loginPath = "/food/user/auth/login" }) {
+export default function ProtectedRoute({ children, requiredRole, loginPath = "/auth/login" }) {
   const location = useLocation();
   const [status, setStatus] = useState(() => {
     if (!requiredRole) return "ok";

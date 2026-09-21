@@ -9,7 +9,7 @@ import { resolveDeviceFcmToken } from "@store/utils/firebaseMessaging";
 
 const LOGIN_PATHS = {
   seller: "/seller/login",
-  user: "/food/user/auth/login",
+  user: "/auth/login",
   delivery: "/food/delivery/login",
 };
 

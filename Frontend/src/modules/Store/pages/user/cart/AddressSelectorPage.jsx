@@ -473,7 +473,7 @@ export default function AddressSelectorPage() {
 
   const handleAddAddressClick = () => {
     if (!isModuleAuthenticated("user")) {
-      navigate("/food/user/auth/login", { state: { from: routerLocation.pathname } })
+      navigate("/auth/login", { state: { from: routerLocation.pathname } })
       return
     }
     setShowAddressForm(true)

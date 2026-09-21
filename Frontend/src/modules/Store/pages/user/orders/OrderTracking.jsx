@@ -1608,7 +1608,7 @@ export default function OrderTracking() {
             <div className="mt-4">
               <div className="h-px bg-gray-50 dark:bg-zinc-800 mb-4" />
               <Link 
-                to="/food/user/profile/help-content"
+                to="/profile/help-content"
                 className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-zinc-800/50 p-2 -mx-2 rounded-xl transition-colors cursor-pointer group"
               >
                 <p className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors">

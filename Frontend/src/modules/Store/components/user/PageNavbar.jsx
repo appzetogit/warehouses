@@ -1000,7 +1000,7 @@ export default function PageNavbar({
 
         {/* Left: Company Logo */}
         {showLogo && (
-          <Link to="/food/user" className="flex-shrink-0 mr-3 sm:mr-4">
+          <Link to="/" className="flex-shrink-0 mr-3 sm:mr-4">
             {logoUrl ? (
               <img
                 src={logoUrl}

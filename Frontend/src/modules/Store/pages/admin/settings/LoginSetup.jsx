@@ -28,7 +28,7 @@ const panelLoginUrls = [
   {
     id: 4,
     panelName: "Customer Panel",
-    loginUrl: "/food/user/auth/login",
+    loginUrl: "/auth/login",
     status: "active"
   }
 ]

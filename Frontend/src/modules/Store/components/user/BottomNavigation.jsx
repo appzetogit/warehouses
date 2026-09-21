@@ -7,15 +7,15 @@ export default function BottomNavigation() {
   const pathname = location.pathname
 
   // Check active routes - support both /user/* and /* paths
-  const isCart = pathname === "/food/cart" || pathname.startsWith("/food/user/cart")
-  const isProfile = pathname.startsWith("/food/profile") || pathname.startsWith("/food/user/profile")
+  const isCart = pathname === "/cart" || pathname.startsWith("/cart")
+  const isProfile = pathname.startsWith("/profile") || pathname.startsWith("/profile")
   const isDelivery =
     !isCart &&
     !isProfile &&
     (pathname === "/food" ||
       pathname === "/food/" ||
-      pathname === "/food/user" ||
-      (pathname.startsWith("/food/user") &&
+      pathname === "/" ||
+      (pathname.startsWith("/") &&
         !pathname.includes("/cart") &&
         !pathname.includes("/profile")))
 
@@ -36,7 +36,7 @@ export default function BottomNavigation() {
         
         {/* Delivery Tab */}
         <Link
-          to="/food/user"
+          to="/"
           onClick={handleHomeNavClick}
           className={`flex flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 relative rounded-full ${isDelivery
               ? ""
@@ -54,7 +54,7 @@ export default function BottomNavigation() {
 
         {/* Cart Tab */}
         <Link
-          to="/food/user/cart"
+          to="/cart"
           className={`flex flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 relative rounded-full ${isCart
               ? ""
               : "text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50"
@@ -71,7 +71,7 @@ export default function BottomNavigation() {
 
         {/* Profile Tab */}
         <Link
-          to="/food/user/profile"
+          to="/profile"
           className={`flex flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 relative rounded-full ${isProfile
               ? ""
               : "text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50"

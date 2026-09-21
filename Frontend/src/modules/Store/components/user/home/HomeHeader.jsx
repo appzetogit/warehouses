@@ -358,7 +358,7 @@ export default function HomeHeader({
                 </h3>
                 <div className="flex items-center gap-2">
                   <Link
-                    to="/food/user/notifications"
+                    to="/notifications"
                     onClick={() => closeNotifications()}
                     className="text-xs font-bold text-orange-600 hover:text-orange-700"
                   >
@@ -420,7 +420,7 @@ export default function HomeHeader({
               </div>
               <div className="p-3 bg-gray-50/50 dark:bg-gray-800/50 text-center">
                 <Link
-                  to="/food/user/notifications"
+                  to="/notifications"
                   onClick={() => closeNotifications()}
                   className="text-xs font-bold text-gray-400 hover:text-gray-600"
                 >

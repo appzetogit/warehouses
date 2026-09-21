@@ -30,7 +30,7 @@ const OutOfZoneScreen = ({ location }) => {
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <Link
-              to="/food/user/cart/address-selector"
+              to="/cart/address-selector"
               state={{ from: routerLocation.pathname }}
               className="inline-flex items-center gap-2 cursor-pointer group max-w-full no-underline"
             >

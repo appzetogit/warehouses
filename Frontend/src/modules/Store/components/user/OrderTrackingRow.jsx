@@ -41,7 +41,7 @@ function OrderTrackingRowInner({ order, timeRemaining, onDismiss, compact = fals
     <motion.button
       type="button"
       layout
-      onClick={() => navigate(`/food/user/orders/${orderId}`)}
+      onClick={() => navigate(`/orders/${orderId}`)}
       className={`relative w-full text-left bg-white/95 backdrop-blur-xl rounded-2xl border overflow-hidden cursor-pointer group active:scale-[0.99] transition-transform ${
         compact ? "p-3" : "p-4"
       }`}

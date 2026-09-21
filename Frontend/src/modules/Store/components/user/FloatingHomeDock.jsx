@@ -12,7 +12,7 @@ const DOCK_BOTTOM_NO_NAV = "calc(1.5rem + env(safe-area-inset-bottom, 0px))";
 function FloatingHomeDockInner({
   hasBottomNav = true,
   showOrderTracking = true,
-  linkTo = "/food/user/cart",
+  linkTo = "/cart",
 }) {
   const navigate = useNavigate();
   const { itemCount, total } = useCart();

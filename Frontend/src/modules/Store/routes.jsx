@@ -26,13 +26,6 @@ const AdminForgotPassword = lazy(() => import("@store/pages/admin/auth/AdminForg
 // Delivery Module
 const DeliveryRouter = lazy(() => import("../DeliveryV2"))
 
-function UserPathRedirect() {
-  const location = useLocation()
-  // Correctly handle the /food/user -> /food redirect regardless of where it starts
-  const newPath = location.pathname.replace("/user", "") || "/food"
-  return <Navigate to={newPath} replace />
-}
-
 // Scroll to top on route change (skip when Home has a pending scroll restore)
 function ScrollToTop() {
   const location = useLocation();
@@ -90,7 +83,7 @@ export default function App() {
   useEffect(() => {
     const resolveModule = () => {
       if (location.pathname.startsWith("/seller")) return "seller"
-      if (location.pathname.startsWith("/food/delivery")) return "delivery"
+      if (location.pathname.startsWith("/food/delivery") || location.pathname.startsWith("/delivery")) return "delivery"
       return "user"
     }
 
@@ -107,13 +100,13 @@ export default function App() {
       <PushSoundEnableButton />
       <Suspense fallback={<Loader />}>
         <Routes>
-          {/* User Module - Explicitly mapped to /user */}
+          {/* User/Customer Module — mounted at root */}
           <Route
-            path="user/*"
+            path="/*"
             element={<UserRouter />}
           />
 
-          {/* Seller Module - Already mapped to /seller */}
+          {/* Seller Module */}
           <Route
             path="seller/*"
             element={
@@ -121,15 +114,11 @@ export default function App() {
             }
           />
 
-          {/* Delivery Module - Already mapped to /delivery */}
+          {/* Delivery Module */}
           <Route
             path="delivery/*"
             element={<DeliveryRouter />}
           />
-
-          {/* Legacy Redirects & Fallbacks - use absolute path to avoid /user appended in a loop */}
-          <Route path="/" element={<Navigate to="/food/user" replace />} />
-          <Route path="*" element={<Navigate to="/food/user" replace />} />
         </Routes>
       </Suspense>
     </PublicAppConfigProvider>

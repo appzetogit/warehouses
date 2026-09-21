@@ -376,7 +376,7 @@ export default function UserOrderDetails() {
 
     replaceCart(reorderItems)
     toast.success("Items added to cart")
-    navigate(`/food/user/sellers/${sellerTarget}`)
+    navigate(`/sellers/${sellerTarget}`)
   }
 
   return (

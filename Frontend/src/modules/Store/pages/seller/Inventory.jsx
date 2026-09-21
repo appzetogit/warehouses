@@ -19,11 +19,13 @@ import {
   Download,
   AlertTriangle,
   Check,
-  RefreshCw
+  RefreshCw,
+  FileSpreadsheet
 } from "lucide-react"
 import SellerNavbar from "@store/components/seller/SellerNavbar"
 import BottomNavOrders from "@store/components/seller/BottomNavOrders"
 import { Switch } from "@store/components/ui/switch"
+import BulkStockModal from "@store/components/seller/BulkStockModal"
 import { useNavigate } from "react-router-dom"
 import { sellerAPI } from "@store/api"
 import { toast } from "sonner"
@@ -820,6 +822,8 @@ export default function Inventory() {
       window.removeEventListener("popstate", handlePopState)
     }
   }, [filterOpen])
+
+  const [isBulkStockModalOpen, setIsBulkStockModalOpen] = useState(false)
 
   // Bulk Upload Handlers
   const handleDownloadTemplate = async () => {
@@ -1671,6 +1675,16 @@ export default function Inventory() {
                 {selectedFilter !== "all" && (
                   <span className="absolute top-2 right-2 w-2 h-2 rounded-full" style={{ backgroundColor: "var(--module-theme-color, #2563EB)" }} />
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsBulkStockModalOpen(true)}
+                className="relative flex h-12 items-center justify-center gap-2 rounded-[20px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 transition-colors hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer"
+                title="Bulk stock CSV import and export"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                <span>Bulk Stock</span>
               </button>
 
             </div>
@@ -2787,6 +2801,13 @@ export default function Inventory() {
           </>
         )}
       </AnimatePresence>
+
+      <BulkStockModal
+        isOpen={isBulkStockModalOpen}
+        onClose={() => setIsBulkStockModalOpen(false)}
+        categories={categories}
+        onStockUpdated={fetchMenu}
+      />
 
       {/* Bottom Navigation */}
       <BottomNavOrders />

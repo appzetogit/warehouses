@@ -22,6 +22,8 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { catalogAPI } from "@/services/api"
+import { brandMarkUrl } from "@/config/brandMark"
+import SEOHead from "@store/components/SEOHead"
 import { useCart } from "@store/context/CartContext"
 import { Button } from "@store/components/ui/button"
 
@@ -101,7 +103,10 @@ export default function ProductDetail() {
   const displayMrp = currentVariant ? currentVariant.mrp : (product?.mrp ?? 0)
   const hasDiscount = displayMrp > displayPrice
   const discountPercent = hasDiscount ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100) : 0
-  const isAvailable = currentVariant ? currentVariant.inStock : (product?.stockQty > 0 || product?.isInStock)
+  // stockQty null means the product isn't counted, so only isAvailable decides.
+  const isAvailable = currentVariant
+    ? currentVariant.inStock
+    : product?.isAvailable !== false && (product?.stockQty == null || product.stockQty > 0)
 
   // Images list: variant images first, then product images
   const allImages = useMemo(() => {
@@ -109,7 +114,7 @@ export default function ProductDetail() {
     if (currentVariant?.images?.length) list.push(...currentVariant.images)
     if (product?.images?.length) list.push(...product.images)
     if (product?.image && !list.includes(product.image)) list.push(product.image)
-    return list.length > 0 ? list : ["https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&fit=crop&q=80"]
+    return list.length > 0 ? list : [brandMarkUrl()]
   }, [product, currentVariant])
 
   const handleSelectAttribute = (optName, val) => {
@@ -175,6 +180,11 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 pb-20">
+      <SEOHead
+        title={product.name}
+        description={product.description || [product.brand, product.name, product.packSize].filter(Boolean).join(" ")}
+        ogImage={allImages[0]}
+      />
       {/* Top Navbar */}
       <div className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">

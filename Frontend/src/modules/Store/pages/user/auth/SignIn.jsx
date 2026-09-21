@@ -97,7 +97,7 @@ export default function SignIn() {
       }
 
       sessionStorage.setItem("userAuthData", JSON.stringify(authData))
-      navigate("/food/user/auth/otp")
+      navigate("/auth/otp")
     } catch (apiError) {
       const message =
         apiError?.response?.data?.message ||
@@ -215,7 +215,7 @@ export default function SignIn() {
               By joining, you agree to our policies
             </p>
             <p className="text-[10px] text-zinc-300 dark:text-zinc-700 font-bold mt-2 uppercase tracking-widest">
-              <Link to="/food/user/profile/terms" className="hover:text-[#FA0272]">Terms</Link> • <Link to="/food/user/profile/privacy" className="hover:text-[#FA0272]">Privacy</Link> • <Link to="/food/user/profile/help-content" className="hover:text-[#FA0272]">Support</Link>
+              <Link to="/profile/terms" className="hover:text-[#FA0272]">Terms</Link> • <Link to="/profile/privacy" className="hover:text-[#FA0272]">Privacy</Link> • <Link to="/profile/help-content" className="hover:text-[#FA0272]">Support</Link>
             </p>
           </footer>
         </div>

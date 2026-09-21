@@ -139,7 +139,7 @@ export default function useActiveOrderTracking() {
   useEffect(() => {
     const onOrdersListingPage =
       typeof location?.pathname === "string" &&
-      location.pathname.startsWith("/food/user/orders") &&
+      location.pathname.startsWith("/orders") &&
       !/^\/food\/user\/orders\/[^/]+/.test(location.pathname);
 
     fetchOrders();

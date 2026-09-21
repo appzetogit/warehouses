@@ -14,12 +14,16 @@ import {
   ThumbsUp,
   ChevronLeft,
   ChevronRight,
-  Loader2
+  Loader2,
+  Layers,
+  Palette,
+  Sparkles,
+  Grid
 } from "lucide-react"
 import { Switch } from "@store/components/ui/switch"
 // Removed getAllProducts and saveProduct - now using menu API
 import api from "@store/api"
-import { sellerAPI, uploadAPI } from "@store/api"
+import { sellerAPI, uploadAPI, catalogAPI } from "@store/api"
 import { toast } from "sonner"
 import { ImageSourcePicker } from "@store/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@store/utils/imageUploadUtils"
@@ -45,6 +49,9 @@ const createVariantDraft = (variant = {}) => ({
   name: String(variant?.name || ""),
   price: variant?.price != null ? String(variant.price) : "",
   otherPrice: variant?.otherPrice != null ? String(variant.otherPrice) : "",
+  sku: String(variant?.sku || ""),
+  stock: variant?.stock != null ? String(variant.stock) : "50",
+  attributes: Array.isArray(variant?.attributes) ? variant.attributes : [],
 })
 
 export default function ItemDetailsPage() {
@@ -72,6 +79,10 @@ export default function ItemDetailsPage() {
   const [basePrice, setBasePrice] = useState("")
   const [otherPrice, setOtherPrice] = useState("")
   const [variants, setVariants] = useState([])
+  const [availableAttributes, setAvailableAttributes] = useState([])
+  const [selectedAttributeValues, setSelectedAttributeValues] = useState({})
+  const [loadingAttributes, setLoadingAttributes] = useState(false)
+  const [showMatrixGenerator, setShowMatrixGenerator] = useState(false)
   const [preparationTime, setPreparationTime] = useState("")
   const [gst, setGst] = useState("5.0")
   const [isRecommended, setIsRecommended] = useState(false)
@@ -277,6 +288,37 @@ export default function ItemDetailsPage() {
 
     fetchCategories()
   }, [category, defaultCategory, defaultCategoryId, isNewItem, selectedCategoryId])
+
+  // Fetch category attributes for variant matrix
+  useEffect(() => {
+    let active = true
+    const loadAttributes = async () => {
+      if (!selectedCategoryId) {
+        setAvailableAttributes([])
+        return
+      }
+      try {
+        setLoadingAttributes(true)
+        const res = await catalogAPI.getCategoryAttributes(selectedCategoryId)
+        const attrs = res?.data?.data?.attributes || res?.data?.attributes || []
+        if (active) {
+          if (Array.isArray(attrs) && attrs.length > 0) {
+            setAvailableAttributes(attrs)
+          } else {
+            const genRes = await catalogAPI.getAttributes()
+            const genAttrs = genRes?.data?.data?.attributes || genRes?.data?.attributes || []
+            if (active && Array.isArray(genAttrs)) setAvailableAttributes(genAttrs)
+          }
+        }
+      } catch (err) {
+        debugWarn("Failed to load category attributes:", err)
+      } finally {
+        if (active) setLoadingAttributes(false)
+      }
+    }
+    loadAttributes()
+    return () => { active = false }
+  }, [selectedCategoryId])
 
   // Keep focused form fields visible above mobile keyboard
   useEffect(() => {
@@ -683,6 +725,9 @@ export default function ItemDetailsPage() {
         name: variant.name,
         price: variant.price,
         otherPrice: variant.otherPrice > 0 ? variant.otherPrice : 0,
+        sku: variant.sku || undefined,
+        stock: Number.isFinite(Number(variant.stock)) ? Number(variant.stock) : 50,
+        attributes: Array.isArray(variant.attributes) ? variant.attributes : [],
       }))
 
       // Create/update Product in DB (single call per explicit Save; no autosave spam)
@@ -766,6 +811,56 @@ export default function ItemDetailsPage() {
 
   const handleAddVariant = () => {
     setVariants((prev) => [...prev, createVariantDraft()])
+  }
+
+  const handleToggleAttributeValue = (attrName, val) => {
+    setSelectedAttributeValues((prev) => {
+      const current = prev[attrName] || []
+      const next = current.includes(val)
+        ? current.filter((v) => v !== val)
+        : [...current, val]
+      return { ...prev, [attrName]: next }
+    })
+  }
+
+  const handleGenerateVariantMatrix = () => {
+    const activeEntries = Object.entries(selectedAttributeValues)
+      .filter(([_, vals]) => Array.isArray(vals) && vals.length > 0)
+      .map(([name, values]) => ({ name, values }))
+
+    if (activeEntries.length === 0) {
+      toast.error("Please select at least one attribute value to generate variants")
+      return
+    }
+
+    const cartesian = (arrays) => {
+      return arrays.reduce((acc, curr) => {
+        return acc.flatMap((a) => curr.values.map((v) => [...a, { name: curr.name, value: v }]))
+      }, [[]])
+    }
+
+    const combinations = cartesian(activeEntries)
+    const baseSkuPrefix = (itemName || 'PRD').trim().slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '')
+
+    const newVariants = combinations.map((attrCombo, index) => {
+      const variantName = attrCombo.map((a) => a.value).join(' / ')
+      const skuSuffix = attrCombo.map((a) => String(a.value).slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '')).join('-')
+      const sku = `${baseSkuPrefix || 'SKU'}-${skuSuffix}-${index + 1}`
+
+      return {
+        localId: `matrix-var-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`,
+        persistedId: "",
+        name: variantName,
+        price: basePrice ? String(basePrice) : "",
+        otherPrice: otherPrice ? String(otherPrice) : "",
+        stock: "50",
+        sku,
+        attributes: attrCombo,
+      }
+    })
+
+    setVariants(newVariants)
+    toast.success(`Generated ${newVariants.length} variants!`)
   }
 
   const handleRemoveVariant = (localId) => {
@@ -1138,39 +1233,143 @@ export default function ItemDetailsPage() {
                 </div>
               )}
 
-              <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-3">
-                <div className="flex items-center justify-between gap-3">
+              {/* Modern Variant Matrix Editor */}
+              <div className="rounded-xl border border-gray-200 bg-white p-3.5 md:p-4 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Variants</p>
-                    <p className="text-xs text-gray-500">Optional. Add multiple names and prices like Half, Full, Small, Large.</p>
+                    <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-orange-500 shrink-0" />
+                      Product Variants & Matrix
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Configure multi-attribute combinations (Sizes, Colors) or add individual variant options.
+                    </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleAddVariant}
-                    className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add variant
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {availableAttributes.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowMatrixGenerator(!showMatrixGenerator)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+                          showMatrixGenerator
+                            ? "bg-orange-600 text-white shadow-sm"
+                            : "border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
+                        }`}
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {showMatrixGenerator ? "Close Matrix" : "Matrix Generator"}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleAddVariant}
+                      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Custom
+                    </button>
+                  </div>
                 </div>
 
+                {/* Attribute Matrix Generator Accordion */}
+                {showMatrixGenerator && availableAttributes.length > 0 && (
+                  <div className="rounded-xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-orange-950 uppercase tracking-wider">
+                        Select Attributes to Cross-Combine:
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleGenerateVariantMatrix}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg text-xs font-bold shadow-sm hover:from-orange-600 hover:to-amber-600 self-start sm:self-auto"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Generate Combinations
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 pt-1">
+                      {availableAttributes.map((attr) => {
+                        const selectedForAttr = selectedAttributeValues[attr.name] || []
+                        const values = Array.isArray(attr.values) ? attr.values : []
+                        return (
+                          <div key={attr._id || attr.name} className="space-y-1.5">
+                            <span className="text-xs font-semibold text-gray-800">{attr.name}:</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {values.map((v) => {
+                                const valStr = typeof v === 'object' ? v.value : v
+                                const hexCode = typeof v === 'object' ? v.hex : null
+                                const isSelected = selectedForAttr.includes(valStr)
+                                return (
+                                  <button
+                                    key={valStr}
+                                    type="button"
+                                    onClick={() => handleToggleAttributeValue(attr.name, valStr)}
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                                      isSelected
+                                        ? "bg-orange-600 text-white shadow-sm font-semibold"
+                                        : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                                    }`}
+                                  >
+                                    {hexCode && (
+                                      <span
+                                        className="w-3 h-3 rounded-full border border-black/20 shrink-0"
+                                        style={{ backgroundColor: hexCode }}
+                                      />
+                                    )}
+                                    {valStr}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Variants List / Matrix Table */}
                 {variants.length > 0 ? (
                   <div className="space-y-3">
                     {variants.map((variant, index) => (
-                      <div key={variant.localId} className="grid grid-cols-[1fr_auto] gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <div>
-                            <label className="block text-xs text-gray-600 mb-1">Variant name</label>
+                      <div key={variant.localId} className="rounded-xl border border-gray-200 bg-gray-50/80 p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                            Variant #{index + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveVariant(variant.localId)}
+                            className="rounded-full p-1 text-gray-400 hover:bg-white hover:text-red-500 transition-colors"
+                            aria-label="Remove variant"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+                          <div className="col-span-2 md:col-span-1">
+                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">Variant Name</label>
                             <input
                               type="text"
                               value={variant.name}
                               onChange={(e) => handleVariantChange(variant.localId, "name", e.target.value)}
-                              placeholder={index === 0 ? "Full" : "Half"}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder={index === 0 ? "Full / Small" : "Option name"}
+                              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-gray-600 mb-1">Variant price</label>
+                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">SKU</label>
+                            <input
+                              type="text"
+                              value={variant.sku || ""}
+                              onChange={(e) => handleVariantChange(variant.localId, "sku", e.target.value)}
+                              placeholder="SKU-..."
+                              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">Price</label>
                             <div className="relative">
                               <input
                                 type="text"
@@ -1183,14 +1382,14 @@ export default function ItemDetailsPage() {
                                     : value
                                   handleVariantChange(variant.localId, "price", cleanedValue)
                                 }}
-                                placeholder="Enter price"
-                                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="0.00"
+                                className="w-full pl-6 pr-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
                               />
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-600">{"\u20B9"}</span>
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">{"\u20B9"}</span>
                             </div>
                           </div>
                           <div>
-                            <label className="block text-xs text-gray-600 mb-1">Other price</label>
+                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">Other Price</label>
                             <div className="relative">
                               <input
                                 type="text"
@@ -1203,21 +1402,23 @@ export default function ItemDetailsPage() {
                                     : value
                                   handleVariantChange(variant.localId, "otherPrice", cleanedValue)
                                 }}
-                                placeholder="Optional"
-                                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="MRP"
+                                className="w-full pl-6 pr-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
                               />
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-600">{"\u20B9"}</span>
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">{"\u20B9"}</span>
                             </div>
                           </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">Stock</label>
+                            <input
+                              type="number"
+                              value={variant.stock ?? 50}
+                              onChange={(e) => handleVariantChange(variant.localId, "stock", e.target.value)}
+                              placeholder="Qty"
+                              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
+                            />
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveVariant(variant.localId)}
-                          className="self-start rounded-full p-2 text-gray-500 hover:bg-white hover:text-red-500"
-                          aria-label="Remove variant"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
                     ))}
                   </div>

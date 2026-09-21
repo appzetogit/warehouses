@@ -1096,7 +1096,7 @@ function SellerDetailsContent() {
     // Check authentication
     if (!isModuleAuthenticated('user')) {
       toast.error("Please login to add items to cart")
-      navigate('/food/user/auth/login', { state: { from: location.pathname } })
+      navigate('/auth/login', { state: { from: location.pathname } })
       return
     }
 
@@ -4123,7 +4123,7 @@ function SellerDetailsContent() {
         createPortal(
           <AddToCartAnimation
             bottomOffset={16}
-            linkTo="/food/user/cart"
+            linkTo="/cart"
             hideOnPages={true}
             variant="bar"
           />,

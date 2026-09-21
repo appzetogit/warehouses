@@ -19,6 +19,8 @@ import {
   History,
   Wallet,
   X,
+  Truck,
+  ExternalLink,
 } from "lucide-react"
 import { sellerAPI } from "@store/api"
 import { toast } from "sonner"
@@ -43,6 +45,9 @@ export default function OrderDetailPage({
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [generatingShipment, setGeneratingShipment] = useState(false)
+  const [trackingData, setTrackingData] = useState(null)
+  const [loadingTracking, setLoadingTracking] = useState(false)
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -85,6 +90,42 @@ export default function OrderDetailPage({
     const orderId = order?.orderId || order?.order_id || id
     navigator.clipboard.writeText(orderId)
     toast.success("Order ID copied")
+  }
+
+  const handleGenerateShipment = async () => {
+    try {
+      setGeneratingShipment(true)
+      const res = await sellerAPI.createOrderShipment(order.orderId || order._id || id)
+      const updatedOrder = res.data?.data?.order || res.data?.order || res.data?.data
+      const shipment = res.data?.data?.shipment || updatedOrder?.shipment
+      if (updatedOrder || shipment) {
+        setOrder((prev) => ({
+          ...prev,
+          ...(updatedOrder || {}),
+          shipment: shipment || prev?.shipment,
+        }))
+        toast.success("Courier shipment & AWB generated successfully!")
+      }
+    } catch (err) {
+      console.error("Error generating shipment:", err)
+      toast.error(err.response?.data?.message || "Failed to generate courier shipment")
+    } finally {
+      setGeneratingShipment(false)
+    }
+  }
+
+  const handleTrackShipment = async () => {
+    try {
+      setLoadingTracking(true)
+      const res = await sellerAPI.trackOrderShipment(order.orderId || order._id || id)
+      const tracking = res.data?.data?.tracking || res.data?.tracking
+      setTrackingData(tracking)
+    } catch (err) {
+      console.error("Error tracking shipment:", err)
+      toast.error(err.response?.data?.message || "Failed to fetch tracking details")
+    } finally {
+      setLoadingTracking(false)
+    }
   }
 
   const getStatusColor = (status) => {
@@ -230,6 +271,116 @@ export default function OrderDetailPage({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Courier Fulfilment & Shipping Label */}
+        <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm shadow-gray-100/50 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                <Truck className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-gray-900">Courier Fulfilment</h3>
+                <p className="text-[10px] font-bold text-gray-400">Standard Shipping & AWB Generation</p>
+              </div>
+            </div>
+            {order.shipment?.awb && (
+              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                AWB Assigned
+              </span>
+            )}
+          </div>
+
+          {order.shipment?.awb ? (
+            <div className="bg-gradient-to-br from-indigo-50/50 to-slate-50 border border-indigo-100 rounded-2xl p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Courier Partner</p>
+                  <p className="text-sm font-black text-gray-900">{order.shipment.courierName || 'MockExpress'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">AWB Number</p>
+                  <p className="text-sm font-black font-mono text-indigo-600 tracking-wide">{order.shipment.awb}</p>
+                </div>
+              </div>
+
+              {order.shipment.etd && (
+                <div className="flex items-center justify-between text-xs font-bold text-gray-500 pt-2 border-t border-indigo-100/60">
+                  <span>Estimated Delivery</span>
+                  <span className="text-gray-900 font-black">
+                    {new Date(order.shipment.etd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-2">
+                {order.shipment.labelUrl && (
+                  <a
+                    href={order.shipment.labelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-md shadow-indigo-200 transition-all"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    Print Shipping Label
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={handleTrackShipment}
+                  disabled={loadingTracking}
+                  className="inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 text-gray-700 rounded-xl text-xs font-black transition-all"
+                >
+                  {loadingTracking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
+                  Live Track
+                </button>
+              </div>
+
+              {trackingData && (
+                <div className="mt-3 pt-3 border-t border-indigo-100/60 space-y-2">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider">
+                    Status: <span className="text-indigo-600 font-black uppercase">{trackingData.currentStatus}</span>
+                  </p>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {trackingData.trackingEvents?.map((ev, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-[11px]">
+                        <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1 shrink-0" />
+                        <div className="flex-1">
+                          <p className="font-bold text-gray-800">{ev.activity}</p>
+                          <p className="text-[10px] text-gray-400">{ev.location} • {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-4 text-center space-y-3">
+              <p className="text-xs font-bold text-gray-500">
+                Pack this order and generate an automated courier AWB and printable shipping label.
+              </p>
+              <button
+                type="button"
+                onClick={handleGenerateShipment}
+                disabled={generatingShipment || String(status || '').toLowerCase().includes('cancel')}
+                className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 hover:bg-black active:scale-[0.98] text-white rounded-xl text-xs font-black shadow-lg shadow-gray-200 transition-all disabled:opacity-50"
+              >
+                {generatingShipment ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating AWB & Label...
+                  </>
+                ) : (
+                  <>
+                    <Truck className="w-4 h-4 text-indigo-400" />
+                    Pack & Generate Courier Label
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Order Items */}

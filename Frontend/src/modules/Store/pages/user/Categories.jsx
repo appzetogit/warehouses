@@ -119,7 +119,7 @@ export default function Categories() {
                   transition={{ delay: index * 0.03 }}
                 >
                   <Link
-                    to={`/food/user/category/${category.slug}`}
+                    to={`/category/${category.slug}`}
                     className="flex flex-col items-center gap-2.5 group"
                   >
                     <div className="relative w-full aspect-square rounded-full overflow-hidden shadow-sm border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1a1a] group-active:scale-90 transition-all duration-300">

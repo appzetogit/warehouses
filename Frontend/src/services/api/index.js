@@ -1630,6 +1630,16 @@ export const sellerAPI = {
     sellerAPI.updateOrderStatus(orderId, {
       orderStatus: "ready_for_pickup",
     }),
+  /** Generate courier shipping label and AWB for standard orders */
+  createOrderShipment: (orderId) =>
+    apiClient.post(`/seller/orders/${String(orderId)}/shipment`, {}, {
+      contextModule: "seller",
+    }),
+  /** Track courier shipment events */
+  trackOrderShipment: (orderId) =>
+    apiClient.get(`/seller/orders/${String(orderId)}/shipment/track`, {
+      contextModule: "seller",
+    }),
   /**
    * Get a single order by id for seller screens.
    * Prefer direct endpoint; fallback to list+filter for backward compatibility.
@@ -2620,6 +2630,16 @@ export const orderAPI = {
     apiClient.get(`/orders/checkout/${String(checkoutId)}`, {
       contextModule: "user",
     }),
+  /** After the Razorpay sheet succeeds: `{ razorpayOrderId, razorpayPaymentId, razorpaySignature }`. */
+  verifyCheckoutPayment: (checkoutId, body) =>
+    apiClient.post(`/orders/checkout/${String(checkoutId)}/verify-payment`, body ?? {}, {
+      contextModule: "user",
+    }),
+  /** The customer closed the payment sheet: releases the held stock and coins. */
+  abandonCheckout: (checkoutId) =>
+    apiClient.post(`/orders/checkout/${String(checkoutId)}/abandon`, {}, {
+      contextModule: "user",
+    }),
   calculateOrder: (payload) =>
     apiClient.post("/orders/calculate", payload ?? {}, {
       contextModule: "user",
@@ -2793,6 +2813,19 @@ export const coinsAPI = {
   /** GET /admin/coins/users/:userId/ledger (Bearer ADMIN) */
   getUserLedger: (userId, params = {}) =>
     apiClient.get(`/admin/coins/users/${userId}/ledger`, { params, contextModule: "admin" }),
+};
+
+export const spinAPI = {
+  /** GET /user/spin/status (Bearer USER) */
+  getStatus: () => apiClient.get("/user/spin/status", { contextModule: "user" }),
+  /** POST /user/spin/play (Bearer USER) */
+  play: () => apiClient.post("/user/spin/play", {}, { contextModule: "user" }),
+};
+
+export const aiAPI = {
+  /** POST /ai/chat */
+  chat: ({ message, history = [] }) =>
+    apiClient.post("/ai/chat", { message, history }, { contextModule: "user" }),
 };
 
 export const heroBannerAPI = createStubAPI();

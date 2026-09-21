@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from "react"
 import { createPortal } from "react-dom"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Minus, ArrowLeft, ChevronRight, Clock, MapPin, Phone, FileText, Utensils, Tag, Percent, Share2, ChevronUp, ChevronDown, X, Check, Settings, CreditCard, Wallet, Building2, Sparkles, Banknote, Zap, CheckCircle2, MessageCircle, Send, Mail, Copy, Home, Briefcase, Pencil, Receipt, ShoppingCart, DoorOpen, PhoneOff, BellOff } from "lucide-react"
+import { Plus, Minus, ArrowLeft, ChevronRight, Clock, MapPin, Phone, FileText, Utensils, Tag, Percent, Share2, ChevronUp, ChevronDown, X, Check, Settings, CreditCard, Wallet, Building2, Sparkles, Banknote, Zap, CheckCircle2, MessageCircle, Send, Mail, Copy, Home, Briefcase, Pencil, Receipt, ShoppingCart, DoorOpen, PhoneOff, BellOff, Coins, Store, Truck, ShieldCheck } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
 
@@ -12,7 +12,7 @@ import { useProfile } from "@store/context/ProfileContext"
 import { useOrders } from "@store/context/OrdersContext"
 import { useLocation as useUserLocation } from "@store/hooks/useLocation"
 import { useZone } from "@store/hooks/useZone"
-import { orderAPI, sellerAPI, adminAPI, userAPI, API_ENDPOINTS } from "@store/api"
+import { orderAPI, sellerAPI, adminAPI, userAPI, coinsAPI, API_ENDPOINTS } from "@store/api"
 import { API_BASE_URL } from "@store/api/config"
 import { initRazorpayPayment } from "@store/utils/razorpay"
 import { toast } from "sonner"
@@ -331,6 +331,12 @@ export default function Cart() {
   const [customDeliveryInstruction, setCustomDeliveryInstruction] = useState("")
   const [walletBalance, setWalletBalance] = useState(0)
   const [isLoadingWallet, setIsLoadingWallet] = useState(false)
+  const [coinBalance, setCoinBalance] = useState({ coins: 0, usable: 0, usableValue: 0, isEnabled: false })
+  const [useCoins, setUseCoins] = useState(false)
+  // The server's price for a split checkout (several stores, courier delivery,
+  // or coins). When present, the cart shows it, since it is what is charged.
+  const [checkoutQuote, setCheckoutQuote] = useState(null)
+  const [isLoadingCoins, setIsLoadingCoins] = useState(false)
   const [note, setNote] = useState("")
   const [showNoteInput, setShowNoteInput] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -1050,6 +1056,60 @@ export default function Cart() {
     fetchCouponsForCartItems()
   }, [cart, sellerId])
 
+  const usesSplitCheckout = useMemo(() => {
+    const sellers = new Set(
+      cart.map((item) => String(item.sellerId || item.seller?._id || "")).filter(Boolean),
+    )
+    let mode = "quick"
+    try {
+      mode = localStorage.getItem("commerce_delivery_mode") || "quick"
+    } catch {
+      // keep quick
+    }
+    return sellers.size > 1 || mode === "standard" || useCoins
+  }, [cart, useCoins])
+
+  useEffect(() => {
+    if (!usesSplitCheckout || cart.length === 0 || !hasSavedAddress) {
+      setCheckoutQuote(null)
+      return
+    }
+    let cancelled = false
+    const quote = async () => {
+      let mode = "quick"
+      try {
+        mode = localStorage.getItem("commerce_delivery_mode") || "quick"
+      } catch {
+        // keep quick
+      }
+      try {
+        const res = await orderAPI.calculateCheckout({
+          items: cart.map((item) => ({
+            itemId: item.itemId || item.id,
+            sellerId: item.sellerId || item.seller?._id,
+            variantId: item.variantId || undefined,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity || 1,
+          })),
+          deliveryAddress: pricingAddress,
+          fulfilmentMode: mode === "standard" ? "standard" : "quick",
+          couponCode: appliedCoupon?.code || couponCode || undefined,
+          // Ask for as many as the customer has; the server caps it.
+          coins: useCoins ? Math.floor(Number(coinBalance?.usable) || 0) : 0,
+        })
+        if (!cancelled) setCheckoutQuote(res?.data?.data || null)
+      } catch (error) {
+        debugError("Checkout quote failed:", error)
+        if (!cancelled) setCheckoutQuote(null)
+      }
+    }
+    quote()
+    return () => {
+      cancelled = true
+    }
+  }, [usesSplitCheckout, cart, hasSavedAddress, pricingAddress, appliedCoupon, couponCode, useCoins, coinBalance?.usable])
+
   // Calculate pricing from backend whenever cart, address, or coupon changes
   useEffect(() => {
     const calculatePricing = async () => {
@@ -1274,6 +1334,26 @@ export default function Cart() {
     fetchWalletBalance()
   }, [])
 
+  // Fetch platform coins balance
+  useEffect(() => {
+    let isMounted = true
+    const fetchCoins = async () => {
+      try {
+        setIsLoadingCoins(true)
+        const res = await coinsAPI.getBalance()
+        if (isMounted && res?.data?.data) {
+          setCoinBalance(res.data.data)
+        }
+      } catch (error) {
+        debugWarn("Error fetching coins balance:", error)
+      } finally {
+        if (isMounted) setIsLoadingCoins(false)
+      }
+    }
+    fetchCoins()
+    return () => { isMounted = false }
+  }, [])
+
   // Fetch user order count (used for first-time coupon eligibility)
   useEffect(() => {
     const fetchOrderCount = async () => {
@@ -1325,7 +1405,23 @@ export default function Cart() {
     () =>
       buildEffectiveCartPricing({
         cart,
-        pricing,
+        pricing: checkoutQuote
+          ? {
+            ...(pricing || {}),
+            subtotal: checkoutQuote.subtotal,
+            tax: checkoutQuote.tax,
+            packagingFee: checkoutQuote.packagingFee,
+            // The quote's delivery fee already includes its GST.
+            deliveryFee: checkoutQuote.deliveryFee,
+            deliveryFeeGst: 0,
+            platformFee: checkoutQuote.platformFee,
+            discount: checkoutQuote.discount,
+            // Before coins; the coins line comes off it below.
+            total: Math.round((checkoutQuote.grandTotal + checkoutQuote.coinsDiscount) * 100) / 100,
+            couponCode: checkoutQuote.couponCode,
+            appliedCoupon: checkoutQuote.appliedCoupon,
+          }
+          : pricing,
         feeSettings,
         defaultAddress: pricingAddress,
         sellerData,
@@ -1338,7 +1434,7 @@ export default function Cart() {
               ? Number(pricing.roadDistanceKm)
               : roadDistanceKm,
       }),
-    [cart, pricing, feeSettings, pricingAddress, sellerData, appliedCoupon, deliveryMode, roadDistanceKm],
+    [cart, pricing, checkoutQuote, feeSettings, pricingAddress, sellerData, appliedCoupon, deliveryMode, roadDistanceKm],
   )
   const subtotal = effectivePricing.subtotal
   const deliveryFee = effectivePricing.deliveryFee
@@ -1366,6 +1462,40 @@ export default function Cart() {
   const discount = effectivePricing.discount
   const totalBeforeDiscount = subtotal + deliveryFee + deliveryFeeGst + platformFee + gstCharges
   const total = effectivePricing.total
+  const commerceMode = useMemo(() => {
+    try {
+      return localStorage.getItem('commerce_delivery_mode') || 'quick'
+    } catch {
+      return 'quick'
+    }
+  }, [])
+
+  const maxCoinsRedeemable = useMemo(() => {
+    if (!coinBalance?.isEnabled || !coinBalance?.usable) return 0
+    const halfOrder = Math.floor((effectivePricing?.total || 0) * 0.5)
+    return Math.min(Number(coinBalance.usable) || 0, Math.max(0, halfOrder))
+  }, [coinBalance, effectivePricing?.total])
+
+  const coinDiscount = useCoins
+    ? (checkoutQuote ? Number(checkoutQuote.coinsDiscount) || 0 : maxCoinsRedeemable)
+    : 0
+  const finalPayable = checkoutQuote
+    ? Number(checkoutQuote.grandTotal) || 0
+    : Math.max(0, total - coinDiscount)
+
+  const sellerGroups = useMemo(() => {
+    const groups = new Map()
+    cart.forEach((item) => {
+      const sId = String(item.sellerId || item.seller?._id || 'unknown')
+      const sName = item.seller || 'Store'
+      if (!groups.has(sId)) {
+        groups.set(sId, { sellerId: sId, sellerName: sName, items: [] })
+      }
+      groups.get(sId).items.push(item)
+    })
+    return Array.from(groups.values())
+  }, [cart])
+
   const savings = effectivePricing.savings
   const itemDiscountAmount = appliedCoupon && discount > 0 ? discount : 0
   const otherSavings = Math.max(0, savings - itemDiscountAmount)
@@ -1399,7 +1529,7 @@ export default function Cart() {
 
   const handleOpenAddAddress = () => {
     setShowAddressSheet(false)
-    navigate("/food/user/cart/address-selector", { state: { backTo: "/food/user/cart" } })
+    navigate("/cart/address-selector", { state: { backTo: "/cart" } })
   }
 
   const handleSelectAddressFromSheet = async (address) => {
@@ -1523,7 +1653,7 @@ export default function Cart() {
     // Priority: slug > sellerId (both work for the seller details route)
     const idOrSlug = sellerData?.slug || sellerId
     if (idOrSlug) {
-      navigate(`/food/user/sellers/${idOrSlug}`)
+      navigate(`/sellers/${idOrSlug}`)
     } else {
       goBack()
     }
@@ -1855,7 +1985,104 @@ export default function Cart() {
       debugLog("?? Making request to:", fullUrl)
       debugLog("?? Authentication token present:", !!localStorage.getItem('accessToken') || !!localStorage.getItem('user_accessToken'))
 
-      // CRITICAL: Validate seller ID before placing order
+      // Check if multi-seller cart, standard delivery mode, or coins are applied
+      const cartSellerIds = cart
+        .map(item => item.sellerId || item.seller?._id)
+        .filter(Boolean)
+        .map(id => String(id).trim());
+      const uniqueSellerIds = [...new Set(cartSellerIds)];
+
+      const isMultiSeller = uniqueSellerIds.length > 1 || commerceMode === 'standard';
+      const shouldUseSplitCheckout = isMultiSeller || usesSplitCheckout;
+
+      if (shouldUseSplitCheckout) {
+        debugLog("🔄 Placing split / marketplace checkout with coins:", { useCoins, coinDiscount });
+        const resolvedCouponCode = appliedCoupon?.code || couponCode || pricing?.couponCode || undefined;
+        const checkoutPayload = {
+          items: orderItems.map((item, idx) => ({
+            ...item,
+            sellerId: cart[idx]?.sellerId || cart[idx]?.seller?._id || sellerData?._id || cart[0]?.sellerId,
+            seller: cart[idx]?.seller || sellerData?.name,
+          })),
+          deliveryAddress: pricingAddress,
+          address: pricingAddress,
+          fulfilmentMode: commerceMode === 'standard' ? 'standard' : 'quick',
+          couponCode: resolvedCouponCode,
+          coins: useCoins ? Number(checkoutQuote?.coinsUsed) || 0 : 0,
+          paymentMethod: selectedPaymentMethod === "wallet" ? "wallet" : (selectedPaymentMethod === "cash" ? "cash" : "razorpay"),
+          note: String(note || "").trim(),
+          scheduledAt: isScheduled ? new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString() : undefined,
+        };
+
+        const checkoutRes = await orderAPI.createCheckout(checkoutPayload);
+        const checkoutData = checkoutRes?.data?.data?.checkout || checkoutRes?.data?.data;
+        const checkoutId = checkoutData?.checkoutId;
+
+        const finishCheckout = () => {
+          setPlacedOrderId(checkoutId);
+          setShowOrderSuccess(true);
+          clearCart();
+          resetCartPreferences();
+          setIsPlacingOrder(false);
+        };
+
+        // Cash and wallet checkouts are complete when the server answers.
+        if (checkoutPayload.paymentMethod === 'cash' || checkoutPayload.paymentMethod === 'wallet') {
+          toast.success("Order placed successfully!");
+          finishCheckout();
+          return;
+        }
+
+        // Online: one Razorpay order for the whole cart. Nothing reaches the
+        // stores until the server has checked the payment.
+        const rzData = checkoutRes?.data?.data?.razorpay;
+        if (!rzData?.orderId || !checkoutId) {
+          throw new Error("Online payment could not be started. Please try again.");
+        }
+
+        await initRazorpayPayment({
+          key: rzData.key,
+          amount: rzData.amount,
+          currency: rzData.currency || 'INR',
+          order_id: rzData.orderId,
+          name: await getCompanyNameAsync(),
+          description: `Order ${checkoutId}`,
+          prefill: {
+            name: recipientName || userProfile?.name || "",
+            email: userProfile?.email || "",
+            contact: recipientPhone || userProfile?.phone || "",
+          },
+          handler: async (response) => {
+            try {
+              await orderAPI.verifyCheckoutPayment(checkoutId, {
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+              toast.success("Payment verified! Order placed successfully.");
+              finishCheckout();
+            } catch (verifyError) {
+              debugError("Checkout payment verification failed:", verifyError);
+              toast.error(
+                verifyError?.response?.data?.message ||
+                "We couldn't confirm your payment yet. If money was taken, your order will be confirmed shortly.",
+              );
+              setIsPlacingOrder(false);
+            }
+          },
+          onClose: async () => {
+            try {
+              await orderAPI.abandonCheckout(checkoutId);
+            } catch (abandonError) {
+              debugError("Failed to release abandoned checkout:", abandonError);
+            }
+            setIsPlacingOrder(false);
+          },
+        });
+        return;
+      }
+
+      // CRITICAL: Validate seller ID before placing single-seller order
       // Ensure we're using the correct seller from sellerData (most reliable)
       const finalSellerId = sellerData?.sellerId || sellerData?._id || null;
       const finalSellerName = sellerData?.name || null;
@@ -1882,19 +2109,12 @@ export default function Cart() {
         return;
       }
 
-      // CRITICAL: Validate that ALL cart items belong to the SAME seller
-      const cartSellerIds = cart
-        .map(item => item.sellerId)
-        .filter(Boolean)
-        .map(id => String(id).trim()); // Normalize to string and trim
-
+      // Validate that ALL cart items belong to the SAME seller in single-seller mode
       const cartSellerNames = cart
         .map(item => item.seller)
         .filter(Boolean)
         .map(name => name.trim().toLowerCase()); // Normalize names
 
-      // Get unique values (after normalization)
-      const uniqueSellerIds = [...new Set(cartSellerIds)];
       const uniqueSellerNames = [...new Set(cartSellerNames)];
 
       // Check if cart has items from multiple sellers
@@ -2432,76 +2652,93 @@ export default function Cart() {
             <div className="space-y-2 md:space-y-4">
               {/* Cart Items */}
               <div className="bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-gray-800">
-                <div className="space-y-3 md:space-y-4">
-                  {cart.map((item) => (
-                    <div key={item.id} className="flex items-start gap-3 md:gap-4">
-                      {/* Veg/Non-veg indicator */}
-                      {typeof item.isVeg === "boolean" && (
-                        <div
-                          className="w-4 h-4 md:w-5 md:h-5 border-2 flex items-center justify-center mt-1 flex-shrink-0"
-                          style={{ borderColor: item.isVeg ? "#16a34a" : "#dc2626" }}
-                        >
-                          <div
-                            className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full"
-                            style={{ backgroundColor: item.isVeg ? "#16a34a" : "#dc2626" }}
-                          />
+                <div className="space-y-4">
+                  {sellerGroups.map((group, gIdx) => (
+                    <div key={group.sellerId || gIdx} className={sellerGroups.length > 1 ? "rounded-xl border border-slate-200 dark:border-gray-800 p-3 bg-slate-50/50 dark:bg-black/20 space-y-3" : "space-y-3"}>
+                      {sellerGroups.length > 1 && (
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-gray-800">
+                          <div className="flex items-center gap-2">
+                            <Store className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                              Package {gIdx + 1}: {group.sellerName}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/60 dark:bg-gray-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Truck className="w-3 h-3" /> Standard Courier
+                          </span>
                         </div>
                       )}
+                      {group.items.map((item) => (
+                        <div key={item.id} className="flex items-start gap-3 md:gap-4">
+                          {/* Veg/Non-veg indicator */}
+                          {typeof item.isVeg === "boolean" && (
+                            <div
+                              className="w-4 h-4 md:w-5 md:h-5 border-2 flex items-center justify-center mt-1 flex-shrink-0"
+                              style={{ borderColor: item.isVeg ? "#16a34a" : "#dc2626" }}
+                            >
+                              <div
+                                className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full"
+                                style={{ backgroundColor: item.isVeg ? "#16a34a" : "#dc2626" }}
+                              />
+                            </div>
+                          )}
 
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm md:text-base font-medium text-gray-800 dark:text-gray-200 leading-tight">{item.name}</p>
-                        {item.variantName ? (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.variantName}</p>
-                        ) : null}
-                      </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm md:text-base font-medium text-gray-800 dark:text-gray-200 leading-tight">{item.name}</p>
+                            {item.variantName ? (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.variantName}</p>
+                            ) : null}
+                          </div>
 
-                      <div className="flex items-center gap-3 md:gap-4">
-                        {/* Quantity controls */}
-                        <div className="flex items-center gap-1 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141414] px-1 py-0.5">
-                          <button
-                            type="button"
-                            className="h-5 w-5 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:opacity-70"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </button>
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white min-w-[14px] text-center tabular-nums">
-                            {item.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            className="h-5 w-5 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:opacity-70"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </button>
-                        </div>
-
-                        <div className="min-w-[70px] text-right">
-                          {Number(item.otherPrice) > 0 &&
-                          Number(item.otherPrice) > Number(item.price || 0) ? (
-                            <div className="flex flex-col items-end gap-0.5">
-                              <span className="text-[11px] text-gray-400 line-through tabular-nums">
-                                {RUPEE_SYMBOL}
-                                {Math.round(
-                                  Number(item.otherPrice) * (item.quantity || 1),
-                                )}
+                          <div className="flex items-center gap-3 md:gap-4">
+                            {/* Quantity controls */}
+                            <div className="flex items-center gap-1 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141414] px-1 py-0.5">
+                              <button
+                                type="button"
+                                className="h-5 w-5 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:opacity-70"
+                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white min-w-[14px] text-center tabular-nums">
+                                {item.quantity}
                               </span>
-                              <div className="flex items-center gap-1 justify-end">
-                                <span className="inline-flex items-center rounded-full border border-[#FA0272] bg-[#FA0272]/10 px-2 py-0.5 text-xs font-bold text-[#FA0272] tabular-nums">
+                              <button
+                                type="button"
+                                className="h-5 w-5 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:opacity-70"
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
+
+                            <div className="min-w-[70px] text-right">
+                              {Number(item.otherPrice) > 0 &&
+                              Number(item.otherPrice) > Number(item.price || 0) ? (
+                                <div className="flex flex-col items-end gap-0.5">
+                                  <span className="text-[11px] text-gray-400 line-through tabular-nums">
+                                    {RUPEE_SYMBOL}
+                                    {Math.round(
+                                      Number(item.otherPrice) * (item.quantity || 1),
+                                    )}
+                                  </span>
+                                  <div className="flex items-center gap-1 justify-end">
+                                    <span className="inline-flex items-center rounded-full border border-[#FA0272] bg-[#FA0272]/10 px-2 py-0.5 text-xs font-bold text-[#FA0272] tabular-nums">
+                                      {RUPEE_SYMBOL}
+                                      {((item.price || 0) * (item.quantity || 1)).toFixed(0)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 tabular-nums">
                                   {RUPEE_SYMBOL}
                                   {((item.price || 0) * (item.quantity || 1)).toFixed(0)}
-                                </span>
-                              </div>
+                                </p>
+                              )}
                             </div>
-                          ) : (
-                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200 tabular-nums">
-                              {RUPEE_SYMBOL}
-                              {((item.price || 0) * (item.quantity || 1)).toFixed(0)}
-                            </p>
-                          )}
+                          </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -2812,7 +3049,57 @@ export default function Cart() {
                   </div>
                 )}
               </div>
-{/* Bill Details */}
+
+              {/* Coins Redemption Widget */}
+              {coinBalance?.isEnabled && (
+                <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/50 dark:border-amber-600/30 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400 shadow-inner">
+                        <Coins className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                            Coins
+                            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                              80% usable rule
+                            </span>
+                          </h4>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                          Balance: <strong className="text-amber-600 dark:text-amber-400">{coinBalance.usable || 0} usable</strong> ({coinBalance.coins || 0} total)
+                          {maxCoinsRedeemable > 0 ? ` • Save up to ${RUPEE_SYMBOL}${maxCoinsRedeemable}` : ''}
+                        </p>
+                        {maxCoinsRedeemable > 0 ? (
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                            Redeem up to 50% on this order
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            {(coinBalance.usable || 0) === 0 ? "Earn refund coins for savings on future orders" : "Minimum order required"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {maxCoinsRedeemable > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setUseCoins(!useCoins)}
+                        className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                          useCoins
+                            ? "bg-amber-500 text-white shadow-amber-500/20 hover:bg-amber-600"
+                            : "border border-amber-500/60 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                        }`}
+                      >
+                        {useCoins ? "Applied ✓" : "Apply Coins"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Bill Details */}
               <div className="bg-white dark:bg-[#1a1a1a] px-4 py-4 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800">
                 <button
                   type="button"
@@ -2823,7 +3110,7 @@ export default function Cart() {
                     <Receipt className="h-5 w-5 text-emerald-600 shrink-0" />
                     <div className="text-left">
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        To Pay {RUPEE_SYMBOL}{total.toFixed(0)}
+                        To Pay {RUPEE_SYMBOL}{finalPayable.toFixed(0)}
                       </p>
                       <p className="text-xs text-emerald-600 mt-0.5">Incl. all taxes & charges</p>
                     </div>
@@ -2890,9 +3177,18 @@ export default function Cart() {
                       <span className="text-gray-600 dark:text-gray-400 border-b border-dotted border-gray-300">Government Taxes</span>
                       <span className="text-gray-800 dark:text-gray-200 font-medium">{RUPEE_SYMBOL}{gstCharges.toFixed(2)}</span>
                     </div>
+                    {coinDiscount > 0 && (
+                      <div className="flex justify-between text-sm font-semibold text-amber-600 dark:text-amber-400">
+                        <span className="flex items-center gap-1.5 border-b border-dotted border-amber-300">
+                          <Coins className="w-4 h-4 text-amber-500 shrink-0" />
+                          Coins redeemed
+                        </span>
+                        <span>-{RUPEE_SYMBOL}{coinDiscount.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-base font-bold pt-3 mt-1 border-t border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white">
                       <span>To Pay</span>
-                      <span>{RUPEE_SYMBOL}{total.toFixed(2)}</span>
+                      <span>{RUPEE_SYMBOL}{finalPayable.toFixed(2)}</span>
                     </div>
                     {otherSavings > 0 && (
                       <div className="rounded-xl bg-pink-50 dark:bg-pink-950/20 px-3 py-2.5 text-xs font-medium text-pink-700 dark:text-pink-300">
@@ -2917,16 +3213,17 @@ export default function Cart() {
         className="bg-white dark:bg-[#1a1a1a] border-t dark:border-gray-800 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 flex-shrink-0 fixed bottom-0 left-0 right-0"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="max-w-lg mx-auto flex items-stretch gap-3">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3">
+          <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => setShowPaymentSheet(true)}
-              className="flex-1 min-w-0 text-left px-1 py-1"
+              className="flex-1 min-w-0 text-left bg-slate-50 dark:bg-[#141414] hover:bg-slate-100 dark:hover:bg-[#1c1c1c] border border-slate-200 dark:border-gray-700 rounded-2xl px-3.5 py-2.5 transition-colors"
             >
-              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1">
-                Pay using <ChevronUp className="h-3 w-3" />
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Payment</span>
+                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Change</span>
+              </div>
               <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
                 {selectedPaymentLabel}
               </p>
@@ -2943,7 +3240,7 @@ export default function Cart() {
                 isPlacingOrder ||
                 loadingSeller ||
                 !canPlaceOrder ||
-                (selectedPaymentMethod === "wallet" && walletBalance < total)
+                (selectedPaymentMethod === "wallet" && walletBalance < finalPayable)
               }
               className="shrink-0 min-w-[132px] px-5 rounded-full text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               style={{
@@ -2959,7 +3256,7 @@ export default function Cart() {
                     ? "Offline"
                     : !hasSavedAddress
                       ? "Add Address"
-                      : `Pay ${RUPEE_SYMBOL}${total.toFixed(0)}`}
+                      : `Pay ${RUPEE_SYMBOL}${finalPayable.toFixed(0)}`}
             </button>
           </div>
         </div>

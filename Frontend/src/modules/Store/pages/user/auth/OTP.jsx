@@ -37,14 +37,14 @@ export default function OTP() {
     // Redirect to home if already authenticated
     const isAuthenticated = localStorage.getItem("user_authenticated") === "true"
     if (isAuthenticated) {
-      navigate("/food/user", { replace: true })
+      navigate("/", { replace: true })
       return
     }
 
     // Get auth data from sessionStorage
     const stored = sessionStorage.getItem("userAuthData")
     if (!stored) {
-      navigate("/food/user/auth/login", { replace: true })
+      navigate("/auth/login", { replace: true })
       return
     }
     const data = JSON.parse(stored)
@@ -212,9 +212,9 @@ export default function OTP() {
       setUserAuthData("user", accessToken, user, refreshToken)
       window.dispatchEvent(new Event("userAuthChanged"))
       // Force sync after login (bypass throttle / recover after logout).
-      await registerWebPushForCurrentModule("/food/user", { force: true }).catch(() => {})
+      await registerWebPushForCurrentModule("/", { force: true }).catch(() => {})
       setSuccess(true)
-      setTimeout(() => navigate("/food/user"), 600)
+      setTimeout(() => navigate("/"), 600)
     } catch (err) {
       const status = err?.response?.status
       let message = err?.response?.data?.message || err?.response?.data?.error || err?.message || "Verification failed."
@@ -257,9 +257,9 @@ export default function OTP() {
       sessionStorage.removeItem("userAuthData")
       setUserAuthData("user", accessToken, { ...user, name: normalizedName }, refreshToken)
       window.dispatchEvent(new Event("userAuthChanged"))
-      await registerWebPushForCurrentModule("/food/user", { force: true }).catch(() => {})
+      await registerWebPushForCurrentModule("/", { force: true }).catch(() => {})
       setSuccess(true)
-      setTimeout(() => navigate("/food/user"), 600)
+      setTimeout(() => navigate("/"), 600)
     } catch (err) {
       setError("Failed to complete registration. Please try again.")
     } finally {
@@ -390,7 +390,7 @@ export default function OTP() {
                   )}
 
                   <Button
-                    onClick={() => navigate("/food/user/auth/login")}
+                    onClick={() => navigate("/auth/login")}
                     variant="ghost"
                     className="text-zinc-400 dark:text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:bg-transparent hover:text-zinc-900"
                   >

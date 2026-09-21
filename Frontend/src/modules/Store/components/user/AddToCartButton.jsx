@@ -18,7 +18,7 @@ export default function AddToCartButton({ item, className = "" }) {
 
     if (!isModuleAuthenticated('user')) {
       toast.error("Please login to add items to cart")
-      navigate('/food/user/auth/login', { state: { from: location.pathname } })
+      navigate('/auth/login', { state: { from: location.pathname } })
       return
     }
 

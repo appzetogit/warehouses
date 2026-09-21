@@ -275,7 +275,7 @@ export default function Profile() {
   const refId =
     userProfile?._id || userProfile?.id || userProfile?.referralCode || "";
   const referralLink = refId
-    ? `${window.location.origin}/food/food/user/auth/login?ref=${encodeURIComponent(String(refId))}`
+    ? `${window.location.origin}/auth/login?ref=${encodeURIComponent(String(refId))}`
     : "";
 
   const handleShareReferral = async () => {
@@ -316,7 +316,7 @@ export default function Profile() {
       localStorage.removeItem("cart");
       USER_SESSION_PREFERENCE_KEYS.forEach((key) => localStorage.removeItem(key));
       window.dispatchEvent(new Event("userAuthChanged"));
-      navigate("/food/user/auth/login", { replace: true });
+      navigate("/auth/login", { replace: true });
     } finally {
       setIsLoggingOut(false);
     }
@@ -336,7 +336,7 @@ export default function Profile() {
       USER_SESSION_PREFERENCE_KEYS.forEach((key) => localStorage.removeItem(key));
       
       window.dispatchEvent(new Event("userAuthChanged"));
-      navigate("/food/user/auth/login", { replace: true });
+      navigate("/auth/login", { replace: true });
     } catch (error) {
       console.error("Failed to delete account:", error);
       toast.error(error?.response?.data?.message || "Failed to delete account. Please try again.");

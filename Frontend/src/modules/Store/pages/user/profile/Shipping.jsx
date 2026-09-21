@@ -41,7 +41,7 @@ export default function Shipping() {
     if (window.history.length > 2) {
       goBack()
     } else {
-      navigate('/food/user')
+      navigate('/')
     }
   }
 

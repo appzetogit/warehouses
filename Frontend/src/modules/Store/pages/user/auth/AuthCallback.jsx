@@ -58,7 +58,7 @@ export default function AuthCallback() {
 
             // Redirect to home after short delay
             setTimeout(() => {
-              navigate("/food/user", { replace: true })
+              navigate("/", { replace: true })
             }, 1000)
             return
           } catch (err) {
@@ -89,7 +89,7 @@ export default function AuthCallback() {
 
           // Redirect to home after short delay
           setTimeout(() => {
-            navigate("/food/user")
+            navigate("/")
           }, 1500)
           return
         }
@@ -109,11 +109,11 @@ export default function AuthCallback() {
   }, [navigate, searchParams])
 
   const handleRetry = () => {
-    navigate("/food/user/auth/login")
+    navigate("/auth/login")
   }
 
   const handleGoHome = () => {
-    navigate("/food/user")
+    navigate("/")
   }
 
   return (

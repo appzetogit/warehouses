@@ -1,2 +1,25 @@
 User-agent: *
 Allow: /
+Allow: /sellers
+Allow: /categories
+Allow: /products
+Allow: /offers
+Allow: /collections
+
+# Disallow private/auth/cart paths
+Disallow: /auth/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /profile/
+Disallow: /orders/
+Disallow: /wallet
+Disallow: /notifications
+Disallow: /complaints/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /delivery/
+
+# Legacy paths (redirected)
+Disallow: /food/
+
+# Add a Sitemap line with the full https:// address once the domain is set.

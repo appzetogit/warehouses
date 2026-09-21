@@ -34,7 +34,7 @@ export default function Logout() {
       setError("An error occurred during logout, but you have been signed out locally.")
 
       setTimeout(() => {
-        navigate("/food/user/auth/login", { replace: true })
+        navigate("/auth/login", { replace: true })
       }, 2000)
     } finally {
       setIsLoggingOut(false)

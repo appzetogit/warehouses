@@ -247,7 +247,8 @@ export function CartProvider({ children }) {
         : 1
 
     const safeCart = normalizeCartData(cart)
-    if (!forceReplace && safeCart.length > 0) {
+    const isStandardMode = typeof localStorage !== 'undefined' && localStorage.getItem('commerce_delivery_mode') === 'standard'
+    if (!forceReplace && safeCart.length > 0 && !isStandardMode) {
       const firstItemSellerId = safeCart[0]?.sellerId
       const firstItemSellerName = safeCart[0]?.seller
       const newItemSellerId = item?.sellerId
@@ -290,9 +291,8 @@ export function CartProvider({ children }) {
 
     setCart((prev) => {
       const safePrev = forceReplace ? [] : normalizeCartData(prev)
-      // CRITICAL: Validate seller consistency
-      // If cart already has items, ensure new item belongs to the same seller
-      if (!forceReplace && safePrev.length > 0) {
+      // Validate seller consistency only in quick mode (standard mode supports multi-vendor cart)
+      if (!forceReplace && safePrev.length > 0 && !isStandardMode) {
         const firstItemSellerId = safePrev[0]?.sellerId;
         const firstItemSellerName = safePrev[0]?.seller;
         const newItemSellerId = item?.sellerId;

@@ -4,14 +4,13 @@ import { AppShellSkeleton } from '@store/components/ui/loading-skeletons'
 
 const NATIVE_LAST_ROUTE_KEY = 'native_last_route'
 
-// The customer store and the rider web app, both mounted under /food until the
-// Phase 2 storefront gives them their own URLs.
+// The customer store module — now mounted at root (/)
 const StoreApp = lazy(() => import('../modules/Store/routes'))
 import ProtectedRoute from '@store/components/ProtectedRoute'
 
 const PageLoader = () => <AppShellSkeleton />
 
-/** Renders the store module for everything under /food. */
+/** Renders the store module for everything under /food (legacy) and / (new). */
 const StoreAppWrapper = () => {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -20,24 +19,32 @@ const StoreAppWrapper = () => {
   )
 }
 
-const RedirectToStore = () => {
-  const location = useLocation();
-  // We safely replace the exact current pathname with a /food prefixed pathname
-  // This effectively catches programmatic navigation to absolute paths like '/seller/login'
-  // and turns them into '/food/seller/login'
-  return <Navigate to={`/food${location.pathname}${location.search}`} replace />;
-};
-
 const AdminRouter = lazy(() => import('../modules/Store/components/admin/AdminRouter'))
 const SellerRouter = lazy(() => import('../modules/Store/components/seller/SellerRouter'))
 
 /**
+ * Legacy redirect: sends old /food/user/* addresses to the new root paths.
+ * e.g. /food/user/cart → /cart, /food/user/sellers/x → /sellers/x
+ */
+const RedirectFromLegacyUser = () => {
+  const location = useLocation()
+  // Strip /food/user prefix and redirect to root-relative path
+  const newPath = location.pathname.replace(/^\/food\/user\/?/, '/') || '/'
+  return <Navigate to={`${newPath}${location.search}${location.hash}`} replace />
+}
+
+/**
+ * Legacy redirect: sends old /food/* addresses (non-user) to appropriate paths.
+ */
+const RedirectFromLegacyFood = () => {
+  const location = useLocation()
+  // Strip /food prefix
+  const remaining = location.pathname.replace(/^\/food\/?/, '/') || '/'
+  return <Navigate to={`${remaining}${location.search}${location.hash}`} replace />
+}
+
+/**
  * Sends the old /food/seller/* addresses to /seller/*.
- *
- * A redirect rather than a second mount: two live copies of the panel would
- * mean two sessions, two sets of sockets, and a bug fixed in one of them. The
- * rest of the path, the query string and the hash survive, so a deep link to a
- * specific order still lands on it.
  */
 const RedirectToSeller = () => {
   const location = useLocation()
@@ -66,20 +73,32 @@ const AppRoutes = () => {
     if (!isNativeLikeShell) return
 
     const route = `${location.pathname || ''}${location.search || ''}`
-    if (route.startsWith('/food/') || route.startsWith('/admin')) {
+    if (route !== '/') {
       localStorage.setItem(NATIVE_LAST_ROUTE_KEY, route)
     }
   }, [location.pathname, location.search])
 
   return (
     <Routes>
-      {/* The Phase 2 shop takes over the root; until then it opens the store. */}
-      <Route path="/" element={<Navigate to="/food/user" replace />} />
+      {/* ============ Legacy Redirects (backward compatibility) ============ */}
 
-      {/* Store module: customer pages and the rider web app */}
+      {/* Old seller portal paths under /food */}
+      <Route path="/food/seller/*" element={<RedirectToSeller />} />
+
+      {/* Old customer paths: /food/user/* → / */}
+      <Route path="/food/user/*" element={<RedirectFromLegacyUser />} />
+
+      {/* The rider web app still lives at /food/delivery/*. The store module
+          is mounted at /food so its own delivery/* route sees "delivery/…";
+          mounting it at /food/delivery would leave just "orders", which its
+          catch-all would hand to the customer store. The more specific
+          /food/user and /food/seller redirects above win over this. */}
       <Route path="/food/*" element={<StoreAppWrapper />} />
+      <Route path="/food" element={<Navigate to="/" replace />} />
 
-      {/* Seller Portal. Canonical home of the partner panel. */}
+      {/* ============ Canonical Routes ============ */}
+
+      {/* Seller Portal */}
       <Route
         path="/seller/*"
         element={
@@ -88,14 +107,8 @@ const AppRoutes = () => {
           </Suspense>
         }
       />
-      {/* Where the panel used to live; bookmarks and old links still resolve. */}
-      <Route path="/food/seller/*" element={<RedirectToSeller />} />
 
-      {/* Global Admin Portal - AdminRouter handles its own protection for sub-routes */}
-      <Route path="/admin/*" element={<AdminRouter />} />
-
-      {/* NEW Delivery V2 (Parallel testing) */}
-      {/* Global Admin Portal - wrap lazy router in Suspense to avoid blank/crash on direct admin URLs */}
+      {/* Global Admin Portal */}
       <Route
         path="/admin/*"
         element={
@@ -104,18 +117,9 @@ const AppRoutes = () => {
           </Suspense>
         }
       />
-      
-      {/* Dynamic intercept redirects for bare paths (accessed programmatically) */}
-      <Route path="/user/*" element={<RedirectToStore />} />
-      <Route path="/seller/*" element={<RedirectToSeller />} />
-      <Route path="/delivery/*" element={<RedirectToStore />} />
-      <Route path="/usermain/*" element={<RedirectToStore />} />
-      <Route path="/profile/*" element={<RedirectToStore />} />
-      <Route path="/cart/*" element={<Navigate to="/food/user/cart" replace />} />
-      <Route path="/orders/*" element={<RedirectToStore />} />
 
-      {/* Fallback 404 */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Customer Storefront — now at root (/) */}
+      <Route path="/*" element={<StoreAppWrapper />} />
     </Routes>
   )
 }

@@ -246,7 +246,7 @@ export default function PromotionalBanner() {
       setFormData(prev => ({
         ...prev, 
         sellerId: id,
-        ctaLink: `/food/user/sellers/${slug}`
+        ctaLink: `/sellers/${slug}`
       }))
     } else {
       setFormData(prev => ({...prev, sellerId: ""}))

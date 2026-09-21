@@ -10,7 +10,7 @@ const storeSrc = path.resolve(__dirname, './src/modules/Store')
 const servicesApi = path.resolve(__dirname, './src/services/api')
 
 /**
- * Puts the brand name into index.html's <title>. The same default as
+ * Puts the brand name into index.html's <title> and share tags. The same default as
  * APP_CONFIG.NAME, so an unset VITE_BRAND_NAME never leaves a placeholder.
  */
 const brandTitle = () => {
@@ -20,7 +20,7 @@ const brandTitle = () => {
     configResolved(config) {
       name = String(config.env.VITE_BRAND_NAME || name).trim()
     },
-    transformIndexHtml: (html) => html.replace('__BRAND_NAME__', name),
+    transformIndexHtml: (html) => html.replaceAll('__BRAND_NAME__', name),
   }
 }
 

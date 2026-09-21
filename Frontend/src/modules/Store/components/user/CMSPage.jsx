@@ -69,7 +69,7 @@ export default function CMSPage({ endpoint, title: defaultTitle, module = "USER"
     if (window.history.length > 2) {
       goBack()
     } else {
-      navigate('/food/user')
+      navigate('/')
     }
   }
 

@@ -526,8 +526,8 @@ const SellerCard = React.memo(({
   }, [propSellerSlug, seller.slug, seller.name, seller.sellerName]);
 
   const targetUrl = currentDish 
-    ? `/food/user/sellers/${sellerSlug}?dish=${currentDish.id}`
-    : `/food/user/sellers/${sellerSlug}`;
+    ? `/sellers/${sellerSlug}?dish=${currentDish.id}`
+    : `/sellers/${sellerSlug}`;
 
   useEffect(() => {
     setOfferIndex(0);
@@ -627,7 +627,7 @@ const SellerCard = React.memo(({
 
           {/* Content Section - Links to seller ONLY */}
           <Link
-            to={`/food/user/sellers/${sellerSlug}`}
+            to={`/sellers/${sellerSlug}`}
             state={{}}
             onClick={() => {
               onNavigateAway?.();
@@ -807,7 +807,7 @@ export default function Home() {
     const targetCount = pending?.visibleCount || 0;
     const targetScrollY = pending?.scrollY || 0;
     // Restore whenever a locked/pending home position exists.
-    // In-app seller back often PUSHes `/food/user` (not POP).
+    // In-app seller back often PUSHes `/` (not POP).
     const canRestore = Boolean(
       pending && (targetScrollY > 0 || targetCount > 0),
     );
@@ -1208,13 +1208,13 @@ export default function Home() {
         id: "offers",
         label: "Offers",
         image: exploreOffers,
-        href: "/food/user/offers",
+        href: "/offers",
       },
       {
         id: "collection",
         label: "Collections",
         image: exploreCollection,
-        href: "/food/user/profile/favorites",
+        href: "/profile/favorites",
       },
     ];
 
@@ -2664,7 +2664,7 @@ export default function Home() {
   }, [openLocationSelector]);
 
   const handleSearchFocus = useCallback(() => {
-    navigate("/food/user/search");
+    navigate("/search");
   }, [navigate]);
 
   const handleSearchClose = useCallback(() => {
@@ -2827,7 +2827,7 @@ export default function Home() {
             What's on your mind today?
           </h2>
           <Link
-            to="/food/user/categories"
+            to="/categories"
             className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 transition-colors">
             View All
             <ArrowRightLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -2851,7 +2851,7 @@ export default function Home() {
             displayCategories.slice(0, 12).map((category, index) => (
               <Link
                 key={category.id || index}
-                to={`/food/user/category/${category.slug || category.name.toLowerCase().replace(/\s+/g, "-")}`}
+                to={`/category/${category.slug || category.name.toLowerCase().replace(/\s+/g, "-")}`}
                 className="flex-shrink-0 flex flex-col items-center gap-2 group transition-all duration-300 hover:-translate-y-1"
                 style={{ animation: `fade-in-up 0.5s ease-out forwards ${index * 0.05}s`, opacity: 0 }}
               >
@@ -2874,7 +2874,7 @@ export default function Home() {
           {!showCategorySkeleton && (isCategoryStuck || displayCategories.length > 12) && (
             <div
               className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer group"
-              onClick={() => navigate("/food/user/categories")}
+              onClick={() => navigate("/categories")}
             >
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-orange-50 dark:bg-orange-950 flex items-center justify-center border border-orange-100 group-hover:border-[#EB590E] transition-all">
                 <Plus className="w-6 h-6 text-[#EB590E]" />
@@ -3109,17 +3109,17 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Switch Coins Perk Banner */}
+        {/* Coins Perk Banner */}
         <div className="px-4 py-1.5">
           <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-medium text-amber-900 dark:text-amber-200">
               <Coins className="w-4 h-4 text-amber-500 shrink-0" />
               <span>
-                <strong>🪙 Switch Coins:</strong> Get 80% usable refund coins & redeem up to 50% on checkout!
+                <strong>🪙 Coins:</strong> Get 80% usable refund coins & redeem up to 50% on checkout!
               </span>
             </div>
             <Link
-              to="/food/user/wallet"
+              to="/wallet"
               className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline shrink-0 ml-2"
             >
               View Coins &rarr;
@@ -3154,7 +3154,7 @@ export default function Home() {
                       viewport={{ once: true }}
                       transition={{ duration: 0.35, delay: index * 0.05 }}>
                       <Link
-                        to={`/food/user/sellers/${sellerSlug}`}
+                        to={`/sellers/${sellerSlug}`}
                         onClick={captureScrollBeforeSellerNav}
                         className="block rounded-[20px] overflow-hidden border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] shadow-sm hover:shadow-md transition-shadow">
                         <div className="relative h-24 sm:h-28 md:h-32 bg-gray-50">

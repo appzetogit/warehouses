@@ -13,6 +13,8 @@ const debugError = (...args) => {}
 import SearchOverlay from "./SearchOverlay"
 import BottomNavigation from "./BottomNavigation"
 import DesktopNavbar from "./DesktopNavbar"
+import GeminiAssistantWidget from "./GeminiAssistantWidget"
+import SpinWheelModal from "./SpinWheelModal"
 import { useUserNotifications } from "../../hooks/useUserNotifications"
 import { shouldSkipScrollResetForHome } from "@store/utils/homeScrollRestore"
 
@@ -149,7 +151,7 @@ function LocationSelectorProvider({ children }) {
   const openLocationSelector = () => {
     // Navigate to the standalone address selector page
     // Provide current pathname to state so back button returns here accurately
-    navigate("/food/user/cart/address-selector", { state: { backTo: location.pathname } })
+    navigate("/cart/address-selector", { state: { backTo: location.pathname } })
   }
 
   const closeLocationSelector = () => { }
@@ -169,6 +171,7 @@ function LocationSelectorProvider({ children }) {
 
 export default function UserLayout() {
   const location = useLocation()
+  const [isSpinWheelOpen, setIsSpinWheelOpen] = useState(false)
 
   useEffect(() => {
     // Reset scroll to top whenever location changes (pathname, search, or hash).
@@ -183,20 +186,14 @@ export default function UserLayout() {
   // UserLayout should not interfere with authentication redirects
 
   // Show bottom navigation only on home page and profile page
-  const path = location.pathname.startsWith("/food")
-    ? location.pathname.substring(5) || "/"
-    : location.pathname
   const normalizedPath =
-    path.length > 1 ? path.replace(/\/+$/, "") : path
+    location.pathname.length > 1 ? location.pathname.replace(/\/+$/, "") : location.pathname
 
-  const isProfileRoot =
-    normalizedPath === "/profile" ||
-    normalizedPath === "/user/profile"
+  const isProfileRoot = normalizedPath === "/profile"
 
   const showBottomNav = normalizedPath === "/" ||
-    normalizedPath === "/user" ||
     isProfileRoot ||
-    normalizedPath === "" // Handle empty string case for root relative to /food
+    normalizedPath === "" // Handle empty string edge case
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
@@ -217,6 +214,25 @@ export default function UserLayout() {
                   <Outlet />
                 </main>
                 {showBottomNav && <BottomNavigation />}
+
+                {/* Floating Daily Spin Trigger Button */}
+                <div className="fixed bottom-20 md:bottom-6 left-5 z-40">
+                  <button
+                    onClick={() => setIsSpinWheelOpen(true)}
+                    className="flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-gray-950 font-bold text-xs shadow-xl hover:shadow-amber-500/30 transition-all border border-amber-300/40 cursor-pointer hover:scale-105 active:scale-95"
+                    title="Daily Lucky Wheel - Win Coins"
+                  >
+                    <span className="text-base leading-none">🎡</span>
+                    <span className="hidden sm:inline">Daily Spin</span>
+                  </button>
+                </div>
+
+                {/* Engagement Modals & Widgets */}
+                <SpinWheelModal
+                  isOpen={isSpinWheelOpen}
+                  onClose={() => setIsSpinWheelOpen(false)}
+                />
+                <GeminiAssistantWidget />
               </LocationSelectorProvider>
             </SearchOverlayProvider>
           </OrdersProvider>

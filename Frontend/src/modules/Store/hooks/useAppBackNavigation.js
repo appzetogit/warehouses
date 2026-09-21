@@ -8,7 +8,7 @@ const toProductPath = (value) => {
   if (trimmed.startsWith("/food/")) return trimmed
   if (trimmed === "/food") return trimmed
   if (trimmed.startsWith("/user/")) return `/food${trimmed}`
-  if (trimmed === "/user") return "/food/user"
+  if (trimmed === "/user") return "/"
   return null
 }
 
@@ -30,7 +30,7 @@ const resolveBackPath = ({ pathname, state }) => {
     normalizedPath === "/user/profile/payments/new" ||
     /^\/user\/profile\/payments\/[^/]+\/edit$/.test(normalizedPath)
   ) {
-    return "/food/user/profile/payments"
+    return "/profile/payments"
   }
 
   if (
@@ -38,7 +38,7 @@ const resolveBackPath = ({ pathname, state }) => {
       normalizedPath,
     )
   ) {
-    return "/food/user/profile"
+    return "/profile"
   }
 
   if (
@@ -46,63 +46,63 @@ const resolveBackPath = ({ pathname, state }) => {
       normalizedPath,
     )
   ) {
-    return explicitBackPath || "/food/user/profile"
+    return explicitBackPath || "/profile"
   }
 
   if (normalizedPath === "/user/wallet") {
-    return "/food/user/profile"
+    return "/profile"
   }
 
   if (normalizedPath === "/user/notifications") {
-    return explicitBackPath || "/food/user"
+    return explicitBackPath || "/"
   }
 
   if (/^\/user\/sellers\/[^/]+$/.test(normalizedPath)) {
-    return explicitBackPath || "/food/user"
+    return explicitBackPath || "/"
   }
 
   if (/^\/user\/orders\/[^/]+(\/invoice|\/details)?$/.test(normalizedPath)) {
-    return "/food/user/orders"
+    return "/orders"
   }
 
   if (
     normalizedPath === "/user/cart/select-address" ||
     normalizedPath === "/user/cart/address-selector"
   ) {
-    return "/food/user/cart"
+    return "/cart"
   }
 
   if (/^\/user\/collections\/[^/]+$/.test(normalizedPath)) {
-    return "/food/user/collections"
+    return "/collections"
   }
 
   if (normalizedPath === "/user/categories") {
-    return "/food/user"
+    return "/"
   }
 
   if (/^\/user\/category\/[^/]+$/.test(normalizedPath)) {
-    return "/food/user/categories"
+    return "/categories"
   }
 
   if (
     normalizedPath === "/user/offers"
   ) {
-    return "/food/user"
+    return "/"
   }
 
   if (/^\/user\/product\/[^/]+$/.test(normalizedPath)) {
-    return explicitBackPath || "/food/user"
+    return explicitBackPath || "/"
   }
 
   if (/^\/user\/complaints(\/|$)/.test(normalizedPath)) {
-    return explicitBackPath || "/food/user/orders"
+    return explicitBackPath || "/orders"
   }
 
   if (explicitBackPath && explicitBackPath !== pathname) {
     return explicitBackPath
   }
 
-  return "/food/user"
+  return "/"
 }
 
 function canUseHistoryBack() {
