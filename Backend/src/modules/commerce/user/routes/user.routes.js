@@ -43,6 +43,11 @@ import {
     getRefundHistoryController
 } from '../controllers/cashback.controller.js';
 
+import {
+    getUserCoinBalanceController,
+    getUserCoinLedgerController,
+} from '../../coins/controllers/coin.controller.js';
+
 const router = express.Router();
 
 router.get('/profile', getCurrentUserProfileController);
@@ -58,6 +63,10 @@ router.post('/wallet/topup/verify', verifyWalletTopupPaymentController);
 // Wallet sub-ledgers (both derived from the wallet/order records, no separate store)
 router.get('/cashback', getCashbackHistoryController);
 router.get('/refunds', getRefundHistoryController);
+
+// Promotional platform coins
+router.get('/coins/balance', getUserCoinBalanceController);
+router.get('/coins/ledger', getUserCoinLedgerController);
 
 // Referral stats (Bearer USER)
 router.get('/referrals/stats', getUserReferralStatsController);

@@ -43,6 +43,9 @@ GET /api/v1/admin/attributes
 GET /api/v1/admin/business-settings
 GET /api/v1/admin/cashback-settings
 GET /api/v1/admin/categories
+GET /api/v1/admin/coins/report
+GET /api/v1/admin/coins/settings
+GET /api/v1/admin/coins/users/:userId/ledger
 GET /api/v1/admin/contact-messages
 GET /api/v1/admin/customers
 GET /api/v1/admin/customers/:id
@@ -219,6 +222,8 @@ GET /api/v1/settings/power-scanning
 GET /api/v1/settings/seller-subscription
 GET /api/v1/user/addresses
 GET /api/v1/user/cashback
+GET /api/v1/user/coins/balance
+GET /api/v1/user/coins/ledger
 GET /api/v1/user/favorites
 GET /api/v1/user/profile
 GET /api/v1/user/referrals/details
@@ -239,6 +244,7 @@ PATCH /api/v1/admin/categories/:id/approve
 PATCH /api/v1/admin/categories/:id/make-global
 PATCH /api/v1/admin/categories/:id/reject
 PATCH /api/v1/admin/categories/:id/toggle
+PATCH /api/v1/admin/coins/settings
 PATCH /api/v1/admin/customers/:id/status
 PATCH /api/v1/admin/delivery-cash-limit
 PATCH /api/v1/admin/delivery/:id
@@ -328,6 +334,7 @@ PATCH /api/v1/user/profile
 POST /api/v1/admin/attribute-sets
 POST /api/v1/admin/attributes
 POST /api/v1/admin/categories
+POST /api/v1/admin/coins/adjust
 POST /api/v1/admin/delivery/bonus
 POST /api/v1/admin/delivery/commission-rules
 POST /api/v1/admin/delivery/earning-addon-completions/check

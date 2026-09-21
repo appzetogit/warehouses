@@ -21,6 +21,7 @@ import { requireAdminPermission, requireAnyAdminPermission } from '../../../../c
 import * as driverRegField from '../../delivery/controllers/driverRegistrationField.controller.js';
 import * as cashbackSettings from '../controllers/cashbackSettings.controller.js';
 import * as sellerAppBanner from '../controllers/sellerAppBanner.controller.js';
+import * as coinController from '../../coins/controllers/coin.controller.js';
 
 const router = express.Router();
 
@@ -74,7 +75,7 @@ const resolveSectionFromRequest = (path = '', method = '') => {
     if (path.startsWith('/offers')) return 'promotions_management';
     if (path.startsWith('/orders') || path.startsWith('/order-detect-delivery')) return 'order_management';
     if (path.startsWith('/delivery')) return 'delivery_management';
-    if (path.startsWith('/withdrawals')) return 'transaction_management';
+    if (path.startsWith('/withdrawals') || path.startsWith('/coins')) return 'transaction_management';
     if (path.startsWith('/feedback-experiences')) return 'report_management';
     if (path.startsWith('/reports')) return 'report_management';
     if (path.startsWith('/feature-settings') || path.startsWith('/business-settings') || path.startsWith('/power-scanning') || path.startsWith('/notifications')) return 'system_settings';
@@ -488,5 +489,12 @@ router.put('/pages-social-media/:key', upsertAdminPageController);
 
 router.get('/sidebar-badges', adminController.getSidebarBadges);
 router.get('/notifications/fssai-expired', adminController.getExpiredFssaiNotifications);
+
+// ----- Platform Coins (Promotional liability ledger & settings) -----
+router.get('/coins/settings', coinController.getCoinSettingsController);
+router.patch('/coins/settings', coinController.updateCoinSettingsController);
+router.post('/coins/adjust', coinController.adjustCoinsController);
+router.get('/coins/report', coinController.getCoinReportController);
+router.get('/coins/users/:userId/ledger', coinController.getUserCoinLedgerAdminController);
 
 export default router;

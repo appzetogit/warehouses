@@ -2766,5 +2766,24 @@ export const orderAPI = {
       { contextModule: "user" }
     ),
 };
+
+export const coinsAPI = {
+  /** GET /user/coins/balance (Bearer USER) */
+  getBalance: () => apiClient.get("/user/coins/balance", { contextModule: "user" }),
+  /** GET /user/coins/ledger (Bearer USER) */
+  getLedger: (params = {}) => apiClient.get("/user/coins/ledger", { params, contextModule: "user" }),
+  /** GET /admin/coins/settings (Bearer ADMIN) */
+  getSettings: () => apiClient.get("/admin/coins/settings", { contextModule: "admin" }),
+  /** PATCH /admin/coins/settings (Bearer ADMIN) */
+  updateSettings: (body) => apiClient.patch("/admin/coins/settings", body, { contextModule: "admin" }),
+  /** POST /admin/coins/adjust (Bearer ADMIN) */
+  adjustCoins: (body) => apiClient.post("/admin/coins/adjust", body, { contextModule: "admin" }),
+  /** GET /admin/coins/report (Bearer ADMIN) */
+  getReport: () => apiClient.get("/admin/coins/report", { contextModule: "admin" }),
+  /** GET /admin/coins/users/:userId/ledger (Bearer ADMIN) */
+  getUserLedger: (userId, params = {}) =>
+    apiClient.get(`/admin/coins/users/${userId}/ledger`, { params, contextModule: "admin" }),
+};
+
 export const heroBannerAPI = createStubAPI();
 export const publicAPI = createStubAPI();
