@@ -35,6 +35,8 @@ const defaultDeliveryLocationContext = {
   zoneLoading: true,
   zoneError: null,
   refreshZone: () => {},
+  commerceMode: "quick",
+  setCommerceMode: () => {},
 }
 
 const DeliveryLocationContext = createContext(defaultDeliveryLocationContext)
@@ -44,6 +46,32 @@ export function DeliveryLocationProvider({ children }) {
   const { location: liveLocation, loading, requestLocation } = useLocation()
   const [deliveryAddressMode, setDeliveryAddressMode] = useState(getDeliveryAddressMode)
   const [addressRevision, setAddressRevision] = useState(0)
+  const [commerceMode, setCommerceModeState] = useState(() => {
+    try {
+      return localStorage.getItem("commerce_mode") || "quick"
+    } catch {
+      return "quick"
+    }
+  })
+
+  const setCommerceMode = useCallback((mode) => {
+    const validMode = mode === "standard" ? "standard" : "quick"
+    setCommerceModeState(validMode)
+    try {
+      localStorage.setItem("commerce_mode", validMode)
+      window.dispatchEvent(new CustomEvent("commerceModeChanged", { detail: validMode }))
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleCommerceModeChange = (e) => {
+      if (e?.detail) setCommerceModeState(e.detail)
+    }
+    window.addEventListener("commerceModeChanged", handleCommerceModeChange)
+    return () => window.removeEventListener("commerceModeChanged", handleCommerceModeChange)
+  }, [])
 
   useEffect(() => {
     const syncMode = () => setDeliveryAddressMode(getDeliveryAddressMode())
@@ -155,6 +183,8 @@ export function DeliveryLocationProvider({ children }) {
       zoneLoading,
       zoneError,
       refreshZone,
+      commerceMode,
+      setCommerceMode,
     }),
     [
       liveLocation,
@@ -174,6 +204,8 @@ export function DeliveryLocationProvider({ children }) {
       zoneLoading,
       zoneError,
       refreshZone,
+      commerceMode,
+      setCommerceMode,
     ],
   )
 

@@ -182,6 +182,11 @@ export default function Navbar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
+                <Link to="/admin/store">
+                  <DropdownMenuItem className="font-semibold text-indigo-600 dark:text-indigo-400">
+                    🛡️ Admin Portal
+                  </DropdownMenuItem>
+                </Link>
                 <Link to="/food/user/cart">
                   <DropdownMenuItem>YOUR CART</DropdownMenuItem>
                 </Link>

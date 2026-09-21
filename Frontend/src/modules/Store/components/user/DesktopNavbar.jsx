@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useEffect, useState, useRef } from "react"
-import { ChevronDown, ShoppingCart, Wallet, Search, Mic } from "lucide-react"
+import { ChevronDown, ShoppingCart, Wallet, Search, Mic, Zap, Package, ShieldCheck } from "lucide-react"
 import { Button } from "@store/components/ui/button"
 import { Input } from "@store/components/ui/input"
 import { Switch } from "@store/components/ui/switch"
@@ -25,6 +25,8 @@ export default function DesktopNavbar() {
         effectiveLocation: userLocation,
         displayAddressText,
         loading: locationLoading,
+        commerceMode,
+        setCommerceMode,
     } = useDeliveryLocation()
     const { getCartCount } = useCart()
     const { openLocationSelector } = useLocationSelector()
@@ -263,16 +265,29 @@ export default function DesktopNavbar() {
                             </div>
                         </div>
 
-                        {/* Right: Wallet and Cart Icons */}
+                        {/* Right: Admin Portal, Wallet and Cart Icons */}
                         <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
+                            {/* Switch to Admin Portal Button */}
+                            <Link to="/admin/store">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-indigo-200 text-indigo-700 bg-indigo-50/90 hover:bg-indigo-100 hover:text-indigo-800 dark:border-indigo-800 dark:text-indigo-300 dark:bg-indigo-950/40 transition-all shadow-sm"
+                                    title="Open Admin Dashboard"
+                                >
+                                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                                    <span>Admin Portal</span>
+                                </Button>
+                            </Link>
+
                             {/* Wallet Icon */}
                             <Link to="/food/user/wallet">
                                 <Button
                                     variant="ghost"
-                                    className="h-12 w-12 lg:h-14 lg:w-14 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    className="h-10 w-10 lg:h-12 lg:w-12 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                                     title="Wallet"
                                 >
-                                    <Wallet className="!h-5 !w-5 lg:!h-6 lg:!w-6 text-gray-700 dark:text-gray-300" strokeWidth={2} />
+                                    <Wallet className="!h-5 !w-5 text-gray-700 dark:text-gray-300" strokeWidth={2} />
                                 </Button>
                             </Link>
 
@@ -280,13 +295,13 @@ export default function DesktopNavbar() {
                             <Link to="/food/user/cart">
                                 <Button
                                     variant="ghost"
-                                    className="relative h-12 w-12 lg:h-14 lg:w-14 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    className="relative h-10 w-10 lg:h-12 lg:w-12 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                                     title="Cart"
                                 >
-                                    <ShoppingCart className="!h-5 !w-5 lg:!h-6 lg:!w-6 text-gray-700 dark:text-gray-300" strokeWidth={2} />
+                                    <ShoppingCart className="!h-5 !w-5 text-gray-700 dark:text-gray-300" strokeWidth={2} />
                                     {cartCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-800">
-                                            <span className="text-xs font-bold text-white">{cartCount > 99 ? "99+" : cartCount}</span>
+                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-800">
+                                            <span className="text-[11px] font-bold text-white">{cartCount > 99 ? "99+" : cartCount}</span>
                                         </span>
                                     )}
                                 </Button>
@@ -296,51 +311,78 @@ export default function DesktopNavbar() {
                 </div>
             </div>
 
-            {/* Bottom Row: Navigation Tabs & Veg Mode */}
-            <div className={`w-full pb-3 ${(isBannerRoute && !hasScrolledPastBanner) ? "bg-transparent !bg-transparent" : "bg-white dark:bg-[#1a1a1a]"}`}>
+            {/* Bottom Row: Mode Switcher Tab & Quick Navigation */}
+            <div className={`w-full py-2 border-t border-gray-100 dark:border-neutral-800/80 ${(isBannerRoute && !hasScrolledPastBanner) ? "bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-md" : "bg-white dark:bg-[#1a1a1a]"}`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-center h-12">
-                        {/* Navigation Tabs - Centered with spacing */}
-                        <div className="flex items-center space-x-24">
-                            {/* Delivery Tab */}
+                    <div className="flex items-center justify-between h-11">
+                        {/* Navigation Links */}
+                        <div className="flex items-center space-x-6">
                             <Link
                                 to="/food/user"
                                 onClick={() => clearHomeScrollState()}
-                                className={`flex flex-col items-center gap-1 px-2 py-1 transition-colors relative group ${isDelivery
-                                    ? "text-orange-600 dark:text-orange-500"
-                                    : "text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-500"
-                                    }`}
+                                className={`text-xs font-bold tracking-wide uppercase transition-colors ${
+                                    isDelivery ? "text-orange-600 dark:text-orange-500" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                }`}
                             >
-                                <span className="text-sm font-bold tracking-wide uppercase">Delivery</span>
-                                {isDelivery && (
-                                    <motion.div
-                                        layoutId="navIndicator"
-                                        className="absolute -bottom-3 left-0 right-0 h-0.5 bg-orange-600 dark:bg-orange-500"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 0.3 }}
-                                    />
-                                )}
+                                Storefront
                             </Link>
+                            <Link
+                                to="/food/user/categories"
+                                className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                            >
+                                Categories
+                            </Link>
+                            <Link
+                                to="/food/user/sellers"
+                                className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                            >
+                                Stores & Sellers
+                            </Link>
+                            <Link
+                                to="/food/user/offers"
+                                className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                            >
+                                Offers & Deals
+                            </Link>
+                        </div>
 
-                            {/* Profile Tab */}
+                        {/* Central Prominent Delivery Mode Switcher Tab */}
+                        <div className="flex items-center p-0.5 bg-gray-100 dark:bg-neutral-800 rounded-full border border-gray-200 dark:border-neutral-700 shadow-inner">
+                            <button
+                                type="button"
+                                onClick={() => setCommerceMode("quick")}
+                                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                    commerceMode === "quick"
+                                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm scale-[1.02]"
+                                        : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                                }`}
+                            >
+                                <Zap className="w-3.5 h-3.5 fill-current" />
+                                <span>⚡ Quick (15-30m)</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCommerceMode("standard")}
+                                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                    commerceMode === "standard"
+                                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm scale-[1.02]"
+                                        : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                                }`}
+                            >
+                                <Package className="w-3.5 h-3.5" />
+                                <span>📦 Standard Courier</span>
+                            </button>
+                        </div>
+
+                        {/* Profile Tab */}
+                        <div className="flex items-center">
                             <Link
                                 to="/food/user/profile"
-                                className={`flex flex-col items-center gap-1 px-2 py-1 transition-colors relative group ${isProfile
-                                    ? "text-orange-600 dark:text-orange-500"
-                                    : "text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-500"
-                                    }`}
+                                className={`text-xs font-bold tracking-wide uppercase transition-colors ${
+                                    isProfile ? "text-orange-600 dark:text-orange-500" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                }`}
                             >
-                                <span className="text-sm font-bold tracking-wide uppercase">Profile</span>
-                                {isProfile && (
-                                    <motion.div
-                                        layoutId="navIndicator"
-                                        className="absolute -bottom-3 left-0 right-0 h-0.5 bg-orange-600 dark:bg-orange-500"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 0.3 }}
-                                    />
-                                )}
+                                Profile
                             </Link>
                         </div>
                     </div>

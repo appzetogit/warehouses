@@ -18,6 +18,9 @@ import {
   Grid,
   Bell,
   BellOff,
+  ShoppingBag,
+  ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
 import {
   Dialog,
@@ -318,7 +321,28 @@ export default function AdminNavbar({ onMenuClick }) {
             </button>
           </div>
 
-          {/* Right: User Profile */}
+          {/* Center-Right: Mode Switcher Tab (Admin Portal vs User Storefront) */}
+          <div className="hidden sm:flex items-center bg-neutral-100 p-1 rounded-xl border border-neutral-200">
+            <button
+              type="button"
+              onClick={() => navigate("/admin/store")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-neutral-900 shadow-sm border border-neutral-200 transition-all cursor-pointer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+              <span>Admin Portal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60 transition-all cursor-pointer"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-neutral-500" />
+              <span>User Store</span>
+              <ExternalLink className="w-3 h-3 text-neutral-400" />
+            </button>
+          </div>
+
+          {/* Right: User Profile & Notifications */}
           <div className="flex items-center gap-3">
             <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
               <PopoverTrigger asChild>

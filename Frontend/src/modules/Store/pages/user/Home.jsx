@@ -37,6 +37,10 @@ import {
   Plus,
   Check,
   Share2,
+  Zap,
+  Package,
+  Coins,
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Footer from "@store/components/user/Footer";
@@ -1536,6 +1540,8 @@ export default function Home() {
     isOutOfService,
     zoneLoading,
     zoneError,
+    commerceMode,
+    setCommerceMode,
   } = useDeliveryLocation();
 
   useEffect(() => {
@@ -3048,6 +3054,78 @@ export default function Home() {
           {CategoryRailSection}
         </div>
 
+
+        {/* Delivery Mode Quick Switcher Bar (Quick 15-30m vs Standard Courier) */}
+        <div className="px-4 pt-3 pb-1">
+          <div className="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 text-white rounded-2xl p-3 shadow-md border border-neutral-700/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-xl ${commerceMode === 'quick' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
+                {commerceMode === 'quick' ? <Zap className="w-5 h-5 fill-current" /> : <Package className="w-5 h-5" />}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                    {commerceMode === 'quick' ? '⚡ Quick Commerce' : '📦 Standard Marketplace'}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/10 text-neutral-300">
+                    {commerceMode === 'quick' ? '15–30 Mins' : '2–4 Days Pan-India'}
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-300 mt-0.5">
+                  {commerceMode === 'quick'
+                    ? 'Hyperlocal fast delivery from nearby hubs & verified sellers'
+                    : 'Wider catalog, multi-category marketplace & direct courier shipping'}
+                </p>
+              </div>
+            </div>
+
+            {/* Pill Toggle */}
+            <div className="flex items-center bg-neutral-950/80 p-1 rounded-xl border border-neutral-700/50 shrink-0 w-full sm:w-auto justify-center">
+              <button
+                type="button"
+                onClick={() => setCommerceMode('quick')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  commerceMode === 'quick'
+                    ? 'bg-amber-500 text-black shadow-sm font-extrabold'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Quick</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCommerceMode('standard')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  commerceMode === 'standard'
+                    ? 'bg-blue-600 text-white shadow-sm font-extrabold'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Package className="w-3.5 h-3.5" />
+                <span>Standard</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Switch Coins Perk Banner */}
+        <div className="px-4 py-1.5">
+          <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-medium text-amber-900 dark:text-amber-200">
+              <Coins className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>
+                <strong>🪙 Switch Coins:</strong> Get 80% usable refund coins & redeem up to 50% on checkout!
+              </span>
+            </div>
+            <Link
+              to="/food/user/wallet"
+              className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline shrink-0 ml-2"
+            >
+              View Coins &rarr;
+            </Link>
+          </div>
+        </div>
 
         {HeroBannerSection}
 
