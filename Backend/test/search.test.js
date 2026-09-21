@@ -34,12 +34,12 @@ before(async () => {
     ids.mid = mid._id;
 
     const product = (fields) => Product.create({ sellerId: near._id, approvalStatus: 'approved', price: 1, ...fields });
-    await product({ name: 'Cotton Tee', brand: 'Acme', tags: ['tshirt'], price: 300, variants: [v('M', 'Red', 300), v('L', 'Blue', 350)] });
+    ids.tee = (await product({ name: 'Cotton Tee', brand: 'Acme', tags: ['tshirt'], price: 300, variants: [v('M', 'Red', 300), v('L', 'Blue', 350)] }))._id;
     await product({ name: 'Linen Shirt', brand: 'Bolt', price: 900, variants: [v('M', 'Blue', 900), v('L', 'Red', 950)] });
     await product({ name: 'Wool Scarf', brand: 'Acme', price: 500, quickEligible: false });
     await product({ name: 'Red Apple', brand: 'Farm', price: 40, categoryName: 'Fruits' });
     await product({ name: 'Cheap Tee', brand: 'Bolt', price: 100, variants: [v('M', 'Red', 100, { isActive: false }), v('S', 'Red', 1200)] });
-    await Product.create({ sellerId: mid._id, name: 'Hidden Tee', approvalStatus: 'pending', price: 10 });
+    ids.hidden = (await Product.create({ sellerId: mid._id, name: 'Hidden Tee', approvalStatus: 'pending', price: 10 }))._id;
 });
 
 after(stopApp);
@@ -104,4 +104,16 @@ test('nearby stores come back nearest first, inside the radius, approved only', 
 
     const missing = await call('GET', '/catalog/stores/nearby');
     assert.equal(missing.status, 400);
+});
+
+test('a product page carries its variants, picker options and store', async () => {
+    const { product, seller } = ok(await call('GET', `/catalog/products/${ids.tee}`), 'product');
+    assert.equal(product.name, 'Cotton Tee');
+    assert.equal(product.variants.length, 2);
+    assert.deepEqual(product.options.map((o) => o.name), ['Size', 'Color']);
+    assert.deepEqual(product.options[0].values.map((v) => v.value).sort(), ['L', 'M']);
+    assert.equal(seller.sellerName, 'Near Store');
+
+    assert.equal((await call('GET', `/catalog/products/${ids.hidden}`)).status, 404, 'unapproved stays hidden');
+    assert.equal((await call('GET', '/catalog/products/not-an-id')).status, 404);
 });

@@ -108,3 +108,76 @@ export async function listPublicProducts(query = {}) {
 
     return { products, total: products.length };
 }
+
+/**
+ * One product for its own page: every field a shopper needs, all variants
+ * (inactive and sold-out ones marked, so the picker can grey them out), the
+ * attribute order from its category, and the store selling it.
+ *
+ * Only approved products of approved stores; anything else is "not found",
+ * so a pending or rejected product never leaks through a guessed id.
+ */
+export async function getPublicProduct(productId) {
+    if (!productId || !mongoose.Types.ObjectId.isValid(String(productId))) return null;
+    const product = await Product.findOne({ _id: productId, approvalStatus: 'approved' }).lean();
+    if (!product) return null;
+    const seller = await Seller.findOne({ _id: product.sellerId, status: 'approved' })
+        .select('_id sellerName profileImage rating totalRatings estimatedDeliveryTime estimatedDeliveryTimeMinutes isAcceptingOrders zoneId location.area location.city')
+        .lean();
+    if (!seller) return null;
+
+    const { getCategoryAttributes } = await import('../../admin/services/attribute.service.js');
+    const { attributes } = await getCategoryAttributes(product.categoryId);
+    const variants = serializeProductVariants(product.variants, { productStockQty: product.stockQty ?? null });
+
+    // The attributes this product actually uses, in the category's order, with
+    // the category's swatches; attributes outside any set come after.
+    const used = new Map();
+    for (const variant of variants) {
+        for (const { name, value } of variant.attributes) {
+            if (!used.has(name)) used.set(name, new Set());
+            used.get(name).add(value);
+        }
+    }
+    const known = new Map(attributes.map((a) => [a.name, a]));
+    const options = [...used].map(([name, values]) => {
+        const attribute = known.get(name);
+        const ordered = attribute
+            ? attribute.values.filter((v) => values.has(v.value)).map((v) => ({ value: v.value, hex: v.hex || '' }))
+            : [...values].map((value) => ({ value, hex: '' }));
+        return { name, type: attribute?.type || 'select', values: ordered };
+    }).sort((a, b) => {
+        const ia = attributes.findIndex((x) => x.name === a.name);
+        const ib = attributes.findIndex((x) => x.name === b.name);
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+
+    return {
+        product: {
+            _id: product._id,
+            name: product.name,
+            description: product.description || '',
+            brand: product.brand || '',
+            packSize: product.packSize || '',
+            categoryId: product.categoryId || null,
+            categoryName: product.categoryName || '',
+            price: product.price,
+            displayPrice: getProductDisplayPrice({ variants }) || product.price,
+            otherPrice: getProductDisplayOtherPrice(product),
+            mrp: product.mrp ?? null,
+            image: product.image || '',
+            images: product.images?.length ? product.images : (product.image ? [product.image] : []),
+            foodType: product.foodType || null,
+            isAvailable: product.isAvailable !== false,
+            stockQty: product.stockQty ?? null,
+            maxQtyPerOrder: product.maxQtyPerOrder ?? null,
+            quickEligible: product.quickEligible !== false,
+            rating: product.rating || 0,
+            totalRatings: product.totalRatings || 0,
+            tags: product.tags || [],
+            variants,
+            options,
+        },
+        seller: { ...seller, isAcceptingOrders: seller.isAcceptingOrders !== false },
+    };
+}

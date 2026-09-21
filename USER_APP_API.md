@@ -59,6 +59,7 @@ offers personalised (first-order offers, for example).
 |---|---|---|
 | GET | `/catalog/categories` | Category tree |
 | GET | `/catalog/products` | Product listing |
+| GET | `/catalog/products/:id` | One approved product for its page: all `variants` (inactive and sold-out ones included, so the picker can grey them out), `options` (the attributes its variants use, in category order, with swatch `hex`), and the `seller`. 404 for unapproved products or stores |
 | GET | `/catalog/stores` | Approved stores |
 | GET | `/catalog/stores/:id` | One store |
 | GET | `/catalog/stores/:id/products` | A store's products, grouped by category |

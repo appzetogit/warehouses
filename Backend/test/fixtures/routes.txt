@@ -124,6 +124,7 @@ GET /api/v1/catalog/categories
 GET /api/v1/catalog/categories/:id/attributes
 GET /api/v1/catalog/offers
 GET /api/v1/catalog/products
+GET /api/v1/catalog/products/:id
 GET /api/v1/catalog/search/categories/admin
 GET /api/v1/catalog/search/products
 GET /api/v1/catalog/search/unified

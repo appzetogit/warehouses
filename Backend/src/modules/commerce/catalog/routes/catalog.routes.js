@@ -8,7 +8,7 @@ import {
 } from '../../seller/controllers/seller.controller.js';
 import { listCategoriesController } from '../../seller/controllers/sellerCategory.controller.js';
 import { getPublicSellerMenuController } from '../../seller/controllers/sellerMenu.controller.js';
-import { listPublicProductsController } from '../../seller/controllers/publicProducts.controller.js';
+import { listPublicProductsController, getPublicProductController } from '../../seller/controllers/publicProducts.controller.js';
 import { getOutletTimingsBySellerIdController } from '../../seller/controllers/outletTimings.controller.js';
 import { listPublicAttributesController, getCategoryAttributesController } from '../../admin/controllers/attribute.controller.js';
 import { nearbyStoresController } from '../../search/controllers/search.controller.js';
@@ -30,6 +30,7 @@ router.get('/stores/:id', cacheResponse(600, 'seller_detail'), getApprovedSeller
 router.get('/stores/:id/products', cacheResponse(600, 'seller_menu'), getPublicSellerMenuController);
 router.get('/stores/:id/timings', cacheResponse(600, 'seller_timings'), getOutletTimingsBySellerIdController);
 router.get('/products', cacheResponse(300, 'public_products'), listPublicProductsController);
+router.get('/products/:id', cacheResponse(120, 'public_product'), getPublicProductController);
 router.get('/categories', cacheResponse(600, 'categories'), listCategoriesController);
 router.get('/categories/:id/attributes', getCategoryAttributesController);
 router.get('/attributes', listPublicAttributesController);
