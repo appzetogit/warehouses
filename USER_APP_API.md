@@ -64,13 +64,30 @@ offers personalised (first-order offers, for example).
 | GET | `/catalog/stores/:id/products` | A store's products, grouped by category |
 | GET | `/catalog/stores/:id/timings` | Opening hours |
 | GET | `/catalog/offers` | Coupons the customer can use |
-| GET | `/catalog/search/products` | Product search: `q`, `categoryId`, `zoneId`, `isVeg`, `inStockOnly`, `page`, `limit` |
+| GET | `/catalog/search/products` | Product search; parameters below |
 | GET | `/catalog/search/unified` | Stores matching a query, each with its matching product: `q`, `lat`, `lng`, `radiusKm`, `zoneId`, `strictZone`, `categoryId`, `minRating`, `maxDeliveryTime`, `isVeg`, `page`, `limit`. Results are marked `matchType: 'seller'` or `'product'` |
 | GET | `/catalog/search/categories/admin` | Admin-defined search categories (`zoneId`) |
+| GET | `/catalog/stores/nearby` | Approved stores nearest first: `lat`, `lng`, `radiusKm` (default 5, max 50), `limit`. Each has `distanceKm` |
+| GET | `/catalog/attributes` | Attributes offered as filters (Size, Color…), with their values and colour swatches |
+| GET | `/catalog/categories/:id/attributes` | The attributes a category's products vary by, in display order |
 
-A product has `price`, optional `mrp`, `variants` (each `{ _id, name, price }`
-today; attribute-based variants with their own stock are coming in Phase 2a),
-`image`/`images`, `isAvailable`, stock fields and the optional `foodType` mark.
+**Product search parameters** (`/catalog/search/products`):
+
+| Parameter | |
+|---|---|
+| `q` | Words to find. Each must appear in the name, brand, tags or category (as a prefix or inside a word). When nothing has every word, word forms are matched instead ("shirts" → "Shirt"); `matchedBy` says which (`'words'` or `'text'`) |
+| `zoneId`, `categoryId` | Scope |
+| `minPrice`, `maxPrice` | Against an active variant's price, or the product's |
+| `brand` | Comma list, any case |
+| `attr[Name]` | Comma list of values, e.g. `attr[Size]=M,L&attr[Color]=Red`. All chosen attributes must be on the same variant |
+| `isVeg`, `inStockOnly`, `quickOnly` | `true` to filter |
+| `sort` | `relevance` (default), `price_asc`, `price_desc`, `rating`, `newest` |
+| `facets` | `true` adds `facets: { brands, priceRange, attributes }` with counts, for the filter sheet |
+| `page`, `limit` | `limit` up to 50 |
+
+Each product carries `displayPrice` (the cheapest active variant's price, for "from ₹X"), `quickEligible`, `inStock` and its `variants`.
+
+**Products and variants.** A product has `price`, optional `mrp`, `image`/`images`, `isAvailable`, `quickEligible`, `tags`, stock fields and the optional `foodType` mark, and may have `variants`. Each variant has `_id`, `name`, `price`, `mrp`, `attributes: [{ name, value }]`, `images` (empty means use the product's), `isActive` and `inStock`. When a product has variants, the customer must pick one: send its `_id` as the cart line's `variantId`. Grey out variants where `inStock` is false.
 
 ## Profile and account
 

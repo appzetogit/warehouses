@@ -64,8 +64,10 @@ Product fields accepted on create and update:
 | `name` | Required on create, up to 200 characters |
 | `price`, `otherPrice` | Selling price, optional strike-through price |
 | `mrp` | Printed MRP; `price` may not exceed it |
-| `variants` | `[{ name, price }]` today. Attribute variants with per-variant stock come in Phase 2a |
-| `categoryId` or `categoryName` | |
+| `variants` | See below |
+| `categoryId` or `categoryName` | A category marked as needing FSSAI (groceries, food) refuses the product unless the store's FSSAI number is on file and not expired |
+| `tags` | Search keywords, list or comma string, up to 20 |
+| `quickEligible` | `false` for items that can't go by quick delivery (bulky, made to order). Default `true` |
 | `description`, `brand`, `packSize`, `sku`, `barcode`, `expiryDate` | |
 | `gstRate` | 0–100, or `null` to use the default |
 | `image`, `images` | URLs from an upload |
@@ -75,6 +77,28 @@ Product fields accepted on create and update:
 
 The create and update responses return the product under `data.product`.
 
+**Variants.** Each entry of `variants`:
+
+```json
+{
+  "attributes": [{ "name": "Size", "value": "M" }, { "name": "Color", "value": "Red" }],
+  "price": 399, "mrp": 499, "sku": "TEE-M-RED", "stockQty": 12, "lowStockThreshold": 3,
+  "images": ["https://…/red.jpg"], "isActive": true
+}
+```
+
+- `attributes` can also be an object: `{ "Size": "M", "Color": "Red" }`. `name`
+  defaults to the values joined ("M / Red").
+- If the category has attributes (`GET /catalog/categories/:id/attributes`),
+  only those attributes and their listed values are accepted, respelled as the
+  admin wrote them.
+- Two variants with the same options are refused. A variant's `price` may not
+  exceed its own `mrp`, or the product's when it has none.
+- `stockQty: null` (or leaving it out) means the variant shares the product's
+  `stockQty`, as pack sizes of one item do. A number counts it separately.
+- Send the variant's `_id` back when editing, or it is treated as a new
+  variant (and orders that point at the old id can no longer find it).
+
 **Bulk stock:** `PATCH /seller/products/stock` takes an array (or
 `{ items: [...] }`) of up to 500 entries:
 
@@ -82,9 +106,13 @@ The create and update responses return the product under `data.product`.
 [{ "itemId": "…", "stockQty": 40, "lowStockThreshold": 5, "maxQtyPerOrder": 6, "isAvailable": true }]
 ```
 
+Add `variantId` to an entry to set that variant instead: its `stockQty`
+(`null` hands it back to the shared count), `lowStockThreshold` or `isActive`.
+
 It returns per-item `updated` and `failed` lists, so one bad id doesn't reject
-the rest. A product whose stock reaches zero is hidden from customers
-automatically.
+the rest. A product is hidden from customers automatically once nothing on it
+can be sold, and comes back on restock unless you switched it off by hand. The
+low-stock list includes variants counted on their own (with `variantId`).
 
 ## Categories
 
