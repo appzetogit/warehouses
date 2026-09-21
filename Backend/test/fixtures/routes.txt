@@ -431,6 +431,7 @@ POST /api/v1/seller/profile/menu-image
 POST /api/v1/seller/profile/menu-images
 POST /api/v1/seller/profile/profile-image
 POST /api/v1/seller/register
+POST /api/v1/seller/reverify
 POST /api/v1/seller/support/tickets
 POST /api/v1/seller/unregistered
 POST /api/v1/seller/upload-attachment

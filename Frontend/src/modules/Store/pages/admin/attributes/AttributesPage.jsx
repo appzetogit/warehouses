@@ -42,8 +42,8 @@ export default function AttributesPage() {
     try {
       setLoading(true)
       const [attrsRes, setsRes] = await Promise.all([
-        attributeAdminAPI.getAttributes(),
-        attributeAdminAPI.getAttributeSets(),
+        attributeAdminAPI.listAttributes(),
+        attributeAdminAPI.listSets(),
       ])
       setAttributes(attrsRes?.data?.data?.attributes || [])
       setAttributeSets(setsRes?.data?.data?.attributeSets || [])
@@ -105,7 +105,7 @@ export default function AttributesPage() {
 
     try {
       setCreatingSet(true)
-      await attributeAdminAPI.createAttributeSet({
+      await attributeAdminAPI.createSet({
         name: newSetName.trim(),
         attributeIds: selectedAttrIds,
       })
@@ -123,7 +123,7 @@ export default function AttributesPage() {
   const handleDeleteAttributeSet = async (id, name) => {
     if (!confirm(`Are you sure you want to delete attribute set "${name}"?`)) return
     try {
-      await attributeAdminAPI.deleteAttributeSet(id)
+      await attributeAdminAPI.deleteSet(id)
       toast.success(`Attribute set "${name}" deleted`)
       fetchAll()
     } catch (err) {

@@ -56,7 +56,6 @@ const Welcome = lazy(() => import("@store/pages/seller/auth/Welcome"))
 const Login = lazy(() => import("@store/pages/seller/auth/Login"))
 const OTP = lazy(() => import("@store/pages/seller/auth/OTP"))
 const Signup = lazy(() => import("@store/pages/seller/auth/Signup"))
-const ForgotPassword = lazy(() => import("@store/pages/seller/auth/ForgotPassword"))
 const VerificationPending = lazy(() => import("@store/pages/seller/auth/VerificationPending"))
 const Subscription = lazy(() => import("@store/pages/seller/Subscription"))
 
@@ -97,7 +96,6 @@ export default function SellerRouter() {
         <Route path="login" element={<AuthRedirect module="seller"><Login /></AuthRedirect>} />
         <Route path="otp" element={<AuthRedirect module="seller"><OTP /></AuthRedirect>} />
         <Route path="signup" element={<AuthRedirect module="seller"><Signup /></AuthRedirect>} />
-        <Route path="forgot-password" element={<AuthRedirect module="seller"><ForgotPassword /></AuthRedirect>} />
         <Route path="pending-verification" element={<AuthRedirect module="seller"><VerificationPending /></AuthRedirect>} />
 
         <Route path="onboarding" element={<AuthRedirect module="seller"><SellerOnboarding /></AuthRedirect>} />

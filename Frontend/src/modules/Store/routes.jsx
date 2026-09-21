@@ -20,7 +20,6 @@ const SellerRouter = lazy(() => import("@store/components/seller/SellerRouter"))
 // Admin Module
 const AdminRouter = lazy(() => import("@store/components/admin/AdminRouter"))
 const AdminLogin = lazy(() => import("@store/pages/admin/auth/AdminLogin"))
-const AdminSignup = lazy(() => import("@store/pages/admin/auth/AdminSignup"))
 const AdminForgotPassword = lazy(() => import("@store/pages/admin/auth/AdminForgotPassword"))
 
 // Delivery Module

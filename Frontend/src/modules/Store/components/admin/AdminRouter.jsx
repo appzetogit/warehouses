@@ -12,7 +12,6 @@ const AdminHome = lazy(() => import("@store/pages/admin/AdminHome"));
 const PointOfSale = lazy(() => import("@store/pages/admin/PointOfSale"));
 const AdminProfile = lazy(() => import("@store/pages/admin/AdminProfile"));
 const AdminSettings = lazy(() => import("@store/pages/admin/AdminSettings"));
-const NewRefundRequests = lazy(() => import("@store/pages/admin/refunds/NewRefundRequests"));
 const ProductApproval = lazy(() => import("@store/pages/admin/seller/ProductApproval"));
 const OrdersPage = lazy(() => import("@store/pages/admin/orders/OrdersPage"));
 const UserCarts = lazy(() => import("@store/pages/admin/orders/UserCarts"));
@@ -136,7 +135,6 @@ const AddonActivation = lazy(() => import("@store/pages/admin/system/AddonActiva
 const LandingPageManagement = lazy(() => import("@store/pages/admin/system/LandingPageManagement"));
 const EditSeller = lazy(() => import("@store/pages/admin/seller/EditSeller"));
 const AdminLogin = lazy(() => import("@store/pages/admin/auth/AdminLogin"));
-const AdminSignup = lazy(() => import("@store/pages/admin/auth/AdminSignup"));
 const AdminForgotPassword = lazy(() => import("@store/pages/admin/auth/AdminForgotPassword"));
 
 function FeatureSettingsRouteGuard() {
@@ -232,7 +230,6 @@ export default function AdminRouter() {
         {/* Admin Auth Routes */}
         <Route path="login" element={<AuthRedirect module="admin"><AdminLogin /></AuthRedirect>} />
         <Route path="forgot-password" element={<AuthRedirect module="admin"><AdminForgotPassword /></AuthRedirect>} />
-        <Route path="signup" element={<AuthRedirect module="admin"><AdminSignup /></AuthRedirect>} />
 
         {/* Protected Routes - With Layout */}
         <Route
@@ -268,7 +265,6 @@ export default function AdminRouter() {
             <Route path="orders/offline-payments" element={<OrdersPage statusKey="offline-payments" />} />
             <Route path="orders/user-carts" element={<UserCarts />} />
             <Route path="order-detect-delivery" element={<OrderDetectDelivery />} />
-            <Route path="order-refunds/new" element={<NewRefundRequests />} />
 
             {/* SELLER MANAGEMENT */}
             <Route path="zone-setup" element={<ZoneSetup />} />

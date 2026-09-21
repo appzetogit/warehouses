@@ -1228,6 +1228,9 @@ export const sellerAPI = {
   /** Seller dashboard: always fetch fresh profile data. */
   getCurrentSeller: () =>
     apiClient.get("/seller/current", { contextModule: "seller" }),
+  /** Sends a rejected application back to the admin for review. */
+  reverify: () =>
+    apiClient.post("/seller/reverify", {}, { contextModule: "seller" }),
   /** Finance dashboard for `hub-finance`. */
   getFinance: (params = {}) =>
     apiClient.get("/seller/finance", {

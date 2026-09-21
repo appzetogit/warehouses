@@ -1,3 +1,5 @@
+import { resubmitController } from '../../shared/resubmitApplication.js';
+import { Seller } from '../models/seller.model.js';
 import express from 'express';
 import { upload } from '../../../../middleware/upload.js';
 import {
@@ -107,6 +109,7 @@ router.post('/upload-attachment', upload.single('file'), uploadSellerAttachmentC
 
 // Seller dashboard/profile (Bearer token + SELLER role)
 router.get('/current', authMiddleware, requireSeller, getCurrentSellerController);
+router.post('/reverify', authMiddleware, requireSeller, resubmitController(Seller));
 /**
  * Account deletion, initiated by the seller themselves.
  *

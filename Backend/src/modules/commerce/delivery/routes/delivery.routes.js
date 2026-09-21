@@ -1,3 +1,5 @@
+import { resubmitController } from '../../shared/resubmitApplication.js';
+import { DeliveryPartner } from '../models/deliveryPartner.model.js';
 import express from 'express';
 import { upload } from '../../../../middleware/upload.js';
 import { authMiddleware } from '../../../../core/auth/auth.middleware.js';
@@ -87,7 +89,7 @@ router.post('/orders/:orderId/collect/cash', authMiddleware, requireRoles('DELIV
 
 // ----- Earnings / Settings -----
 router.get('/earning-addons/active', authMiddleware, requireRoles('DELIVERY_PARTNER'), getActiveEarningAddonsController);
-router.post('/reverify', authMiddleware, requireRoles('DELIVERY_PARTNER'), (req, res) => res.json({ success: true, message: 'Submitted' })); // Stub
+router.post('/reverify', authMiddleware, requireRoles('DELIVERY_PARTNER'), resubmitController(DeliveryPartner));
 
 // Pocket / requests page – wallet, earnings, and admin-set delivery settings
 router.get('/wallet', authMiddleware, requireRoles('DELIVERY_PARTNER'), getWalletController);
