@@ -53,6 +53,8 @@ const businessSettingsSchema = new mongoose.Schema(
             }
         },
         orderAcceptanceTimeMinutes: { type: Number, default: 4, min: 1, max: 20 },
+        /** Days after delivery a customer may ask to return a courier-shipped order. */
+        returnWindowDays: { type: Number, default: 7, min: 0, max: 90 },
         /**
          * Google Maps browser key, set once here instead of baked into each
          * build's environment.

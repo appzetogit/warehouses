@@ -150,6 +150,9 @@ test('a customer prices and places a cash order, and stock is reserved', async (
     }), 'place order', 201);
     ids.order = placed.order._id || placed.order.id;
     assert.ok(ids.order, 'order id returned');
+    const stored = await ids.db.collection('orders').findOne({ _id: new mongoose.Types.ObjectId(String(ids.order)) });
+    assert.ok(stored.promisedEtaMinutes > 0, 'the quick delivery promise is snapshotted');
+    if (quote.pricing.deliveryPromiseMinutes) assert.equal(stored.promisedEtaMinutes, quote.pricing.deliveryPromiseMinutes, 'same promise as the quote');
 
     const product = await ids.db.collection('products').findOne({ _id: ids.product });
     assert.equal(product.stockQty, 8, 'two units reserved');

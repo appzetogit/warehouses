@@ -896,6 +896,30 @@ export const adminAPI = {
     apiClient.get("/admin/reports/delivery-sla/export", { params, responseType: "blob", contextModule: "admin" }),
   getCommissionReport: (params = {}) =>
     apiClient.get("/admin/reports/commission", { params, contextModule: "admin" }),
+  /** Courier (standard) orders with their shipment. */
+  getShipments: (params = {}) =>
+    apiClient.get("/admin/shipments", { params, contextModule: "admin" }),
+  trackShipmentAdmin: (orderId) =>
+    apiClient.get(`/admin/shipments/${String(orderId)}/tracking`, { contextModule: "admin" }),
+  bookShipmentAdmin: (orderId) =>
+    apiClient.post(`/admin/shipments/${String(orderId)}/book`, {}, { contextModule: "admin" }),
+  cancelShipmentAdmin: (orderId, reason = "") =>
+    apiClient.post(`/admin/shipments/${String(orderId)}/cancel`, { reason }, { contextModule: "admin" }),
+  getReturns: (params = {}) =>
+    apiClient.get("/admin/returns", { params, contextModule: "admin" }),
+  getReturnById: (id) =>
+    apiClient.get(`/admin/returns/${String(id)}`, { contextModule: "admin" }),
+  getReturnSettings: () =>
+    apiClient.get("/admin/returns/settings", { contextModule: "admin" }),
+  updateReturnSettings: (body) =>
+    apiClient.patch("/admin/returns/settings", body ?? {}, { contextModule: "admin" }),
+  approveReturn: (id, body = {}) =>
+    apiClient.post(`/admin/returns/${String(id)}/approve`, body, { contextModule: "admin" }),
+  rejectReturn: (id, reason) =>
+    apiClient.post(`/admin/returns/${String(id)}/reject`, { reason }, { contextModule: "admin" }),
+  /** Marks the items received and refunds them (once). */
+  receiveReturn: (id, body = {}) =>
+    apiClient.post(`/admin/returns/${String(id)}/receive`, body, { contextModule: "admin" }),
   exportCommissionReport: (params = {}) =>
     apiClient.get("/admin/reports/commission/export", { params, responseType: "blob", contextModule: "admin" }),
   getCoinLiabilityReport: (params = {}) =>
@@ -1656,6 +1680,9 @@ export const sellerAPI = {
     apiClient.get(`/seller/orders/${String(orderId)}/shipment/track`, {
       contextModule: "seller",
     }),
+  /** Customer returns on this store's orders (read-only). */
+  getReturns: (params = {}) =>
+    apiClient.get("/seller/returns", { params, contextModule: "seller" }),
   /**
    * Get a single order by id for seller screens.
    * Prefer direct endpoint; fallback to list+filter for backward compatibility.
@@ -1887,7 +1914,7 @@ const getPublicSellerMenuOnce = (id, config = {}) => {
       ...axiosConfig,
     });
   }
-  const key = `menu:${safeId}`;
+  const key = `menu:${safeId}:${stableStringify(axiosConfig.params || {})}`;
   return publicSellerMenuCache.getOrCreate(key, () =>
     apiClient.get(`/catalog/stores/${safeId}/products`, {
       ...axiosConfig,
@@ -2418,6 +2445,12 @@ export const deliveryAPI = {
 };
 
 export const userAPI = {
+  /** Return eligibility, returnable lines and past returns for an order. */
+  getOrderReturns: (orderId) =>
+    apiClient.get(`/orders/${String(orderId)}/returns`, { contextModule: "user" }),
+  /** `{ items: [{ itemId, variantId, quantity }], reason, comment, photos, refundTo: 'original'|'coins' }` */
+  requestOrderReturn: (orderId, body) =>
+    apiClient.post(`/orders/${String(orderId)}/returns`, body ?? {}, { contextModule: "user" }),
   deleteCurrentUserAccount: () =>
     apiClient
       .delete('/user/profile', { contextModule: 'user' })
@@ -2551,6 +2584,7 @@ export const userAPI = {
       contextModule: "user",
     }),
   /** PUT /food/user/cart (Bearer USER) */
+  /** body.mode: 'shop' | 'quick' - one server cart per storefront */
   syncCart: (body) =>
     apiClient.put("/user/cart", body ?? {}, { contextModule: "user" }),
   /**

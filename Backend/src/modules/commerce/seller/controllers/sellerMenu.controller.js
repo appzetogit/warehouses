@@ -16,7 +16,7 @@ export const getMenuController = async (req, res, next) => {
 
 export const getPublicSellerMenuController = async (req, res, next) => {
     try {
-        const menu = await getPublicApprovedSellerMenu(req.params.id);
+        const menu = await getPublicApprovedSellerMenu(req.params.id, { fulfilmentMode: req.query?.fulfilmentMode });
         if (!menu) {
             return res.status(404).json({ success: false, message: 'Store not found' });
         }

@@ -20,6 +20,7 @@ import {
     verifyCheckoutPaymentController,
     abandonCheckoutController
 } from '../controllers/checkout.controller.js';
+import { getOrderReturnsUserController, createReturnUserController } from '../controllers/shipmentReturn.controller.js';
 
 const router = express.Router();
 
@@ -38,6 +39,8 @@ router.get('/:orderId/payments', getOrderPaymentsUserController);
 router.get('/:orderId/drop-otp', getOrderDropOtpUserController);
 // Live route from the rider's current position to their next stop, for the tracking map.
 router.get('/:orderId/route', getOrderRouteUserController);
+router.get('/:orderId/returns', getOrderReturnsUserController);
+router.post('/:orderId/returns', createReturnUserController);
 router.get('/:orderId', getOrderByIdUserController);
 router.patch('/:orderId/cancel', cancelOrderController);
 router.patch('/:orderId/ratings', submitOrderRatingsController);

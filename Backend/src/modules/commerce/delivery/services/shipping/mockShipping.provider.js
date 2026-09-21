@@ -68,6 +68,33 @@ export class MockShippingProvider extends ShippingProvider {
         return { success: true, message: 'Shipment cancelled with mock courier' };
     }
 
+    get supportsReturns() {
+        return true;
+    }
+
+    async createReturnShipment(returnData = {}) {
+        const shipmentId = `MOCK-RET-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const awb = `RAWB${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        this.shipments.set(awb, {
+            shipmentId,
+            awb,
+            courierName: 'MockExpress',
+            status: 'pickup_scheduled',
+            trackingHistory: [
+                { status: 'pickup_scheduled', activity: 'Return pickup scheduled', location: 'Customer address', timestamp: new Date() },
+            ],
+        });
+        return { shipmentId, providerOrderId: `MOCK-RET-ORD-${returnData.returnId || ''}`, awb, courierName: 'MockExpress', provider: this.name };
+    }
+
+    /** Test / demo helper: move a mock shipment to a status. */
+    setStatus(awb, status, activity = '') {
+        const record = this.shipments.get(awb);
+        if (!record) return;
+        record.status = status;
+        record.trackingHistory.push({ status, activity: activity || status, location: '', timestamp: new Date() });
+    }
+
     async trackShipment(awb) {
         const record = this.shipments.get(awb);
         if (!record) {

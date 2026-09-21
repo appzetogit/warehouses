@@ -28,13 +28,21 @@ function nextStoreDayStart(at = new Date()) {
     return t;
 }
 
+/** Where a campaign sits in its schedule window: 'scheduled', 'live' or 'ended'. */
+export function scheduleStatus(campaign, now = new Date()) {
+    const t = now.getTime();
+    if (campaign?.startsAt && t < new Date(campaign.startsAt).getTime()) return 'scheduled';
+    if (campaign?.endsAt && t >= new Date(campaign.endsAt).getTime()) return 'ended';
+    return 'live';
+}
+
 /**
  * The wheel customers see, or null when an admin has switched every wheel off.
  * A default wheel is created only the first time, when there is none at all.
  */
-export async function getActiveCampaign() {
+export async function getActiveCampaign(now = new Date()) {
     const campaign = await SpinCampaign.findOne({ isActive: true }).lean();
-    if (campaign) return campaign;
+    if (campaign) return scheduleStatus(campaign, now) === 'live' ? campaign : null;
     if (await SpinCampaign.exists({})) return null;
     try {
         return (await SpinCampaign.create({
@@ -220,7 +228,20 @@ function cleanCampaign(body = {}, { partial = false } = {}) {
         if (!(n >= 0)) throw new ValidationError('Monthly budget must be 0 (no cap) or more');
         out.monthlyCoinBudget = n;
     }
+    for (const key of ['startsAt', 'endsAt']) {
+        if (body[key] === undefined) continue;
+        if (body[key] === null || body[key] === '') { out[key] = null; continue; }
+        const d = new Date(body[key]);
+        if (Number.isNaN(d.getTime())) throw new ValidationError(`${key === 'startsAt' ? 'Start' : 'End'} time is not a valid date`);
+        out[key] = d;
+    }
     return out;
+}
+
+function assertWindow(startsAt, endsAt) {
+    if (startsAt && endsAt && new Date(endsAt).getTime() <= new Date(startsAt).getTime()) {
+        throw new ValidationError('End time must be after start time');
+    }
 }
 
 /** Each segment's chance, as the admin will see it before saving. */
@@ -228,6 +249,9 @@ const withChances = (campaign) => {
     const total = (campaign.segments || []).reduce((s, x) => s + Math.max(1, Number(x.weight) || 1), 0);
     return {
         ...campaign,
+        startsAt: campaign.startsAt || null,
+        endsAt: campaign.endsAt || null,
+        scheduleStatus: scheduleStatus(campaign),
         segments: (campaign.segments || []).map((s) => ({
             ...s,
             chancePercent: total ? Math.round((Math.max(1, Number(s.weight) || 1) / total) * 1000) / 10 : 0,
@@ -241,12 +265,21 @@ export async function listCampaigns() {
 }
 
 export async function createCampaign(body) {
-    const doc = await SpinCampaign.create({ ...cleanCampaign(body), isActive: false });
+    const clean = cleanCampaign(body);
+    assertWindow(clean.startsAt, clean.endsAt);
+    const doc = await SpinCampaign.create({ ...clean, isActive: false });
     return withChances(doc.toObject());
 }
 
 export async function updateCampaign(id, body) {
-    const doc = await SpinCampaign.findByIdAndUpdate(toOid(id, 'campaign id'), { $set: cleanCampaign(body, { partial: true }) }, { new: true }).lean();
+    const oid = toOid(id, 'campaign id');
+    const clean = cleanCampaign(body, { partial: true });
+    if (clean.startsAt !== undefined || clean.endsAt !== undefined) {
+        const existing = await SpinCampaign.findById(oid).lean();
+        if (!existing) throw new ValidationError('Campaign not found');
+        assertWindow(clean.startsAt !== undefined ? clean.startsAt : existing.startsAt, clean.endsAt !== undefined ? clean.endsAt : existing.endsAt);
+    }
+    const doc = await SpinCampaign.findByIdAndUpdate(oid, { $set: clean }, { new: true }).lean();
     if (!doc) throw new ValidationError('Campaign not found');
     return withChances(doc);
 }

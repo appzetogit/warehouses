@@ -100,6 +100,9 @@ GET /api/v1/admin/reports/sellers
 GET /api/v1/admin/reports/tax
 GET /api/v1/admin/reports/tax/:id
 GET /api/v1/admin/reports/transactions
+GET /api/v1/admin/returns
+GET /api/v1/admin/returns/:id
+GET /api/v1/admin/returns/settings
 GET /api/v1/admin/safety-emergency-reports
 GET /api/v1/admin/seller-app-banners
 GET /api/v1/admin/seller-commissions
@@ -121,6 +124,8 @@ GET /api/v1/admin/sellers/complaints/stats
 GET /api/v1/admin/sellers/pending
 GET /api/v1/admin/sellers/reviews
 GET /api/v1/admin/sellers/unregistered
+GET /api/v1/admin/shipments
+GET /api/v1/admin/shipments/:orderId/tracking
 GET /api/v1/admin/sidebar-badges
 GET /api/v1/admin/spin/campaigns
 GET /api/v1/admin/spin/report
@@ -191,6 +196,7 @@ GET /api/v1/orders/
 GET /api/v1/orders/:orderId
 GET /api/v1/orders/:orderId/drop-otp
 GET /api/v1/orders/:orderId/payments
+GET /api/v1/orders/:orderId/returns
 GET /api/v1/orders/:orderId/route
 GET /api/v1/orders/checkout/:checkoutId
 GET /api/v1/payments/admin/finance/summary
@@ -220,6 +226,7 @@ GET /api/v1/seller/orders/:orderId
 GET /api/v1/seller/orders/:orderId/shipment/track
 GET /api/v1/seller/outlet-timings
 GET /api/v1/seller/products/low-stock
+GET /api/v1/seller/returns
 GET /api/v1/seller/subscription-history
 GET /api/v1/seller/subscription/invoices
 GET /api/v1/seller/subscription/invoices/:invoiceId
@@ -284,6 +291,7 @@ PATCH /api/v1/admin/power-scanning
 PATCH /api/v1/admin/products/:id
 PATCH /api/v1/admin/products/:id/approve
 PATCH /api/v1/admin/products/:id/reject
+PATCH /api/v1/admin/returns/settings
 PATCH /api/v1/admin/seller-app-banners/:id
 PATCH /api/v1/admin/seller-app-banners/:id/status
 PATCH /api/v1/admin/seller-app-banners/order
@@ -367,6 +375,9 @@ POST /api/v1/admin/products
 POST /api/v1/admin/products/bulk-approve
 POST /api/v1/admin/products/bulk-delete
 POST /api/v1/admin/products/bulk-upload
+POST /api/v1/admin/returns/:id/approve
+POST /api/v1/admin/returns/:id/receive
+POST /api/v1/admin/returns/:id/reject
 POST /api/v1/admin/seller-app-banners
 POST /api/v1/admin/seller-commissions
 POST /api/v1/admin/seller-subscriptions/invoices/:invoiceId/adjust
@@ -375,6 +386,8 @@ POST /api/v1/admin/seller-subscriptions/invoices/:invoiceId/mark-paid
 POST /api/v1/admin/seller-subscriptions/invoices/:invoiceId/waive
 POST /api/v1/admin/seller-subscriptions/run-billing
 POST /api/v1/admin/sellers
+POST /api/v1/admin/shipments/:orderId/book
+POST /api/v1/admin/shipments/:orderId/cancel
 POST /api/v1/admin/spin/campaigns
 POST /api/v1/admin/sub-admins
 POST /api/v1/admin/zones
@@ -412,6 +425,7 @@ POST /api/v1/fcm-tokens/mobile/save
 POST /api/v1/fcm-tokens/save
 POST /api/v1/fcm-tokens/test
 POST /api/v1/orders/
+POST /api/v1/orders/:orderId/returns
 POST /api/v1/orders/calculate
 POST /api/v1/orders/checkout
 POST /api/v1/orders/checkout/:checkoutId/abandon

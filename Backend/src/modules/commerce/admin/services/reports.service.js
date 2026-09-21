@@ -79,7 +79,7 @@ const sellerLookup = [
  * delivered (deliveryState.deliveredAt, else the 'delivered' status entry,
  * else updatedAt): minutes for quick, days for standard.
  * On time: quick within the order's promised ETA if one is stored
- * (promisedEtaMinutes; no current order field carries it), else
+ * (promisedEtaMinutes, snapshotted at order creation), else
  * quickSlaMinutes (30); standard by shipment.etd when present (orders with no
  * etd are counted but excluded from the on-time percentage).
  */

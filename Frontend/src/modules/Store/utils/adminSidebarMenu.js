@@ -111,6 +111,8 @@ const adminSidebarMenuTemplate = [
         path: "/order-detect-delivery",
         icon: "Truck",
       },
+      { type: "link", label: "Courier Shipments", panels: SHOP, path: "/shipments", icon: "Truck" },
+      { type: "link", label: "Returns", panels: SHOP, path: "/returns", icon: "Package" },
     ],
   },
   {

@@ -726,7 +726,7 @@ function SellerDetailsContent() {
               for (const lookupId of normalizedLookupIds) {
                 try {
                   debugLog('? Fetching menu for seller lookup ID:', lookupId)
-                  const response = await sellerAPI.getMenuBySellerId(lookupId, { noCache: true })
+                  const response = await sellerAPI.getMenuBySellerId(lookupId, { noCache: true, params: { fulfilmentMode } })
                   if (response?.data?.success) {
                     menuResponse = response
                     resolvedMenuLookupId = lookupId

@@ -12,6 +12,8 @@ const blankForm = () => ({
   title: "",
   dailyLimit: 1,
   monthlyCoinBudget: 0,
+  startsAt: "",
+  endsAt: "",
   segments: [
     { label: "10 Coins", type: "coins", value: 10, weight: 40, color: PALETTE[0] },
     { label: "Better Luck", type: "none", value: 0, weight: 40, color: PALETTE[2] },
@@ -24,6 +26,29 @@ const currentMonth = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
 }
 
+/** ISO date to the value a datetime-local input expects, in the admin's local time. */
+const toLocalInput = (iso) => {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+}
+
+const scheduleOf = (c) => {
+  const now = Date.now()
+  if (c.startsAt && now < new Date(c.startsAt).getTime()) return "scheduled"
+  if (c.endsAt && now >= new Date(c.endsAt).getTime()) return "ended"
+  return "live"
+}
+
+const SCHEDULE_BADGE = {
+  scheduled: { label: "Scheduled", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  live: { label: "Live", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  ended: { label: "Ended", cls: "bg-slate-100 text-slate-600 border-slate-200" },
+}
+
+const fmtWhen = (iso) => (iso ? new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : null)
+
 const inputCls = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900 bg-white"
 
 /** Mirrors the backend's checks so the admin sees problems before saving. */
@@ -33,6 +58,7 @@ const validate = (form) => {
   if (!(Number.isInteger(daily) && daily >= 1 && daily <= 10)) return "Daily limit must be a whole number between 1 and 10"
   const budget = Number(form.monthlyCoinBudget)
   if (!(Number.isFinite(budget) && budget >= 0)) return "Monthly budget must be 0 (no cap) or more"
+  if (form.startsAt && form.endsAt && new Date(form.endsAt) <= new Date(form.startsAt)) return "End time must be after start time"
   if (form.segments.length < 2 || form.segments.length > 12) return "A wheel needs between 2 and 12 rewards"
   for (const [i, s] of form.segments.entries()) {
     if (s.type === "coins" && !(Math.floor(Number(s.value)) > 0)) return `Reward ${i + 1}: coins must be a positive whole number`
@@ -45,6 +71,8 @@ const toPayload = (form) => ({
   title: form.title.trim(),
   dailyLimit: Number(form.dailyLimit),
   monthlyCoinBudget: Math.floor(Number(form.monthlyCoinBudget) || 0),
+  startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
+  endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
   segments: form.segments.map((s) => ({
     label: String(s.label || "").trim(),
     type: s.type,
@@ -115,6 +143,8 @@ export default function SpinCampaigns() {
       title: c.title || "",
       dailyLimit: c.dailyLimit ?? 1,
       monthlyCoinBudget: c.monthlyCoinBudget ?? 0,
+      startsAt: toLocalInput(c.startsAt),
+      endsAt: toLocalInput(c.endsAt),
       segments: (c.segments || []).map((s, i) => ({
         label: s.label || "",
         type: s.type === "none" ? "none" : "coins",
@@ -212,6 +242,7 @@ export default function SpinCampaigns() {
               <th className="px-4 py-3 text-left">Rewards</th>
               <th className="px-4 py-3 text-left">Daily spins</th>
               <th className="px-4 py-3 text-left">Monthly budget</th>
+              <th className="px-4 py-3 text-left">Schedule</th>
               <th className="px-4 py-3 text-center">Live</th>
               <th className="px-5 py-3 text-right">Actions</th>
             </tr>
@@ -219,13 +250,13 @@ export default function SpinCampaigns() {
           <tbody className="divide-y divide-slate-100">
             {loading ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center">
+                <td colSpan={7} className="py-12 text-center">
                   <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />
                 </td>
               </tr>
             ) : campaigns.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-sm text-slate-500">
+                <td colSpan={7} className="py-12 text-center text-sm text-slate-500">
                   No wheels yet. Customers see the default wheel until you create one.
                 </td>
               </tr>
@@ -248,6 +279,17 @@ export default function SpinCampaigns() {
                   </td>
                   <td className="px-4 py-4 text-slate-700">{c.dailyLimit ?? 1} / day</td>
                   <td className="px-4 py-4 text-slate-700">{c.monthlyCoinBudget ? `${c.monthlyCoinBudget.toLocaleString()} coins` : "No cap"}</td>
+                  <td className="px-4 py-4">
+                    {(() => {
+                      const b = SCHEDULE_BADGE[c.scheduleStatus || scheduleOf(c)] || SCHEDULE_BADGE.live
+                      return <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${b.cls}`}>{b.label}</span>
+                    })()}
+                    <p className="mt-1 text-xs text-slate-500">
+                      {c.startsAt || c.endsAt
+                        ? `${fmtWhen(c.startsAt) || "Now"} → ${fmtWhen(c.endsAt) || "No end"}`
+                        : "Always on"}
+                    </p>
+                  </td>
                   <td className="px-4 py-4 text-center">
                     <button
                       type="button"
@@ -371,6 +413,17 @@ export default function SpinCampaigns() {
                 <label className="mb-1 block text-sm font-medium text-slate-700">Monthly coin budget</label>
                 <input type="number" min="0" step="1" className={inputCls} value={form.monthlyCoinBudget} onChange={(e) => setForm((f) => ({ ...f, monthlyCoinBudget: e.target.value }))} />
                 <p className="mt-1 text-xs text-slate-500">0 means no cap. Once used up, coin rewards stop paying until next month.</p>
+              </div>
+              <div className="md:col-span-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Starts at (optional)</label>
+                  <input type="datetime-local" className={inputCls} value={form.startsAt} onChange={(e) => setForm((f) => ({ ...f, startsAt: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Ends at (optional)</label>
+                  <input type="datetime-local" className={inputCls} value={form.endsAt} onChange={(e) => setForm((f) => ({ ...f, endsAt: e.target.value }))} />
+                </div>
+                <p className="md:col-span-2 -mt-2 text-xs text-slate-500">Leave empty for no limit. A live wheel only shows to customers inside this window.</p>
               </div>
             </div>
 

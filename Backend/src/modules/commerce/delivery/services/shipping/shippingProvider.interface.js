@@ -57,4 +57,20 @@ export class ShippingProvider {
     async trackShipment(awb) {
         throw new Error('trackShipment must be implemented');
     }
+
+    /**
+     * Book a reverse pickup (customer -> seller) for a return.
+     * Providers that cannot do this leave it unimplemented; callers check
+     * `supportsReturns` first and fall back to the customer sending it back.
+     * @param {{ returnId: string, orderId: string, pickupAddress: Object, customerName?: string, customerPhone?: string, sellerName?: string, sellerPincode?: string, sellerAddress?: Object, items: Array, subTotal?: number, weightGrams?: number }} returnData
+     * @returns {Promise<{ shipmentId: string, providerOrderId?: string, awb?: string, courierName?: string, provider?: string }>}
+     */
+    async createReturnShipment(returnData) {
+        throw new Error('createReturnShipment must be implemented');
+    }
+
+    /** Whether createReturnShipment is available. */
+    get supportsReturns() {
+        return false;
+    }
 }

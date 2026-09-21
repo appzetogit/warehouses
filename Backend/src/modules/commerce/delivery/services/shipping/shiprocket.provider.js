@@ -154,6 +154,67 @@ export class ShiprocketProvider extends ShippingProvider {
         return { success: true, message: 'Shipment cancelled with Shiprocket' };
     }
 
+    get supportsReturns() {
+        return true;
+    }
+
+    /**
+     * Reverse pickup: a return order (customer is the pickup, the seller's
+     * pickup location the destination), then an AWB for it.
+     */
+    async createReturnShipment(r) {
+        const from = r.pickupAddress || {};
+        const to = r.sellerAddress || {};
+        const items = (r.items || []).map((i, n) => ({
+            name: i.name,
+            sku: i.sku || `${i.itemId || 'item'}-${n}`,
+            units: Number(i.quantity) || 1,
+            selling_price: Number(i.price) || 0,
+        }));
+        const phone = (v) => String(v || '').replace(/\D/g, '').slice(-10);
+        const created = await this.call('POST', '/orders/create/return', {
+            order_id: String(r.returnId),
+            order_date: new Date().toISOString().slice(0, 10),
+            pickup_customer_name: r.customerName || from.fullName || from.name || 'Customer',
+            pickup_last_name: '',
+            pickup_address: [from.street, from.additionalDetails].filter(Boolean).join(', '),
+            pickup_city: from.city,
+            pickup_state: from.state,
+            pickup_country: 'India',
+            pickup_pincode: String(from.zipCode || ''),
+            pickup_email: r.customerEmail || '',
+            pickup_phone: phone(r.customerPhone || from.phone),
+            shipping_customer_name: r.sellerName || 'Seller',
+            shipping_last_name: '',
+            shipping_address: to.addressLine1 || to.address || this.pickupLocation,
+            shipping_city: to.city || '',
+            shipping_state: to.state || '',
+            shipping_country: 'India',
+            shipping_pincode: String(r.sellerPincode || ''),
+            shipping_phone: phone(r.sellerPhone),
+            order_items: items,
+            payment_method: 'Prepaid',
+            sub_total: Number(r.subTotal) || items.reduce((s, i) => s + i.selling_price * i.units, 0),
+            length: 20,
+            breadth: 15,
+            height: 10,
+            weight: kg(r.weightGrams),
+        });
+        const shipmentId = created.shipment_id;
+        const assigned = await this.call('POST', '/courier/assign/awb', { shipment_id: shipmentId, is_return: 1 }).catch((err) => {
+            logger.warn(`Shiprocket return AWB for ${shipmentId}: ${err.message}`);
+            return null;
+        });
+        const awbData = assigned?.response?.data || {};
+        return {
+            shipmentId: String(shipmentId || ''),
+            providerOrderId: String(created.order_id || ''),
+            awb: awbData.awb_code || '',
+            courierName: awbData.courier_name || 'Shiprocket',
+            provider: this.name,
+        };
+    }
+
     async trackShipment(awb) {
         const body = await this.call('GET', `/courier/track/awb/${encodeURIComponent(awb)}`);
         const data = body?.tracking_data || {};

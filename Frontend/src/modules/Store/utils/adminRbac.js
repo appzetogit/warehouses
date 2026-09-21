@@ -60,6 +60,8 @@ const PATH_PREFIX_TO_SECTION = [
   { prefix: "/payments/reconciliation", section: "report_management" },
   { prefix: "/coins", section: "transaction_management" },
   { prefix: "/spin-campaigns", section: "promotions_management" },
+  { prefix: "/shipments", section: "order_management" },
+  { prefix: "/returns", section: "order_management" },
   { prefix: "/attributes", section: "product_management" },
   { prefix: "/hero-banner-management", section: "banner_management" },
   { prefix: "/promotional-banner", section: "banner_management" },

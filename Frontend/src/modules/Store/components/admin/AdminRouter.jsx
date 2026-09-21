@@ -62,6 +62,8 @@ const AddFund = lazy(() => import("@store/pages/admin/wallet/AddFund"));
 const Bonus = lazy(() => import("@store/pages/admin/wallet/Bonus"));
 const CoinsManagement = lazy(() => import("@store/pages/admin/coins/CoinsManagement"));
 const AttributesPage = lazy(() => import("@store/pages/admin/attributes/AttributesPage"));
+const Shipments = lazy(() => import("@store/pages/admin/shipments/Shipments"));
+const Returns = lazy(() => import("@store/pages/admin/returns/Returns"));
 const SpinCampaigns = lazy(() => import("@store/pages/admin/spin/SpinCampaigns"));
 const PaymentReconciliation = lazy(() => import("@store/pages/admin/payments/PaymentReconciliation"));
 const DeliverySlaReport = lazy(() => import("@store/pages/admin/reports/DeliverySlaReport"));
@@ -334,6 +336,8 @@ export default function AdminRouter() {
             <Route path="attributes" element={<AttributesPage />} />
             <Route path="coins" element={<CoinsManagement />} />
             <Route path="spin-campaigns" element={<SpinCampaigns />} />
+            <Route path="shipments" element={<Shipments />} />
+            <Route path="returns" element={<Returns />} />
             <Route path="payments/reconciliation" element={<PaymentReconciliation />} />
             <Route path="reports/delivery-sla" element={<DeliverySlaReport />} />
             <Route path="reports/commission" element={<CommissionReport />} />

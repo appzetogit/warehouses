@@ -38,6 +38,7 @@ import {
   applyCheckoutShare,
   calculateOrderPricing,
   calculateRiderEarning,
+  estimateDeliveryPromiseMinutes,
   getDeliveryDistanceKm,
   loadActiveFeeSettings,
   loadSellerForOrdering,
@@ -283,7 +284,12 @@ function buildCancellationRefundDescription(order, cancelledBy = 'system') {
   }
 }
 
-async function applyCancellationRefund(order, { cancelledBy = 'system', refundAmount, refundTo } = {}) {
+/**
+ * `partial` (returns): refunds `refundAmount` without marking the whole payment
+ * refunded, gives back `coinsToReturn` coins instead of all spent, and keys the
+ * coin / wallet credits by `refKey` so each return refunds once.
+ */
+export async function applyCancellationRefund(order, { cancelledBy = 'system', refundAmount, refundTo, partial = false, refKey, coinsToReturn, description } = {}) {
   if (!order?.payment) {
     return { attempted: false, processed: false, reason: 'missing_payment' };
   }
@@ -297,16 +303,24 @@ async function applyCancellationRefund(order, { cancelledBy = 'system', refundAm
     return { attempted: false, processed: false, reason: 'invalid_amount' };
   }
 
+  // A partial refund adds to what was refunded and leaves the payment 'paid'.
+  const markRefund = (extra) => {
+    if (!partial) order.payment.status = 'refunded';
+    const before = partial ? Number(order.payment.refund?.amount) || 0 : 0;
+    order.payment.refund = { ...extra, amount: before + amount, processedAt: new Date() };
+  };
+
   // Coins spent on this order come back whatever the payment method. A split
   // checkout spent them once under the checkout's id, so only this order's
   // share is returned; keyed to the order, so a second cancel path returns nothing.
-  if (order.coinsUsed > 0) {
+  const coinsBack = partial ? Number(coinsToReturn) || 0 : order.coinsUsed;
+  if (coinsBack > 0) {
     try {
       const { returnRedeemedCoins } = await import('../../coins/services/coin.service.js');
       await returnRedeemedCoins({
         redemptionId: order.checkoutId || order._id,
-        coins: order.coinsUsed,
-        refId: `order:${order._id}`,
+        coins: coinsBack,
+        refId: refKey ? `${refKey}:coins` : `order:${order._id}`,
         note: `Order #${order.order_id || order._id} cancelled`,
       });
     } catch (coinErr) {
@@ -323,16 +337,10 @@ async function applyCancellationRefund(order, { cancelledBy = 'system', refundAm
         userId: order.userId,
         amount: Math.round(amount),
         source: 'refund',
-        refId: `ref-${order._id}`,
-        note: `Refund for cancelled order #${order.order_id || order._id}`,
+        refId: refKey || `ref-${order._id}`,
+        note: description || `Refund for cancelled order #${order.order_id || order._id}`,
       });
-      order.payment.status = 'refunded';
-      order.payment.refund = {
-        status: 'processed',
-        amount,
-        method: 'coins',
-        processedAt: new Date(),
-      };
+      markRefund({ status: 'processed', method: 'coins' });
       return { attempted: true, processed: true, method: 'coins' };
     } catch (coinRefundErr) {
       logger.error(`Coin refund failed for order ${order._id}: ${coinRefundErr?.message || coinRefundErr}`);
@@ -343,7 +351,7 @@ async function applyCancellationRefund(order, { cancelledBy = 'system', refundAm
     return { attempted: false, processed: false, reason: 'cash_payment' };
   }
 
-  if (paymentStatus === 'refunded' || refundStatus === 'processed') {
+  if (!partial && (paymentStatus === 'refunded' || refundStatus === 'processed')) {
     return { attempted: false, processed: true, reason: 'already_refunded', method: paymentMethod };
   }
 
@@ -363,13 +371,7 @@ async function applyCancellationRefund(order, { cancelledBy = 'system', refundAm
 
     const refundResult = await initiateRazorpayRefund(paymentId, amount);
     if (refundResult.success) {
-      order.payment.status = 'refunded';
-      order.payment.refund = {
-        status: 'processed',
-        amount,
-        refundId: refundResult.refundId,
-        processedAt: new Date(),
-      };
+      markRefund({ status: 'processed', refundId: refundResult.refundId });
       return { attempted: true, processed: true, method: paymentMethod, refundId: refundResult.refundId };
     }
 
@@ -389,15 +391,10 @@ async function applyCancellationRefund(order, { cancelledBy = 'system', refundAm
     await userWalletService.refundWalletBalance(
       order.userId,
       amount,
-      buildCancellationRefundDescription(order, cancelledBy),
-      { orderId: order._id, cancelledBy }
+      description || buildCancellationRefundDescription(order, cancelledBy),
+      { orderId: refKey || order._id, cancelledBy }
     );
-    order.payment.status = 'refunded';
-    order.payment.refund = {
-      status: 'processed',
-      amount,
-      processedAt: new Date(),
-    };
+    markRefund({ status: 'processed' });
     return { attempted: true, processed: true, method: paymentMethod };
   }
 
@@ -720,7 +717,22 @@ export async function createOrder(userId, dto, options = {}) {
         : "created";
     const acceptanceWindowSeconds = await getOrderAcceptanceWindowSeconds();
 
+    // Snapshot the quick-delivery promise the customer was quoted, so the SLA
+    // report measures against it: the checkout quote, else the same
+    // packing-plus-ride estimate, else the store's advertised delivery time.
+    // Standard orders are measured against shipment.etd instead.
+    const orderFulfilmentMode = checkout?.fulfilmentMode || "quick";
+    const promisedEtaMinutes =
+      orderFulfilmentMode === "quick"
+        ? [
+          pricingResult.pricing?.deliveryPromiseMinutes,
+          estimateDeliveryPromiseMinutes(distanceKm),
+          seller?.estimatedDeliveryTimeMinutes,
+        ].map(Number).find((n) => Number.isFinite(n) && n > 0) ?? null
+        : null;
+
     const order = new Order({
+      promisedEtaMinutes,
       userId: toObjectId(userId, 'User ID'),
       sellerId: sellerId,
       // Server-resolved zone wins over the client's: it is the one that was
@@ -2956,9 +2968,18 @@ export async function createOrderShipmentSeller(orderId, sellerId) {
     throw new ValidationError("This order is not actionable yet");
   }
 
+  return bookOrderShipment(order, { byRole: 'SELLER', byId: sellerId });
+}
+
+/**
+ * Books a courier shipment for an order already loaded and checked by the
+ * caller (seller or admin). Returns the existing shipment when one is booked.
+ */
+export async function bookOrderShipment(order, { byRole = 'SELLER', byId = null } = {}) {
   if (order.shipment?.awb) {
     return { order: normalizeOrderForClient(order), shipment: order.shipment };
   }
+  const sellerId = order.sellerId;
 
   const seller = await Seller.findById(sellerId).select('sellerName location addressLine1 city state').lean();
   const originPincode = seller?.location?.pincode || '560001';
@@ -2984,7 +3005,8 @@ export async function createOrderShipmentSeller(orderId, sellerId) {
     pushStatusHistory(order, {
       from: prevStatus,
       to: 'ready_for_pickup',
-      byRole: 'seller',
+      byRole,
+      byId,
       note: `Courier shipment generated: ${shipmentData.courierName} (AWB: ${shipmentData.awb})`,
     });
   }

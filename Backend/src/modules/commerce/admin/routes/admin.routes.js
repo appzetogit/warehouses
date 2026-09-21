@@ -26,6 +26,7 @@ import * as coinController from '../../coins/controllers/coin.controller.js';
 import * as spinController from '../../spin/controllers/spin.controller.js';
 import * as dailyMetricsController from '../controllers/dailyMetrics.controller.js';
 import * as reportsController from '../controllers/reports.controller.js';
+import shipmentReturnAdminRoutes from '../../orders/routes/shipmentReturn.admin.routes.js';
 
 const router = express.Router();
 
@@ -78,6 +79,7 @@ const resolveSectionFromRequest = (path = '', method = '') => {
     ) return 'product_management';
     if (path.startsWith('/offers') || path.startsWith('/spin')) return 'promotions_management';
     if (path.startsWith('/orders') || path.startsWith('/order-detect-delivery')) return 'order_management';
+    if (path.startsWith('/shipments') || path.startsWith('/returns')) return 'order_management';
     if (path.startsWith('/delivery')) return 'delivery_management';
     if (path.startsWith('/withdrawals') || path.startsWith('/coins')) return 'transaction_management';
     if (path.startsWith('/feedback-experiences')) return 'report_management';
@@ -493,6 +495,9 @@ router.post(
 );
 router.post('/orders/:orderId/refund', orderController.processRefundAdminController);
 router.delete('/orders/:orderId', orderController.deleteOrderAdminController);
+
+// ----- Courier shipments and returns (Shop panel) -----
+router.use(shipmentReturnAdminRoutes);
 
 // ----- CMS Pages (About + legal) -----
 router.get('/pages-social-media/:key', getAdminPageController);

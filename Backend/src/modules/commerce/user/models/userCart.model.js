@@ -25,9 +25,10 @@ const userCartSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             required: true,
-            unique: true,
             index: true,
         },
+        /** Which storefront this cart belongs to. Legacy docs without it are 'shop'. */
+        mode: { type: String, enum: ['shop', 'quick'], default: 'shop' },
         sellerId: { type: String, trim: true, default: '' },
         sellerName: { type: String, trim: true, default: '' },
         items: {
@@ -61,6 +62,9 @@ const userCartSchema = new mongoose.Schema(
     },
 );
 
+// One cart per user per storefront. partialFilterExpression-free so legacy docs
+// (no mode) still collide with nothing: they are migrated to mode 'shop' on write.
+userCartSchema.index({ userId: 1, mode: 1 }, { unique: true, name: 'userId_1_mode_1' });
 userCartSchema.index({ updatedAt: -1 });
 userCartSchema.index({ sellerId: 1 });
 

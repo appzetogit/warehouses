@@ -1,4 +1,5 @@
 import { Seller } from '../models/seller.model.js';
+import { parseFulfilmentMode, fulfilmentModeProductFilter } from '../../search/validators/storefront.validator.js';
 import { uploadImageBuffer } from '../../../../services/cloudinary.service.js';
 import { normalizeMediaUrlForStorage } from '../../../../services/storage.service.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
@@ -1738,6 +1739,15 @@ export const listApprovedSellers = async (query = {}) => {
     const skip = (page - 1) * limit;
 
     const filter = { status: 'approved' };
+    const fulfilmentMode = parseFulfilmentMode(query.fulfilmentMode);
+    if (fulfilmentMode === 'quick') {
+        // Quick storefront: only stores that have something quick-deliverable.
+        const quickSellerIds = await Product.distinct('sellerId', {
+            approvalStatus: 'approved',
+            ...fulfilmentModeProductFilter('quick'),
+        });
+        filter._id = { $in: quickSellerIds };
+    }
 
     if (query.city && String(query.city).trim()) {
         const city = String(query.city).trim().slice(0, 80);
@@ -1824,7 +1834,8 @@ export const listApprovedSellers = async (query = {}) => {
 
     // Strict zone filter for user listing:
     // if zoneId is provided, return only sellers mapped to that zone.
-    const zoneIdRaw = String(query.zoneId || '').trim();
+    // The shop storefront ships by courier, so zones only apply to quick (or no mode).
+    const zoneIdRaw = fulfilmentMode === 'standard' ? '' : String(query.zoneId || '').trim();
     if (zoneIdRaw && mongoose.Types.ObjectId.isValid(zoneIdRaw)) {
         filter.zoneId = new mongoose.Types.ObjectId(zoneIdRaw);
     }

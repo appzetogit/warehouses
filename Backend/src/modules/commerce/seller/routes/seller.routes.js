@@ -63,6 +63,7 @@ import {
     uploadBulkMenuController
 } from '../controllers/bulkUpload.controller.js';
 import * as orderController from '../../orders/controllers/order.controller.js';
+import { listReturnsSellerController } from '../../orders/controllers/shipmentReturn.controller.js';
 import { authMiddleware } from '../../../../core/auth/auth.middleware.js';
 import { sendError } from '../../../../utils/response.js';
 import { getSellerFinanceController } from '../controllers/sellerFinance.controller.js';
@@ -258,6 +259,7 @@ router.post('/bulk-upload', authMiddleware, requireSeller, upload.single('file')
 
 // Orders (seller dashboard)
 router.get('/orders', authMiddleware, requireSeller, orderController.listOrdersSellerController);
+router.get('/returns', authMiddleware, requireSeller, listReturnsSellerController);
 router.get('/orders/:orderId', authMiddleware, requireSeller, orderController.getOrderByIdSellerController);
 router.patch('/orders/:orderId/status', authMiddleware, requireSeller, orderController.updateOrderStatusSellerController);
 router.post('/orders/:orderId/shipment', authMiddleware, requireSeller, orderController.createOrderShipmentSellerController);

@@ -5,6 +5,16 @@ import { Product } from '../../admin/models/product.model.js';
 import { Category } from '../../admin/models/category.model.js';
 import { getProductDisplayOtherPrice, getProductDisplayPrice, serializeProductVariants } from '../../admin/services/productVariant.service.js';
 import { restoreExpiredProductAvailability } from './productAvailability.service.js';
+import { parseFulfilmentMode, fulfilmentModeProductFilter } from '../../search/validators/storefront.validator.js';
+
+/** Quick storefront: keep only variants that can go by quick delivery. */
+function keepQuickVariants(product) {
+    if (!Array.isArray(product.variants) || product.variants.length === 0) return product;
+    const productQuick = product.quickEligible !== false;
+    const variants = product.variants.filter((v) =>
+        v?.quickEligible === true || (productQuick && v?.quickEligible !== false));
+    return { ...product, variants };
+}
 
 const buildMenuFromProducts = async (products = []) => {
     const categoryIds = Array.from(
@@ -136,7 +146,8 @@ export async function getSellerMenu(sellerId) {
     return buildMenuFromProducts(products);
 }
 
-export async function getPublicApprovedSellerMenu(sellerIdOrSlug) {
+export async function getPublicApprovedSellerMenu(sellerIdOrSlug, options = {}) {
+    const fulfilmentMode = parseFulfilmentMode(options.fulfilmentMode);
     const value = String(sellerIdOrSlug || '').trim();
     if (!value) throw new ValidationError('Store id is required');
 
@@ -156,10 +167,15 @@ export async function getPublicApprovedSellerMenu(sellerIdOrSlug) {
         return null;
     }
     await restoreExpiredProductAvailability({ sellerId: seller._id });
-    const products = await Product.find({ sellerId: seller._id, approvalStatus: 'approved' })
+    const modeFilter = fulfilmentModeProductFilter(fulfilmentMode) || {};
+    let products = await Product.find({ sellerId: seller._id, approvalStatus: 'approved', ...modeFilter })
         .sort({ createdAt: -1 })
         .limit(2000)
         .lean();
+    if (fulfilmentMode === 'quick') {
+        products = products.map(keepQuickVariants)
+            .filter((p) => p.quickEligible !== false || p.variants.length > 0);
+    }
     return buildMenuFromProducts(products);
 }
 

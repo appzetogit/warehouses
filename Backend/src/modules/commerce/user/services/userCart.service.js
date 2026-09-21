@@ -158,16 +158,50 @@ async function enrichStoredCartPricing(cart, storedPricing) {
     }
 }
 
-export async function syncUserCart(userId, rawItems = [], rawPricing = null) {
+export const normalizeCartMode = (mode) => (String(mode || '').trim().toLowerCase() === 'quick' ? 'quick' : 'shop');
+
+/** Legacy docs have no `mode` and count as the shop cart. */
+const modeFilter = (mode) => (mode === 'shop' ? { mode: { $in: ['shop', null] } } : { mode });
+
+let legacyIndexChecked = false;
+/**
+ * The old schema had a unique index on userId alone, which would block a second
+ * (quick) cart per user. Drop it once per process if it is still there.
+ */
+export async function ensureUserCartIndexes() {
+    if (legacyIndexChecked) return;
+    try {
+        const indexes = await UserCart.collection.indexes();
+        const legacy = indexes.find((ix) => ix.unique && ix.key && Object.keys(ix.key).length === 1 && ix.key.userId === 1);
+        if (legacy) await UserCart.collection.dropIndex(legacy.name);
+        await UserCart.createIndexes();
+        legacyIndexChecked = true;
+    } catch {
+        // collection may not exist yet; try again next time
+    }
+}
+
+export async function getUserCart(userId, mode = 'shop') {
+    if (!userId || !mongoose.Types.ObjectId.isValid(String(userId))) {
+        throw new ValidationError('Invalid user');
+    }
+    const m = normalizeCartMode(mode);
+    const cart = await UserCart.findOne({ userId: new mongoose.Types.ObjectId(String(userId)), ...modeFilter(m) }).lean();
+    return cart ? { ...cart, mode: cart.mode || 'shop' } : null;
+}
+
+export async function syncUserCart(userId, rawItems = [], rawPricing = null, mode = 'shop') {
     if (!userId || !mongoose.Types.ObjectId.isValid(String(userId))) {
         throw new ValidationError('Invalid user');
     }
 
     const userObjectId = new mongoose.Types.ObjectId(String(userId));
+    const cartMode = normalizeCartMode(mode);
     const items = normalizeCartItems(rawItems);
+    await ensureUserCartIndexes();
 
     if (items.length === 0) {
-        await UserCart.deleteOne({ userId: userObjectId });
+        await UserCart.deleteOne({ userId: userObjectId, ...modeFilter(cartMode) });
         return null;
     }
 
@@ -178,9 +212,10 @@ export async function syncUserCart(userId, rawItems = [], rawPricing = null) {
     const pricing = normalizePricingSnapshot(rawPricing);
 
     return UserCart.findOneAndUpdate(
-        { userId: userObjectId },
+        { userId: userObjectId, ...modeFilter(cartMode) },
         {
             userId: userObjectId,
+            mode: cartMode,
             sellerId: String(rawFirst?.sellerId || ''),
             sellerName: String(rawFirst?.seller || rawFirst?.sellerName || ''),
             items: items.map((item) => ({
@@ -216,6 +251,7 @@ export async function listUserCartsForAdmin(query = {}) {
     const search = String(query.search || '').trim();
 
     const filter = { 'items.0': { $exists: true } };
+    if (query.mode === 'shop' || query.mode === 'quick') Object.assign(filter, modeFilter(query.mode));
 
     if (search) {
         const sellerRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
@@ -230,7 +266,7 @@ export async function listUserCartsForAdmin(query = {}) {
             orConditions.push({ userId: { $in: userIds } });
         }
 
-        filter.$or = orConditions;
+        filter.$and = [{ $or: orConditions }];
     }
 
     const [carts, total] = await Promise.all([
@@ -261,6 +297,7 @@ export async function listUserCartsForAdmin(query = {}) {
                 userPhone: user?.phone || '',
                 userEmail: user?.email || '',
                 userImage: user?.profileImage || '',
+                mode: cart.mode || 'shop',
                 sellerId: cart.sellerId || '',
                 sellerName: cart.sellerName || '',
                 items: Array.isArray(cart.items) ? cart.items : [],

@@ -32,6 +32,9 @@ const spinCampaignSchema = new mongoose.Schema(
         dailyLimit: { type: Number, default: 1, min: 1 },
         /** Coins the wheel may pay out per calendar month; 0 means no cap. */
         monthlyCoinBudget: { type: Number, default: 0, min: 0 },
+        /** Optional schedule window; null means open-ended on that side. */
+        startsAt: { type: Date, default: null },
+        endsAt: { type: Date, default: null },
     },
     { collection: 'spin_campaigns', timestamps: true }
 );

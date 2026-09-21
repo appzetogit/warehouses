@@ -87,3 +87,49 @@ test('unified search: quick only matches sellers through quick products; standar
     assert.deepEqual(sellers(await unified({ q: 'sofa', zoneId: String(ids.zone), fulfilmentMode: 'standard' })), ['Local Store']);
     assert.deepEqual(sellers(await unified({ q: 'lamp', zoneId: String(ids.zone), fulfilmentMode: 'standard' })), ['Faraway Store']);
 });
+
+const menuItems = (menu) => {
+    const out = [];
+    const walk = (node) => {
+        if (Array.isArray(node)) return node.forEach(walk);
+        if (!node || typeof node !== 'object') return;
+        if (typeof node.name === 'string' && node.name.startsWith('Mode ') && Array.isArray(node.variants)) out.push(node);
+        else Object.values(node).forEach(walk);
+    };
+    walk(menu);
+    return out;
+};
+
+test('store menu: quick drops non-quick products and variants; standard lists everything', async () => {
+    const menu = async (mode) => {
+        const qs = mode ? `?fulfilmentMode=${mode}` : '';
+        return menuItems(ok(await call('GET', `/catalog/stores/${ids.local}/products${qs}`), `menu ${mode}`).menu);
+    };
+    const quick = await menu('quick');
+    assert.deepEqual(quick.map((p) => p.name).sort(), ['Mode Milk', 'Mode Rug']);
+    assert.deepEqual(quick.find((p) => p.name === 'Mode Rug').variants.map((v) => v.name), ['Small']);
+    const standard = await menu('standard');
+    assert.deepEqual(standard.map((p) => p.name).sort(), ['Mode Milk', 'Mode Rug', 'Mode Sofa']);
+    assert.equal(standard.find((p) => p.name === 'Mode Rug').variants.length, 2);
+    assert.equal((await menu('')).length, 3);
+    const bad = await call('GET', `/catalog/stores/${ids.local}/products?fulfilmentMode=teleport`);
+    assert.equal(bad.status, 400);
+});
+
+test('store listing: quick hides stores without quick products and keeps the zone; standard ignores the zone', async () => {
+    const { Seller } = await import('../src/modules/commerce/seller/models/seller.model.js');
+    const { Product } = await import('../src/modules/commerce/admin/models/product.model.js');
+    const bulky = await Seller.create({
+        sellerName: 'Bulky Store', ownerName: 'O', ownerPhone: `9${Math.floor(Math.random() * 1e9)}`, status: 'approved', zoneId: ids.zone,
+        location: { type: 'Point', coordinates: [77.59, 12.97], latitude: 12.97, longitude: 77.59 },
+    });
+    await Product.create({ sellerId: bulky._id, approvalStatus: 'approved', price: 10, name: 'Mode Wardrobe', quickEligible: false });
+    const stores = async (params) => {
+        const qs = new URLSearchParams({ limit: '100', ...params }).toString();
+        const data = ok(await call('GET', `/catalog/stores?${qs}`), `stores ${qs}`);
+        return data.sellers.map((s) => s.sellerName).filter((n) => /Store$/.test(n)).sort();
+    };
+    assert.deepEqual(await stores({ zoneId: String(ids.zone), fulfilmentMode: 'quick' }), ['Local Store']);
+    assert.deepEqual(await stores({ zoneId: String(ids.zone), fulfilmentMode: 'standard' }), ['Bulky Store', 'Faraway Store', 'Local Store']);
+    assert.deepEqual(await stores({ zoneId: String(ids.zone) }), ['Bulky Store', 'Local Store']);
+});

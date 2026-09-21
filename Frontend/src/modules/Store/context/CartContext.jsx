@@ -219,9 +219,9 @@ export function CartProvider({ children, mode = "shop" }) {
       } catch {
         pricing = null
       }
-      userAPI.syncCart({ items, pricing }).catch(() => {})
+      userAPI.syncCart({ items, pricing, mode: mode === "quick" ? "quick" : "shop" }).catch(() => {})
     }, 1200)
-  }, [cart])
+  }, [cart, mode])
 
   // Sync cart to server for admin visibility (authenticated users only)
   useEffect(() => {

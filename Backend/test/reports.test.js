@@ -109,6 +109,8 @@ test('delivery SLA: median, p90 and on-time per mode and per seller', async () =
     assert.equal(aQuick.median, 20);
     assert.equal(aQuick.late, 1);
     assert.deepEqual(r.lateOrders.map((o) => o.order_id).sort(), ['ORD-T3', 'ORD-T4', 'ORD-T6']);
+    assert.equal(r.lateOrders.find((o) => o.order_id === 'ORD-T4').promised, 20, 'the stored promise is used');
+    assert.equal(r.lateOrders.find((o) => o.order_id === 'ORD-T3').promised, 30, 'no stored promise falls back to the default');
 
     const onlyStd = ok(await call('GET', `/admin/reports/delivery-sla?${RANGE}&fulfilmentMode=standard`, { as: adminToken }), 'sla std');
     assert.deepEqual(onlyStd.byMode.map((m) => m.fulfilmentMode), ['standard']);

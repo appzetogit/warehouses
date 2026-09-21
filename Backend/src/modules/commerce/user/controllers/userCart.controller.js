@@ -14,12 +14,15 @@ export const syncUserCartController = async (req, res, next) => {
             sellerName: item?.seller || item?.sellerName || firstItem?.seller || req.body?.sellerName || '',
         }));
 
-        const result = await syncUserCart(userId, payload, pricing);
+        const mode = req.body?.mode ?? req.query?.mode;
+        const result = await syncUserCart(userId, payload, pricing, mode);
         return sendResponse(res, 200, 'Cart synced successfully', {
             synced: Boolean(result),
+            mode: result?.mode || (String(mode) === 'quick' ? 'quick' : 'shop'),
             itemCount: result?.itemCount || 0,
         });
     } catch (error) {
         next(error);
     }
 };
+

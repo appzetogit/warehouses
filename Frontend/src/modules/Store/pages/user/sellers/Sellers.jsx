@@ -42,7 +42,7 @@ const pickSellerImage = (seller) => {
 }
 
 export default function Sellers() {
-  const { storePath } = useStoreMode()
+  const { storePath, fulfilmentMode } = useStoreMode()
   const { addFavorite, removeFavorite, isFavorite } = useProfile()
   const { effectiveLocation: userLocation, zoneId } = useDeliveryLocation()
   const [sellers, setSellers] = useState([])
@@ -55,7 +55,7 @@ export default function Sellers() {
     const fetchSellers = async () => {
       try {
         setLoading(true)
-        const params = { limit: 300, _ts: Date.now() }
+        const params = { limit: 300, fulfilmentMode, _ts: Date.now() }
         if (zoneId) {
           params.zoneId = zoneId
         }
@@ -101,7 +101,7 @@ export default function Sellers() {
     return () => {
       cancelled = true
     }
-  }, [zoneId])
+  }, [zoneId, fulfilmentMode])
 
   const hasSellers = useMemo(() => sellers.length > 0, [sellers.length])
 

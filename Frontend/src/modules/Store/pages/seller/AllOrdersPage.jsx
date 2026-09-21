@@ -17,6 +17,7 @@ import { sellerAPI } from "@store/api"
 import { useSellerNotifications } from "@store/hooks/useSellerNotifications"
 import { getSellerCookingNote } from "@store/utils/orderCookingNote"
 import OrderDetailPage from "@store/pages/seller/OrderDetailPage"
+import SellerReturnsPanel from "@store/pages/seller/SellerReturnsPanel"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -598,6 +599,9 @@ export default function AllOrdersPage() {
             <ChevronDown className="w-4 h-4 text-gray-400" />
           </div>
         </button>
+
+        {/* Customer returns on courier orders (read-only) */}
+        <SellerReturnsPanel />
       </div>
 
       {/* Active Filters Summary */}

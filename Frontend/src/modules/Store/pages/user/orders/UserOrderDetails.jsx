@@ -20,6 +20,7 @@ import { toast } from "sonner"
 import { getCompanyNameAsync } from "@store/utils/businessSettings"
 import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@store/utils/productVariants"
 import { DualMoney } from "@store/components/user/ProductPriceDisplay"
+import OrderReturnsSection from "./OrderReturnsSection"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -666,6 +667,9 @@ export default function UserOrderDetails() {
           Invoice
         </button>
       </div>
+
+      {/* Returns (delivered courier orders) */}
+      {order && <div className="pt-4"><OrderReturnsSection order={order} /></div>}
 
       {/* Seller Complaint Button - Below Order Details */}
       {order && (

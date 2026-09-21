@@ -751,7 +751,7 @@ const SellerCard = React.memo(({
 });
 
 export default function Home() {
-  const { storePath } = useStoreMode()
+  const { storePath, fulfilmentMode } = useStoreMode()
   const HERO_BANNER_AUTO_SLIDE_MS = 3500;
   const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
   const navigate = useNavigate();
@@ -1827,6 +1827,7 @@ export default function Home() {
           return;
         }
         params.zoneId = zoneId;
+        params.fulfilmentMode = fulfilmentMode;
 
         debugLog("Fetching sellers with params:", params);
         const response = await sellerAPI.getSellers(params);
@@ -2097,6 +2098,7 @@ export default function Home() {
       effectiveLocation?.latitude,
       effectiveLocation?.longitude,
       zoneId,
+      fulfilmentMode,
     ],
   );
 
@@ -2282,14 +2284,17 @@ export default function Home() {
             batchIds.map(async (id) => {
               if (!id) return { id: null, menu: null };
 
-              if (menuCache.has(id)) {
-                return { id, menu: menuCache.get(id) };
+              const cacheKey = `${fulfilmentMode}:${id}`;
+              if (menuCache.has(cacheKey)) {
+                return { id, menu: menuCache.get(cacheKey) };
               }
 
               try {
-                const response = await sellerAPI.getMenuBySellerId(id);
+                const response = await sellerAPI.getMenuBySellerId(id, {
+                  params: { fulfilmentMode },
+                });
                 const menu = response?.data?.data?.menu || null;
-                menuCache.set(id, menu);
+                menuCache.set(cacheKey, menu);
                 return { id, menu };
               } catch {
                 menuCache.set(id, null);
@@ -2363,6 +2368,7 @@ export default function Home() {
 
     fetchMenuCategories();
   }, [
+    fulfilmentMode,
     menuUnionSellerIdsKey,
     normalizeImageUrl,
     realCategories.length,

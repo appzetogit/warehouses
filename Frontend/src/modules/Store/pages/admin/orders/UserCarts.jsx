@@ -306,7 +306,7 @@ export default function UserCarts() {
             <div className={`${ROW_GRID} px-4 py-2.5 border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-600`}>
               <span>SI</span>
               <span>Customer</span>
-              <span>Seller</span>
+              <span>Seller / Mode</span>
               <span>Items</span>
               <span className="text-center">Qty</span>
               <span className="text-right">To Pay</span>
@@ -336,7 +336,12 @@ export default function UserCarts() {
                           <p className="text-[11px] text-slate-500 truncate">{cart.userPhone}</p>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-slate-800 truncate min-w-0">{cart.sellerName || "-"}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-800 truncate">{cart.sellerName || "-"}</p>
+                        <span className={`inline-block mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${cart.mode === "quick" ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"}`}>
+                          {cart.mode === "quick" ? "Quick" : "Shop"}
+                        </span>
+                      </div>
                       <p className="text-xs text-slate-600 truncate min-w-0">
                         {itemsPreview || "No items"}{moreItems}
                       </p>

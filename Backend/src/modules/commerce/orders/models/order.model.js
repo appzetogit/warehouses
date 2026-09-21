@@ -389,6 +389,8 @@ const orderSchema = new mongoose.Schema(
         stockRestoredAt: { type: Date, default: null },
         deliveryFleet: { type: String, default: 'standard', trim: true },
         scheduledAt: { type: Date, default: null },
+        /** Quick orders: delivery promise (minutes from placing) quoted at checkout; the SLA report measures against it. */
+        promisedEtaMinutes: { type: Number, default: null, min: 0 },
         riderEarning: { type: Number, default: 0, min: 0 },
         // Can be negative when discounts/rider pay exceed platform income; keep the real value visible.
         platformProfit: { type: Number, default: 0 },
