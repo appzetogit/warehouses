@@ -60,7 +60,8 @@ const Customers = lazy(() => import("@store/pages/admin/Customers"));
 const SupportTickets = lazy(() => import("@store/pages/admin/SupportTickets"));
 const AddFund = lazy(() => import("@store/pages/admin/wallet/AddFund"));
 const Bonus = lazy(() => import("@store/pages/admin/wallet/Bonus"));
-const LoyaltyPointReport = lazy(() => import("@store/pages/admin/loyalty-point/Report"));
+const CoinsManagement = lazy(() => import("@store/pages/admin/coins/CoinsManagement"));
+const AttributesPage = lazy(() => import("@store/pages/admin/attributes/AttributesPage"));
 const SubscribedMailList = lazy(() => import("@store/pages/admin/SubscribedMailList"));
 // Deliveryman Management
 const DeliveryBoyCommission = lazy(() => import("@store/pages/admin/DeliveryBoyCommission"));
@@ -312,6 +313,8 @@ export default function AdminRouter() {
 
             {/* FOOD & CATEGORY MANAGEMENT */}
             <Route path="categories" element={<Category />} />
+            <Route path="attributes" element={<AttributesPage />} />
+            <Route path="coins" element={<CoinsManagement />} />
             <Route path="fee-settings" element={<FeeSettings />} />
             <Route path="referral-settings" element={<ReferralSettings />} />
             <Route path="products" element={<ProductsList />} />

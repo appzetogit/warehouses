@@ -35,6 +35,12 @@ export const adminSidebarMenu = [
         icon: "FolderTree",
         path: "/admin/store/categories",
       },
+      {
+        type: "link",
+        label: "Attributes & Sets",
+        icon: "FolderTree",
+        path: "/admin/store/attributes",
+      },
     ],
   },
   {
@@ -108,8 +114,9 @@ export const adminSidebarMenu = [
   },
   {
     type: "section",
-    label: "REFERRAL & REWARDS",
+    label: "COINS & REWARDS",
     items: [
+      { type: "link", label: "Platform Coins", path: "/admin/store/coins", icon: "Award" },
       { type: "link", label: "Referral Settings", path: "/admin/store/referral-settings", icon: "Gift" },
     ],
   },

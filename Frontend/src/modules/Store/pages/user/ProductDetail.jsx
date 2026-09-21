@@ -1,524 +1,456 @@
-import { useState, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation"
-
-import { ArrowLeft, Star, Clock, MapPin, ShoppingBag, Plus, Minus, Calendar, ThumbsUp, MessageCircle, Send } from "lucide-react"
-import AnimatedPage from "@store/components/user/AnimatedPage"
-import Footer from "@store/components/user/Footer"
-import ScrollReveal from "@store/components/user/ScrollReveal"
+import { motion, AnimatePresence } from "framer-motion"
+import { 
+  ArrowLeft, 
+  Star, 
+  Clock, 
+  MapPin, 
+  ShoppingBag, 
+  Plus, 
+  Minus, 
+  Check, 
+  Zap, 
+  Truck, 
+  Coins, 
+  ShieldCheck, 
+  Store,
+  ChevronRight,
+  Share2,
+  AlertCircle
+} from "lucide-react"
+import { toast } from "sonner"
+import { catalogAPI } from "@/services/api"
 import { useCart } from "@store/context/CartContext"
-import { useOrders } from "@store/context/OrdersContext"
 import { Button } from "@store/components/ui/button"
-import { Badge } from "@store/components/ui/badge"
-import { Textarea } from "@store/components/ui/textarea"
-import { Label } from "@store/components/ui/label"
-
-// Sample product data - in a real app, this would come from an API
-const productsData = {
-  // Featured Dishes
-  1: { id: 1, name: "Margherita Pizza", seller: "Pizza Corner", sellerSlug: "pizza-corner", price: 12.99, image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Classic Italian pizza with fresh tomato sauce, mozzarella cheese, and basil leaves. Made with our signature wood-fired crust.", category: "Pizza", ingredients: ["Tomato sauce", "Mozzarella cheese", "Fresh basil", "Olive oil"], preparationTime: "15-20 min", calories: 280, foodType: "Veg", isVeg: true },
-  2: { id: 2, name: "Classic Burger", seller: "Burger Paradise", sellerSlug: "burger-paradise", price: 9.99, image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Juicy beef patty with fresh lettuce, tomato, onion, and our special sauce. Served on a toasted bun.", category: "Burgers", ingredients: ["Beef patty", "Lettuce", "Tomato", "Onion", "Special sauce", "Bun"], preparationTime: "10-15 min", calories: 520, foodType: "Non-Veg", isVeg: false },
-  3: { id: 3, name: "Salmon Sushi Roll", seller: "Sushi Master", sellerSlug: "sushi-master", price: 15.99, image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Fresh salmon with creamy avocado, wrapped in nori and sushi rice. Served with soy sauce and wasabi.", category: "Sushi", ingredients: ["Fresh salmon", "Avocado", "Nori", "Sushi rice", "Soy sauce", "Wasabi"], preparationTime: "20-25 min", calories: 320, foodType: "Non-Veg", isVeg: false },
-  4: { id: 4, name: "Chicken Tacos", seller: "Taco Fiesta", sellerSlug: "taco-fiesta", price: 8.99, image: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&h=400&fit=crop&q=80", rating: 4.6, description: "Soft shell tacos with grilled chicken, fresh vegetables, and our signature salsa. Served with lime wedges.", category: "Tacos", ingredients: ["Grilled chicken", "Lettuce", "Tomato", "Onion", "Cheese", "Salsa", "Lime"], preparationTime: "12-15 min", calories: 380, foodType: "Non-Veg", isVeg: false },
-  5: { id: 5, name: "Chicken Biryani", seller: "Spice Garden", sellerSlug: "spice-garden", price: 14.99, image: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Fragrant basmati rice cooked with tender chicken pieces, aromatic spices, and herbs. Served with raita and pickle.", category: "Indian", ingredients: ["Basmati rice", "Chicken", "Onions", "Spices", "Yogurt", "Herbs"], preparationTime: "30-35 min", calories: 650, foodType: "Non-Veg", isVeg: false },
-  6: { id: 6, name: "Pad Thai", seller: "Thai Express", sellerSlug: "thai-express", price: 13.99, image: "https://images.unsplash.com/photo-1559314809-0d155b1c5b8e?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Stir-fried rice noodles with shrimp, tofu, bean sprouts, and peanuts in a tangy tamarind sauce.", category: "Thai", ingredients: ["Rice noodles", "Shrimp", "Tofu", "Bean sprouts", "Peanuts", "Tamarind sauce"], preparationTime: "18-22 min", calories: 420, foodType: "Non-Veg", isVeg: false },
-  7: { id: 7, name: "Grilled Salmon", seller: "Ocean Breeze", sellerSlug: "ocean-breeze", price: 18.99, image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Fresh Atlantic salmon grilled to perfection with lemon butter sauce. Served with seasonal vegetables and rice.", category: "Seafood", ingredients: ["Atlantic salmon", "Lemon", "Butter", "Herbs", "Seasonal vegetables", "Rice"], preparationTime: "25-30 min", calories: 480, foodType: "Non-Veg", isVeg: false },
-  8: { id: 8, name: "BBQ Ribs", seller: "Smokehouse", sellerSlug: "smokehouse", price: 16.99, image: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Slow-cooked pork ribs smothered in our signature BBQ sauce. Served with coleslaw and cornbread.", category: "BBQ", ingredients: ["Pork ribs", "BBQ sauce", "Coleslaw", "Cornbread"], preparationTime: "35-40 min", calories: 720, foodType: "Non-Veg", isVeg: false },
-  // Quick Bites
-  9: { id: 9, name: "Chicken Wings", seller: "Burger Paradise", sellerSlug: "burger-paradise", price: 8.99, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Crispy fried chicken wings tossed in your choice of sauce. Served with celery sticks and blue cheese dip.", category: "Appetizers", ingredients: ["Chicken wings", "Hot sauce", "Butter", "Celery", "Blue cheese"], preparationTime: "15-18 min", calories: 450 },
-  10: { id: 10, name: "French Fries", seller: "Burger Paradise", sellerSlug: "burger-paradise", price: 4.99, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Golden crispy fries made from premium potatoes. Served hot with ketchup.", category: "Sides", ingredients: ["Potatoes", "Salt", "Oil"], preparationTime: "8-10 min", calories: 320 },
-  11: { id: 11, name: "Onion Rings", seller: "Burger Paradise", sellerSlug: "burger-paradise", price: 5.99, image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop&q=80", rating: 4.6, description: "Crispy battered onion rings, perfectly golden and crunchy. Served with dipping sauce.", category: "Sides", ingredients: ["Onions", "Batter", "Oil"], preparationTime: "10-12 min", calories: 280 },
-  12: { id: 12, name: "Mozzarella Sticks", seller: "Pizza Corner", sellerSlug: "pizza-corner", price: 6.99, image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Golden fried mozzarella sticks with a crispy exterior and gooey center. Served with marinara sauce.", category: "Appetizers", ingredients: ["Mozzarella cheese", "Breadcrumbs", "Marinara sauce"], preparationTime: "8-10 min", calories: 350 },
-  13: { id: 13, name: "Nachos", seller: "Taco Fiesta", sellerSlug: "taco-fiesta", price: 7.99, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Crispy tortilla chips loaded with melted cheese, jalapeos, and your choice of toppings.", category: "Appetizers", ingredients: ["Tortilla chips", "Cheese", "Jalapeos", "Sour cream", "Salsa"], preparationTime: "10-12 min", calories: 420 },
-  14: { id: 14, name: "Garlic Bread", seller: "Pizza Corner", sellerSlug: "pizza-corner", price: 4.49, image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Fresh baked bread brushed with garlic butter and herbs. Perfect as a side or appetizer.", category: "Sides", ingredients: ["Bread", "Garlic", "Butter", "Herbs"], preparationTime: "5-8 min", calories: 220 },
-  // Trending Now
-  15: { id: 15, name: "Spicy Ramen", seller: "Noodle House", sellerSlug: "noodle-house", price: 11.99, image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Rich and spicy ramen broth with tender noodles, soft-boiled egg, and fresh vegetables.", category: "Noodles", ingredients: ["Ramen noodles", "Broth", "Egg", "Vegetables", "Spices"], preparationTime: "20-25 min", calories: 480 },
-  16: { id: 16, name: "BBQ Chicken Pizza", seller: "Pizza Corner", sellerSlug: "pizza-corner", price: 13.99, image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&h=400&fit=crop&q=80", rating: 4.8, description: "Wood-fired pizza with BBQ sauce, grilled chicken, red onions, and mozzarella cheese.", category: "Pizza", ingredients: ["BBQ sauce", "Grilled chicken", "Red onions", "Mozzarella cheese"], preparationTime: "15-20 min", calories: 380 },
-  17: { id: 17, name: "Sushi Platter", seller: "Sushi Master", sellerSlug: "sushi-master", price: 19.99, image: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=600&h=400&fit=crop&q=80", rating: 4.9, description: "Assorted sushi platter with salmon, tuna, and California rolls. Served with soy sauce, wasabi, and pickled ginger.", category: "Sushi", ingredients: ["Salmon", "Tuna", "Avocado", "Rice", "Nori", "Soy sauce"], preparationTime: "25-30 min", calories: 450 },
-  18: { id: 18, name: "Loaded Burger", seller: "Burger Paradise", sellerSlug: "burger-paradise", price: 10.99, image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&h=400&fit=crop&q=80", rating: 4.7, description: "Double beef patty with bacon, cheese, lettuce, tomato, onion, and special sauce. Served with fries.", category: "Burgers", ingredients: ["Double beef patty", "Bacon", "Cheese", "Lettuce", "Tomato", "Onion", "Special sauce"], preparationTime: "12-15 min", calories: 680 },
-}
-
-// Seller data
-const sellersData = {
-  "pizza-corner": { name: "Pizza Corner", rating: 4.7, deliveryTime: "15-20 min", distance: "0.5 km", priceRange: "$$", address: "321 Elm Street, New York, NY 10004", phone: "+1 (555) 456-7890" },
-  "burger-paradise": { name: "Burger Paradise", rating: 4.6, deliveryTime: "20-25 min", distance: "0.8 km", priceRange: "$", address: "456 Oak Avenue, New York, NY 10002", phone: "+1 (555) 234-5678" },
-  "sushi-master": { name: "Sushi Master", rating: 4.9, deliveryTime: "30-35 min", distance: "2.1 km", priceRange: "$$$", address: "789 Cherry Lane, New York, NY 10003", phone: "+1 (555) 345-6789" },
-  "taco-fiesta": { name: "Taco Fiesta", rating: 4.5, deliveryTime: "20-25 min", distance: "1.5 km", priceRange: "$", address: "654 Pine Street, New York, NY 10005", phone: "+1 (555) 567-8901" },
-  "spice-garden": { name: "Spice Garden", rating: 4.8, deliveryTime: "25-30 min", distance: "1.8 km", priceRange: "$$", address: "123 Spice Road, New York, NY 10001", phone: "+1 (555) 123-4567" },
-  "thai-express": { name: "Thai Express", rating: 4.7, deliveryTime: "22-28 min", distance: "1.3 km", priceRange: "$$", address: "456 Thai Street, New York, NY 10002", phone: "+1 (555) 234-5678" },
-  "ocean-breeze": { name: "Ocean Breeze", rating: 4.9, deliveryTime: "30-35 min", distance: "2.5 km", priceRange: "$$$", address: "789 Ocean Drive, New York, NY 10003", phone: "+1 (555) 345-6789" },
-  "smokehouse": { name: "Smokehouse", rating: 4.8, deliveryTime: "35-40 min", distance: "2.2 km", priceRange: "$$", address: "321 BBQ Lane, New York, NY 10004", phone: "+1 (555) 456-7890" },
-  "noodle-house": { name: "Noodle House", rating: 4.8, deliveryTime: "20-25 min", distance: "1.1 km", priceRange: "$$", address: "654 Noodle Street, New York, NY 10005", phone: "+1 (555) 567-8901" },
-}
-
-// Generate sample reviews
-const generateReviews = (productName, totalReviews = 20) => {
-  const reviews = []
-  const names = ["Alex Johnson", "Sarah Chen", "Michael Brown", "Emily Davis", "David Wilson", "Jessica Martinez", "Chris Anderson", "Amanda Taylor", "Ryan Garcia", "Lisa Thompson"]
-  const comments = [
-    "Absolutely amazing! The flavors were incredible and the quality was top-notch. Highly recommend!",
-    "Great experience overall. Food arrived hot and fresh. Will definitely order again!",
-    "One of the best dishes I've tried. The quality is outstanding and prices are reasonable.",
-    "Delicious food and fast delivery. The packaging was excellent too. Very satisfied!",
-    "Excellent service and amazing food quality. This has become my go-to dish.",
-    "The food exceeded my expectations! Everything was perfectly cooked and seasoned.",
-    "Fast delivery and great tasting food. The portion sizes are generous too.",
-    "Love this dish! The food is always fresh and the flavors are authentic.",
-    "Outstanding quality and service. The food arrived on time and was still hot.",
-    "Highly recommend! The food is delicious and the customer service is excellent."
-  ]
-
-  for (let i = 0; i < Math.min(15, totalReviews); i++) {
-    const rating = 3.5 + Math.random() * 1.5
-    const roundedRating = Math.round(rating * 10) / 10
-    reviews.push({
-      id: i + 1,
-      userName: names[i % names.length],
-      userAvatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(names[i % names.length])}&background=ffc107&color=fff&size=128`,
-      rating: roundedRating,
-      comment: comments[i % comments.length],
-      date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-      helpful: Math.floor(Math.random() * 50),
-      verified: Math.random() > 0.3,
-      orderType: ["Delivery", "Dine-in", "Takeout"][Math.floor(Math.random() * 3)]
-    })
-  }
-
-  return reviews.sort((a, b) => b.rating - a.rating)
-}
 
 export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
-  const product = productsData[parseInt(id)]
-  const { addToCart, isInCart, getCartItem, updateQuantity } = useCart()
-  const { getAllOrders } = useOrders()
+  const { addToCart, isInCart, getCartItem } = useCart()
+
+  const [loading, setLoading] = useState(true)
+  const [product, setProduct] = useState(null)
+  const [seller, setSeller] = useState(null)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
-  const [showReviewForm, setShowReviewForm] = useState(false)
-  const [reviewForm, setReviewForm] = useState({
-    rating: 5,
-    comment: "",
-  })
-  const [reviews, setReviews] = useState(() =>
-    product ? generateReviews(product.name) : []
-  )
-  const [helpfulVotes, setHelpfulVotes] = useState(new Set())
-  const [replyStates, setReplyStates] = useState({})
-  const [replies, setReplies] = useState({})
 
-  const seller = product ? sellersData[product.sellerSlug] : null
-  const inCart = product ? isInCart(product.id) : false
-  const cartItem = product ? getCartItem(product.id) : null
-  const orders = getAllOrders()
+  // Selected attribute dictionary: { [optionName]: selectedValue }
+  const [selectedAttrs, setSelectedAttrs] = useState({})
 
-  // Get order history for this product
-  const orderHistory = useMemo(() => {
-    if (!product) return []
-    return orders.filter(order =>
-      order.items?.some(item => item.id === product.id)
-    ).slice(0, 5) // Show last 5 orders
-  }, [orders, product])
+  useEffect(() => {
+    async function loadProduct() {
+      try {
+        setLoading(true)
+        const res = await catalogAPI.getProduct(id)
+        const data = res?.data?.data || res?.data
+        if (data?.product) {
+          setProduct(data.product)
+          setSeller(data.seller)
 
-  // Calculate average rating
-  const averageRating = useMemo(() => {
-    if (reviews.length === 0) return product?.rating || 0
-    const sum = reviews.reduce((acc, review) => acc + review.rating, 0)
-    return Math.round((sum / reviews.length) * 10) / 10
-  }, [reviews, product])
+          // Initial selection: select first available value for each option
+          if (Array.isArray(data.product.options) && data.product.options.length > 0) {
+            const initialAttrs = {}
+            data.product.options.forEach((opt) => {
+              if (opt.values && opt.values.length > 0) {
+                const firstVal = typeof opt.values[0] === "object" ? opt.values[0].value : opt.values[0]
+                initialAttrs[opt.name] = firstVal
+              }
+            })
+            setSelectedAttrs(initialAttrs)
+          }
+        }
+      } catch (err) {
+        toast.error("Product not found or currently unavailable")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (id) loadProduct()
+  }, [id])
+
+  // Resolve matching active variant based on selected attributes
+  const currentVariant = useMemo(() => {
+    if (!product || !Array.isArray(product.variants) || product.variants.length === 0) {
+      return null
+    }
+
+    const selectedKeys = Object.keys(selectedAttrs)
+    if (selectedKeys.length === 0) return product.variants[0]
+
+    return (
+      product.variants.find((variant) => {
+        if (!variant.attributes) return false
+        // Variant attributes can be array [{ name, value }] or key-value object
+        if (Array.isArray(variant.attributes)) {
+          return selectedKeys.every((key) => {
+            const match = variant.attributes.find((a) => a.name === key)
+            return match && match.value === selectedAttrs[key]
+          })
+        }
+        return selectedKeys.every((key) => variant.attributes[key] === selectedAttrs[key])
+      }) || null
+    )
+  }, [product, selectedAttrs])
+
+  // Current pricing & stock resolution
+  const displayPrice = currentVariant ? currentVariant.price : (product?.price ?? 0)
+  const displayMrp = currentVariant ? currentVariant.mrp : (product?.mrp ?? 0)
+  const hasDiscount = displayMrp > displayPrice
+  const discountPercent = hasDiscount ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100) : 0
+  const isAvailable = currentVariant ? currentVariant.inStock : (product?.stockQty > 0 || product?.isInStock)
+
+  // Images list: variant images first, then product images
+  const allImages = useMemo(() => {
+    const list = []
+    if (currentVariant?.images?.length) list.push(...currentVariant.images)
+    if (product?.images?.length) list.push(...product.images)
+    if (product?.image && !list.includes(product.image)) list.push(product.image)
+    return list.length > 0 ? list : ["https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&fit=crop&q=80"]
+  }, [product, currentVariant])
+
+  const handleSelectAttribute = (optName, val) => {
+    setSelectedAttrs((prev) => ({ ...prev, [optName]: val }))
+  }
 
   const handleAddToCart = () => {
-    if (product) {
-      const cartItem = {
-        ...product,
-        foodType: product.foodType,
-        isVeg: product.foodType === "Veg" ? true : product.foodType === "Non-Veg" ? false : null
-      }
-      const result = addToCart(cartItem, null, { quantity })
-      if (result?.ok === false && !result.needsConfirmation) {
-        alert(result.error || "Cannot add item from different seller. Please clear cart first.")
-      }
+    if (!isAvailable) {
+      return toast.error("Selected item variant is currently out of stock")
     }
+
+    const variantLabel = currentVariant?.name || Object.values(selectedAttrs).join(" / ")
+
+    addToCart({
+      id: product._id,
+      itemId: product._id,
+      productId: product._id,
+      name: product.name,
+      price: displayPrice,
+      variantId: currentVariant?._id || null,
+      variantName: variantLabel,
+      variantPrice: displayPrice,
+      otherPrice: displayMrp,
+      image: allImages[0],
+      sellerId: seller?._id,
+      sellerName: seller?.sellerName || "Store",
+      quantity,
+      selectedAttributes: selectedAttrs,
+      quickEligible: product.quickEligible,
+    })
+
+    toast.success(`Added ${quantity} × ${product.name} to cart!`)
   }
 
-  const handleIncrease = () => {
-    if (inCart && cartItem) {
-      updateQuantity(product.id, cartItem.quantity + 1)
-    } else {
-      setQuantity(prev => prev + 1)
-    }
-  }
-
-  const handleDecrease = () => {
-    if (inCart && cartItem) {
-      if (cartItem.quantity > 1) {
-        updateQuantity(product.id, cartItem.quantity - 1)
-      }
-    } else {
-      setQuantity(prev => Math.max(1, prev - 1))
-    }
-  }
-
-  const handleSubmitReview = (e) => {
-    e.preventDefault()
-    if (!reviewForm.comment.trim()) {
-      alert("Please write a review comment")
-      return
-    }
-
-    const newReview = {
-      id: reviews.length + 1,
-      userName: "You",
-      userAvatar: `https://ui-avatars.com/api/?name=You&background=ffc107&color=fff&size=128`,
-      rating: reviewForm.rating,
-      comment: reviewForm.comment,
-      date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-      helpful: 0,
-      verified: true,
-      orderType: "Delivery"
-    }
-
-    setReviews([newReview, ...reviews])
-    setReviewForm({ rating: 5, comment: "" })
-    setShowReviewForm(false)
-    alert("Thank you for your review!")
-  }
-
-  const handleHelpful = (reviewId) => {
-    if (helpfulVotes.has(reviewId)) {
-      // Already voted, remove vote
-      setHelpfulVotes(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(reviewId)
-        return newSet
-      })
-      setReviews(prev => prev.map(review =>
-        review.id === reviewId
-          ? { ...review, helpful: Math.max(0, review.helpful - 1) }
-          : review
-      ))
-    } else {
-      // New vote
-      setHelpfulVotes(prev => new Set(prev).add(reviewId))
-      setReviews(prev => prev.map(review =>
-        review.id === reviewId
-          ? { ...review, helpful: review.helpful + 1 }
-          : review
-      ))
-    }
-  }
-
-  const handleReplyClick = (reviewId) => {
-    setReplyStates(prev => ({
-      ...prev,
-      [reviewId]: !prev[reviewId]
-    }))
-  }
-
-  const handleSubmitReply = (reviewId, replyText) => {
-    if (!replyText.trim()) {
-      alert("Please write a reply")
-      return
-    }
-
-    const newReply = {
-      id: Date.now(),
-      userName: "You",
-      userAvatar: `https://ui-avatars.com/api/?name=You&background=ffc107&color=fff&size=128`,
-      comment: replyText,
-      date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-      verified: true
-    }
-
-    setReplies(prev => ({
-      ...prev,
-      [reviewId]: [...(prev[reviewId] || []), newReply]
-    }))
-    setReplyStates(prev => ({
-      ...prev,
-      [reviewId]: false
-    }))
-  }
-
-  const renderStars = (rating, size = "h-4 w-4") => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`${size} ${i < Math.floor(rating)
-          ? "fill-yellow-400 text-yellow-400"
-          : i < rating
-            ? "fill-yellow-200 text-yellow-200"
-            : "fill-gray-300 text-gray-300"
-          }`}
-      />
-    ))
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 animate-pulse">
+          <div className="h-96 md:h-[500px] bg-gray-200 dark:bg-gray-800 rounded-3xl" />
+          <div className="space-y-4">
+            <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded-xl w-3/4" />
+            <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded-xl w-1/4" />
+            <div className="h-24 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+            <div className="h-40 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!product) {
     return (
-      <AnimatedPage className="min-h-screen bg-gradient-to-b from-yellow-50/30 via-white to-orange-50/20 dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a]">
-        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
-          <Link to="/user">
-            <Button>Go Back Home</Button>
-          </Link>
-        </div>
-      </AnimatedPage>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
+        <AlertCircle className="w-16 h-16 text-gray-400 mb-4" />
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Product Unavailable</h2>
+        <p className="text-gray-500 mt-2 max-w-sm">This product may have been unlisted or is no longer serviceable in your area.</p>
+        <Button onClick={() => navigate(-1)} className="mt-6 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold">
+          Return to Browse
+        </Button>
+      </div>
     )
   }
 
   return (
-    <AnimatedPage className="min-h-screen bg-gradient-to-b from-yellow-50/30 via-white to-orange-50/20 dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
-
-        {/* Hero Image Section */}
-        <div className="relative w-full h-[350px] sm:h-[400px] md:h-[450px] lg:h-[500px] xl:h-[550px] overflow-hidden rounded-lg md:rounded-xl lg:rounded-2xl mt-4 md:mt-6 lg:mt-8">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-full object-cover object-center" />
-
-          {/* Back Button - Overlay on Image */}
-          <div className="absolute top-4 left-4 z-10">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={goBack}
-              className="rounded-full bg-white/90 backdrop-blur-sm hover:bg-white shadow-md"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 pb-20">
+      {/* Top Navbar */}
+      <div className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            {product.quickEligible ? (
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                Quick 20-30 Mins
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                <Truck className="w-3.5 h-3.5 text-blue-500" />
+                Standard Courier Shipping
+              </span>
+            )}
           </div>
-
-          {/* Rating Badge - Top Right */}
-          <div className="absolute top-4 right-4 z-10">
-            <Badge className="bg-primary-orange text-white shadow-lg">
-              <Star className="h-3 w-3 fill-white text-white mr-1" />
-              {averageRating}
-            </Badge>
-          </div>
-
-          {/* Product Info Card Overlay */}
-          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a1a] rounded-t-3xl p-4 sm:p-5 md:p-6 lg:p-8">
-            <div className="flex items-start gap-4 md:gap-6 lg:gap-8">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between mb-2 md:mb-3">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white leading-tight break-words">
-                    {product.name}
-                  </h1>
-                </div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base md:text-lg mb-2 md:mb-3 line-clamp-2 lg:line-clamp-3">
-                  {product.description}
-                </p>
-                <div className="flex items-center gap-3 md:gap-4 flex-wrap">
-                  <div className="flex items-center gap-1 md:gap-2">
-                    {renderStars(averageRating, "h-4 w-4 md:h-5 md:w-5")}
-                    <span className="text-gray-900 dark:text-white font-semibold text-sm sm:text-base md:text-lg">{averageRating}</span>
-                  </div>
-                  <span className="text-gray-400">|</span>
-                  <span className="text-gray-600 dark:text-gray-300 text-sm sm:text-base md:text-lg underline">
-                    {reviews.length} {reviews.length === 1 ? 'Review' : 'Reviews'}
-                  </span>
-                  <span className="text-gray-400">|</span>
-                  <Badge variant="outline" className="text-xs sm:text-sm md:text-base">
-                    {product.category}
-                  </Badge>
-                </div>
-              </div>
-              <div className="flex-shrink-0 text-right">
-                <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-primary-orange">
-                  ₹{(product.price * 83).toFixed(0)}
-                </div>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">per serving</p>
-              </div>
-            </div>
-          </div>
+          <button
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({ title: product.name, url: window.location.href })
+              } else {
+                navigator.clipboard.writeText(window.location.href)
+                toast.success("Product link copied!")
+              }
+            }}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors"
+          >
+            <Share2 className="w-5 h-5" />
+          </button>
         </div>
+      </div>
 
-
-        <div className="px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8 md:py-10 lg:py-12 space-y-6 md:space-y-8 lg:space-y-10">
-          {/* Product Info */}
-          <ScrollReveal>
-            <div className="space-y-4">
-              {/* Breadcrumb */}
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground flex-wrap">
-                <Link to="/user" className="hover:text-primary-orange transition-colors">Home</Link>
-                <span>/</span>
-                <span className="text-foreground font-medium truncate">{seller?.name || "Seller"}</span>
-                <span>/</span>
-                <span className="text-foreground font-medium truncate">{product.name}</span>
-              </div>
-            </div>
-          </ScrollReveal>
-
-
-          {/* Add to Cart */}
-          <ScrollReveal delay={0.3}>
-            <div className="space-y-4 pb-4 border-b">
-              <h2 className="text-xl font-bold">Order</h2>
-              {inCart ? (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 border border-[#EB590E] rounded-lg">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 hover:bg-[#FFF2EB]"
-                      onClick={handleDecrease}
-                    >
-                      <Minus className="h-5 w-5" />
-                    </Button>
-                    <span className="px-4 text-lg font-semibold min-w-[2rem] text-center">
-                      {cartItem?.quantity || 0}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 hover:bg-[#FFF2EB]"
-                      onClick={handleIncrease}
-                    >
-                      <Plus className="h-5 w-5" />
-                    </Button>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">In cart</p>
-                    <p className="text-lg font-bold text-primary-orange">
-                      ₹{(product.price * 83 * (cartItem?.quantity || 0)).toFixed(0)}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 border border-gray-300 rounded-lg">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10"
-                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                    >
-                      <Minus className="h-5 w-5" />
-                    </Button>
-                    <span className="px-4 text-lg font-semibold min-w-[2rem] text-center">
-                      {quantity}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10"
-                      onClick={() => setQuantity(prev => prev + 1)}
-                    >
-                      <Plus className="h-5 w-5" />
-                    </Button>
-                  </div>
-                  <div
-                    className="flex-1"
-                  >
-                    <Button
-                      onClick={handleAddToCart}
-                      className="bg-primary-orange hover:opacity-90 text-white"
-                    >
-                      <ShoppingBag className="h-5 w-5 mr-2" />
-                      Add to Cart - ₹{(product.price * 83 * quantity).toFixed(0)}
-                    </Button>
-                  </div>
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14">
+          {/* Left Column: Image Gallery */}
+          <div className="space-y-4">
+            <div className="relative aspect-square rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 shadow-sm group">
+              <img
+                src={allImages[activeImageIndex] || allImages[0]}
+                alt={product.name}
+                className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+              />
+              {hasDiscount && (
+                <div className="absolute top-4 left-4 bg-rose-600 text-white font-extrabold text-xs px-3 py-1.5 rounded-full shadow-lg">
+                  {discountPercent}% OFF
                 </div>
               )}
             </div>
-          </ScrollReveal>
 
-          {/* Seller Info */}
-          {seller && (
-            <ScrollReveal delay={0.1}>
-              <div className="space-y-3 md:space-y-4 pb-4 md:pb-6 border-b">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg md:text-xl lg:text-2xl font-bold">
-                      {seller.name}
-                    </h3>
-                  </div>
-                  <Badge className="bg-primary-orange text-white text-sm md:text-base">{seller.priceRange}</Badge>
-                </div>
-                <div className="flex items-center gap-4 md:gap-6 flex-wrap text-sm md:text-base">
-                  <div className="flex items-center gap-1.5">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{seller.rating}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{seller.deliveryTime}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{seller.distance}</span>
-                  </div>
-                </div>
+            {/* Thumbnail Strip */}
+            {allImages.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+                {allImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`relative w-20 h-20 shrink-0 rounded-2xl overflow-hidden border-2 transition-all ${
+                      activeImageIndex === idx
+                        ? "border-orange-500 ring-2 ring-orange-500/20 shadow-md scale-105"
+                        : "border-gray-200 dark:border-gray-700 opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    <img src={img} alt="thumbnail" className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
-            </ScrollReveal>
-          )}
+            )}
 
-          {/* Product Details */}
-          <ScrollReveal delay={0.2}>
-            <div className="space-y-4 md:space-y-6 pb-4 md:pb-6 border-b">
-              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold">Details</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 text-sm md:text-base">
-                <div>
-                  <p className="text-muted-foreground mb-1 md:mb-2">Category</p>
-                  <p className="font-semibold">{product.category}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground mb-1 md:mb-2">Preparation Time</p>
-                  <p className="font-semibold">{product.preparationTime}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground mb-1 md:mb-2">Calories</p>
-                  <p className="font-semibold">{product.calories} kcal</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground mb-1 md:mb-2">Ingredients</p>
-                  <p className="font-semibold">{product.ingredients.length} items</p>
-                </div>
+            {/* Coins Promotional Card */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/20 flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md">
+                <Coins className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-muted-foreground mb-2 text-sm">Ingredients</p>
-                <div className="flex flex-wrap gap-2">
-                  {product.ingredients.map((ingredient, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {ingredient}
-                    </Badge>
-                  ))}
-                </div>
+                <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                  Platform Coins Usable
+                </h4>
+                <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                  Use up to <strong>50% Coins</strong> on this order at checkout! Earn refund coins for instant savings.
+                </p>
               </div>
             </div>
-          </ScrollReveal>
+          </div>
 
+          {/* Right Column: Product Info & Variant Picker */}
+          <div className="space-y-6">
+            {/* Title & Brand */}
+            <div>
+              {product.brand && (
+                <span className="text-xs font-extrabold uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                  {product.brand}
+                </span>
+              )}
+              <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mt-1 leading-tight">
+                {product.name}
+              </h1>
 
-          {/* Order History */}
-          {orderHistory.length > 0 && (
-            <ScrollReveal delay={0.4}>
-              <div className="space-y-4 pb-4 border-b">
-                <h2 className="text-xl font-bold">Your Order History</h2>
-                <div className="space-y-3">
-                  {orderHistory.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between py-3 border-b last:border-0">
-                      <div>
-                        <p className="font-semibold">Order {order.id}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{new Date(order.createdAt).toLocaleDateString()}</span>
-                          <span>•</span>
-                          <span>{order.status}</span>
-                        </div>
-                      </div>
-                      <Badge variant="outline">{order.status}</Badge>
-                    </div>
-                  ))}
-                </div>
+              {/* Price Row */}
+              <div className="flex items-baseline gap-3 mt-3">
+                <span className="text-3xl font-black text-gray-900 dark:text-white">
+                  ₹{displayPrice.toLocaleString()}
+                </span>
+                {hasDiscount && (
+                  <>
+                    <span className="text-lg text-gray-400 line-through">
+                      ₹{displayMrp.toLocaleString()}
+                    </span>
+                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                      Save ₹{(displayMrp - displayPrice).toLocaleString()}
+                    </span>
+                  </>
+                )}
               </div>
-            </ScrollReveal>
-          )}
 
+              {/* Availability & SKU */}
+              <div className="flex items-center gap-3 mt-2">
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    isAvailable
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                      : "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300"
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? "bg-emerald-500" : "bg-rose-500"}`} />
+                  {isAvailable ? "In Stock" : "Out of Stock"}
+                </span>
+
+                {currentVariant?.sku && (
+                  <span className="text-xs font-mono text-gray-400">
+                    SKU: {currentVariant.sku}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* DYNAMIC VARIANT MATRIX PICKER */}
+            {product.options && product.options.length > 0 && (
+              <div className="p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm space-y-5">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Select Specifications
+                </h3>
+
+                {product.options.map((opt) => {
+                  const isColor = opt.type === "color" || opt.name.toLowerCase() === "color"
+                  const selectedVal = selectedAttrs[opt.name]
+
+                  return (
+                    <div key={opt.name} className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-bold text-gray-700 dark:text-gray-300">{opt.name}</span>
+                        <span className="font-semibold text-orange-600 dark:text-orange-400">{selectedVal}</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2.5">
+                        {opt.values.map((v) => {
+                          const valStr = typeof v === "object" ? v.value : v
+                          const hex = typeof v === "object" ? v.hex : null
+                          const isSelected = selectedVal === valStr
+
+                          if (isColor) {
+                            return (
+                              <button
+                                key={valStr}
+                                onClick={() => handleSelectAttribute(opt.name, valStr)}
+                                title={valStr}
+                                className={`relative w-9 h-9 rounded-full transition-all flex items-center justify-center border-2 ${
+                                  isSelected
+                                    ? "border-orange-500 scale-110 shadow-md ring-2 ring-orange-500/30"
+                                    : "border-gray-300 dark:border-gray-700 opacity-80 hover:opacity-100"
+                                }`}
+                                style={{ backgroundColor: hex || "#000" }}
+                              >
+                                {isSelected && (
+                                  <Check className={`w-4 h-4 ${hex && hex.toLowerCase() === "#ffffff" ? "text-gray-900" : "text-white"}`} />
+                                )}
+                              </button>
+                            )
+                          }
+
+                          return (
+                            <button
+                              key={valStr}
+                              onClick={() => handleSelectAttribute(opt.name, valStr)}
+                              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                                isSelected
+                                  ? "border-orange-500 bg-orange-500 text-white shadow-sm"
+                                  : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-gray-300"
+                              }`}
+                            >
+                              {valStr}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Quantity & Add to Cart Row */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-2">
+              <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-800 p-1 w-fit">
+                <button
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 transition-colors"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="w-12 text-center font-bold text-sm text-gray-900 dark:text-white">
+                  {quantity}
+                </span>
+                <button
+                  onClick={() => setQuantity((q) => q + 1)}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+
+              <Button
+                onClick={handleAddToCart}
+                disabled={!isAvailable}
+                className="flex-1 py-3.5 px-8 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold shadow-lg shadow-orange-500/25 transition-all text-sm flex items-center justify-center gap-2"
+              >
+                <ShoppingBag className="w-5 h-5" />
+                {isAvailable ? "Add to Cart" : "Currently Out of Stock"}
+              </Button>
+            </div>
+
+            {/* Seller Store Card */}
+            {seller && (
+              <div className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-950/50 text-orange-600 flex items-center justify-center font-bold">
+                    <Store className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-white">
+                      Sold by {seller.sellerName}
+                    </h4>
+                    <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      <span className="font-bold text-gray-700 dark:text-gray-300">{seller.rating || "4.8"}</span>
+                      <span>• Verified Multi-Vendor Partner</span>
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  to={`/user/sellers/${seller._id || seller.id}`}
+                  className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5"
+                >
+                  Visit Store <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
+
+            {/* Description */}
+            {product.description && (
+              <div className="pt-2">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Product Description</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                  {product.description}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      <Footer />
-    </AnimatedPage>
+    </div>
   )
 }
