@@ -181,6 +181,7 @@ GET /api/v1/orders/:orderId
 GET /api/v1/orders/:orderId/drop-otp
 GET /api/v1/orders/:orderId/payments
 GET /api/v1/orders/:orderId/route
+GET /api/v1/orders/checkout/:checkoutId
 GET /api/v1/payments/admin/finance/summary
 GET /api/v1/payments/admin/refunds
 GET /api/v1/payments/admin/settlements
@@ -394,6 +395,8 @@ POST /api/v1/fcm-tokens/save
 POST /api/v1/fcm-tokens/test
 POST /api/v1/orders/
 POST /api/v1/orders/calculate
+POST /api/v1/orders/checkout
+POST /api/v1/orders/checkout/calculate
 POST /api/v1/orders/verify-payment
 POST /api/v1/payments/admin/settlements
 POST /api/v1/payments/admin/settlements/:id/process

@@ -273,6 +273,37 @@ const orderSchema = new mongoose.Schema(
             ref: 'OrderTransaction',
             index: true
         },
+        checkoutId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Checkout',
+            default: null,
+            index: true
+        },
+        orderGroupId: {
+            type: String,
+            trim: true,
+            default: '',
+            index: true
+        },
+        fulfilmentMode: {
+            type: String,
+            enum: ['quick', 'standard'],
+            default: 'quick'
+        },
+        coinsUsed: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+        coinsDiscount: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+        shipment: {
+            type: mongoose.Schema.Types.Mixed,
+            default: null
+        },
         items: {
             type: [orderItemSchema],
             required: true,

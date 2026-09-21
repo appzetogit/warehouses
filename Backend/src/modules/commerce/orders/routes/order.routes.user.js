@@ -13,8 +13,17 @@ import {
     updateOrderInstructionsController,
     getOrderRouteUserController
 } from '../controllers/order.controller.js';
+import {
+    calculateCheckoutController,
+    createCheckoutController,
+    getCheckoutByIdController
+} from '../controllers/checkout.controller.js';
 
 const router = express.Router();
+
+router.post('/checkout/calculate', calculateCheckoutController);
+router.post('/checkout', createCheckoutController);
+router.get('/checkout/:checkoutId', getCheckoutByIdController);
 
 router.post('/calculate', calculateOrderController);
 router.post('/', createOrderController);

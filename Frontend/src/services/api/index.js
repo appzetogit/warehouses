@@ -2610,6 +2610,16 @@ export const uploadAPI = {
 };
 /** Order API (user app – Bearer USER token). Minimal calls: single create/verify, list/details cached by caller. */
 export const orderAPI = {
+  calculateCheckout: (payload) =>
+    apiClient.post("/orders/checkout/calculate", payload ?? {}, {
+      contextModule: "user",
+    }),
+  createCheckout: (payload) =>
+    apiClient.post("/orders/checkout", payload ?? {}, { contextModule: "user" }),
+  getCheckout: (checkoutId) =>
+    apiClient.get(`/orders/checkout/${String(checkoutId)}`, {
+      contextModule: "user",
+    }),
   calculateOrder: (payload) =>
     apiClient.post("/orders/calculate", payload ?? {}, {
       contextModule: "user",
