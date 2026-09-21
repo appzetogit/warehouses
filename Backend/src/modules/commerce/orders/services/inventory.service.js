@@ -157,6 +157,7 @@ export async function reserveStockForItems(items = []) {
     if (res.modifiedCount === 1) {
       taken.push(plan);
       await syncProductAvailability(plan.itemId);
+      await notifyLowStock(plan.itemId, plan.variantId).catch((err) => logger.warn(`low-stock check failed: ${err.message}`));
       continue;
     }
 
@@ -178,19 +179,55 @@ export async function reserveStockForItems(items = []) {
   return taken;
 }
 
+/**
+ * Tells the seller once when an item drops to its threshold. The flag is set by
+ * a conditional update so concurrent orders send one push; a restock clears it.
+ */
+export async function notifyLowStock(itemId, variantId) {
+  const _id = toId(itemId);
+  const p = await Product.findById(_id).select('name sellerId stockQty lowStockThreshold lowStockNotifiedAt variants').lean();
+  if (!p) return false;
+  const v = variantId ? (p.variants || []).find((x) => String(x._id) === String(variantId)) : null;
+  const own = v && v.stockQty !== null && v.stockQty !== undefined;
+  const count = own ? v.stockQty : p.stockQty;
+  const threshold = own ? v.lowStockThreshold : p.lowStockThreshold;
+  if (count === null || count === undefined || threshold === null || threshold === undefined || count > threshold) return false;
+
+  const now = new Date();
+  const res = own
+    ? await Product.updateOne(
+      { _id, variants: { $elemMatch: { _id: toId(variantId), lowStockNotifiedAt: null } } },
+      { $set: { 'variants.$.lowStockNotifiedAt': now } },
+    )
+    : await Product.updateOne({ _id, lowStockNotifiedAt: null }, { $set: { lowStockNotifiedAt: now } });
+  if (res.modifiedCount !== 1) return false;
+
+  const label = own ? `${p.name} (${v.name})` : p.name;
+  const { notifyOwnerSafely } = await import('../../../../core/notifications/firebase.service.js');
+  await notifyOwnerSafely(
+    { ownerType: 'SELLER', ownerId: String(p.sellerId) },
+    {
+      title: count > 0 ? 'Running low' : 'Out of stock',
+      body: count > 0 ? `Only ${count} left of ${label}.` : `${label} is out of stock.`,
+      data: { type: 'low_stock', productId: String(p._id), variantId: variantId ? String(variantId) : '', stockQty: String(count) },
+    },
+  );
+  return true;
+}
+
 /** Returns units to a shelf. A variant that has since been deleted cannot take them back. */
 async function incrementStock(itemId, variantId, qty) {
   const _id = toId(itemId);
   if (variantId) {
     const res = await Product.updateOne(
       { _id, variants: { $elemMatch: { _id: toId(variantId), stockQty: { $ne: null } } } },
-      { $inc: { 'variants.$.stockQty': qty } },
+      { $inc: { 'variants.$.stockQty': qty }, $set: { 'variants.$.lowStockNotifiedAt': null } },
     );
     if (!res.matchedCount) {
       logger.warn(`restock skipped: variant ${variantId} of ${itemId} is gone or no longer counted (+${qty})`);
     }
   } else {
-    await Product.updateOne({ _id, stockQty: { $ne: null } }, { $inc: { stockQty: qty } });
+    await Product.updateOne({ _id, stockQty: { $ne: null } }, { $inc: { stockQty: qty }, $set: { lowStockNotifiedAt: null } });
   }
   await syncProductAvailability(itemId);
 }

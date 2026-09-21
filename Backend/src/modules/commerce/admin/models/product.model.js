@@ -33,6 +33,8 @@ const productVariantSchema = new mongoose.Schema(
         mrp: { type: Number, min: 0, default: null },
         stockQty: { type: Number, min: 0, default: null },
         lowStockThreshold: { type: Number, min: 0, default: null },
+        /** Set when the seller was told this variant ran low; cleared on restock. */
+        lowStockNotifiedAt: { type: Date, default: null },
         /** Variant-specific photos, e.g. the red one. Empty means use the product's images. */
         images: { type: [String], default: [] },
         /** The seller's switch. Running out of stock does not change it; see `stockQty`. */
@@ -135,6 +137,8 @@ const productSchema = new mongoose.Schema(
         stockQty: { type: Number, default: null, min: 0 },
         /** Below this, the item is flagged to the seller. `null` disables the flag. */
         lowStockThreshold: { type: Number, default: null, min: 0 },
+        /** Set when the seller was told this item ran low; cleared on restock. */
+        lowStockNotifiedAt: { type: Date, default: null },
         /** Cap per single order, so one buyer cannot clear the shelf. `null` = uncapped. */
         maxQtyPerOrder: { type: Number, default: null, min: 1 },
         /** Running average of per-dish ratings left by customers. */

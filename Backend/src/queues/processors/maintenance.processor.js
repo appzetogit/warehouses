@@ -34,8 +34,8 @@ export const processMaintenanceJob = async (job) => {
 
     if (type === 'COIN_EXPIRY_CHECK') {
         try {
-            const { expireDueLots } = await import('../../modules/commerce/coins/services/coin.service.js');
-            const results = await expireDueLots();
+            const { expireDueLots, notifyExpiringCoins } = await import('../../modules/commerce/coins/services/coin.service.js');
+            const results = { ...(await expireDueLots()), ...(await notifyExpiringCoins()) };
             logger.info(`[BullMQ:maintenance] COIN_EXPIRY_CHECK complete: ${JSON.stringify(results)}`);
         } catch (err) {
             logger.error(`[BullMQ:maintenance] COIN_EXPIRY_CHECK failed: ${err.message}`);

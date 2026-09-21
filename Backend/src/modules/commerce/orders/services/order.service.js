@@ -2984,6 +2984,16 @@ export async function createOrderShipmentSeller(orderId, sellerId) {
   }
 
   await order.save();
+  if (order.userId) {
+    notifyOwnerSafely(
+      { ownerType: 'USER', ownerId: String(order.userId) },
+      {
+        title: 'Your order is on its way',
+        body: `Shipped with ${shipmentData.courierName}. Tracking number ${shipmentData.awb}.`,
+        data: { type: 'shipment_booked', orderId: String(order._id), awb: String(shipmentData.awb || '') },
+      },
+    ).catch(() => {});
+  }
   return { order: normalizeOrderForClient(order), shipment: shipmentData };
 }
 

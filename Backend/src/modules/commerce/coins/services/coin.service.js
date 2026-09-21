@@ -107,7 +107,19 @@ export async function creditCoins({
         note,
         actorId,
     });
+    pushToUser(user, {
+        title: 'Coins credited',
+        body: `${coins} coins were added to your wallet${spendable < coins ? ` (${spendable} usable)` : ''}.`,
+        data: { type: 'coins_credited', coins: String(coins), source: String(source || '') },
+    });
     return { lot: lot.toObject(), duplicate: false };
+}
+
+/** Fire-and-forget push; a notification never fails a coin operation. */
+function pushToUser(userId, payload) {
+    import('../../../../core/notifications/firebase.service.js')
+        .then(({ notifyOwnerSafely }) => notifyOwnerSafely({ ownerType: 'USER', ownerId: String(userId) }, payload))
+        .catch((err) => logger.warn(`coin push failed: ${err.message}`));
 }
 
 // ---- balance ---------------------------------------------------------------
@@ -414,6 +426,32 @@ export async function getCoinReport(now = new Date()) {
  * Closes lots whose date has passed and records what was lost. Balances never
  * count an expired lot anyway; this is for the history and the report.
  */
+/**
+ * Reminds customers once per lot that usable coins expire within `days`.
+ * The flag is claimed atomically, so overlapping runs cannot double-send.
+ */
+export async function notifyExpiringCoins(now = new Date(), days = 3) {
+    const horizon = new Date(now.getTime() + days * DAY_MS);
+    let notified = 0;
+    for (;;) {
+        const lot = await CoinLot.findOneAndUpdate(
+            { expiredAt: null, expiryNotifiedAt: null, expiresAt: { $gt: now, $lte: horizon } },
+            { $set: { expiryNotifiedAt: now } },
+            { new: true }
+        ).lean();
+        if (!lot) break;
+        const left = Math.max(0, lot.spendable - lot.used);
+        if (!left) continue;
+        pushToUser(lot.userId, {
+            title: 'Coins expiring soon',
+            body: `${left} coins expire on ${lot.expiresAt.toISOString().slice(0, 10)}. Use them before they go.`,
+            data: { type: 'coins_expiring', coins: String(left), expiresAt: lot.expiresAt.toISOString() },
+        });
+        notified++;
+    }
+    return { notified };
+}
+
 export async function expireDueLots(now = new Date()) {
     let expired = 0;
     for (;;) {

@@ -6,6 +6,7 @@ import { Product } from '../src/modules/commerce/admin/models/product.model.js';
 import { Order } from '../src/modules/commerce/orders/models/order.model.js';
 import {
     reserveStockForItems,
+    notifyLowStock,
     restoreOrderStock
 } from '../src/modules/commerce/orders/services/inventory.service.js';
 
@@ -203,4 +204,21 @@ test('a restock returns units to where they were taken from, even if the variant
     const doc = await variantsOf(id);
     assert.equal(doc.stockQty, 5, 'the shared count got its 2 back');
     assert.equal(doc.variants[0].stockQty, 10, 'the new variant count was not inflated');
+});
+
+test('low stock: the seller hears once per crossing, and again after a restock', async () => {
+    const id = await product({ stockQty: 5, lowStockThreshold: 2, sellerId: new mongoose.Types.ObjectId() });
+    const flag = async () => (await Product.findById(id).select('lowStockNotifiedAt').lean()).lowStockNotifiedAt;
+
+    await reserveStockForItems([line(id, 2)]); // 3 left, above threshold
+    assert.equal(await flag(), undefined);
+
+    await reserveStockForItems([line(id, 1)]); // 2 left: crosses
+    assert.ok(await flag());
+    assert.equal(await notifyLowStock(id), false, 'already told');
+
+    await Product.updateOne({ _id: id }, { $inc: { stockQty: 1 }, $set: { lowStockNotifiedAt: null } });
+    assert.equal(await flag(), null);
+    await reserveStockForItems([line(id, 2)]); // 1 left: crosses again
+    assert.ok(await flag());
 });

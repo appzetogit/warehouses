@@ -19,6 +19,8 @@ const coinLotSchema = new mongoose.Schema(
         used: { type: Number, default: 0, min: 0 },
         expiresAt: { type: Date, required: true },
         expiredAt: { type: Date, default: null },
+        /** When the customer was reminded this lot is about to expire. */
+        expiryNotifiedAt: { type: Date, default: null },
         source: {
             type: String,
             enum: ['refund', 'admin', 'campaign', 'spin', 'referral', 'reversal'],

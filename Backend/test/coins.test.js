@@ -203,3 +203,15 @@ test('cancellations at the same moment never give back more than was spent', asy
     const lots = await CoinLot.find({ userId: user }).lean();
     assert.ok(lots.every((l) => l.used >= 0), 'no lot goes below zero');
 });
+
+test('expiry reminder goes once per lot, only for coins still usable', async () => {
+    const { creditCoins, notifyExpiringCoins } = await import('../src/modules/commerce/coins/services/coin.service.js');
+    const userId = new mongoose.Types.ObjectId();
+    const soon = new Date(Date.now() + 2 * 24 * 3600 * 1000);
+    const later = new Date(Date.now() + 30 * 24 * 3600 * 1000);
+    await creditCoins({ userId, amount: 100, source: 'spin', refId: 'x-soon', expiresAt: soon });
+    await creditCoins({ userId, amount: 100, source: 'spin', refId: 'x-later', expiresAt: later });
+
+    assert.deepEqual(await notifyExpiringCoins(), { notified: 1 });
+    assert.deepEqual(await notifyExpiringCoins(), { notified: 0 });
+});
