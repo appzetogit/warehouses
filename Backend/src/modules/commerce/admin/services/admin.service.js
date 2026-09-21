@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { applyCategoryAttributes } from './attribute.service.js';
 import { syncProductAvailability } from '../../orders/services/inventory.service.js';
 // NotFoundError was already used further down this file (deleteDeliveryPartner)
 // without ever being imported — that path threw a ReferenceError instead of a 404
@@ -3339,6 +3340,16 @@ async function resolveCategoryParentId(value, selfId = null) {
     return parent._id;
 }
 
+/** An attribute set id from a form: empty clears it, anything else must exist. */
+async function resolveAttributeSetId(raw) {
+    const id = raw == null ? '' : String(raw).trim();
+    if (!id) return null;
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new ValidationError('Invalid attribute set');
+    const { AttributeSet } = await import('../models/attribute.model.js');
+    if (!(await AttributeSet.exists({ _id: id }))) throw new ValidationError('Attribute set not found');
+    return new mongoose.Types.ObjectId(id);
+}
+
 export async function createCategory(body) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name) throw new ValidationError('Category name is required');
@@ -3358,6 +3369,8 @@ export async function createCategory(body) {
         isActive: body.isActive !== false,
         sortOrder: Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : 0,
         parentId: await resolveCategoryParentId(body.parentId),
+        attributeSetId: await resolveAttributeSetId(body.attributeSetId),
+        requiresFssai: body.requiresFssai === true || body.requiresFssai === 'true',
         // Admin-created categories are globally available immediately.
         approvalStatus: 'approved',
         isApproved: true,
@@ -3452,6 +3465,8 @@ export async function updateCategory(id, body) {
     }
     if (body.isActive !== undefined) doc.isActive = body.isActive !== false;
     if (body.sortOrder !== undefined) doc.sortOrder = Number(body.sortOrder) || 0;
+    if (body.attributeSetId !== undefined) doc.attributeSetId = await resolveAttributeSetId(body.attributeSetId);
+    if (body.requiresFssai !== undefined) doc.requiresFssai = body.requiresFssai === true || body.requiresFssai === 'true';
     if (body.parentId !== undefined) doc.parentId = await resolveCategoryParentId(body.parentId, doc._id);
     if (!doc.createdBySellerId && doc.sellerId) {
         doc.createdBySellerId = doc.sellerId;
@@ -3675,6 +3690,7 @@ export async function createProduct(body) {
         categoryId: body.categoryId,
         categoryName
     });
+    const checkedVariants = await applyCategoryAttributes(categoryId, variants);
 
     const doc = new Product({
         sellerId,
@@ -3684,7 +3700,7 @@ export async function createProduct(body) {
         description: typeof body.description === 'string' ? body.description.trim() : '',
         price,
         otherPrice,
-        variants,
+        variants: checkedVariants,
         ...(normalizeProductImages(body) ?? { image: '', images: [] }),
         foodType,
         isAvailable: body.isAvailable !== false,
@@ -3771,6 +3787,10 @@ export async function updateProduct(id, body) {
         });
         doc.categoryId = categoryId;
         doc.categoryName = categoryName;
+    }
+    if (pricingUpdate.variants !== undefined || body.categoryId !== undefined) {
+        const checked = await applyCategoryAttributes(doc.categoryId, doc.toObject().variants || []);
+        if (pricingUpdate.variants !== undefined) doc.variants = checked;
     }
     await doc.save();
     await syncProductAvailability(doc._id);

@@ -29,7 +29,10 @@ const upsertSchema = z.object({
     isActive: z.boolean().optional(),
     sortOrder: z.coerce.number().int().optional(),
     /** Empty string clears the parent, promoting a subcategory back to top level. */
-    parentId: z.string().max(100).optional()
+    parentId: z.string().max(100).optional(),
+    /** Empty string or null clears it. */
+    attributeSetId: z.string().max(100).nullable().optional(),
+    requiresFssai: booleanQuerySchema.optional()
 });
 
 const rejectSchema = z.object({

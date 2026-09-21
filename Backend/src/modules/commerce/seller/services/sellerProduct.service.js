@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { applyCategoryAttributes, assertSellerMayListInCategory } from '../../admin/services/attribute.service.js';
 import { syncProductAvailability } from '../../orders/services/inventory.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { Product } from '../../admin/models/product.model.js';
@@ -241,6 +242,9 @@ const buildAvailabilityUpdate = (body = {}) => {
 
     return { update, unset };
 };
+
+const loadSellerLicence = (sellerId) =>
+    Seller.findById(sellerId).select('fssaiNumber fssaiExpiry').lean();
 
 const getSellerContext = async (sellerId) => {
     if (!sellerId || !mongoose.Types.ObjectId.isValid(String(sellerId))) {
@@ -497,15 +501,17 @@ export async function createSellerProduct(sellerId, body = {}) {
     if (!name) throw new ValidationError('Item name is required');
     if (name.length > 200) throw new ValidationError('Item name is too long');
 
-    const { price, otherPrice, variants } = getCreateProductPricing(body);
+    const { price, otherPrice, variants: rawVariants } = getCreateProductPricing(body);
     const catalogFields = buildCatalogUpdate(body);
-    assertPriceWithinMrp(price, catalogFields.mrp, variants);
+    assertPriceWithinMrp(price, catalogFields.mrp, rawVariants);
 
     const description = toStr(body.description);
     const isAvailable = body.isAvailable !== false;
     const foodType = normalizeFoodType(body.foodType);
     const preparationTime = toStr(body.preparationTime);
     const { categoryObjectId, categoryName } = await resolveCategoryForSeller(context, body);
+    await assertSellerMayListInCategory(await loadSellerLicence(sellerId), categoryObjectId);
+    const variants = await applyCategoryAttributes(categoryObjectId, rawVariants);
 
     const doc = await Product.create({
         sellerId,
@@ -600,6 +606,17 @@ export async function updateSellerProduct(sellerId, productId, body = {}) {
         });
         update.categoryId = categoryObjectId;
         update.categoryName = categoryName || '';
+        await assertSellerMayListInCategory(await loadSellerLicence(sellerId), categoryObjectId);
+    }
+
+    // Variants are checked against the category they will end up in, whether
+    // the variants or the category changed.
+    if (update.variants !== undefined || update.categoryId !== undefined) {
+        const checked = await applyCategoryAttributes(
+            update.categoryId !== undefined ? update.categoryId : existing.categoryId,
+            update.variants ?? existing.variants ?? [],
+        );
+        if (update.variants !== undefined) update.variants = checked;
     }
 
     const CRITICAL_APPROVAL_FIELDS = [

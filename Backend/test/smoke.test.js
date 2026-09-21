@@ -12,9 +12,6 @@ import { test, before, after, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
 
-process.env.JWT_ACCESS_SECRET ||= 'smoke-access-secret';
-process.env.JWT_REFRESH_SECRET ||= 'smoke-refresh-secret';
-
 // Razorpay as our code sees it. Every caller goes through this helper, so one
 // stand-in covers ordering, wallet top-ups and refunds.
 const rz = { orders: new Map(), payments: new Map(), refunds: [] };
@@ -51,11 +48,8 @@ function payRazorpay(orderId) {
     return { razorpayOrderId: orderId, razorpayPaymentId: id, razorpaySignature: `sig:${orderId}|${id}` };
 }
 
-const { startDb, stopDb } = await import('./helpers/db.js');
+const { startApp, stopApp, tokenFor, call, ok } = await import('./helpers/app.js');
 
-let server;
-let base;
-let signAccessToken;
 const ids = {};
 
 // A square around central Bengaluru; the seller and customer are inside it.
@@ -68,34 +62,8 @@ const ZONE = [
 const SELLER_AT = { lat: 12.9716, lng: 77.5946 };
 const CUSTOMER_AT = { lat: 12.9352, lng: 77.6245 };
 
-const tokenFor = (role, id) => signAccessToken({ userId: String(id), role });
-
-async function call(method, path, { as, body } = {}) {
-    const headers = { 'content-type': 'application/json' };
-    if (as) headers.authorization = `Bearer ${as}`;
-    const res = await fetch(`${base}${path}`, {
-        method,
-        headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    const json = await res.json().catch(() => null);
-    return { status: res.status, body: json };
-}
-
-/** Fails with the server's message rather than a bare status mismatch. */
-function ok(res, what, status = 200) {
-    assert.equal(res.status, status, `${what}: ${res.status} ${JSON.stringify(res.body)}`);
-    return res.body?.data;
-}
-
 before(async () => {
-    await startDb();
-    ({ signAccessToken } = await import('../src/core/auth/token.util.js'));
-    const { default: app } = await import('../src/app.js');
-    await new Promise((resolve) => { server = app.listen(0, resolve); });
-    base = `http://127.0.0.1:${server.address().port}/api/v1`;
-
-    const db = mongoose.connection.db;
+    const db = await startApp();
     const { Zone } = await import('../src/modules/commerce/admin/models/zone.model.js');
     const { Seller } = await import('../src/modules/commerce/seller/models/seller.model.js');
     const { Product } = await import('../src/modules/commerce/admin/models/product.model.js');
@@ -151,10 +119,7 @@ async function waitFor(check, what, ms = 10000) {
     }
 }
 
-after(async () => {
-    await new Promise((resolve) => server?.close(resolve));
-    await stopDb();
-});
+after(stopApp);
 
 const cartLine = (qty = 2) => ({ itemId: String(ids.product), name: 'Milk 1L', price: 60, quantity: qty });
 const address = {

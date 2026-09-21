@@ -10,6 +10,7 @@ import { listCategoriesController } from '../../seller/controllers/sellerCategor
 import { getPublicSellerMenuController } from '../../seller/controllers/sellerMenu.controller.js';
 import { listPublicProductsController } from '../../seller/controllers/publicProducts.controller.js';
 import { getOutletTimingsBySellerIdController } from '../../seller/controllers/outletTimings.controller.js';
+import { listPublicAttributesController, getCategoryAttributesController } from '../../admin/controllers/attribute.controller.js';
 import searchRoutes from '../../search/routes/search.routes.js';
 
 /**
@@ -27,6 +28,8 @@ router.get('/stores/:id/products', cacheResponse(600, 'seller_menu'), getPublicS
 router.get('/stores/:id/timings', cacheResponse(600, 'seller_timings'), getOutletTimingsBySellerIdController);
 router.get('/products', cacheResponse(300, 'public_products'), listPublicProductsController);
 router.get('/categories', cacheResponse(600, 'categories'), listCategoriesController);
+router.get('/categories/:id/attributes', getCategoryAttributesController);
+router.get('/attributes', listPublicAttributesController);
 router.get('/offers', optionalAuth, listPublicOffersController);
 router.use('/search', searchRoutes);
 

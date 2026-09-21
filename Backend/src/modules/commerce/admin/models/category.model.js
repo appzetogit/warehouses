@@ -42,6 +42,13 @@ const categorySchema = new mongoose.Schema(
          * real tree, and grocery apps do not use one.
          */
         parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', index: true, default: undefined },
+        /**
+         * The attributes products here vary by (Size, Color...). Children
+         * without their own set use their parent's.
+         */
+        attributeSetId: { type: mongoose.Schema.Types.ObjectId, ref: 'AttributeSet', default: null },
+        /** Sellers need a valid FSSAI licence to list products here (food, groceries). */
+        requiresFssai: { type: Boolean, default: false },
         isActive: { type: Boolean, default: true, index: true },
         sortOrder: { type: Number, default: 0, index: true }
     },

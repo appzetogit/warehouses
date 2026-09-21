@@ -1,4 +1,5 @@
 import express from 'express';
+import * as attributeController from '../controllers/attribute.controller.js';
 import { AuthError } from '../../../../core/auth/errors.js';
 import * as adminController from '../controllers/admin.controller.js';
 import * as productApprovalController from '../controllers/productApproval.controller.js';
@@ -64,7 +65,12 @@ const resolveSectionFromRequest = (path = '', method = '') => {
         path.startsWith('/seller-subscriptions') ||
         path.startsWith('/zones')
     ) return 'seller_management';
-    if (path.startsWith('/categories') || path.startsWith('/products')) return 'product_management';
+    if (
+        path.startsWith('/categories') ||
+        path.startsWith('/products') ||
+        path.startsWith('/attributes') ||
+        path.startsWith('/attribute-sets')
+    ) return 'product_management';
     if (path.startsWith('/offers')) return 'promotions_management';
     if (path.startsWith('/orders') || path.startsWith('/order-detect-delivery')) return 'order_management';
     if (path.startsWith('/delivery')) return 'delivery_management';
@@ -234,6 +240,16 @@ router.delete('/seller-commissions/:id', adminController.deleteSellerCommission)
 router.patch('/seller-commissions/:id/toggle', adminController.toggleSellerCommissionStatus);
 
 // ----- Categories -----
+// Attributes (Size, Color...) and the sets categories use.
+router.get('/attributes', attributeController.listAttributesController);
+router.post('/attributes', attributeController.createAttributeController);
+router.patch('/attributes/:id', attributeController.updateAttributeController);
+router.delete('/attributes/:id', attributeController.deleteAttributeController);
+router.get('/attribute-sets', attributeController.listAttributeSetsController);
+router.post('/attribute-sets', attributeController.createAttributeSetController);
+router.patch('/attribute-sets/:id', attributeController.updateAttributeSetController);
+router.delete('/attribute-sets/:id', attributeController.deleteAttributeSetController);
+
 router.get('/categories', adminController.getCategories);
 router.post('/categories', adminController.createCategory);
 router.patch('/categories/:id', adminController.updateCategory);
