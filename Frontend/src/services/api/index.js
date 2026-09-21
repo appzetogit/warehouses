@@ -22,6 +22,53 @@ export const searchAPI = {
     apiClient.get("/catalog/search/unified", { params }),
   getAdminCategories: (params = {}) =>
     apiClient.get("/catalog/search/categories/admin", { params }),
+  /**
+   * Product grid search. `attrs` is `{ Size: ["M", "L"], Color: ["Red"] }`;
+   * every chosen attribute must hold on one variant. Pass `facets: true` for
+   * the filter sheet's counts.
+   */
+  searchProducts: ({ attrs = {}, ...params } = {}) => {
+    const query = { ...params };
+    for (const [name, values] of Object.entries(attrs)) {
+      const list = (Array.isArray(values) ? values : [values]).filter(Boolean);
+      if (list.length) query[`attr[${name}]`] = list.join(",");
+    }
+    return apiClient.get("/catalog/search/products", { params: query });
+  },
+};
+
+/** Public catalogue reads that aren't tied to one store's menu. */
+export const catalogAPI = {
+  /** One product with all variants, its picker `options` and its store. */
+  getProduct: (id) => apiClient.get(`/catalog/products/${id}`),
+  /** Approved stores nearest first; `{ lat, lng, radiusKm, limit }`. */
+  getNearbyStores: (params = {}) =>
+    apiClient.get("/catalog/stores/nearby", { params }),
+  /** Filterable attributes (Size, Color…) with values and swatch colours. */
+  getAttributes: () => apiClient.get("/catalog/attributes"),
+  /** The attributes a category's products vary by, for the variant editor. */
+  getCategoryAttributes: (categoryId) =>
+    apiClient.get(`/catalog/categories/${categoryId}/attributes`),
+};
+
+/** Admin management of attributes and the sets that attach them to categories. */
+export const attributeAdminAPI = {
+  listAttributes: (params = {}) =>
+    apiClient.get("/admin/attributes", { params, contextModule: "admin" }),
+  createAttribute: (body) =>
+    apiClient.post("/admin/attributes", body, { contextModule: "admin" }),
+  updateAttribute: (id, body) =>
+    apiClient.patch(`/admin/attributes/${id}`, body, { contextModule: "admin" }),
+  deleteAttribute: (id) =>
+    apiClient.delete(`/admin/attributes/${id}`, { contextModule: "admin" }),
+  listSets: (params = {}) =>
+    apiClient.get("/admin/attribute-sets", { params, contextModule: "admin" }),
+  createSet: (body) =>
+    apiClient.post("/admin/attribute-sets", body, { contextModule: "admin" }),
+  updateSet: (id, body) =>
+    apiClient.patch(`/admin/attribute-sets/${id}`, body, { contextModule: "admin" }),
+  deleteSet: (id) =>
+    apiClient.delete(`/admin/attribute-sets/${id}`, { contextModule: "admin" }),
 };
 
 const createStubAPI = () =>
@@ -1441,6 +1488,11 @@ export const sellerAPI = {
     apiClient.patch(`/seller/products/${String(id)}`, body ?? {}, {
       contextModule: "seller",
     }),
+  /** Bulk stock: up to 500 `{ itemId, variantId?, stockQty, lowStockThreshold, maxQtyPerOrder, isAvailable|isActive }`. */
+  updateStock: (items) =>
+    apiClient.patch("/seller/products/stock", { items }, { contextModule: "seller" }),
+  getLowStock: () =>
+    apiClient.get("/seller/products/low-stock", { contextModule: "seller" }),
   bulkUploadTemplate: () =>
     apiClient.get("/seller/bulk-upload/template", {
       responseType: 'blob',
