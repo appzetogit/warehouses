@@ -257,6 +257,8 @@ router.post('/bulk-upload', authMiddleware, requireSeller, upload.single('file')
 router.get('/orders', authMiddleware, requireSeller, orderController.listOrdersSellerController);
 router.get('/orders/:orderId', authMiddleware, requireSeller, orderController.getOrderByIdSellerController);
 router.patch('/orders/:orderId/status', authMiddleware, requireSeller, orderController.updateOrderStatusSellerController);
+router.post('/orders/:orderId/shipment', authMiddleware, requireSeller, orderController.createOrderShipmentSellerController);
+router.get('/orders/:orderId/shipment/track', authMiddleware, requireSeller, orderController.trackOrderShipmentSellerController);
 router.post('/orders/:orderId/resend-notification', authMiddleware, requireSeller, orderController.resendDeliveryNotificationSellerController);
 
 // Complaints (seller dashboard)

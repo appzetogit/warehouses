@@ -22,6 +22,7 @@ import * as driverRegField from '../../delivery/controllers/driverRegistrationFi
 import * as cashbackSettings from '../controllers/cashbackSettings.controller.js';
 import * as sellerAppBanner from '../controllers/sellerAppBanner.controller.js';
 import * as coinController from '../../coins/controllers/coin.controller.js';
+import * as dailyMetricsController from '../controllers/dailyMetrics.controller.js';
 
 const router = express.Router();
 
@@ -496,5 +497,10 @@ router.patch('/coins/settings', coinController.updateCoinSettingsController);
 router.post('/coins/adjust', coinController.adjustCoinsController);
 router.get('/coins/report', coinController.getCoinReportController);
 router.get('/coins/users/:userId/ledger', coinController.getUserCoinLedgerAdminController);
+
+// ----- Daily Metrics & Precomputed Analytics -----
+router.get('/analytics/daily-metrics', dailyMetricsController.getDailyMetricsController);
+router.get('/analytics/fulfillment-summary', dailyMetricsController.getFulfillmentSummaryController);
+router.post('/analytics/daily-metrics/aggregate', dailyMetricsController.triggerDailyMetricsAggregationController);
 
 export default router;

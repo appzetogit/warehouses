@@ -32,5 +32,28 @@ export const processMaintenanceJob = async (job) => {
         }
     }
 
+    if (type === 'COIN_EXPIRY_CHECK') {
+        try {
+            const { expireDueLots } = await import('../../modules/commerce/coins/services/coin.service.js');
+            const results = await expireDueLots();
+            logger.info(`[BullMQ:maintenance] COIN_EXPIRY_CHECK complete: ${JSON.stringify(results)}`);
+        } catch (err) {
+            logger.error(`[BullMQ:maintenance] COIN_EXPIRY_CHECK failed: ${err.message}`);
+            throw err;
+        }
+    }
+
+    if (type === 'DAILY_METRICS_AGGREGATION') {
+        try {
+            const { aggregateDailyMetrics } = await import('../../modules/commerce/admin/services/dailyMetrics.service.js');
+            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            const results = await aggregateDailyMetrics(yesterday);
+            logger.info(`[BullMQ:maintenance] DAILY_METRICS_AGGREGATION complete for date=${results?.date}`);
+        } catch (err) {
+            logger.error(`[BullMQ:maintenance] DAILY_METRICS_AGGREGATION failed: ${err.message}`);
+            throw err;
+        }
+    }
+
     return { processed: true, type, jobId: job.id };
 };

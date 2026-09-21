@@ -63,11 +63,31 @@ const startMaintenanceWorker = async () => {
         }
     );
 
+    // 3. Nightly Coin Expiry Check (Every day at midnight 00:00)
+    await maintenanceQueue.add(
+        'COIN_EXPIRY_CHECK',
+        { type: 'COIN_EXPIRY_CHECK' },
+        {
+            repeat: { pattern: '0 0 * * *' }, // 00:00 daily
+            jobId: 'coin_expiry_job'
+        }
+    );
+
+    // 4. Nightly Daily Metrics Aggregation (Every day at 00:05)
+    await maintenanceQueue.add(
+        'DAILY_METRICS_AGGREGATION',
+        { type: 'DAILY_METRICS_AGGREGATION' },
+        {
+            repeat: { pattern: '5 0 * * *' }, // 00:05 daily
+            jobId: 'daily_metrics_job'
+        }
+    );
+
     worker.on('completed', (job) => logger.info(`Maintenance job ${job.id} completed`));
     worker.on('failed', (job, err) => logger.error(`Maintenance job ${job?.id} failed: ${err.message}`));
     worker.on('error', (err) => logger.error(`Maintenance worker error: ${err.message}`));
 
-    logger.info('Maintenance worker started with repeatable jobs (Monthly Subscription Billing & FSSAI)');
+    logger.info('Maintenance worker started with repeatable jobs (Billing, FSSAI, Coin Expiry & Daily Metrics)');
     return worker;
 };
 

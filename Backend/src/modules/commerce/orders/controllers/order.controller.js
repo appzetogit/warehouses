@@ -205,6 +205,28 @@ export async function updateOrderStatusSellerController(req, res, next) {
     }
 }
 
+export async function createOrderShipmentSellerController(req, res, next) {
+    try {
+        const sellerId = req.user?.userId;
+        const orderId = req.params.orderId;
+        const result = await orderService.createOrderShipmentSeller(orderId, sellerId);
+        return sendResponse(res, 200, 'Shipment created successfully', result);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function trackOrderShipmentSellerController(req, res, next) {
+    try {
+        const sellerId = req.user?.userId;
+        const orderId = req.params.orderId;
+        const result = await orderService.trackOrderShipmentSeller(orderId, sellerId);
+        return sendResponse(res, 200, 'Shipment tracking retrieved', result);
+    } catch (err) {
+        next(err);
+    }
+}
+
 export async function listOrdersAvailableDeliveryController(req, res, next) {
     try {
         const deliveryPartnerId = req.user?.userId;
