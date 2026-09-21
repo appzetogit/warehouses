@@ -69,19 +69,19 @@ Most of the rest already exists and needs extending, not rebuilding (see §1).
 ## 2. Target architecture — key design decisions
 
 ### 2.1 Rename strategy (food → commerce)
-We rename the whole thing, but in stages so the apps already in the field keep working until their replacements ship.
+We rename the whole thing in one clean break. Nothing is live and the Flutter apps are rebuilt on top of this repo at the end, so no old paths or names are kept for compatibility. *(Done in Phase 1.)*
 
 | Layer | From | To |
 |---|---|---|
-| Backend module folder | `src/modules/food/*` | `src/modules/commerce/*` (`seller/` → `seller/`) |
-| API prefix | `/api/v1/food/...` | `/api/v1/...` with clean resource names (`/products`, `/sellers`, `/orders`) |
-| Model names | `FoodItem`, `FoodSeller`, `FoodOrder`, `FoodUser` | `Product`, `Seller`, `Order`, `User` |
-| Collections | `food_*` | Unprefixed. Renamed by a migration script with `renameCollection`, reversible |
+| Backend module folder | `src/modules/food/*` | `src/modules/commerce/*` (`restaurant/` → `seller/`) |
+| API prefix | `/api/v1/food/...` | `/api/v1/{auth,catalog,content,settings,user,orders,payments,seller,delivery,admin,chat,notifications}`, grouped by caller |
+| Model names | `FoodItem`, `FoodRestaurant`, `FoodOrder`, `FoodUser` | `Product`, `Seller`, `Order`, `User` |
+| Collections | `food_*` | Unprefixed (`food_items` → `products`). Renamed by the 2026-09 migrations; undo by restoring the `mongodump` taken first |
 | Order ids | `FOD-…` | `ORD-…` for new orders. Existing ids unchanged |
 | Frontend | `modules/Food`, `@food`, `/food/user/*` | `modules/Store`, `@store`; customer site at `/` |
-| Roles / JWT | `SELLER` | `SELLER`. The old role is accepted as an alias for one release |
+| Roles / JWT | `RESTAURANT` | `SELLER`. No alias |
 
-**Compatibility:** the old `/api/v1/food/*` router stays mounted as an alias. It logs a deprecation header and is removed after the new apps are live in both stores. The migration runs first on a restored copy of production.
+**Compatibility:** none needed. The migrations still run first on a restored copy of production (§3.12).
 
 ### 2.2 Fulfilment modes (the core of "e-commerce + quick commerce")
 - Each **seller** has a `fulfilmentModes` setting: `quick` for a dark store or nearby shop using in-house riders, `standard` for courier shipping, or both.
@@ -158,14 +158,17 @@ Tags: **[BE]** backend · **[AD]** admin web · **[SW]** seller web · **[CW]** 
 - [ ] Agree on the brand name, package ids and bundle ids for the three apps (iOS needs them early for provisioning).
 
 ### 3.2 Phase 1 — De-food and rename (weeks 1–2)
-- [ ] **[BE]** Move `modules/food` → `modules/commerce` and `seller` → `seller`. Rename models and refs (`ref: 'FoodSeller'` → `'Seller'`, and so on).
-- [ ] **[BE]** Write the collection-rename migration script, with a dry-run and a reverse mode. Update indexes.
-- [ ] **[BE]** Mount the new route tree at `/api/v1/*` and keep the `/api/v1/food/*` alias with a `Deprecation` header. Update `FLUTTER_API_SPEC.md`, `DELIVERY_API_SPEC.md`, `SELLER_API_SPEC.md` (→ `SELLER_API_SPEC.md`) and `USER_APP_API.md`.
-- [ ] **[BE]** Remove dining, table booking, veg/non-veg, addons, cutlery, cuisines, gourmet/under-250/dining banners, `sellerMenu` and the hyperpure routes. Make FSSAI an optional licence field, required only for grocery categories flagged `requiresFssai`.
-- [ ] **[BE]** Roles `SELLER` → `SELLER`, with the old role accepted as an alias. Rename the socket rooms and notification sources.
-- [ ] **[AD][SW][CW]** Rename `modules/Food` → `modules/Store`, the aliases and the routes. Move the customer site to `/`. Delete the dining, gourmet, Under250, Coffee and Hyperpure pages. Sweep the copy (continuing from the recent "say store" commits).
-- [ ] **[CA][SA][DA]** Point the apps at the new paths behind a config flag. Remove food screens and copy.
-- **Done when:** a `grep -ri "food\|seller\|dining\|veg"` over `src/` returns only the compatibility alias and migration code, and the smoke suite passes against the renamed database.
+
+Nothing is live, so the rename is a clean break: there is no `/api/v1/food` alias and no old-role alias, and a migration's undo is restoring the `mongodump` taken before it.
+
+- [x] **[BE]** Move `modules/food` → `modules/commerce` and `restaurant` → `seller`. Rename models and refs (`FoodItem` → `Product`, `FoodRestaurant` → `Seller`, and so on).
+- [x] **[BE]** Collection-rename migrations in `Backend/scripts/migrations/` (2026-09-*, run in date order). Each is a dry run unless given `--apply`. Undo is the `mongodump` taken first, not a reverse mode. Covered by tests on an in-memory replica set.
+- [x] **[BE]** Route tree at `/api/v1/{auth,catalog,content,settings,user,orders,payments,seller,delivery,admin,chat,notifications}`, grouped by caller. Quick vs standard is a `deliveryMode` field, not a path tree. `FLUTTER_API_SPEC.md` (shared conventions), `USER_APP_API.md`, `SELLER_API_SPEC.md` and `DELIVERY_API_SPEC.md` are rewritten against `test/fixtures/routes.txt`.
+- [x] **[BE]** Remove dining, table booking, add-ons, cutlery, cuisines, pure-veg stores, veg-scoped categories, gourmet/under-250/coffee/hyperpure and the saved menu layout. Veg/non-veg stays as an optional mark (`foodType`: `'Veg' | 'Non-Veg' | null`). FSSAI is optional everywhere; making it required per category moves to Phase 2a.
+- [x] **[BE]** Role `RESTAURANT` → `SELLER`, socket rooms `seller:<id>`, notification sources and stored values renamed. The last bare "food" values (`module`, favourites, approvals, upload folders) are migrated by `2026-09-rename-food-values.mjs`. New orders are numbered `ORD-…`.
+- [x] **[AD][SW][CW]** `modules/Food` → `modules/Store` (`@store`). Dining, gourmet, Under250, Coffee and Hyperpure pages deleted. On-screen copy says product/order, the brand name comes from business settings (`VITE_BRAND_NAME` until they load), and `/` opens the store. **Moving the customer site to `/` and the rider app off `/food/delivery` happens with the Phase 2 storefront**, as decided.
+- [ ] **[CA][SA][DA]** The Flutter apps: rebuilt at the end on top of this repo against the new API docs, so there is nothing to flag or alias now.
+- **Done when:** a `grep -ri "food\|restaurant\|dining\|veg"` over `src/` returns only the optional veg mark, the `/food/*` web URLs that move in Phase 2, comments, and internal identifiers users never see (the `food` Redux slice, local variables). *Status: met.* The smoke suite (§3.1) still has to be written.
 
 ### 3.3 Phase 2a — Catalogue: attributes and variants (weeks 2–3)
 - [ ] **[BE]** `Attribute` / `AttributeSet` models and admin CRUD. Link attribute sets to categories.
@@ -175,6 +178,8 @@ Tags: **[BE]** backend · **[AD]** admin web · **[SW]** seller web · **[CW]** 
 - [ ] **[BE]** Add `quickEligible` to products and variants.
 - [ ] **[AD][SW][SA]** Variant-matrix editor: pick attributes, generate combinations, then edit price, MRP, stock, SKU and image for each. Bulk stock import by CSV/XLSX (`exceljs` is already installed).
 - [ ] **[CW][CA]** Variant picker on the product page (swatches and sizes, with out-of-stock combinations greyed out), a filter sheet, and store listing and store pages.
+- [ ] **[BE][AD][SW]** `requiresFssai` on categories: a seller selling in a flagged (grocery/food) category must give an FSSAI licence.
+- [ ] **[CW]** Replace the customer product page (`pages/user/ProductDetail.jsx`): it is a static mock with a hardcoded catalogue and generated sample reviews, and nothing links to it. The real page carries the variant picker.
 
 ### 3.4 Phase 2b — Multi-seller cart, split checkout, standard delivery (weeks 3–5)
 - [ ] **[BE]** Cart model v2: lines keyed by `(sellerId, productId, variantId)`, no single-seller restriction, and server-side revalidation of price and stock on read.
@@ -327,14 +332,14 @@ Each week one of these slips moves launch by about a week.
 | B8 | Spin eligibility and budget (daily / after order) | Spin rules | 1 spin after each delivered order, monthly budget cap |
 | B9 | AI use cases in scope (SOW §11 lists 5 as "potential") | AI effort | Chatbot + order status + search help; recommendations without the LLM |
 | B10 | Brand name, domain, app ids | Rename, store listings | — |
-| B11 | Keep the old `/api/v1/food` alias until when? | Removal date | 30 days after the new apps reach 90% adoption |
+| B11 | ~~Keep the old `/api/v1/food` alias until when?~~ | — | Settled: no alias, since nothing is live |
 
 ---
 
 ## 6. Risks
 
 - **60 days is tight** for a multi-seller checkout, courier integration, coins, spin, AI, 3 apps × 2 platforms and a full rename. To protect the date, we ship the rename and multi-vendor core first and treat AI recommendations and advanced reports as the first items to slip to maintenance.
-- **Rename migration on live data:** it touches every collection and the apps in the field. We mitigate with the compatibility alias, a reversible script and a rehearsal on a backup.
+- **Rename migration on live data:** it touches every collection and the apps in the field. We mitigate with dry-run migrations covered by tests, a `mongodump` before each run and a rehearsal on a backup.
 - **Money correctness:** partial refunds across split orders, and coin and wallet races. We mitigate with Mongo transactions, idempotency keys and the test harness from Phase 0.
 - **App Store review:** background location for riders, and payments in the customer app (physical goods, so the gateway is allowed, not Apple in-app purchase).
 - **30-minute promise:** only as good as rider supply and seller packing time. The promise is shown per order, never as a guaranteed SLA (SOW §5 already says this).
@@ -345,5 +350,5 @@ Each week one of these slips moves launch by about a week.
 - Customer app (Android + iOS), seller app (Android + iOS), delivery app (Android + iOS) published.
 - Customer website on the root domain, responsive.
 - Admin panel covering every §7 SOW item, including coins, spin, AI settings and the new reports.
-- One backend with API specs updated and no `food`/`seller` naming outside the compatibility alias.
+- One backend with API specs updated and no `food`/`restaurant` naming left in code or data (the optional veg mark aside).
 - E2E scripts from §3.12 pass on staging; migration rehearsed; runbook handed over.
