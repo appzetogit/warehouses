@@ -16,7 +16,9 @@ import {
 import {
     calculateCheckoutController,
     createCheckoutController,
-    getCheckoutByIdController
+    getCheckoutByIdController,
+    verifyCheckoutPaymentController,
+    abandonCheckoutController
 } from '../controllers/checkout.controller.js';
 
 const router = express.Router();
@@ -24,6 +26,8 @@ const router = express.Router();
 router.post('/checkout/calculate', calculateCheckoutController);
 router.post('/checkout', createCheckoutController);
 router.get('/checkout/:checkoutId', getCheckoutByIdController);
+router.post('/checkout/:checkoutId/verify-payment', verifyCheckoutPaymentController);
+router.post('/checkout/:checkoutId/abandon', abandonCheckoutController);
 
 router.post('/calculate', calculateOrderController);
 router.post('/', createOrderController);

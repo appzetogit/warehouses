@@ -39,6 +39,12 @@ export const handleRazorpayWebhook = async (req, res) => {
             const rzOrderId = paymentObj.order_id;
             const rzPaymentId = paymentObj.id;
 
+            // A split checkout's payment releases all of its stores' orders.
+            const { handleCheckoutPaymentCaptured } = await import('../../../modules/commerce/orders/services/orderSplit.service.js');
+            if (await handleCheckoutPaymentCaptured({ rzOrderId, rzPaymentId, amountPaise: paymentObj.amount })) {
+                return res.status(200).json({ status: 'ok' });
+            }
+
             // Cross-check the captured amount against the order total before marking paid.
             const existingOrder = await Order.findOne({ "payment.razorpay.orderId": rzOrderId })
                 .select('pricing payment orderStatus')
@@ -76,7 +82,17 @@ export const handleRazorpayWebhook = async (req, res) => {
             );
 
             if (order) {
-                // ✅ UPDATED: Wrapped in try-catch to prevent secondary failures from breaking the webhook response
+                // Marking the payment paid is not enough: the order also has to go
+                // live (acceptance clock, ledger, seller told), or it sits in
+                // pending_payment until the stale-payment sweep deletes a paid order.
+                if (order.orderStatus === 'pending_payment') {
+                    try {
+                        const { releasePaidOrder } = await import('../../../modules/commerce/orders/services/order.service.js');
+                        await releasePaidOrder(order, { byRole: 'SYSTEM', razorpayPaymentId: rzPaymentId, note: 'Payment confirmed by Razorpay' });
+                    } catch (releaseErr) {
+                        logger.error(`[CRITICAL] Webhook could not release paid order ${order._id}: ${releaseErr.message}`);
+                    }
+                }
                 try {
                     await orderTransactionService.updateTransactionStatus(order._id, 'captured', {
                         status: 'captured',

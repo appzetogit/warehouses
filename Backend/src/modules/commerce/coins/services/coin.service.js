@@ -259,42 +259,95 @@ export async function redeemCoins({ userId, orderId, coins, now = new Date() }) 
 }
 
 /**
- * Returns an order's coins when it is cancelled, once.
+ * Gives back coins spent on a redemption, up to what is left of it.
  *
- * Coins go back to the lots they came from. A lot that expired in the
- * meantime is not revived; its share comes back as a fresh, fully spendable
- * lot instead, since those coins already carried their redeem limit.
+ * A split checkout spends its coins once, across several stores' orders; when
+ * one of them is cancelled only its share comes back (`coins`), and when the
+ * whole redemption is undone everything left comes back (`coins` omitted).
+ * Each return happens once per `refId`, and the total never exceeds what was
+ * spent: both are enforced in the database, not by reading first.
+ *
+ * Coins go back to the lots they came from, most recently drawn first. A lot
+ * that expired in the meantime is not revived; its share comes back as a
+ * fresh, fully spendable lot, since those coins already carried their limit.
  */
-export async function reverseRedemption(orderId, { note = '' } = {}) {
-    const order = toOid(orderId, 'order id');
-    const entry = await CoinLedger.findOneAndUpdate(
-        { type: 'debit', orderId: order, reversedAt: null },
-        { $set: { reversedAt: new Date() } },
+export async function returnRedeemedCoins({ redemptionId, coins = null, refId, note = '' }) {
+    const rid = toOid(redemptionId, 'order id');
+    if (!refId) throw new ValidationError('refId is required');
+    const debit = await CoinLedger.findOne({ type: 'debit', orderId: rid }).lean();
+    if (!debit) return { returned: 0 };
+    const remaining = debit.amount - (debit.returned || 0);
+    const want = coins == null ? remaining : Math.min(wholeCoins(coins), remaining);
+    if (want <= 0) return { returned: 0 };
+
+    // One return per reference.
+    let entry;
+    try {
+        entry = await CoinLedger.create({ userId: debit.userId, type: 'reversal', amount: want, refId: String(refId), note });
+    } catch (err) {
+        if (err?.code === 11000) return { returned: 0, duplicate: true };
+        throw err;
+    }
+
+    // Never more than was spent, even with several cancellations at once.
+    const claimed = await CoinLedger.findOneAndUpdate(
+        { _id: debit._id, $expr: { $lte: [{ $add: [{ $ifNull: ['$returned', 0] }, want] }, '$amount'] } },
+        { $inc: { returned: want } },
         { new: true }
     ).lean();
-    if (!entry) return { reversed: 0 };
+    if (!claimed) {
+        await CoinLedger.deleteOne({ _id: entry._id });
+        return { returned: 0 };
+    }
+    if (claimed.returned >= claimed.amount) {
+        await CoinLedger.updateOne({ _id: debit._id, reversedAt: null }, { $set: { reversedAt: new Date() } });
+    }
 
     const now = new Date();
+    let left = want;
     let lapsed = 0;
-    for (const a of entry.allocations || []) {
-        const res = await CoinLot.updateOne(
-            { _id: a.lotId, expiredAt: null, expiresAt: { $gt: now } },
-            { $inc: { used: -a.amount } }
-        );
-        if (res.modifiedCount !== 1) lapsed += a.amount;
+    for (let attempt = 0; left > 0 && attempt < 10; attempt++) {
+        const current = await CoinLedger.findById(debit._id).select('allocations').lean();
+        for (const a of [...(current.allocations || [])].reverse()) {
+            if (left <= 0) break;
+            const already = a.returned || 0;
+            const give = Math.min(left, a.amount - already);
+            if (give <= 0) continue;
+            // Optimistic: only if nobody else returned to this lot since we read it.
+            const res = await CoinLedger.updateOne(
+                { _id: debit._id, allocations: { $elemMatch: { lotId: a.lotId, returned: already } } },
+                { $inc: { 'allocations.$.returned': give } }
+            );
+            if (res.modifiedCount !== 1) continue;
+            left -= give;
+            const lot = await CoinLot.updateOne(
+                { _id: a.lotId, expiredAt: null, expiresAt: { $gt: now } },
+                { $inc: { used: -give } }
+            );
+            if (lot.modifiedCount !== 1) lapsed += give;
+        }
+    }
+    if (left > 0) {
+        logger.error(`[CRITICAL] coin return for ${rid} (${refId}) could not place ${left} coins on their lots`);
+        lapsed += left;
     }
     if (lapsed) {
         await creditCoins({
-            userId: entry.userId,
+            userId: debit.userId,
             amount: lapsed,
             source: 'reversal',
-            refId: `order:${order}`,
+            refId: `${refId}:lapsed`,
             spendablePercent: 100,
             note: 'Returned from a cancelled order',
         });
     }
-    await CoinLedger.create({ userId: entry.userId, type: 'reversal', amount: entry.amount, orderId: null, refId: `order:${order}`, note });
-    return { reversed: entry.amount };
+    return { returned: want };
+}
+
+/** Undoes a whole redemption, once. */
+export async function reverseRedemption(orderId, { note = '' } = {}) {
+    const { returned } = await returnRedeemedCoins({ redemptionId: orderId, refId: `order:${orderId}`, note });
+    return { reversed: returned };
 }
 
 // ---- admin -----------------------------------------------------------------

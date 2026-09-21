@@ -336,3 +336,38 @@ test('a product with attribute variants: the seller creates it, a customer order
     assert.equal(dup.status, 400);
     assert.match(dup.body.message, /same options/);
 });
+
+test('a first-order offer applies itself, and a cancelled or unpaid order does not use it up', async () => {
+    const { User } = await import('../src/core/users/user.model.js');
+    const { Offer } = await import('../src/modules/commerce/admin/models/offer.model.js');
+    const { Order } = await import('../src/modules/commerce/orders/models/order.model.js');
+    await Offer.create({
+        couponCode: 'WELCOME50', discountType: 'flat-price', discountValue: 50, status: 'active',
+        showInCart: true, isFirstOrderOnly: true, minOrderValue: 0,
+    });
+    const newcomer = await User.create({ name: 'Newcomer', phone: '9000000077', isActive: true });
+    for (const orderStatus of ['cancelled_by_user', 'pending_payment']) {
+        await Order.collection.insertOne({ userId: newcomer._id, orderStatus, deliveryAddress: { phone: '9000000077' } });
+    }
+
+    const quote = ok(await call('POST', '/orders/calculate', {
+        as: tokenFor('USER', newcomer._id),
+        body: {
+            sellerId: String(ids.seller), items: [cartLine(1)], zoneId: String(ids.zone),
+            deliveryAddress: { location: { coordinates: [CUSTOMER_AT.lng, CUSTOMER_AT.lat] } },
+        },
+    }), 'calculate');
+    assert.equal(quote.pricing.appliedCoupon?.code, 'WELCOME50');
+    assert.equal(quote.pricing.appliedCoupon?.isAutoApplied, true);
+    assert.equal(quote.pricing.discount, 50);
+
+    // The customer from the earlier tests has a real order, so gets nothing.
+    const returning = ok(await call('POST', '/orders/calculate', {
+        as: tokenFor('USER', ids.user),
+        body: {
+            sellerId: String(ids.seller), items: [cartLine(1)], zoneId: String(ids.zone),
+            deliveryAddress: { location: { coordinates: [CUSTOMER_AT.lng, CUSTOMER_AT.lat] } },
+        },
+    }), 'calculate returning');
+    assert.equal(returning.pricing.discount, 0);
+});

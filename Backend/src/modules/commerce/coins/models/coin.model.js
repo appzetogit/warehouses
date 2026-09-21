@@ -54,9 +54,13 @@ const coinLedgerSchema = new mongoose.Schema(
         refId: { type: String, default: null },
         orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
         allocations: {
-            type: [{ lotId: mongoose.Schema.Types.ObjectId, amount: Number, _id: false }],
+            // `returned`: how much of this lot's share has gone back to it since.
+            type: [{ lotId: mongoose.Schema.Types.ObjectId, amount: Number, returned: { type: Number, default: 0 }, _id: false }],
             default: undefined,
         },
+        /** On a debit: coins given back so far (cancelled orders of a split checkout). */
+        returned: { type: Number, default: 0 },
+        /** On a debit: set once everything has been given back. */
         reversedAt: { type: Date, default: null },
         note: { type: String, trim: true, default: '' },
         actorId: { type: String, default: null },
@@ -69,6 +73,12 @@ coinLedgerSchema.index({ userId: 1, createdAt: -1 });
 coinLedgerSchema.index(
     { orderId: 1 },
     { unique: true, partialFilterExpression: { type: 'debit', orderId: { $type: 'objectId' } } }
+);
+
+// Each return is recorded once per reference (an order, a cancellation).
+coinLedgerSchema.index(
+    { refId: 1 },
+    { unique: true, partialFilterExpression: { type: 'reversal', refId: { $type: 'string' } } }
 );
 
 const coinSettingsSchema = new mongoose.Schema(

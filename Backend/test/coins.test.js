@@ -9,6 +9,7 @@ import {
     getRedeemableForOrder,
     redeemCoins,
     reverseRedemption,
+    returnRedeemedCoins,
     adjustCoins,
     expireDueLots,
     getCoinReport,
@@ -166,4 +167,39 @@ test('the report says what was issued, spent, expired and is still owed', async 
     assert.equal(report.redeemed, 50);
     assert.equal(report.outstandingUsable, 850);
     assert.equal(report.outstandingValue, 850);
+});
+
+test("a split checkout gives back one store's share when that order is cancelled", async () => {
+    const user = newId();
+    const checkout = newId();
+    await creditCoins({ userId: user, amount: 500, source: 'spin', refId: 'split' });
+    await redeemCoins({ userId: user, orderId: checkout, coins: 300 });
+    assert.equal((await getCoinBalance(user)).usable, 200);
+
+    assert.deepEqual(await returnRedeemedCoins({ redemptionId: checkout, coins: 100, refId: 'order:A' }), { returned: 100 });
+    const again = await returnRedeemedCoins({ redemptionId: checkout, coins: 100, refId: 'order:A' });
+    assert.equal(again.returned, 0, 'the same cancellation twice gives back once');
+    assert.equal((await getCoinBalance(user)).usable, 300);
+
+    // More than is left is capped at what is left.
+    assert.deepEqual(await returnRedeemedCoins({ redemptionId: checkout, coins: 250, refId: 'order:B' }), { returned: 200 });
+    assert.equal((await getCoinBalance(user)).usable, 500);
+    assert.deepEqual(await reverseRedemption(checkout), { reversed: 0 }, 'nothing left to undo');
+});
+
+test('cancellations at the same moment never give back more than was spent', async () => {
+    const user = newId();
+    const checkout = newId();
+    await creditCoins({ userId: user, amount: 400, source: 'spin', refId: 'race-a', expiresAt: new Date(Date.now() + 10 * DAY) });
+    await creditCoins({ userId: user, amount: 400, source: 'spin', refId: 'race-b', expiresAt: new Date(Date.now() + 20 * DAY) });
+    await redeemCoins({ userId: user, orderId: checkout, coins: 600 });
+
+    const results = await Promise.all(
+        ['x', 'y', 'z', 'w'].map((k) => returnRedeemedCoins({ redemptionId: checkout, coins: 200, refId: `order:${k}` }))
+    );
+
+    assert.equal(results.reduce((s, r) => s + r.returned, 0), 600);
+    assert.equal((await getCoinBalance(user)).usable, 800);
+    const lots = await CoinLot.find({ userId: user }).lean();
+    assert.ok(lots.every((l) => l.used >= 0), 'no lot goes below zero');
 });

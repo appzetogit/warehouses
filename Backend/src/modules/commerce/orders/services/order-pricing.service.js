@@ -339,6 +339,169 @@ async function resolveDeliveryAddress(userId, dto) {
   return chosen || dto.deliveryAddress;
 }
 
+// Orders that never happened don't use up a first-order offer: cancelled
+// ones (every cancelled_by_* status) and checkouts abandoned at payment.
+const NOT_A_REAL_ORDER = ['cancelled_by_user', 'cancelled_by_seller', 'cancelled_by_admin', 'pending_payment'];
+
+async function isFirstOrderCustomer(userId, phones = []) {
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) return false;
+  const userOrdersCount = await Order.countDocuments({
+    userId: new mongoose.Types.ObjectId(userId),
+    orderStatus: { $nin: NOT_A_REAL_ORDER },
+  });
+  if (userOrdersCount > 0) return false;
+
+  // The same phone on another account counts as a returning customer.
+  const candidates = [...phones];
+  try {
+    const userDoc = await User.findById(userId).select('phone').lean();
+    if (userDoc?.phone) candidates.push(userDoc.phone);
+  } catch {
+    // ignore
+  }
+  const uniqueCleanPhones = [
+    ...new Set(
+      candidates
+        .filter(Boolean)
+        .map((p) => String(p).replace(/\D/g, '').slice(-10))
+        .filter((p) => p.length >= 10),
+    ),
+  ];
+  for (const phone of uniqueCleanPhones) {
+    const phoneOrderCount = await Order.countDocuments({
+      'deliveryAddress.phone': { $regex: `${phone}$` },
+      orderStatus: { $nin: NOT_A_REAL_ORDER },
+    });
+    if (phoneOrderCount > 0) return false;
+  }
+  return true;
+}
+
+const offerSellerIds = (offer) =>
+  (Array.isArray(offer.sellerIds) && offer.sellerIds.length > 0 ? offer.sellerIds : [offer.sellerId])
+    .filter(Boolean)
+    .map(String);
+
+/** The subtotal an offer discounts: its own stores' share, or the whole cart. */
+const offerBase = (offer, subtotalsBySeller) => {
+  if (offer.sellerScope !== 'selected') {
+    return [...subtotalsBySeller.values()].reduce((a, b) => a + b, 0);
+  }
+  const allowed = new Set(offerSellerIds(offer));
+  return [...subtotalsBySeller].reduce((sum, [sellerId, sub]) => sum + (allowed.has(sellerId) ? sub : 0), 0);
+};
+
+const offerDiscount = (offer, base) => {
+  if (offer.discountType === 'percentage') {
+    const raw = base * (Number(offer.discountValue) / 100);
+    const capped = Number(offer.maxDiscount) ? Math.min(raw, Number(offer.maxDiscount)) : raw;
+    return Math.max(0, Math.min(base, Math.floor(capped)));
+  }
+  return Math.max(0, Math.min(base, Math.floor(Number(offer.discountValue) || 0)));
+};
+
+async function isOfferApplicable(offer, { userId, base, isFirstOrder, now }) {
+  const offerEnd = offer.endDate ? new Date(offer.endDate) : null;
+  if (offerEnd && offerEnd.getHours() === 0 && offerEnd.getMinutes() === 0) {
+    offerEnd.setHours(23, 59, 59, 999);
+  }
+  if (offerEnd && now > offerEnd) return false;
+  if (offer.startDate && now < new Date(offer.startDate)) return false;
+  if (!(offer.status === 'active' && offer.showInCart !== false)) return false;
+  if (base <= 0) return false; // no store in the cart is covered
+  if (base < (Number(offer.minOrderValue) || 0)) return false;
+  if (Number(offer.usageLimit) > 0 && Number(offer.usedCount || 0) >= Number(offer.usageLimit)) return false;
+  if (userId && mongoose.Types.ObjectId.isValid(userId) && Number(offer.perUserLimit) > 0) {
+    const usage = await OfferUsage.findOne({
+      offerId: offer._id,
+      userId: new mongoose.Types.ObjectId(userId),
+    }).lean();
+    if (usage && Number(usage.count) >= Number(offer.perUserLimit)) return false;
+  }
+  if (offer.customerScope === 'first-time' || offer.isFirstOrderOnly === true) {
+    if (!(await isFirstOrder())) return false;
+  }
+  return true;
+}
+
+/**
+ * The coupon a cart gets: the code the customer typed, or else the best
+ * first-order offer, applied automatically.
+ *
+ * `subtotalsBySeller` is each store's subtotal, so one call serves a
+ * single-store order and a whole multi-store checkout alike. A coupon limited
+ * to some stores discounts only their share; `appliedCoupon.sellerIds` says
+ * which stores it covers (null: all).
+ */
+export async function resolveCoupon({ userId, codeRaw = '', subtotalsBySeller, phones = [], now = new Date() }) {
+  let firstOrder;
+  const isFirstOrder = async () => {
+    if (firstOrder === undefined) firstOrder = await isFirstOrderCustomer(userId, phones);
+    return firstOrder;
+  };
+  const pick = (offer, isAutoApplied) => {
+    const discount = offerDiscount(offer, offerBase(offer, subtotalsBySeller));
+    return {
+      discount,
+      appliedCoupon: {
+        code: offer.couponCode,
+        discount,
+        isAutoApplied,
+        sellerIds: offer.sellerScope === 'selected' ? offerSellerIds(offer) : null,
+      },
+    };
+  };
+
+  if (codeRaw) {
+    const offer = await Offer.findOne({ couponCode: codeRaw }).lean();
+    if (offer && (await isOfferApplicable(offer, { userId, base: offerBase(offer, subtotalsBySeller), isFirstOrder, now }))) {
+      return pick(offer, false);
+    }
+    return { discount: 0, appliedCoupon: null };
+  }
+
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId) || !(await isFirstOrder())) {
+    return { discount: 0, appliedCoupon: null };
+  }
+  const candidates = await Offer.find({
+    status: 'active',
+    showInCart: true,
+    $or: [{ isFirstOrderOnly: true }, { customerScope: 'first-time' }],
+  }).lean();
+  let best = null;
+  for (const candidate of candidates) {
+    const base = offerBase(candidate, subtotalsBySeller);
+    if (!(await isOfferApplicable(candidate, { userId, base, isFirstOrder, now }))) continue;
+    const d = offerDiscount(candidate, base);
+    if (d > 0 && (!best || d > best.d)) best = { offer: candidate, d };
+  }
+  return best ? pick(best.offer, true) : { discount: 0, appliedCoupon: null };
+}
+
+/**
+ * One store's order inside a split checkout: its share of the checkout's
+ * coupon and coins applied to its coupon-free pricing.
+ *
+ * GST is recomputed on the discounted item value, as for a single order.
+ * Coins are a way of paying, not a discount on the goods, so they come off
+ * the total without changing the tax.
+ */
+export function applyCheckoutShare(pricing, items, { couponShare = 0, coinsDiscount = 0, fallbackRate = 0, couponCode = null } = {}) {
+  const discount = round2(Math.max(0, Math.min(Number(pricing.subtotal) || 0, Number(couponShare) || 0)));
+  const tax = computeItemsTax(items, { subtotal: Number(pricing.subtotal) || 0, discount, fallbackRate });
+  const beforeCoins = round2(Math.max(0, (Number(pricing.total) || 0) - ((Number(pricing.tax) || 0) - tax) - discount));
+  const coins = round2(Math.max(0, Math.min(Number(coinsDiscount) || 0, beforeCoins)));
+  return {
+    ...pricing,
+    tax,
+    discount,
+    couponCode: discount > 0 ? couponCode : null,
+    appliedCoupon: discount > 0 && couponCode ? { code: couponCode, discount } : null,
+    coinsDiscount: coins,
+    total: round2(beforeCoins - coins),
+  };
+}
+
 export async function calculateOrderPricing(userId, dto, options = {}) {
   const at = options.at instanceof Date ? options.at : new Date();
   const seller =
@@ -377,92 +540,19 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
   const deliveryFee = round2(deliveryFeeResult.deliveryFee);
   distanceKm = deliveryFeeResult.distanceKm ?? distanceKm;
 
-  let discount = 0;
-  let appliedCoupon = null;
   const codeRaw = dto.couponCode
     ? String(dto.couponCode).trim().toUpperCase()
     : "";
-
-  if (codeRaw) {
-    const now = new Date();
-    const offer = await Offer.findOne({ couponCode: codeRaw }).lean();
-    if (offer) {
-      const offerEnd = offer.endDate ? new Date(offer.endDate) : null;
-      if (offerEnd && offerEnd.getHours() === 0 && offerEnd.getMinutes() === 0) {
-        offerEnd.setHours(23, 59, 59, 999);
-      }
-      const endOk = !offerEnd || now <= offerEnd;
-      const startOk = !offer.startDate || now >= new Date(offer.startDate);
-      const statusOk = offer.status === "active" && offer.showInCart !== false;
-      const selectedSellerIds = Array.isArray(offer.sellerIds) && offer.sellerIds.length > 0
-        ? offer.sellerIds
-        : [offer.sellerId].filter(Boolean);
-      const scopeOk =
-        offer.sellerScope !== "selected" ||
-        selectedSellerIds.some((id) => String(id) === String(dto.sellerId || ""));
-      const minOk = subtotal >= (Number(offer.minOrderValue) || 0);
-      let usageOk = true;
-      if (
-        Number(offer.usageLimit) > 0 &&
-        Number(offer.usedCount || 0) >= Number(offer.usageLimit)
-      ) {
-        usageOk = false;
-      }
-
-      let perUserOk = true;
-      if (userId && mongoose.Types.ObjectId.isValid(userId) && Number(offer.perUserLimit) > 0) {
-        const usage = await OfferUsage.findOne({
-          offerId: offer._id,
-          userId: new mongoose.Types.ObjectId(userId),
-        }).lean();
-        if (usage && Number(usage.count) >= Number(offer.perUserLimit)) {
-          perUserOk = false;
-        }
-      }
-
-      let firstOrderOk = true;
-      if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-        if (offer.customerScope === "first-time") {
-          const c = await Order.countDocuments({
-            userId: new mongoose.Types.ObjectId(userId),
-          });
-          firstOrderOk = c === 0;
-        }
-        if (offer.isFirstOrderOnly === true) {
-          const c2 = await Order.countDocuments({
-            userId: new mongoose.Types.ObjectId(userId),
-          });
-          if (c2 > 0) firstOrderOk = false;
-        }
-      }
-
-      const allowed =
-        statusOk &&
-        startOk &&
-        endOk &&
-        scopeOk &&
-        minOk &&
-        usageOk &&
-        perUserOk &&
-        firstOrderOk;
-
-      if (allowed) {
-        if (offer.discountType === "percentage") {
-          const raw = subtotal * (Number(offer.discountValue) / 100);
-          const capped = Number(offer.maxDiscount)
-            ? Math.min(raw, Number(offer.maxDiscount))
-            : raw;
-          discount = Math.max(0, Math.min(subtotal, Math.floor(capped)));
-        } else {
-          discount = Math.max(
-            0,
-            Math.min(subtotal, Math.floor(Number(offer.discountValue) || 0)),
-          );
-        }
-        appliedCoupon = { code: codeRaw, discount };
-      }
-    }
-  }
+  // A split checkout prices each store with coupons off and applies one
+  // coupon across the whole cart itself, so a coupon is used once, not per store.
+  const { discount, appliedCoupon } = options.skipCoupons
+    ? { discount: 0, appliedCoupon: null }
+    : await resolveCoupon({
+      userId,
+      codeRaw,
+      subtotalsBySeller: new Map([[String(dto.sellerId || ''), subtotal]]),
+      phones: [deliveryAddress?.phone, dto?.deliveryAddress?.phone],
+    });
 
   // GST is charged on the post-discount item value (discount is already clamped to <= subtotal).
   const tax = computeItemsTax(items, {
@@ -490,7 +580,7 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
     discount,
     total,
     currency: "INR",
-    couponCode: appliedCoupon?.code || codeRaw || null,
+    couponCode: appliedCoupon?.code || (options.skipCoupons ? null : codeRaw) || null,
     appliedCoupon,
     distanceKm: Number.isFinite(distanceKm) ? Number(distanceKm.toFixed(2)) : null,
     roadDistanceKm: Number.isFinite(distanceKm) ? Number(distanceKm.toFixed(2)) : null,

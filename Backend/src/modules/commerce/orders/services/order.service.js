@@ -34,6 +34,7 @@ import { getFirebaseDB } from '../../../../config/firebase.js';
 import * as orderTransactionService from './orderTransaction.service.js';
 import * as userWalletService from '../../user/services/userWallet.service.js';
 import {
+  applyCheckoutShare,
   calculateOrderPricing,
   calculateRiderEarning,
   getDeliveryDistanceKm,
@@ -65,6 +66,7 @@ import {
   isStatusAdvance,
   STATUS_PRIORITY,
 } from './order.helpers.js';
+import { defaultShippingProvider } from '../../delivery/services/shipping/mockShipping.provider.js';
 
 
 
@@ -101,7 +103,7 @@ function isAwaitingOnlinePaymentMethod(paymentMethod) {
   return method === "razorpay" || method === "card";
 }
 
-async function incrementCouponUsageForOrder(order, userId) {
+export async function incrementCouponUsageForOrder(order, userId) {
   const couponCode = order?.pricing?.couponCode
     ? String(order.pricing.couponCode).trim().toUpperCase()
     : "";
@@ -142,7 +144,7 @@ async function incrementCouponUsageForOrder(order, userId) {
   }
 }
 
-async function deletePendingPaymentOrder(orderLike) {
+export async function deletePendingPaymentOrder(orderLike) {
   if (!orderLike?._id) return false;
   if (String(orderLike.orderStatus || "").toLowerCase() !== "pending_payment") return false;
 
@@ -166,6 +168,33 @@ async function deletePendingPaymentOrder(orderLike) {
     }),
     Order.deleteOne({ _id: orderLike._id }),
   ]);
+
+  // Part of a split checkout: give back this order's coins, and once none of
+  // the checkout's orders are left, close the checkout and return the rest.
+  if (orderLike.checkoutId) {
+    try {
+      const { returnRedeemedCoins, reverseRedemption } = await import('../../coins/services/coin.service.js');
+      if (Number(orderLike.coinsUsed) > 0) {
+        await returnRedeemedCoins({
+          redemptionId: orderLike.checkoutId,
+          coins: orderLike.coinsUsed,
+          refId: `order:${orderLike._id}`,
+          note: 'Payment not completed',
+        });
+      }
+      const left = await Order.countDocuments({ checkoutId: orderLike.checkoutId });
+      if (left === 0) {
+        const { Checkout } = await import('../models/checkout.model.js');
+        await Checkout.updateOne(
+          { _id: orderLike.checkoutId, 'payment.status': { $ne: 'paid' } },
+          { $set: { status: 'cancelled', 'payment.status': 'failed' } },
+        );
+        await reverseRedemption(orderLike.checkoutId, { note: 'Payment not completed' });
+      }
+    } catch (err) {
+      logger.error(`Returning coins for abandoned order ${orderLike._id} failed: ${err?.message || err}`);
+    }
+  }
   return true;
 }
 
@@ -216,7 +245,7 @@ async function expireStalePendingPaymentOrders() {
     "payment.status": { $in: ["created", "pending", "failed"] },
     createdAt: { $lte: cutoff },
   })
-    .select("_id orderStatus payment stockReservedAt stockRestoredAt")
+    .select("_id orderStatus payment stockReservedAt stockRestoredAt checkoutId coinsUsed")
     .lean();
 
   for (const doc of stale) {
@@ -253,7 +282,7 @@ function buildCancellationRefundDescription(order, cancelledBy = 'system') {
   }
 }
 
-async function applyCancellationRefund(order, { cancelledBy = 'system', refundAmount } = {}) {
+async function applyCancellationRefund(order, { cancelledBy = 'system', refundAmount, refundTo } = {}) {
   if (!order?.payment) {
     return { attempted: false, processed: false, reason: 'missing_payment' };
   }
@@ -265,6 +294,48 @@ async function applyCancellationRefund(order, { cancelledBy = 'system', refundAm
 
   if (!Number.isFinite(amount) || amount <= 0) {
     return { attempted: false, processed: false, reason: 'invalid_amount' };
+  }
+
+  // Coins spent on this order come back whatever the payment method. A split
+  // checkout spent them once under the checkout's id, so only this order's
+  // share is returned; keyed to the order, so a second cancel path returns nothing.
+  if (order.coinsUsed > 0) {
+    try {
+      const { returnRedeemedCoins } = await import('../../coins/services/coin.service.js');
+      await returnRedeemedCoins({
+        redemptionId: order.checkoutId || order._id,
+        coins: order.coinsUsed,
+        refId: `order:${order._id}`,
+        note: `Order #${order.order_id || order._id} cancelled`,
+      });
+    } catch (coinErr) {
+      logger.error(`Coin return failed for cancelled order ${order._id}: ${coinErr?.message || coinErr}`);
+    }
+  }
+
+  // A refund to coins, when asked for: credited in full, of which the redeem
+  // percentage (80% by default) can be spent.
+  if (refundTo === 'coins' && paymentStatus === 'paid') {
+    try {
+      const { creditCoins } = await import('../../coins/services/coin.service.js');
+      await creditCoins({
+        userId: order.userId,
+        amount: Math.round(amount),
+        source: 'refund',
+        refId: `ref-${order._id}`,
+        note: `Refund for cancelled order #${order.order_id || order._id}`,
+      });
+      order.payment.status = 'refunded';
+      order.payment.refund = {
+        status: 'processed',
+        amount,
+        method: 'coins',
+        processedAt: new Date(),
+      };
+      return { attempted: true, processed: true, method: 'coins' };
+    } catch (coinRefundErr) {
+      logger.error(`Coin refund failed for order ${order._id}: ${coinRefundErr?.message || coinRefundErr}`);
+    }
   }
 
   if (paymentMethod === 'cash' || paymentMethod === 'cod') {
@@ -460,7 +531,17 @@ function toObjectId(id, fieldName = 'ID') {
 }
 
 // ----- Create order -----
-export async function createOrder(userId, dto) {
+/**
+ * Places one store's order.
+ *
+ * `options.checkout` makes it one of several orders placed together by a
+ * split checkout. The checkout owns the money: the order carries its share of
+ * the checkout's coupon and coins, never creates its own payment, and unless
+ * it is cash on delivery it waits in pending_payment until the checkout is
+ * paid and releases it (releasePaidOrder).
+ */
+export async function createOrder(userId, dto, options = {}) {
+  const checkout = options.checkout || null;
   try {
     const sellerId = toObjectId(dto.sellerId, 'Seller ID');
     const seller = await loadSellerForOrdering(sellerId);
@@ -523,10 +604,19 @@ export async function createOrder(userId, dto) {
         couponCode: dto.pricing?.couponCode || undefined,
         deliveryMode: dto.deliveryMode || "basic",
       },
-      { at: orderAt, seller, skipAvailabilityCheck: true },
+      { at: orderAt, seller, skipAvailabilityCheck: true, skipCoupons: Boolean(checkout) },
     );
 
     const resolvedItems = pricingResult.items || [];
+    if (checkout) {
+      const { gstRate } = await loadActiveFeeSettings();
+      pricingResult.pricing = applyCheckoutShare(pricingResult.pricing, resolvedItems, {
+        couponShare: checkout.couponShare,
+        coinsDiscount: checkout.coinsDiscount,
+        couponCode: checkout.couponCode,
+        fallbackRate: Number(gstRate || 0),
+      });
+    }
     const normalizedPricing = {
       subtotal: Number(pricingResult.pricing?.subtotal) || 0,
       tax: Number(pricingResult.pricing?.tax) || 0,
@@ -544,6 +634,7 @@ export async function createOrder(userId, dto) {
         ? String(pricingResult.pricing.couponCode).trim().toUpperCase()
         : null,
       total: Number(pricingResult.pricing?.total) || 0,
+      coinsDiscount: Number(pricingResult.pricing?.coinsDiscount) || 0,
       currency: String(pricingResult.pricing?.currency || "INR"),
       // Same road distance source as cart preview / delivery Rest→User.
       distanceKm: Number.isFinite(Number(pricingResult.pricing?.distanceKm))
@@ -565,9 +656,11 @@ export async function createOrder(userId, dto) {
 
     normalizedPricing.total = Math.round(normalizedPricing.total * 100) / 100;
 
+    // Held for a checkout: the checkout takes the money and then releases it.
+    const heldForCheckout = Boolean(checkout) && !isCash;
     const payment = {
       method: paymentMethod,
-      status: isCash ? "cod_pending" : isWallet ? "paid" : "created",
+      status: isCash ? "cod_pending" : isWallet && !heldForCheckout ? "paid" : "created",
       amountDue: normalizedPricing.total || 0,
       razorpay: {},
       qr: {},
@@ -613,7 +706,7 @@ export async function createOrder(userId, dto) {
       sellerCommission -
       riderEarning;
 
-    const isAwaitingOnlinePayment = isAwaitingOnlinePaymentMethod(paymentMethod);
+    const isAwaitingOnlinePayment = isAwaitingOnlinePaymentMethod(paymentMethod) || heldForCheckout;
     // A trusted seller's order is confirmed on arrival: no window, no timeout
     // job, and the rider hunt starts now rather than after somebody taps a
     // tablet. Orders still awaiting payment are never auto-confirmed -- money
@@ -668,11 +761,20 @@ export async function createOrder(userId, dto) {
       scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
       riderEarning: Number(riderEarning) || 0,
       platformProfit: Number(platformProfit) || 0,
+      ...(checkout
+        ? {
+          checkoutId: checkout.checkoutId,
+          orderGroupId: checkout.orderGroupId,
+          fulfilmentMode: checkout.fulfilmentMode,
+          coinsUsed: Number(checkout.coinsUsed) || 0,
+          coinsDiscount: normalizedPricing.coinsDiscount,
+        }
+        : {}),
     });
 
     let razorpayPayload = null;
 
-    if (paymentMethod === "razorpay" && isRazorpayConfigured()) {
+    if (paymentMethod === "razorpay" && isRazorpayConfigured() && !checkout) {
       const amountPaise = Math.round((normalizedPricing.total || 0) * 100);
       if (amountPaise < 100)
         throw new ValidationError("Amount too low for online payment");
@@ -730,7 +832,7 @@ export async function createOrder(userId, dto) {
       });
     }
 
-    if (isWallet) {
+    if (isWallet && !heldForCheckout) {
       try {
         await userWalletService.deductWalletBalance(userId, order.pricing.total, `Payment for order #${order.order_id || order._id}`, { orderId: order._id });
       } catch (err) {
@@ -779,7 +881,7 @@ export async function createOrder(userId, dto) {
             type: "order_created",
             orderId: String(order._id),
             orderMongoId: order._id.toString(),
-            link: `/food/user/orders/${order._id.toString()}`,
+            link: `/orders/${order._id.toString()}`,
           },
         });
       }
@@ -791,7 +893,8 @@ export async function createOrder(userId, dto) {
       logger.warn(`Notifications failed for order ${order._id}: ${err.message}`);
     }
 
-    if (!isAwaitingOnlinePayment) {
+    // A checkout counts its coupon once, not once per store.
+    if (!isAwaitingOnlinePayment && !checkout) {
       await incrementCouponUsageForOrder(order, userId);
     }
 
@@ -819,6 +922,86 @@ export async function createOrder(userId, dto) {
     // Transform system errors to Generic validation error with 500 logging
     throw new ValidationError(err.message || "Something went wrong while placing your order. Please try again.");
   }
+}
+
+/**
+ * An order whose payment has just cleared goes live: paid, waiting on the
+ * seller with the acceptance clock running, recorded in the ledger, and the
+ * seller told. Used for a single order's Razorpay payment and for every order
+ * of a split checkout once the checkout is paid.
+ *
+ * `countCoupon: false` when a checkout counts its coupon itself.
+ */
+export async function releasePaidOrder(order, {
+  byRole = "SYSTEM",
+  byId = null,
+  razorpayPaymentId = "",
+  razorpaySignature = "",
+  note = "Payment verified, order confirmed",
+  countCoupon = true,
+} = {}) {
+  order.payment.status = "paid";
+  if (razorpayPaymentId) {
+    order.payment.razorpay = {
+      ...(order.payment.razorpay || {}),
+      paymentId: razorpayPaymentId,
+      signature: razorpaySignature,
+    };
+  }
+
+  const from = order.orderStatus;
+  const acceptanceWindowSeconds = await getOrderAcceptanceWindowSeconds();
+  order.orderStatus = "created";
+  order.acceptanceWindowSeconds = acceptanceWindowSeconds;
+  order.acceptanceDeadlineAt = buildAcceptanceDeadline(new Date(), acceptanceWindowSeconds);
+
+  pushStatusHistory(order, { byRole, byId, from, to: "created", note });
+  await order.save();
+  void addOrderJob(
+    {
+      action: "ORDER_ACCEPTANCE_TIMEOUT_CHECK",
+      orderMongoId: order._id?.toString?.(),
+      orderId: order._id.toString(),
+    },
+    {
+      delay: acceptanceWindowSeconds * 1000,
+      removeOnComplete: true,
+      removeOnFail: true,
+      jobId: `order-accept-timeout-${order._id?.toString?.()}`,
+    },
+  ).catch((err) => {
+    logger.warn(`Failed to enqueue acceptance timeout check: ${err?.message || err}`);
+  });
+
+  try {
+    const transaction = await orderTransactionService.createInitialTransaction(order);
+    if (transaction && Number.isFinite(Number(transaction.amounts?.platformNetProfit))) {
+      order.platformProfit = Number(transaction.amounts.platformNetProfit);
+      await Order.updateOne(
+        { _id: order._id },
+        { $set: { platformProfit: order.platformProfit } },
+      );
+    }
+  } catch (err) {
+    logger.error(`[CRITICAL] Initial transaction failed for order ${order._id}: ${err.message}`);
+  }
+
+  if (countCoupon) {
+    await incrementCouponUsageForOrder(order, order.userId);
+  }
+
+  if (razorpayPaymentId) {
+    await orderTransactionService.updateTransactionStatus(order._id, 'captured', {
+      status: 'captured',
+      razorpayPaymentId,
+      razorpaySignature,
+      recordedByRole: byRole,
+      recordedById: byId && mongoose.Types.ObjectId.isValid(String(byId)) ? new mongoose.Types.ObjectId(String(byId)) : null,
+    });
+  }
+
+  await notifySellerNewOrder(order);
+  return order;
 }
 
 // ----- Verify payment -----
@@ -879,65 +1062,12 @@ export async function verifyPayment(userId, dto) {
     throw new ValidationError("Payment verification failed");
   }
 
-  order.payment.status = "paid";
-  order.payment.razorpay.paymentId = dto.razorpayPaymentId;
-  order.payment.razorpay.signature = dto.razorpaySignature;
-  
-  const from = order.orderStatus;
-  const acceptanceWindowSeconds = await getOrderAcceptanceWindowSeconds();
-  order.orderStatus = "created";
-  order.acceptanceWindowSeconds = acceptanceWindowSeconds;
-  order.acceptanceDeadlineAt = buildAcceptanceDeadline(new Date(), acceptanceWindowSeconds);
-
-  pushStatusHistory(order, {
+  await releasePaidOrder(order, {
     byRole: "USER",
     byId: userId,
-    from: from,
-    to: "created",
-    note: "Payment verified, order confirmed",
-  });
-  await order.save();
-  void addOrderJob(
-    {
-      action: "ORDER_ACCEPTANCE_TIMEOUT_CHECK",
-      orderMongoId: order._id?.toString?.(),
-      orderId: order._id.toString(),
-    },
-    {
-      delay: acceptanceWindowSeconds * 1000,
-      removeOnComplete: true,
-      removeOnFail: true,
-      jobId: `order-accept-timeout-${order._id?.toString?.()}`,
-    },
-  ).catch((err) => {
-    logger.warn(`Failed to enqueue acceptance timeout check: ${err?.message || err}`);
-  });
-
-  try {
-    const transaction = await orderTransactionService.createInitialTransaction(order);
-    if (transaction && Number.isFinite(Number(transaction.amounts?.platformNetProfit))) {
-      order.platformProfit = Number(transaction.amounts.platformNetProfit);
-      await Order.updateOne(
-        { _id: order._id },
-        { $set: { platformProfit: order.platformProfit } },
-      );
-    }
-  } catch (err) {
-    logger.error(`[CRITICAL] Initial transaction failed for order ${order._id}: ${err.message}`);
-  }
-
-  await incrementCouponUsageForOrder(order, userId);
-
-  await orderTransactionService.updateTransactionStatus(order._id, 'captured', {
-    status: 'captured',
     razorpayPaymentId: dto.razorpayPaymentId,
     razorpaySignature: dto.razorpaySignature,
-    recordedByRole: "USER",
-    recordedById: new mongoose.Types.ObjectId(userId)
   });
-
-  // After online payment is verified, now notify seller about the new order.
-  await notifySellerNewOrder(order);
 
   // No "Payment Successful" push.
   //
@@ -1964,7 +2094,7 @@ export async function updateOrderStatusSeller(
           orderId: order._id.toString(),
           orderMongoId: order._id?.toString?.() || "",
           orderStatus: String(orderStatus || ""),
-          link: `/food/user/orders/${order._id?.toString?.() || ""}`,
+          link: `/orders/${order._id?.toString?.() || ""}`,
         },
       },
     );
@@ -2810,4 +2940,66 @@ export async function processRefundAdmin(orderId, amount, adminId) {
     }
 
     return { success: true, order: normalizeOrderForClient(order) };
+}
+
+export async function createOrderShipmentSeller(orderId, sellerId) {
+  const identity = buildOrderIdentityFilter(orderId);
+  const order = await Order.findOne({
+    ...identity,
+    sellerId: new mongoose.Types.ObjectId(sellerId),
+  });
+  if (!order) throw new NotFoundError("Order not found");
+
+  if (!canExposeOrderToSeller(order)) {
+    throw new ValidationError("This order is not actionable yet");
+  }
+
+  if (order.shipment?.awb) {
+    return { order: normalizeOrderForClient(order), shipment: order.shipment };
+  }
+
+  const seller = await Seller.findById(sellerId).select('sellerName location addressLine1 city state').lean();
+  const originPincode = seller?.location?.pincode || '560001';
+  const destPincode = order.deliveryAddress?.zipCode || '560001';
+
+  const shipmentData = await defaultShippingProvider.createShipment({
+    orderId: order.orderId || order._id.toString(),
+    originPincode,
+    destPincode,
+    customerName: order.customerName,
+    deliveryAddress: order.deliveryAddress,
+    weightGrams: 500,
+  });
+
+  order.shipment = shipmentData;
+  const prevStatus = order.orderStatus;
+  if (prevStatus === 'confirmed' || prevStatus === 'preparing' || prevStatus === 'created') {
+    order.orderStatus = 'ready_for_pickup';
+    pushStatusHistory(order, {
+      from: prevStatus,
+      to: 'ready_for_pickup',
+      byRole: 'seller',
+      note: `Courier shipment generated: ${shipmentData.courierName} (AWB: ${shipmentData.awb})`,
+    });
+  }
+
+  await order.save();
+  return { order: normalizeOrderForClient(order), shipment: shipmentData };
+}
+
+export async function trackOrderShipmentSeller(orderId, sellerId) {
+  const identity = buildOrderIdentityFilter(orderId);
+  const order = await Order.findOne({
+    ...identity,
+    sellerId: new mongoose.Types.ObjectId(sellerId),
+  });
+  if (!order) throw new NotFoundError("Order not found");
+
+  const awb = order.shipment?.awb;
+  if (!awb) {
+    throw new ValidationError("No courier shipment generated for this order yet");
+  }
+
+  const tracking = await defaultShippingProvider.trackShipment(awb);
+  return { awb, shipment: order.shipment, tracking };
 }

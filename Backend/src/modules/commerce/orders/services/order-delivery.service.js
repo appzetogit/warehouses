@@ -690,7 +690,7 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
             orderId: order._id.toString(),
             orderMongoId: order._id?.toString?.() || '',
             dispatchStatus: order.dispatch?.status,
-            link: '/food/user/orders',
+            link: '/orders',
           },
         },
       );
