@@ -323,12 +323,12 @@ Each week one of these slips moves launch by about a week.
 | # | Decision | Why it blocks | Suggested default |
 |---|---|---|---|
 | B1 | Which refund reasons pay out in coins and which go back to the original payment | Refund logic | Coins for cancellations and missing items; original method for failed payments and gateway errors |
-| B2 | How the 80% rule applies: cap on credited value (1,000 coins → ₹800 usable), or max 80% of a single order payable in coins? What happens to the other 20% (lost, expires, usable later)? | Coin math | 1,000 coins credited, ₹800 usable in total; the other 20% is not redeemable |
-| B3 | Coin expiry period and the per-order redemption limit | Coin ledger | 90 days; at most 50% of an order |
-| B4 | Courier/shipping provider (Shiprocket, Delhivery, …) | Standard delivery | Shiprocket (one API covers many couriers) |
+| B2 | ~~How the 80% rule applies~~ | — | **Decided (2026-09-21):** 1,000 coins credited, at most 800 ever spendable; the other 20% is never redeemable |
+| B3 | ~~Coin expiry and per-order limit~~ | — | **Decided:** 90 days, oldest coins used first; coins pay at most 50% of an order. Both editable in admin |
+| B4 | Courier/shipping provider (Shiprocket, Delhivery, …) | Real shipping only | **Decided:** build a `ShippingProvider` interface with a mock provider now; the client picks the courier later |
 | B5 | Payment gateway | Gateway adapter | Razorpay (already integrated) |
-| B6 | Can one checkout mix quick and standard sellers? | Checkout UX | Yes, shown as separate deliveries |
-| B7 | Commission basis (per seller, per category, flat + %), and who bears coupon and coin cost | Settlement | Existing split fields; platform bears coins |
+| B6 | ~~Mix quick and standard in one checkout?~~ | — | **Decided:** no. Separate storefronts and carts; a checkout is all quick or all standard |
+| B7 | Commission basis (per seller, per category, flat + %) | Settlement | **Partly decided:** the platform bears coins and platform coupons; sellers bear their own coupons. Commission basis still open (default: existing per-seller rules) |
 | B8 | Spin eligibility and budget (daily / after order) | Spin rules | 1 spin after each delivered order, monthly budget cap |
 | B9 | AI use cases in scope (SOW §11 lists 5 as "potential") | AI effort | Chatbot + order status + search help; recommendations without the LLM |
 | B10 | Brand name, domain, app ids | Rename, store listings | — |
