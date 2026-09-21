@@ -6,6 +6,7 @@ import { Button } from "@store/components/ui/button"
 import { Label } from "@store/components/ui/label"
 import { getGoogleMapsApiKey } from "@store/utils/googleMapsApiKey"
 import { ArrowLeft, Loader2, Trash2, Upload } from "lucide-react"
+import { useAdminBase } from "@store/components/admin/useAdminPanel"
 
 const debugError = (..._args) => {}
 
@@ -144,6 +145,7 @@ async function loadGooglePlaces() {
 }
 
 export default function EditSeller() {
+  const adminBase = useAdminBase()
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -490,7 +492,7 @@ export default function EditSeller() {
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/admin/store/sellers")}
+              onClick={() => navigate(`${adminBase}/sellers`)}
               className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50"
               title="Back"
             >

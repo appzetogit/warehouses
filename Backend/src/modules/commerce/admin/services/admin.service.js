@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { orderFulfilmentModeFilter } from '../validators/adminPanel.validator.js';
 import { applyCategoryAttributes } from './attribute.service.js';
 import { syncProductAvailability } from '../../orders/services/inventory.service.js';
 // NotFoundError was already used further down this file (deleteDeliveryPartner)
@@ -500,6 +501,7 @@ export async function getDashboardStats(query = {}) {
     if (zoneId) {
         orderMatch.zoneId = zoneId;
     }
+    Object.assign(orderMatch, orderFulfilmentModeFilter(query.fulfilmentMode));
 
     const sellerMatch = {};
     if (zoneId) {
@@ -618,7 +620,11 @@ export async function getDashboardStats(query = {}) {
         Seller.countDocuments({ ...sellerMatch, status: 'pending' }),
         DeliveryPartner.countDocuments({ status: 'approved' }),
         DeliveryPartner.countDocuments({ status: 'pending' }),
-        Product.countDocuments({ approvalStatus: 'approved', ...zoneScopedSellerMatch }),
+        Product.countDocuments({
+            approvalStatus: 'approved',
+            ...zoneScopedSellerMatch,
+            ...(query.fulfilmentMode === 'quick' ? { quickEligible: { $ne: false } } : {}),
+        }),
         zoneId
             ? Order.distinct('userId', { ...orderMatch, userId: { $ne: null } }).then((ids) => ids.length)
             : User.countDocuments({}),
@@ -3532,6 +3538,11 @@ export async function getProducts(query) {
     if (query.approvalStatus && ['pending', 'approved', 'rejected'].includes(String(query.approvalStatus))) {
         filter.approvalStatus = String(query.approvalStatus);
     }
+    // Products only record quick eligibility and any product can be courier-shipped,
+    // so the shop panel sees every product and the quick panel only quick-eligible ones.
+    if (query.fulfilmentMode === 'quick') {
+        filter.quickEligible = { $ne: false };
+    }
 
     const [list, total] = await Promise.all([
         Product.find(filter)
@@ -5952,7 +5963,8 @@ export async function getCashLimitSettlements(query = {}) {
     };
 }
 
-export async function getSidebarBadges() {
+export async function getSidebarBadges({ fulfilmentMode } = {}) {
+    const modeFilter = orderFulfilmentModeFilter(fulfilmentMode);
     try {
         const [
             pendingSellers,
@@ -5972,8 +5984,8 @@ export async function getSidebarBadges() {
             Seller.countDocuments({ status: 'pending' }),
             DeliveryPartner.countDocuments({ status: 'pending' }),
             Product.countDocuments({ approvalStatus: 'pending' }),
-            Order.countDocuments({ orderStatus: 'pending' }),
-            Order.countDocuments({ paymentMethod: 'offline_payment', orderStatus: 'pending' }),
+            Order.countDocuments({ orderStatus: 'pending', ...modeFilter }),
+            Order.countDocuments({ paymentMethod: 'offline_payment', orderStatus: 'pending', ...modeFilter }),
             SellerWithdrawal.countDocuments({ status: 'pending' }),
             DeliveryWithdrawal.countDocuments({ status: 'pending' }),
             SupportTicket.countDocuments({ status: 'open', userId: { $exists: true }, sellerId: { $exists: false } }),

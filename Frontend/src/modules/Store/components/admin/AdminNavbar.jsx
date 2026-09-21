@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ADMIN_PANELS, getAdminSubPath, toPanelPath, useAdminPanel } from "./useAdminPanel";
+import { getAdminSidebarMenu } from "@store/utils/adminSidebarMenu";
 import {
   Menu,
   Search,
@@ -21,6 +23,8 @@ import {
   ShoppingBag,
   ShieldCheck,
   ExternalLink,
+  Zap,
+  Truck,
 } from "lucide-react";
 import {
   Dialog,
@@ -64,6 +68,9 @@ export default function AdminNavbar({ onMenuClick }) {
   const [businessSettings, setBusinessSettings] = useState(() => getCachedSettings() || null);
   const searchInputRef = useRef(null);
   const { items: adminNotifications } = useAdminNotifications();
+  const location = useLocation();
+  const { panel } = useAdminPanel();
+  const base = `/admin/${panel}`;
 
   // Load business settings
   useEffect(() => {
@@ -151,7 +158,7 @@ export default function AdminNavbar({ onMenuClick }) {
 
     setSearchOpen(false);
     setSearchQuery("");
-    navigate(result.path);
+    navigate(toPanelPath(result.path, panel));
   };
 
   const handleRecentClick = (term) => {
@@ -262,9 +269,32 @@ export default function AdminNavbar({ onMenuClick }) {
   };
 
   const notificationCount = adminNotifications.length;
+
+  // Switching keeps the current page when the other panel's menu has it, or
+  // when the page is in neither menu (profile, settings, notifications).
+  // A page only the current panel has falls back to the other dashboard.
+  const switchPanel = (target) => {
+    if (target === panel) return;
+    const subPath = getAdminSubPath(location.pathname);
+    const menuSubPaths = (p) => {
+      const walk = (entries) =>
+        entries.flatMap((entry) => [
+          entry.path,
+          ...walk(entry.items || []),
+          ...(entry.subItems || []).map((sub) => sub.path),
+        ]);
+      return walk(getAdminSidebarMenu(p))
+        .filter((path) => typeof path === "string")
+        .map(getAdminSubPath)
+        .filter(Boolean);
+    };
+    const covers = (paths) => paths.some((c) => subPath === c || subPath.startsWith(`${c}/`));
+    const keep = subPath === "" || covers(menuSubPaths(target)) || !covers(menuSubPaths(panel));
+    navigate(keep ? `/admin/${target}${subPath}${location.search}` : `/admin/${target}`);
+  };
   const openNotificationsPage = () => {
     setNotificationsOpen(false);
-    navigate("/admin/store/notifications");
+    navigate(`${base}/notifications`);
   };
 
   return (
@@ -321,11 +351,38 @@ export default function AdminNavbar({ onMenuClick }) {
             </button>
           </div>
 
+          {/* Panel switcher: Quick commerce vs Shop (courier e-commerce) */}
+          <div
+            className="flex items-center p-1 mr-3 rounded-xl border border-neutral-200 bg-neutral-100"
+            role="tablist"
+            aria-label="Admin panel"
+          >
+            {Object.values(ADMIN_PANELS).map((option) => {
+              const active = option.key === panel;
+              const accent = option.key === "quick" ? "bg-amber-500" : "bg-indigo-600";
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => switchPanel(option.key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    active ? `${accent} text-white shadow-sm` : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60"
+                  }`}
+                >
+                  {option.key === "quick" ? <Zap className="w-3.5 h-3.5" /> : <Truck className="w-3.5 h-3.5" />}
+                  <span>{option.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Center-Right: Mode Switcher Tab (Admin Portal vs User Storefront) */}
           <div className="hidden sm:flex items-center bg-neutral-100 p-1 rounded-xl border border-neutral-200">
             <button
               type="button"
-              onClick={() => navigate("/admin/store")}
+              onClick={() => navigate(base)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-neutral-900 shadow-sm border border-neutral-200 transition-all cursor-pointer"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
@@ -488,14 +545,14 @@ export default function AdminNavbar({ onMenuClick }) {
                 <DropdownMenuGroup>
                   <DropdownMenuItem
                     className="cursor-pointer hover:bg-neutral-100 focus:bg-neutral-100"
-                    onClick={() => navigate("/admin/store/profile")}
+                    onClick={() => navigate(`${base}/profile`)}
                   >
                     <User className="mr-2 w-4 h-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="cursor-pointer hover:bg-neutral-100 focus:bg-neutral-100"
-                    onClick={() => navigate("/admin/store/settings")}
+                    onClick={() => navigate(`${base}/settings`)}
                   >
                     <Settings className="mr-2 w-4 h-4" />
                     <span>Settings</span>
@@ -541,10 +598,10 @@ export default function AdminNavbar({ onMenuClick }) {
                 <div className="text-sm text-neutral-500 mb-4">Quick Actions</div>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { icon: Package, label: "Orders", path: "/admin/store/orders/all" },
-                    { icon: Users, label: "Users", path: "/admin/store/customers" },
-                    { icon: UtensilsCrossed, label: "Products", path: "/admin/store/products" },
-                    { icon: FileText, label: "Reports", path: "/admin/store/transaction-report" },
+                    { icon: Package, label: "Orders", path: `${base}/orders/all` },
+                    { icon: Users, label: "Users", path: `${base}/customers` },
+                    { icon: UtensilsCrossed, label: "Products", path: `${base}/products` },
+                    { icon: FileText, label: "Reports", path: `${base}/transaction-report` },
                   ].map((action, idx) => (
                     <button
                       key={idx}

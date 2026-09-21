@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { adminAPI, supportAPI } from "@store/api";
+import { useAdminBase } from "@store/components/admin/useAdminPanel";
 
 const STORAGE_KEY = "admin_notifications_dismissed_v1";
 const UPDATE_EVENT = "adminNotificationsUpdated";
@@ -63,7 +64,7 @@ const mapPendingSellers = (rows = []) =>
     message: `${item?.sellerName || "Seller"} submitted a seller approval request. Owner: ${item?.ownerName || "N/A"}. Contact: ${item?.ownerPhone || "N/A"}.`,
     type: "approval",
     category: "seller_approval",
-    path: "/admin/store/sellers/joining-request",
+    path: "/sellers/joining-request",
     createdAt: item?.createdAt || item?.updatedAt,
     timeLabel: toDateLabel(item?.createdAt || item?.updatedAt),
     metaLabel: joinMeta(item?.sellerName, item?.ownerName, item?.ownerPhone),
@@ -84,7 +85,7 @@ const mapDeliveryJoinRequests = (response) => {
     message: `${item?.name || "Delivery partner"} submitted a joining request. Phone: ${item?.phone || "N/A"}. Email: ${item?.email || "N/A"}.`,
     type: "approval",
     category: "delivery_approval",
-    path: "/admin/store/delivery-partners/join-request",
+    path: "/delivery-partners/join-request",
     createdAt: item?.createdAt || item?.updatedAt,
     timeLabel: toDateLabel(item?.createdAt || item?.updatedAt),
     metaLabel: joinMeta(item?.name, item?.phone, item?.email),
@@ -106,7 +107,7 @@ const mapProductApprovals = (response) => {
     message: `${item?.itemName || "Product"} from ${item?.sellerName || "Seller"} is waiting for review. Category: ${item?.category || item?.type || "N/A"}.`,
     type: "approval",
     category: "product_approval",
-    path: "/admin/store/product-approval",
+    path: "/product-approval",
     createdAt: item?.requestedAt || item?.createdAt || item?.updatedAt,
     timeLabel: toDateLabel(item?.requestedAt || item?.createdAt || item?.updatedAt),
     metaLabel: joinMeta(item?.sellerName, item?.itemName, item?.category || item?.type),
@@ -141,7 +142,7 @@ const mapUserSellerSupport = (response) => {
         message,
         type: "support",
         category: "support",
-        path: "/admin/store/support-tickets",
+        path: "/support-tickets",
         createdAt: item?.createdAt || item?.updatedAt,
         timeLabel: toDateLabel(item?.createdAt || item?.updatedAt),
         metaLabel,
@@ -166,7 +167,7 @@ const mapDeliverySupport = (response) => {
       message: `${item?.deliveryPartner?.name || "Delivery partner"} raised a support ticket. Subject: ${item?.subject || "N/A"}. Priority: ${item?.priority || "medium"}. Status: ${item?.status || "open"}.`,
       type: "support",
       category: "delivery_support",
-      path: "/admin/store/delivery-support-tickets",
+      path: "/delivery-support-tickets",
       createdAt: item?.createdAt || item?.updatedAt,
       timeLabel: toDateLabel(item?.createdAt || item?.updatedAt),
       metaLabel: joinMeta(item?.deliveryPartner?.name, item?.deliveryPartner?.phone, item?.priority, item?.status),
@@ -185,7 +186,7 @@ const mapExpiredFssai = (response) => {
       `${item?.sellerName || "Seller"} FSSAI license has expired.`,
     type: "compliance",
     category: "fssai_expired",
-    path: "/admin/store/sellers",
+    path: "/sellers",
     createdAt: item?.createdAt || item?.fssaiExpiry,
     timeLabel: toDateLabel(item?.createdAt || item?.fssaiExpiry),
     metaLabel: joinMeta(item?.sellerName, item?.ownerName, item?.ownerPhone, item?.fssaiNumber),
@@ -277,15 +278,22 @@ export default function useAdminNotifications(options = {}) {
     dispatchAdminNotificationsUpdated();
   }, [items]);
 
+  // Paths above are panel-relative; root them on the panel being viewed.
+  const base = useAdminBase();
+  const panelItems = useMemo(
+    () => items.map((item) => (item.path ? { ...item, path: `${base}${item.path}` } : item)),
+    [base, items]
+  );
+
   return useMemo(
     () => ({
-      items,
+      items: panelItems,
       loading,
-      unreadCount: items.length,
+      unreadCount: panelItems.length,
       refresh: loadNotifications,
       dismissOne,
       clearAll,
     }),
-    [clearAll, dismissOne, items, loadNotifications, loading]
+    [clearAll, dismissOne, panelItems, loadNotifications, loading]
   );
 }

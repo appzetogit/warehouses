@@ -6,7 +6,9 @@ import {
   useMemo,
   useState,
 } from "react"
+import { useNavigate } from "react-router-dom"
 import { useLocation } from "@store/hooks/useLocation"
+import { useStoreMode, QUICK_BASE } from "@store/context/StoreModeContext"
 import { useZone } from "@store/hooks/useZone"
 import { useProfile } from "@store/context/ProfileContext"
 import {
@@ -46,32 +48,15 @@ export function DeliveryLocationProvider({ children }) {
   const { location: liveLocation, loading, requestLocation } = useLocation()
   const [deliveryAddressMode, setDeliveryAddressMode] = useState(getDeliveryAddressMode)
   const [addressRevision, setAddressRevision] = useState(0)
-  const [commerceMode, setCommerceModeState] = useState(() => {
-    try {
-      return localStorage.getItem("commerce_mode") || "quick"
-    } catch {
-      return "quick"
-    }
-  })
-
+  // The storefront (shop "/" vs quick "/quick") is the commerce mode.
+  // Switching mode means moving to the other storefront, which has its own cart.
+  const { fulfilmentMode: commerceMode, mode: storeMode } = useStoreMode()
+  const navigate = useNavigate()
   const setCommerceMode = useCallback((mode) => {
-    const validMode = mode === "standard" ? "standard" : "quick"
-    setCommerceModeState(validMode)
-    try {
-      localStorage.setItem("commerce_mode", validMode)
-      window.dispatchEvent(new CustomEvent("commerceModeChanged", { detail: validMode }))
-    } catch {
-      // ignore
-    }
-  }, [])
-
-  useEffect(() => {
-    const handleCommerceModeChange = (e) => {
-      if (e?.detail) setCommerceModeState(e.detail)
-    }
-    window.addEventListener("commerceModeChanged", handleCommerceModeChange)
-    return () => window.removeEventListener("commerceModeChanged", handleCommerceModeChange)
-  }, [])
+    const nextStore = mode === "standard" ? "shop" : "quick"
+    if (nextStore === storeMode) return
+    navigate(nextStore === "quick" ? QUICK_BASE : "/")
+  }, [navigate, storeMode])
 
   useEffect(() => {
     const syncMode = () => setDeliveryAddressMode(getDeliveryAddressMode())

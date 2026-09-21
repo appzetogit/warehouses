@@ -6,12 +6,14 @@ import { getGoogleMapsApiKey } from "@store/utils/googleMapsApiKey"
 import { Loader } from "@googlemaps/js-api-loader"
 import { subscribeAllDeliveryLocations } from "@store/realtimeTracking"
 import bikeLogo from "@store/assets/bikelogo.png"
+import { useAdminBase } from "@store/components/admin/useAdminPanel"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
 export default function DeliveryBoyViewMap() {
+  const adminBase = useAdminBase()
   const navigate = useNavigate()
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
@@ -539,7 +541,7 @@ export default function DeliveryBoyViewMap() {
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button
-            onClick={() => navigate("/admin/store/zone-setup")}
+            onClick={() => navigate(`${adminBase}/zone-setup`)}
             className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-slate-600" />

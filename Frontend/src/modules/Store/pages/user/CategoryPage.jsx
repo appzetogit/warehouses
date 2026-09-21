@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, startTransition, useDeferredValue } from "react"
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -37,6 +38,7 @@ const CATEGORY_PAGE_FILTERS_STORAGE_KEY = "store-category-page-filters-v1"
 
 
 export default function CategoryPage() {
+  const { isQuick, fulfilmentMode, storePath } = useStoreMode()
   const { category } = useParams()
   const navigate = useNavigate()
   const { vegMode } = useProfile()
@@ -125,7 +127,8 @@ export default function CategoryPage() {
     let cancelled = false
     const categorySlug = String(selectedCategory || category || "all").toLowerCase()
 
-    if (!zoneId || categorySlug === "all") {
+    // The quick store needs a delivery zone; the shop ships anywhere.
+    if ((isQuick && !zoneId) || categorySlug === "all") {
       setCategoryProductsData([])
       setLoadingCategoryProducts(false)
       return () => {
@@ -137,7 +140,8 @@ export default function CategoryPage() {
     void (async () => {
       try {
         const response = await sellerAPI.getPublicProducts({
-          zoneId,
+          zoneId: isQuick ? zoneId : undefined,
+          fulfilmentMode,
           categorySlug,
           limit: 1000,
         })
@@ -155,7 +159,7 @@ export default function CategoryPage() {
     return () => {
       cancelled = true
     }
-  }, [zoneId, selectedCategory, category])
+  }, [zoneId, selectedCategory, category, isQuick, fulfilmentMode])
 
   const getCategoryFallbackDishesFromApprovedProducts = (categoryId, sellers, products = categoryProductsData) => {
     const keywords = getCategoryKeywords(categoryId)
@@ -871,7 +875,7 @@ export default function CategoryPage() {
     if (categorySlug === 'all') {
       navigate('/user/category/all')
     } else {
-      navigate(`/user/category/${categorySlug}`)
+      navigate(storePath(`/category/${categorySlug}`))
     }
   }
 
@@ -1065,7 +1069,7 @@ export default function CategoryPage() {
                   return (
                     <Link
                       key={seller.id}
-                      to={`/user/sellers/${seller.name.toLowerCase().replace(/\s+/g, '-')}`}
+                      to={storePath(`/sellers/${seller.name.toLowerCase().replace(/\s+/g, '-')}`)}
                       className="block"
                     >
                       <div className={`group ${shouldShowGrayscale ? 'grayscale opacity-75' : ''}`}>
@@ -1175,7 +1179,7 @@ export default function CategoryPage() {
                 const isFavorite = favorites.has(seller.id)
 
                 return (
-                  <Link key={seller.id} to={`/user/sellers/${sellerSlug}`} className="h-full flex">
+                  <Link key={seller.id} to={storePath(`/sellers/${sellerSlug}`)} className="h-full flex">
                     <Card className={`overflow-hidden cursor-pointer gap-0 border-0 dark:border-gray-800 group bg-white dark:bg-[#1a1a1a] shadow-md hover:shadow-xl transition-all duration-300 py-0 rounded-md h-full flex flex-col w-full ${shouldShowGrayscale ? 'grayscale opacity-75' : ''
                       }`}>
                       {/* Image Section */}

@@ -4,12 +4,14 @@ import { MapPin, ArrowLeft, Save, X, Shapes, Search } from "lucide-react"
 import { adminAPI } from "@store/api"
 import { getGoogleMapsApiKey } from "@store/utils/googleMapsApiKey"
 import { Loader } from "@googlemaps/js-api-loader"
+import { useAdminBase } from "@store/components/admin/useAdminPanel"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
 export default function AddZone() {
+  const adminBase = useAdminBase()
   const navigate = useNavigate()
   const { id } = useParams()
   const isEditMode = !!id && !window.location.pathname.includes('/view/')
@@ -141,7 +143,7 @@ export default function AddZone() {
     } catch (error) {
       debugError("Error fetching zone:", error)
       alert("Failed to load zone")
-      navigate("/admin/store/zone-setup")
+      navigate(`${adminBase}/zone-setup`)
     } finally {
       setLoading(false)
     }
@@ -666,7 +668,7 @@ export default function AddZone() {
         debugLog("Zone created successfully:", response)
         alert("Zone created successfully!")
       }
-      navigate("/admin/store/zone-setup")
+      navigate(`${adminBase}/zone-setup`)
     } catch (error) {
       debugError("Error creating zone:", error)
       
@@ -702,7 +704,7 @@ export default function AddZone() {
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button
-            onClick={() => navigate("/admin/store/zone-setup")}
+            onClick={() => navigate(`${adminBase}/zone-setup`)}
             className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-slate-600" />
@@ -961,7 +963,7 @@ export default function AddZone() {
           <div className="flex justify-end gap-3 mt-6">
             <button
               type="button"
-              onClick={() => navigate("/admin/store/zone-setup")}
+              onClick={() => navigate(`${adminBase}/zone-setup`)}
               className="px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
             >
               Cancel

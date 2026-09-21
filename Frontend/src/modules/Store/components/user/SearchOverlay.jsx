@@ -1,13 +1,15 @@
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { X, Search, Clock, Loader2, Mic } from "lucide-react"
 import { Button } from "@store/components/ui/button"
 import { Input } from "@store/components/ui/input"
-import { sellerAPI } from "@store/api"
+import { searchAPI } from "@store/api"
 
 const SEARCH_HISTORY_KEY = "user_recent_searches_v1"
 
 export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchChange, isListening, startVoiceSearch }) {
+  const { storePath, fulfilmentMode, isQuick } = useStoreMode()
   const navigate = useNavigate()
   const inputRef = useRef(null)
   const [allProducts, setAllProducts] = useState([])
@@ -57,11 +59,10 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
     const fetchDishesFromDB = async () => {
       setLoadingProducts(true)
       try {
-        const dishesRes = await sellerAPI.getPublicDishes({ limit: 800 })
-        const dishes =
-          dishesRes?.data?.data?.dishes ||
-          dishesRes?.data?.dishes ||
-          []
+        // Suggestions for this storefront only: GET /catalog/search/products
+        // returns { products: [...] } (50 max per page).
+        const productsRes = await searchAPI.searchProducts({ limit: 50, fulfilmentMode })
+        const dishes = productsRes?.data?.data?.products || []
 
         const normalized = (Array.isArray(dishes) ? dishes : [])
           .filter((dish) => dish?.name)
@@ -81,7 +82,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
 
     loadRecentSuggestions()
     fetchDishesFromDB()
-  }, [isOpen])
+  }, [isOpen, fulfilmentMode])
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -132,7 +133,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
     e.preventDefault()
     if (searchValue.trim()) {
       saveRecentSearch(searchValue)
-      navigate(`/user/search?q=${encodeURIComponent(searchValue.trim())}`)
+      navigate(storePath(`/search?q=${encodeURIComponent(searchValue.trim())}`))
       onClose()
       onSearchChange("")
     }
@@ -140,7 +141,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
 
   const handleProductClick = (food) => {
     saveRecentSearch(food.name)
-    navigate(`/user/search?q=${encodeURIComponent(food.name)}`)
+    navigate(storePath(`/search?q=${encodeURIComponent(food.name)}`))
     onClose()
     onSearchChange("")
   }

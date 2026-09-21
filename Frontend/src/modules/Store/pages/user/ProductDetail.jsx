@@ -1,3 +1,4 @@
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { useState, useEffect, useMemo } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation"
@@ -28,6 +29,7 @@ import { useCart } from "@store/context/CartContext"
 import { Button } from "@store/components/ui/button"
 
 export default function ProductDetail() {
+  const { storePath, fulfilmentMode, isQuick } = useStoreMode()
   const { id } = useParams()
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
@@ -108,6 +110,13 @@ export default function ProductDetail() {
     ? currentVariant.inStock
     : product?.isAvailable !== false && (product?.stockQty == null || product.stockQty > 0)
 
+  // The quick store only sells what can go by quick delivery; a variant's own
+  // setting (null = inherit) wins over the product's.
+  const canGoQuick = currentVariant && typeof currentVariant.quickEligible === "boolean"
+    ? currentVariant.quickEligible
+    : product?.quickEligible !== false
+  const notInThisStore = isQuick && !canGoQuick
+
   // Images list: variant images first, then product images
   const allImages = useMemo(() => {
     const list = []
@@ -122,6 +131,9 @@ export default function ProductDetail() {
   }
 
   const handleAddToCart = () => {
+    if (notInThisStore) {
+      return toast.error("This item isn't available for quick delivery. Find it in the Shop.")
+    }
     if (!isAvailable) {
       return toast.error("Selected item variant is currently out of stock")
     }
@@ -413,11 +425,11 @@ export default function ProductDetail() {
 
               <Button
                 onClick={handleAddToCart}
-                disabled={!isAvailable}
+                disabled={!isAvailable || notInThisStore}
                 className="flex-1 py-3.5 px-8 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold shadow-lg shadow-orange-500/25 transition-all text-sm flex items-center justify-center gap-2"
               >
                 <ShoppingBag className="w-5 h-5" />
-                {isAvailable ? "Add to Cart" : "Currently Out of Stock"}
+                {notInThisStore ? "Not available for quick delivery" : (isAvailable ? "Add to Cart" : "Currently Out of Stock")}
               </Button>
             </div>
 
@@ -441,7 +453,7 @@ export default function ProductDetail() {
                 </div>
 
                 <Link
-                  to={`/user/sellers/${seller._id || seller.id}`}
+                  to={storePath(`/sellers/${seller._id || seller.id}`)}
                   className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-0.5"
                 >
                   Visit Store <ChevronRight className="w-4 h-4" />

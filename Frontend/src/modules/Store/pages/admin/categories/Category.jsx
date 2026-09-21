@@ -24,7 +24,11 @@ const defaultFormData = {
   status: true,
   type: "",
   zoneId: "global",
+  commissionPercent: "",
 }
+
+const commissionText = (value) =>
+  value === null || value === undefined || value === "" ? "Inherit" : `${Number(value)}%`
 
 const approvalBadgeClass = (status) => {
   const value = String(status || "pending").toLowerCase()
@@ -180,6 +184,10 @@ export default function Category() {
       status: category?.status !== false,
       type: category?.type || "",
       zoneId: zoneIdValue || "global",
+      commissionPercent:
+        category?.commissionPercent === null || category?.commissionPercent === undefined
+          ? ""
+          : String(category.commissionPercent),
     })
     setSelectedImageFile(null)
     setImagePreview(category?.image || null)
@@ -350,12 +358,23 @@ export default function Category() {
         imageUrl = payload?.url || imageUrl
       }
 
+      const commissionValue = String(formData.commissionPercent ?? "").trim()
+      if (commissionValue !== "") {
+        const n = Number(commissionValue)
+        if (!Number.isFinite(n) || n < 0 || n > 100) {
+          toast.error("Commission must be between 0 and 100")
+          return
+        }
+      }
+
       const payload = {
         name: String(formData.name || "").trim(),
         type: String(formData.type || "").trim(),
         status: Boolean(formData.status),
         image: imageUrl || undefined,
         zoneId: formData.zoneId || "global",
+        // Empty clears it: the category then inherits from its parent (or has none).
+        commissionPercent: commissionValue === "" ? null : Number(commissionValue),
       }
 
       if (editingCategory) {
@@ -447,7 +466,8 @@ export default function Category() {
               <tr>
                 <th className="w-[25%] px-5 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600">Category</th>
                 <th className="w-[17%] px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600">Owner</th>
-                <th className="w-[15%] px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600">Zone</th>
+                <th className="w-[12%] px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600">Zone</th>
+                <th className="w-[8%] px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600">Commission</th>
                 <th className="w-[10%] px-4 py-4 text-center text-[11px] font-bold uppercase tracking-wider text-slate-600">Status</th>
                 <th className="w-[13%] px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600">Approval</th>
                 <th className="w-[20%] px-5 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-slate-600">Actions</th>
@@ -456,14 +476,14 @@ export default function Category() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-20 text-center">
+                  <td colSpan={7} className="px-6 py-20 text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
                     <p className="mt-2 text-sm text-slate-500">Loading categories...</p>
                   </td>
                 </tr>
               ) : filteredCategories.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-20 text-center">
+                  <td colSpan={7} className="px-6 py-20 text-center">
                     <p className="text-lg font-semibold text-slate-700">No categories found</p>
                     <p className="mt-1 text-sm text-slate-500">Try a different search or create a new category.</p>
                   </td>
@@ -519,6 +539,11 @@ export default function Category() {
                             {zoneText}
                           </p>
                         </div>
+                      </td>
+                      <td className="px-4 py-5 text-sm font-medium text-slate-700">
+                        <span className={category?.commissionPercent == null ? "text-slate-400" : ""}>
+                          {commissionText(category?.commissionPercent)}
+                        </span>
                       </td>
                       <td className="px-4 py-5 text-center">
                         <button
@@ -664,6 +689,23 @@ export default function Category() {
                             className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                             placeholder="Enter category name"
                           />
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-slate-700">Commission %</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={formData.commissionPercent}
+                            onChange={(event) => setFormData((prev) => ({ ...prev, commissionPercent: event.target.value }))}
+                            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                            placeholder="Leave empty to inherit from parent (or none)"
+                          />
+                          <p className="mt-1 text-xs text-slate-500">
+                            Platform commission on items in this category. Used when the seller has no commission rule of its own.
+                          </p>
                         </div>
 
                         <div>

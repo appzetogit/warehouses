@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom"
 import io from "socket.io-client"
 import { FileText, Package } from "lucide-react"
 import { adminAPI } from "@store/api"
+import { useAdminPanel } from "@store/components/admin/useAdminPanel"
 import { API_BASE_URL } from "@store/api/config"
 import { toast } from "sonner"
 import OrdersTopbar from "@store/components/admin/orders/OrdersTopbar"
@@ -94,6 +95,10 @@ export default function OrdersPage({ statusKey = "all" }) {
   const socketConnectedRef = useRef(false)
   const apiPageRef = useRef(apiPage)
   const statusKeyRef = useRef(statusKey)
+  // Each admin panel lists only its own orders (quick vs courier-shipped).
+  const { fulfilmentMode } = useAdminPanel()
+  const fulfilmentModeRef = useRef(fulfilmentMode)
+  fulfilmentModeRef.current = fulfilmentMode
   const searchQueryRef = useRef("")
   const appliedFiltersRef = useRef(EMPTY_ORDER_FILTERS)
   const [searchQuery, setSearchQuery] = useState("")
@@ -451,6 +456,7 @@ export default function OrdersPage({ statusKey = "all" }) {
               ? "cancelled"
               : currentStatusKey,
         cancelledBy: currentStatusKey === "seller-cancelled" ? "seller" : undefined,
+        fulfilmentMode: fulfilmentModeRef.current,
         ...buildServerQueryParams(),
       }
 
@@ -838,13 +844,13 @@ export default function OrdersPage({ statusKey = "all" }) {
     setDebouncedSearchQuery("")
     setDraftFilters(EMPTY_ORDER_FILTERS)
     setAppliedFilters(EMPTY_ORDER_FILTERS)
-  }, [statusKey])
+  }, [statusKey, fulfilmentMode])
 
   useEffect(() => {
     apiPageRef.current = 1
     setApiPage(1)
     fetchOrdersRef.current({ silent: false, withRingCheck: false, page: 1, force: true })
-  }, [statusKey, debouncedSearchQuery, appliedFilters])
+  }, [statusKey, fulfilmentMode, debouncedSearchQuery, appliedFilters])
 
   useEffect(() => {
     if (apiPage === 1) return

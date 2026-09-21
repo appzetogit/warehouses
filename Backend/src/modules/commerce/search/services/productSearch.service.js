@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Seller } from '../../seller/models/seller.model.js';
 import { Product } from '../../admin/models/product.model.js';
+import { parseFulfilmentMode, fulfilmentModeProductFilter } from '../validators/storefront.validator.js';
 import { serializeProductVariants } from '../../admin/services/productVariant.service.js';
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -162,7 +163,8 @@ async function facetsFor(match) {
 /**
  * Product search: a grid of things you can buy, across the stores serving a zone.
  *
- * Query: q, categoryId, zoneId, isVeg, inStockOnly, quickOnly, minPrice,
+ * Query: q, categoryId, zoneId, fulfilmentMode (quick|standard), isVeg,
+ * inStockOnly, quickOnly, minPrice,
  * maxPrice, brand (comma list), attr[Name]=v1,v2, sort, page, limit, facets.
  *
  * Matching is by word: each word must appear in the name, brand, tags or
@@ -177,7 +179,10 @@ export async function searchProducts(query = {}) {
     const skip = (pageNumber - 1) * limitNumber;
     const term = String(query.q || '').trim().slice(0, 100);
     const sortKey = SORTS[query.sort] ? query.sort : 'relevance';
-    const { zoneId } = query;
+    const fulfilmentMode = parseFulfilmentMode(query.fulfilmentMode);
+    // Zones are a quick-delivery concept: the shop storefront ships anywhere,
+    // so a zone only narrows the sellers when not browsing the shop.
+    const zoneId = fulfilmentMode === 'standard' ? undefined : query.zoneId;
 
     // Only sellers that are live and serving this zone, so nothing comes back
     // that nobody can deliver.
@@ -197,6 +202,8 @@ export async function searchProducts(query = {}) {
     if (isTrue(query.isVeg)) filters.push({ foodType: 'Veg' });
     if (isTrue(query.inStockOnly)) filters.push({ isAvailable: { $ne: false } });
     if (isTrue(query.quickOnly)) filters.push({ quickEligible: { $ne: false } });
+    const modeFilter = fulfilmentModeProductFilter(fulfilmentMode);
+    if (modeFilter) filters.push(modeFilter);
     const brands = toList(query.brand);
     if (brands.length) filters.push({ brand: { $in: brands.map((b) => new RegExp(`^${escapeRegex(b)}$`, 'i')) } });
     const price = priceFilter(toNumber(query.minPrice), toNumber(query.maxPrice));

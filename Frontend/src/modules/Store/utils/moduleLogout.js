@@ -83,6 +83,7 @@ function clearModuleLocalExtras(module) {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("user");
       localStorage.removeItem("cart");
+      localStorage.removeItem("cart_quick");
       USER_SESSION_PREFERENCE_KEYS.forEach((key) => localStorage.removeItem(key));
     } catch {
       // ignore

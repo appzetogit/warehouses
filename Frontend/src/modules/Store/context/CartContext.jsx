@@ -1,4 +1,5 @@
 // src/context/cart-context.jsx
+import { cartStorageKeyFor } from "@store/context/StoreModeContext"
 import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { buildCartLineId } from "@store/utils/productVariants"
 import { userAPI } from "@/services/api"
@@ -161,12 +162,14 @@ const resolveCartEntryId = (items, itemId, variantId = "") => {
   return preferredId
 }
 
-export function CartProvider({ children }) {
+export function CartProvider({ children, mode = "shop" }) {
+  // Each storefront (shop "/" and quick "/quick") keeps its own cart.
+  const storageKey = cartStorageKeyFor(mode)
   // Safe init (works with SSR and bad JSON)
   const [cart, setCart] = useState(() => {
     if (typeof window === "undefined") return []
     try {
-      const saved = localStorage.getItem("cart")
+      const saved = localStorage.getItem(storageKey)
       const parsed = saved ? JSON.parse(saved) : []
       return normalizeCartData(parsed)
     } catch {
@@ -185,12 +188,12 @@ export function CartProvider({ children }) {
       // Only save if we have items or user is authenticated to avoid cluttering localStorage for every guest visitor
       const isAuthenticated = localStorage.getItem("user_authenticated") === "true" || !!localStorage.getItem("user_accessToken");
       if (cart.length > 0 || isAuthenticated) {
-        localStorage.setItem("cart", JSON.stringify(normalizeCartData(cart)))
+        localStorage.setItem(storageKey, JSON.stringify(normalizeCartData(cart)))
       }
     } catch {
       // ignore storage errors (private mode, quota, etc.)
     }
-  }, [cart])
+  }, [cart, storageKey])
 
   const cartSyncTimerRef = useRef(null)
 
@@ -247,7 +250,7 @@ export function CartProvider({ children }) {
         : 1
 
     const safeCart = normalizeCartData(cart)
-    const isStandardMode = typeof localStorage !== 'undefined' && localStorage.getItem('commerce_delivery_mode') === 'standard'
+    const isStandardMode = mode !== "quick"
     if (!forceReplace && safeCart.length > 0 && !isStandardMode) {
       const firstItemSellerId = safeCart[0]?.sellerId
       const firstItemSellerName = safeCart[0]?.seller
@@ -633,6 +636,8 @@ export function CartProvider({ children }) {
   const value = useMemo(
     () => ({
       _isProvider: true, // Flag to identify this is from the actual provider
+      storeMode: mode,
+      fulfilmentMode: mode === "quick" ? "quick" : "standard",
       // Keep original cart array for backward compatibility
       cart,
       // Add animation-compatible structure
@@ -654,7 +659,7 @@ export function CartProvider({ children }) {
       confirmReplaceCart,
       cancelReplaceCart,
     }),
-    [cart, cartForAnimation, lastAddEvent, lastRemoveEvent, cartReplacePrompt]
+    [cart, cartForAnimation, lastAddEvent, lastRemoveEvent, cartReplacePrompt, mode]
   )
 
   return (

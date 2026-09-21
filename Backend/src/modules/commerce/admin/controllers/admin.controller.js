@@ -7,6 +7,7 @@ import { validateAddDeliveryBonusDto } from '../validators/deliveryBonus.validat
 import { validateCheckCompletionsDto, validateEarningAddonHistoryActionDto, validateEarningAddonUpsertDto, validateToggleEarningAddonStatusDto } from '../validators/earningAddon.validator.js';
 import { validateDeliveryCommissionRuleDto, validateOptionalStatusDto, validateSellerCommissionUpsertDto } from '../validators/commission.validator.js';
 import { validateFeeSettingsUpsertDto } from '../validators/feeSettings.validator.js';
+import { validateFulfilmentModeQuery } from '../validators/adminPanel.validator.js';
 import { validateDeliveryEmergencyHelpUpsertDto } from '../validators/deliveryEmergencyHelp.validator.js';
 import { validateReferralSettingsUpsertDto } from '../validators/referralSettings.validator.js';
 import { ADMIN_ACTIONS, ADMIN_PERMISSION_SECTIONS, sanitizeAdminPermissions } from '../../../../constants/permissions.js';
@@ -255,7 +256,8 @@ export async function getSellerReport(req, res, next) {
 
 export async function getDashboardStats(req, res, next) {
     try {
-        const data = await adminService.getDashboardStats(req.query || {});
+        const fulfilmentMode = validateFulfilmentModeQuery(req.query);
+        const data = await adminService.getDashboardStats({ ...(req.query || {}), fulfilmentMode });
         res.status(200).json({
             success: true,
             message: 'Dashboard stats fetched successfully',
@@ -535,7 +537,8 @@ export async function deleteSeller(req, res, next) {
 // ----- Products -----
 export async function getProducts(req, res, next) {
     try {
-        const data = await adminService.getProducts(req.query || {});
+        const fulfilmentMode = validateFulfilmentModeQuery(req.query);
+        const data = await adminService.getProducts({ ...(req.query || {}), fulfilmentMode });
         res.status(200).json({ success: true, message: 'Products fetched successfully', data });
     } catch (error) {
         next(error);
@@ -1636,7 +1639,8 @@ export async function getCashLimitSettlements(req, res, next) {
 
 export async function getSidebarBadges(req, res, next) {
     try {
-        const counts = await adminService.getSidebarBadges();
+        const fulfilmentMode = validateFulfilmentModeQuery(req.query);
+        const counts = await adminService.getSidebarBadges({ fulfilmentMode });
         res.status(200).json({ success: true, counts });
     } catch (error) {
         next(error);

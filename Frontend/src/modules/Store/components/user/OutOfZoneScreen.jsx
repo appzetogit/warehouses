@@ -1,10 +1,12 @@
 import React from "react";
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { MapPin, ChevronDown } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import outOfZoneBg from "@store/assets/Outofzone_bg.jpg";
 import { useCompanyName } from "@store/hooks/useCompanyName"
 
 const OutOfZoneScreen = ({ location }) => {
+  const { storePath } = useStoreMode()
   const companyName = useCompanyName()
 
   const routerLocation = useLocation();
@@ -30,7 +32,7 @@ const OutOfZoneScreen = ({ location }) => {
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <Link
-              to="/cart/address-selector"
+              to={storePath("/cart/address-selector")}
               state={{ from: routerLocation.pathname }}
               className="inline-flex items-center gap-2 cursor-pointer group max-w-full no-underline"
             >

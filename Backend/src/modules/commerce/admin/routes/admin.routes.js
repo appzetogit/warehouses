@@ -25,6 +25,7 @@ import * as sellerAppBanner from '../controllers/sellerAppBanner.controller.js';
 import * as coinController from '../../coins/controllers/coin.controller.js';
 import * as spinController from '../../spin/controllers/spin.controller.js';
 import * as dailyMetricsController from '../controllers/dailyMetrics.controller.js';
+import * as reportsController from '../controllers/reports.controller.js';
 
 const router = express.Router();
 
@@ -186,6 +187,12 @@ router.get('/reports/transactions', adminController.getTransactionReport);
 router.get('/reports/tax', adminController.getTaxReport);
 router.get('/reports/payments/reconciliation', paymentController.getPaymentReconciliationController);
 router.get('/reports/tax/:id', adminController.getTaxReportDetail);
+router.get('/reports/delivery-sla', reportsController.getDeliverySlaReportController);
+router.get('/reports/delivery-sla/export', reportsController.exportDeliverySlaReportController);
+router.get('/reports/commission', reportsController.getCommissionReportController);
+router.get('/reports/commission/export', reportsController.exportCommissionReportController);
+router.get('/reports/coin-liability', reportsController.getCoinLiabilityReportController);
+router.get('/reports/coin-liability/export', reportsController.exportCoinLiabilityReportController);
 router.get('/sellers/pending', adminController.getPendingSellers);
 router.get('/sellers/unregistered', adminController.getUnregisteredSellers);
 router.delete('/sellers/unregistered/:id', adminController.deleteUnregisteredSeller);

@@ -1,3 +1,4 @@
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { useSearchParams, Link, useNavigate } from "react-router-dom"
 import { 
@@ -38,6 +39,7 @@ function useDebounce(value, delay) {
 const SEARCH_HISTORY_KEY = "professional_search_history_v1"
 
 export default function ProfessionalSearch() {
+  const { isQuick, fulfilmentMode, storePath } = useStoreMode()
   const [searchParams, setSearchParams] = useSearchParams()
   const initialQuery = searchParams.get("q") || ""
   const navigate = useNavigate()
@@ -117,13 +119,14 @@ export default function ProfessionalSearch() {
         lng: userCoords?.longitude,
         zoneId,
         strictZone: catId ? "true" : "false",
+        fulfilmentMode,
       })
       
       if (res.data?.success) {
         // Grouping results into Sellers and potential Dishes
         const all = (res.data.data.sellers || []).filter((row) => {
           const sellerZoneId = row?.zoneId || row?.zone?._id || row?.zone || null
-          if (zoneId && sellerZoneId && String(sellerZoneId) !== String(zoneId)) {
+          if (isQuick && zoneId && sellerZoneId && String(sellerZoneId) !== String(zoneId)) {
             return false
           }
           return true
@@ -138,7 +141,7 @@ export default function ProfessionalSearch() {
     } finally {
       setLoading(false)
     }
-  }, [userCoords, zoneId])
+  }, [userCoords, zoneId, isQuick, fulfilmentMode])
 
   useEffect(() => {
     performSearch(debouncedQuery, selectedCategoryId)
@@ -296,7 +299,7 @@ export default function ProfessionalSearch() {
                 </div>
                 <div className="grid gap-4">
                   {results.dishes.map((r) => (
-                    <Link to={`/user/sellers/${r.slug || r._id}${r.matchedDishId ? `?dish=${r.matchedDishId}` : ''}`} key={r._id} className="flex gap-4 p-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 hover:shadow-md transition-shadow group">
+                    <Link to={storePath(`/sellers/${r.slug || r._id}${r.matchedDishId ? `?dish=${r.matchedDishId}` : ''}`)} key={r._id} className="flex gap-4 p-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 hover:shadow-md transition-shadow group">
                        <div className="w-24 h-24 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
                            <img 
                             src={getMediaUrl(r.matchedDishImage || r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 
@@ -333,7 +336,7 @@ export default function ProfessionalSearch() {
                 </div>
                 <div className="grid gap-6">
                   {results.sellers.map((r) => (
-                    <Link to={`/user/sellers/${r._id}`} key={r._id} className="block group">
+                    <Link to={storePath(`/sellers/${r._id}`)} key={r._id} className="block group">
                       <div className="relative rounded-3xl overflow-hidden aspect-[16/9] mb-3 bg-slate-200">
                          <img 
                           src={getMediaUrl(r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 

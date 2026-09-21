@@ -11,6 +11,7 @@ import { getGoogleMapsApiKey } from "@store/utils/googleMapsApiKey"
 import locationIcon from "@store/assets/Dashboard-icons/image1.png"
 import sellerIcon from "@store/assets/Dashboard-icons/image2.png"
 import inactiveIcon from "@store/assets/Dashboard-icons/image3.png"
+import { useAdminBase } from "@store/components/admin/useAdminPanel"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -162,6 +163,7 @@ const getPrimarySellerImage = (seller, fallback = "") => {
 
 
 export default function SellersList() {
+  const adminBase = useAdminBase()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
@@ -325,7 +327,7 @@ export default function SellersList() {
           try {
             clearModuleAuth("admin")
           } catch (_) {}
-          navigate("/admin/login", { replace: true, state: { from: "/admin/store/sellers" } })
+          navigate("/admin/login", { replace: true, state: { from: `${adminBase}/sellers` } })
           return
         }
         setError(serverMessage || err.message || "Failed to fetch sellers")
@@ -1278,7 +1280,7 @@ export default function SellersList() {
 
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate("/admin/store/sellers/add")}
+                onClick={() => navigate(`${adminBase}/sellers/add`)}
                 className="px-4 py-2.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 transition-all"
               >
                 <Plus className="w-4 h-4" />
@@ -1346,7 +1348,7 @@ export default function SellersList() {
                 <p className="text-sm text-slate-500 mb-4">{error}</p>
                 <button
                   type="button"
-                  onClick={() => navigate("/admin/login", { replace: true, state: { from: "/admin/store/sellers" } })}
+                  onClick={() => navigate("/admin/login", { replace: true, state: { from: `${adminBase}/sellers` } })}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Log in as admin

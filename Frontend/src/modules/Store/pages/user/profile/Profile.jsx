@@ -314,6 +314,7 @@ export default function Profile() {
       localStorage.removeItem("user_user");
       localStorage.removeItem("user");
       localStorage.removeItem("cart");
+      localStorage.removeItem("cart_quick");
       USER_SESSION_PREFERENCE_KEYS.forEach((key) => localStorage.removeItem(key));
       window.dispatchEvent(new Event("userAuthChanged"));
       navigate("/auth/login", { replace: true });
@@ -333,6 +334,7 @@ export default function Profile() {
       localStorage.removeItem("user_user");
       localStorage.removeItem("user");
       localStorage.removeItem("cart");
+      localStorage.removeItem("cart_quick");
       USER_SESSION_PREFERENCE_KEYS.forEach((key) => localStorage.removeItem(key));
       
       window.dispatchEvent(new Event("userAuthChanged"));

@@ -46,10 +46,16 @@ import {
   IndianRupee,
   PiggyBank,
   Lock,
+  Disc3,
+  Scale,
+  Timer,
+  Percent,
+  Coins,
 } from "lucide-react"
 import { cn } from "@store/utils/utils"
 import { Input } from "@store/components/ui/input"
-import { adminSidebarMenu } from "@store/utils/adminSidebarMenu"
+import { adminSidebarMenu, getAdminSidebarMenu } from "@store/utils/adminSidebarMenu"
+import { useAdminPanel } from "./useAdminPanel"
 import { adminAPI } from "@store/api"
 import { getCachedSettings, loadBusinessSettings } from "@store/utils/businessSettings"
 import { canAccessFeatureSettings, canAccessSuperPowers } from "@store/utils/adminPermissions"
@@ -62,6 +68,11 @@ const debugError = (...args) => {}
 
 // Icon mapping
 const iconMap = {
+  Disc3,
+  Scale,
+  Timer,
+  Percent,
+  Coins,
   LayoutDashboard,
   UtensilsCrossed,
   Building2,
@@ -131,6 +142,9 @@ const SIDEBAR_LABEL_BY_PATH = buildLabelDictionary(adminSidebarMenu)
 
 export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange }) {
   const location = useLocation()
+  const { panel, fulfilmentMode } = useAdminPanel()
+  const base = `/admin/${panel}`
+  const panelMenu = useMemo(() => getAdminSidebarMenu(panel), [panel])
   const [searchQuery, setSearchQuery] = useState("")
   const [badges, setBadges] = useState({})
   const [sellerSubscriptionEnabled, setSellerSubscriptionEnabled] = useState(true)
@@ -182,7 +196,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
   useEffect(() => {
     const fetchBadges = async () => {
       try {
-        const res = await adminAPI.getSidebarBadges()
+        const res = await adminAPI.getSidebarBadges({ fulfilmentMode })
         if (res?.data?.success) {
           setBadges(res.data.counts || {})
         }
@@ -193,7 +207,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     fetchBadges()
     const timer = setInterval(fetchBadges, 60000)
     return () => clearInterval(timer)
-  }, [])
+  }, [fulfilmentMode])
 
   useEffect(() => {
     setCanViewFeatureSettings(canAccessFeatureSettings(adminUser))
@@ -277,14 +291,14 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
   }, [adminUser])
 
   const menuData = useMemo(() => {
-    const featureSettingsPath = "/admin/store/feature-settings"
-    const subscriptionSettingsPath = "/admin/store/sellers/subscription-settings"
-    const subscriptionHistoryPath = "/admin/store/sellers/subscription-history"
-    const deliveryCashLimitPath = "/admin/store/delivery-cash-limit"
-    const cashLimitSettlementPath = "/admin/store/cash-limit-settlement"
-    const offlinePaymentsPath = "/admin/store/orders/offline-payments"
+    const featureSettingsPath = `${base}/feature-settings`
+    const subscriptionSettingsPath = `${base}/sellers/subscription-settings`
+    const subscriptionHistoryPath = `${base}/sellers/subscription-history`
+    const deliveryCashLimitPath = `${base}/delivery-cash-limit`
+    const cashLimitSettlementPath = `${base}/cash-limit-settlement`
+    const offlinePaymentsPath = `${base}/orders/offline-payments`
 
-    const mapped = adminSidebarMenu.map((section) => {
+    const mapped = panelMenu.map((section) => {
       if (section.type === "link") {
         const permissionSection = resolvePermissionSectionByPath(section.path)
         if (!permissionSection && !isSuperAdmin(adminUser)) {
@@ -324,7 +338,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                   if (!sub?.path) return false
                   if ((sub.path === subscriptionSettingsPath || sub.path === subscriptionHistoryPath) && !sellerSubscriptionEnabled) return false
                   if (sub.path === offlinePaymentsPath && !codControlEnabled) return false
-                  if (sub.path === "/admin/store/sellers/unregistered" && !rootLandingAndUnregisteredControlEnabled) return false
+                  if (sub.path === `${base}/sellers/unregistered` && !rootLandingAndUnregisteredControlEnabled) return false
                   const permissionSection = resolvePermissionSectionByPath(sub.path)
                   if (!permissionSection && !isSuperAdmin(adminUser)) return false
                   if (permissionSection && !canAdminAccess(adminUser, permissionSection, "view")) return false
@@ -350,7 +364,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
       if (section?.type !== "section") return true
       return Array.isArray(section.items) && section.items.length > 0
     })
-  }, [adminAccessSectionEnabled, adminUser, canViewFeatureSettings, codControlEnabled, sellerSubscriptionEnabled, rootLandingAndUnregisteredControlEnabled])
+  }, [panelMenu, base, adminAccessSectionEnabled, adminUser, canViewFeatureSettings, codControlEnabled, sellerSubscriptionEnabled, rootLandingAndUnregisteredControlEnabled])
 
   const getBadgeCount = (label = "", path = "") => {
     const l = label.toLowerCase()
@@ -584,7 +598,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     const matchesPath = (candidatePath) =>
       currentPath === candidatePath || currentPath.startsWith(`${candidatePath}/`)
 
-    if (targetPath === "/admin" || targetPath === "/admin/store") {
+    if (targetPath === "/admin" || targetPath === base) {
       return currentPath === targetPath
     }
 

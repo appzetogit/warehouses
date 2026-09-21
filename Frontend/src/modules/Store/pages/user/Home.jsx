@@ -1,4 +1,5 @@
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useStoreMode } from "@store/context/StoreModeContext"
 import React, {
   useRef,
   useEffect,
@@ -484,6 +485,7 @@ const SellerCard = React.memo(({
   sellerSlug: propSellerSlug,
   onNavigateAway,
 }) => {
+  const { storePath } = useStoreMode()
   const [slideIndex, setSlideIndex] = useState(0);
   const [offerIndex, setOfferIndex] = useState(0);
   const validRecommendedItems = useMemo(() => {
@@ -627,7 +629,7 @@ const SellerCard = React.memo(({
 
           {/* Content Section - Links to seller ONLY */}
           <Link
-            to={`/sellers/${sellerSlug}`}
+            to={storePath(`/sellers/${sellerSlug}`)}
             state={{}}
             onClick={() => {
               onNavigateAway?.();
@@ -749,6 +751,7 @@ const SellerCard = React.memo(({
 });
 
 export default function Home() {
+  const { storePath } = useStoreMode()
   const HERO_BANNER_AUTO_SLIDE_MS = 3500;
   const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
   const navigate = useNavigate();
@@ -2664,7 +2667,7 @@ export default function Home() {
   }, [openLocationSelector]);
 
   const handleSearchFocus = useCallback(() => {
-    navigate("/search");
+    navigate(storePath("/search"));
   }, [navigate]);
 
   const handleSearchClose = useCallback(() => {
@@ -2793,7 +2796,7 @@ export default function Home() {
                 const firstSeller = linkedSellers[0];
                 const sellerSlug = firstSeller.slug || firstSeller.sellerId || firstSeller._id;
                 captureScrollBeforeSellerNav();
-                navigate(`/sellers/${sellerSlug}`);
+                navigate(storePath(`/sellers/${sellerSlug}`));
               }
             }}
             aria-label={`Open hero banner ${currentBannerIndex + 1}`}
@@ -2827,7 +2830,7 @@ export default function Home() {
             What's on your mind today?
           </h2>
           <Link
-            to="/categories"
+            to={storePath("/categories")}
             className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 transition-colors">
             View All
             <ArrowRightLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -2851,7 +2854,7 @@ export default function Home() {
             displayCategories.slice(0, 12).map((category, index) => (
               <Link
                 key={category.id || index}
-                to={`/category/${category.slug || category.name.toLowerCase().replace(/\s+/g, "-")}`}
+                to={storePath(`/category/${category.slug || category.name.toLowerCase().replace(/\s+/g, "-")}`)}
                 className="flex-shrink-0 flex flex-col items-center gap-2 group transition-all duration-300 hover:-translate-y-1"
                 style={{ animation: `fade-in-up 0.5s ease-out forwards ${index * 0.05}s`, opacity: 0 }}
               >
@@ -2874,7 +2877,7 @@ export default function Home() {
           {!showCategorySkeleton && (isCategoryStuck || displayCategories.length > 12) && (
             <div
               className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer group"
-              onClick={() => navigate("/categories")}
+              onClick={() => navigate(storePath("/categories"))}
             >
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-orange-50 dark:bg-orange-950 flex items-center justify-center border border-orange-100 group-hover:border-[#EB590E] transition-all">
                 <Plus className="w-6 h-6 text-[#EB590E]" />
@@ -3091,7 +3094,7 @@ export default function Home() {
                 }`}
               >
                 <Zap className="w-3.5 h-3.5" />
-                <span>Quick</span>
+                <span>Quick · 10 min</span>
               </button>
               <button
                 type="button"
@@ -3103,7 +3106,7 @@ export default function Home() {
                 }`}
               >
                 <Package className="w-3.5 h-3.5" />
-                <span>Standard</span>
+                <span>Shop</span>
               </button>
             </div>
           </div>
@@ -3154,7 +3157,7 @@ export default function Home() {
                       viewport={{ once: true }}
                       transition={{ duration: 0.35, delay: index * 0.05 }}>
                       <Link
-                        to={`/sellers/${sellerSlug}`}
+                        to={storePath(`/sellers/${sellerSlug}`)}
                         onClick={captureScrollBeforeSellerNav}
                         className="block rounded-[20px] overflow-hidden border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] shadow-sm hover:shadow-md transition-shadow">
                         <div className="relative h-24 sm:h-28 md:h-32 bg-gray-50">

@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@store/compone
 import { Popover, PopoverContent, PopoverTrigger } from "@store/components/ui/popover"
 import { getProductDisplayOtherPrice, getProductDisplayPrice, getProductVariants } from "@store/utils/productVariants"
 import { canCurrentAdminAction } from "@store/utils/adminRbac"
+import VariantMatrixEditor, { createVariantDraft, toVariantPayload } from "@store/components/admin/products/VariantMatrixEditor"
+import { useAdminPanel } from "@store/components/admin/useAdminPanel"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -40,12 +42,6 @@ const createProductForm = () => ({
   preparationTime: "",
 })
 
-const createVariantDraft = (variant = {}) => ({
-  id: String(variant?.id || variant?._id || `variant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
-  name: String(variant?.name || ""),
-  price: variant?.price != null ? String(variant.price) : "",
-  otherPrice: variant?.otherPrice != null ? String(variant.otherPrice) : "",
-})
 
 const PRODUCT_FALLBACK_IMAGE =
   "data:image/svg+xml;utf8," +
@@ -58,6 +54,7 @@ const PRODUCT_FALLBACK_IMAGE =
   )
 
 export default function ProductsList() {
+  const { fulfilmentMode } = useAdminPanel()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSeller, setSelectedSeller] = useState("all")
   const [products, setProducts] = useState([])
@@ -184,7 +181,7 @@ export default function ProductsList() {
     try {
       setLoading(true)
 
-      const params = { page: currentPage, limit: pageSize }
+      const params = { page: currentPage, limit: pageSize, fulfilmentMode }
       if (selectedSeller !== "all") params.sellerId = selectedSeller
       if (debouncedSearchQuery) params.search = debouncedSearchQuery
 
@@ -208,6 +205,8 @@ export default function ProductsList() {
             price: getProductDisplayPrice(f),
             otherPrice: getProductDisplayOtherPrice(f),
             variants: getProductVariants(f),
+            // Full variant records (sku, attributes, stock...) for the variant editor.
+            rawVariants: Array.isArray(f.variants) ? f.variants : Array.isArray(f.variations) ? f.variations : [],
             foodType: f.foodType === "Veg" || f.foodType === "Non-Veg" ? f.foodType : "",
             approvalStatus: f.approvalStatus || "approved",
             description: f.description || "",
@@ -241,7 +240,7 @@ export default function ProductsList() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, pageSize, selectedSeller, debouncedSearchQuery])
+  }, [currentPage, pageSize, selectedSeller, debouncedSearchQuery, fulfilmentMode])
 
   useEffect(() => {
     fetchAllProducts()
@@ -374,7 +373,7 @@ export default function ProductsList() {
       name: String(food.name || ""),
       price: String(food.price || ""),
       otherPrice: String(food.otherPrice || ""),
-      variants: getProductVariants(food).map(createVariantDraft),
+      variants: (food.rawVariants?.length ? food.rawVariants : getProductVariants(food)).map(createVariantDraft),
       description: String(food.description || ""),
       image: String(food.image || ""),
       foodType: food.foodType === "Veg" || food.foodType === "Non-Veg" ? food.foodType : "",
@@ -432,29 +431,9 @@ export default function ProductsList() {
     }
   }, [showProductFormModal])
 
-  const handleVariantChange = (variantId, field, value) => {
-    setProductForm((prev) => ({
-      ...prev,
-      variants: (Array.isArray(prev.variants) ? prev.variants : []).map((variant) =>
-        variant.id === variantId ? { ...variant, [field]: value } : variant,
-      ),
-    }))
-  }
-
-  const handleAddVariant = () => {
+  const handleVariantsChange = (variants) => {
     if (!ensureActionAccess(productFormMode === "edit" ? "edit" : "create")) return
-    setProductForm((prev) => ({
-      ...prev,
-      variants: [...(Array.isArray(prev.variants) ? prev.variants : []), createVariantDraft()],
-    }))
-  }
-
-  const handleRemoveVariant = (variantId) => {
-    if (!ensureActionAccess(productFormMode === "edit" ? "edit" : "create")) return
-    setProductForm((prev) => ({
-      ...prev,
-      variants: (Array.isArray(prev.variants) ? prev.variants : []).filter((variant) => variant.id !== variantId),
-    }))
+    setProductForm((prev) => ({ ...prev, variants }))
   }
 
   const handleProductFormSubmit = async () => {
@@ -472,28 +451,15 @@ export default function ProductsList() {
       return
     }
 
-    const normalizedVariants = (Array.isArray(productForm.variants) ? productForm.variants : [])
-      .map((variant) => ({
-        id: String(variant?.id || variant?._id || "").trim(),
-        name: String(variant?.name || "").trim(),
-        price: Number(variant?.price),
-        otherPrice: Number(variant?.otherPrice) || 0,
-      }))
-      .filter((variant) => variant.id || variant.name || variant.price)
+    const [variantError, variantPayload] = toVariantPayload(Array.isArray(productForm.variants) ? productForm.variants : [])
+    if (variantError) {
+      toast.error(variantError)
+      return
+    }
 
-    const hasVariants = normalizedVariants.length > 0
+    const hasVariants = variantPayload.length > 0
     const parsedPrice = Number(productForm.price)
     const parsedOtherPrice = Number(productForm.otherPrice) || 0
-
-    if (normalizedVariants.some((variant) => !variant.name)) {
-      toast.error("Each variant must have a name")
-      return
-    }
-
-    if (normalizedVariants.some((variant) => !Number.isFinite(variant.price) || variant.price <= 0)) {
-      toast.error("Each variant price must be greater than 0")
-      return
-    }
 
     if (!hasVariants && (!Number.isFinite(parsedPrice) || parsedPrice <= 0)) {
       toast.error("Base price must be greater than 0")
@@ -543,12 +509,7 @@ export default function ProductsList() {
         name: productForm.name.trim(),
         price: hasVariants ? undefined : parsedPrice,
         otherPrice: hasVariants ? 0 : parsedOtherPrice,
-        variants: normalizedVariants.map((variant) => ({
-          ...(variant.id && !variant.id.startsWith("variant-") ? { _id: variant.id } : {}),
-          name: variant.name,
-          price: variant.price,
-          otherPrice: variant.otherPrice > 0 ? variant.otherPrice : 0,
-        })),
+        variants: variantPayload,
         description: productForm.description.trim(),
         image: imageUrl,
         images: imageUrls,
@@ -1128,7 +1089,7 @@ export default function ProductsList() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-5xl p-0 overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b border-slate-200 bg-slate-50">
             <DialogTitle className="text-lg font-semibold text-slate-900">
               {productFormMode === "edit" ? "Edit Product" : "Add Product"}
@@ -1358,74 +1319,12 @@ export default function ProductsList() {
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white resize-none"
               />
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">Variants</p>
-                  <p className="text-xs text-slate-500">Optional. Add multiple names and prices such as Half, Full, Small, or Large.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAddVariant}
-                  className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-50"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add variant
-                </button>
-              </div>
-              {(productForm.variants || []).length ? (
-                <div className="space-y-3">
-                  {(productForm.variants || []).map((variant, index) => (
-                    <div key={variant.id} className="grid grid-cols-[1fr_auto] gap-3 rounded-lg border border-slate-200 bg-white p-3">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">Variant name</label>
-                          <input
-                            type="text"
-                            value={variant.name}
-                            onChange={(e) => handleVariantChange(variant.id, "name", e.target.value)}
-                            placeholder={index === 0 ? "Full" : "Half"}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">Variant price</label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={variant.price}
-                            onChange={(e) => handleVariantChange(variant.id, "price", e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-600 mb-1">Other price</label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={variant.otherPrice}
-                            onChange={(e) => handleVariantChange(variant.id, "otherPrice", e.target.value)}
-                            placeholder="Optional"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveVariant(variant.id)}
-                        className="self-start rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
-                        aria-label="Remove variant"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-500">No variants added. This product will use the single base price.</p>
-              )}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <VariantMatrixEditor
+                categoryId={productForm.categoryId}
+                variants={productForm.variants || []}
+                onChange={handleVariantsChange}
+              />
             </div>
             <div className="flex justify-end">
               <button

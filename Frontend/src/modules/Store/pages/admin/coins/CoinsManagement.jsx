@@ -594,7 +594,7 @@ export default function CoinsManagement() {
                           </span>
                         </td>
                         <td className="p-3 font-semibold text-gray-900 dark:text-white">
-                          {entry.type === "debit" || entry.amount < 0 ? `-${entry.amount}` : `+${entry.amount}`}
+                          {["debit", "expire", "adjust"].includes(entry.type) ? `-${Math.abs(entry.amount)}` : `+${entry.amount}`}
                         </td>
                         <td className="p-3 text-gray-600 dark:text-gray-400">
                           {entry.spendable != null ? entry.spendable : "—"}

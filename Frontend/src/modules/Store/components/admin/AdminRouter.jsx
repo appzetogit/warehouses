@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet, useLocation, useParams } from "react-router-dom";
+import { ADMIN_PANELS, DEFAULT_ADMIN_PANEL, useAdminBase } from "./useAdminPanel";
 import ProtectedRoute from "./ProtectedRoute";
 import AuthRedirect from "@store/components/AuthRedirect";
 import AdminLayout from "./AdminLayout";
@@ -61,6 +62,11 @@ const AddFund = lazy(() => import("@store/pages/admin/wallet/AddFund"));
 const Bonus = lazy(() => import("@store/pages/admin/wallet/Bonus"));
 const CoinsManagement = lazy(() => import("@store/pages/admin/coins/CoinsManagement"));
 const AttributesPage = lazy(() => import("@store/pages/admin/attributes/AttributesPage"));
+const SpinCampaigns = lazy(() => import("@store/pages/admin/spin/SpinCampaigns"));
+const PaymentReconciliation = lazy(() => import("@store/pages/admin/payments/PaymentReconciliation"));
+const DeliverySlaReport = lazy(() => import("@store/pages/admin/reports/DeliverySlaReport"));
+const CommissionReport = lazy(() => import("@store/pages/admin/reports/CommissionReport"));
+const CoinLiabilityReport = lazy(() => import("@store/pages/admin/reports/CoinLiabilityReport"));
 const SubscribedMailList = lazy(() => import("@store/pages/admin/SubscribedMailList"));
 // Deliveryman Management
 const DeliveryBoyCommission = lazy(() => import("@store/pages/admin/DeliveryBoyCommission"));
@@ -137,10 +143,23 @@ const EditSeller = lazy(() => import("@store/pages/admin/seller/EditSeller"));
 const AdminLogin = lazy(() => import("@store/pages/admin/auth/AdminLogin"));
 const AdminForgotPassword = lazy(() => import("@store/pages/admin/auth/AdminForgotPassword"));
 
+/** Redirect to a path inside the current panel ("" is the panel dashboard). */
+function PanelRedirect({ to = "" }) {
+  const base = useAdminBase();
+  return <Navigate to={`${base}${to}`} replace />;
+}
+
+/** Only /admin/quick and /admin/shop are panels; anything else goes to the quick dashboard. */
+function AdminPanelGate() {
+  const { panel } = useParams();
+  if (!ADMIN_PANELS[panel]) return <Navigate to={`/admin/${DEFAULT_ADMIN_PANEL}`} replace />;
+  return <Outlet />;
+}
+
 function FeatureSettingsRouteGuard() {
   const adminUser = getCurrentUser("admin");
   if (!canAccessFeatureSettings(adminUser)) {
-    return <Navigate to="/admin/store" replace />;
+    return <PanelRedirect />;
   }
   return <FeatureSettings />;
 }
@@ -148,7 +167,7 @@ function FeatureSettingsRouteGuard() {
 function SuperPowersRouteGuard({ children }) {
   const adminUser = getCurrentUser("admin");
   if (!canAccessSuperPowers(adminUser)) {
-    return <Navigate to="/admin/store" replace />;
+    return <PanelRedirect />;
   }
   return children;
 }
@@ -190,12 +209,12 @@ function UnregisteredSellersRouteGuard() {
   }, []);
 
   if (loading) return <Loader />;
-  if (!isEnabled) return <Navigate to="/admin/sellers" replace />;
+  if (!isEnabled) return <PanelRedirect to="/sellers" />;
   return <UnregisteredSellers />;
 }
 
 /**
- * Sends the old /admin/food/* addresses to their /admin/store/* equivalents.
+ * Sends the old /admin/food/* and /admin/store/* addresses to /admin/quick/*.
  *
  * A redirect rather than a second copy of the route table: duplicating ~170
  * routes to keep two spellings alive would mean every future change had to be
@@ -206,7 +225,7 @@ function UnregisteredSellersRouteGuard() {
 function LegacyStorePathRedirect() {
   const location = useLocation();
   const target =
-    location.pathname.replace(/^\/admin\/food/, "/admin/store") +
+    location.pathname.replace(/^\/admin\/(food|store)/, `/admin/${DEFAULT_ADMIN_PANEL}`) +
     location.search +
     location.hash;
   return <Navigate to={target} replace />;
@@ -240,11 +259,14 @@ export default function AdminRouter() {
           }
         >
           {/* Default Admin Redirect */}
-          <Route path="/" element={<Navigate to="store" replace />} />
+          <Route path="/" element={<Navigate to={DEFAULT_ADMIN_PANEL} replace />} />
 
-          {/* Quick-commerce administration. Everything below hangs off /admin/store. */}
           <Route path="food/*" element={<LegacyStorePathRedirect />} />
-          <Route path="store/*">
+          <Route path="store/*" element={<LegacyStorePathRedirect />} />
+
+          {/* Two panels over the same pages: /admin/quick (rider delivery) and
+              /admin/shop (courier shipping). Pages read the panel via useAdminPanel(). */}
+          <Route path=":panel/*" element={<AdminPanelGate />}>
             <Route index element={<AdminHome />} />
             <Route path="point-of-sale" element={<PointOfSale />} />
             <Route path="profile" element={<AdminProfile />} />
@@ -252,9 +274,9 @@ export default function AdminRouter() {
             
             {/* ORDER MANAGEMENT */}
             <Route path="orders/all" element={<OrdersPage statusKey="all" />} />
-            <Route path="orders/scheduled" element={<Navigate to="/admin/food/orders/pending" replace />} />
+            <Route path="orders/scheduled" element={<PanelRedirect to="/orders/pending" />} />
             <Route path="orders/pending" element={<OrdersPage statusKey="pending" />} />
-            <Route path="orders/accepted" element={<Navigate to="/admin/food/orders/processing" replace />} />
+            <Route path="orders/accepted" element={<PanelRedirect to="/orders/processing" />} />
             <Route path="orders/processing" element={<OrdersPage statusKey="processing" />} />
             <Route path="orders/out-for-delivery" element={<OrdersPage statusKey="out-for-delivery" />} />
             <Route path="orders/delivered" element={<OrdersPage statusKey="delivered" />} />
@@ -311,6 +333,11 @@ export default function AdminRouter() {
             <Route path="categories" element={<Category />} />
             <Route path="attributes" element={<AttributesPage />} />
             <Route path="coins" element={<CoinsManagement />} />
+            <Route path="spin-campaigns" element={<SpinCampaigns />} />
+            <Route path="payments/reconciliation" element={<PaymentReconciliation />} />
+            <Route path="reports/delivery-sla" element={<DeliverySlaReport />} />
+            <Route path="reports/commission" element={<CommissionReport />} />
+            <Route path="reports/coin-liability" element={<CoinLiabilityReport />} />
             <Route path="fee-settings" element={<FeeSettings />} />
             <Route path="referral-settings" element={<ReferralSettings />} />
             <Route path="products" element={<ProductsList />} />
@@ -415,12 +442,10 @@ export default function AdminRouter() {
           {/* TAXI ADMIN - Placeholder for future implementation */}
           <Route path="taxi/*" element={<div className="p-8 text-center text-gray-500 bg-white min-h-[50vh] flex items-center justify-center border rounded-xl m-4">Taxi Administration - Coming Soon</div>} />
 
-          {/* QUICK COMMERCE ADMIN - Placeholder for future implementation */}
-          <Route path="quick-commerce/*" element={<div className="p-8 text-center text-gray-500 bg-white min-h-[50vh] flex items-center justify-center border rounded-xl m-4">Quick Commerce Administration - Coming Soon</div>} />
         </Route>
 
-        {/* Redirect unknown admin routes to food admin */}
-        <Route path="*" element={<Navigate to="/admin/store" replace />} />
+        {/* Unknown admin routes go to the quick panel */}
+        <Route path="*" element={<Navigate to={`/admin/${DEFAULT_ADMIN_PANEL}`} replace />} />
       </Routes>
     </Suspense>
   );

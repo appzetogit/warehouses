@@ -27,6 +27,7 @@ export default function Logout() {
       localStorage.removeItem("user_authenticated")
       localStorage.removeItem("user_user")
       localStorage.removeItem("cart")
+      localStorage.removeItem("cart_quick")
       USER_SESSION_PREFERENCE_KEYS.forEach((key) => localStorage.removeItem(key))
       sessionStorage.removeItem("userAuthData")
       window.dispatchEvent(new Event("userAuthChanged"))

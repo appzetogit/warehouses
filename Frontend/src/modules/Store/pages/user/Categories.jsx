@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Search, Grid2x2, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
@@ -10,6 +11,7 @@ import useAppBackNavigation from "@store/hooks/useAppBackNavigation";
 import { API_BASE_URL } from "@store/api/config";
 
 export default function Categories() {
+  const { storePath } = useStoreMode()
   const navigate = useNavigate();
   const goBack = useAppBackNavigation();
   const [categories, setCategories] = useState([]);
@@ -119,7 +121,7 @@ export default function Categories() {
                   transition={{ delay: index * 0.03 }}
                 >
                   <Link
-                    to={`/category/${category.slug}`}
+                    to={storePath(`/category/${category.slug}`)}
                     className="flex flex-col items-center gap-2.5 group"
                   >
                     <div className="relative w-full aspect-square rounded-full overflow-hidden shadow-sm border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-[#1a1a1a] group-active:scale-90 transition-all duration-300">

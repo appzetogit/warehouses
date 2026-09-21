@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Shield, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { adminAPI } from "@store/api";
+import { useAdminBase } from "@store/components/admin/useAdminPanel";
 
 const SUBADMIN_EMAIL_REGEX = /^(?!.*\.\.)([A-Za-z0-9]+[._%+-]?)*[A-Za-z0-9]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}$/;
 const INDIAN_MOBILE_REGEX = /^[6-9]\d{9}$/;
@@ -18,6 +19,7 @@ const hasSuspiciousEmailTld = (emailValue) => {
 };
 
 export default function EmployeeList() {
+  const adminBase = useAdminBase();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -203,7 +205,7 @@ export default function EmployeeList() {
                   <p className="text-sm text-slate-600">{item.email} {item.phone ? `• ${item.phone}` : ""}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Link to={`/admin/store/employee-role?id=${item._id}`} className="inline-flex items-center gap-1 px-3 py-2 border rounded-lg text-sm">
+                  <Link to={`${adminBase}/employee-role?id=${item._id}`} className="inline-flex items-center gap-1 px-3 py-2 border rounded-lg text-sm">
                     <Shield className="w-4 h-4" /> Permissions
                   </Link>
                   <button onClick={() => toggleStatus(item)} className="px-3 py-2 border rounded-lg text-sm inline-flex items-center gap-1">

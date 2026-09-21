@@ -80,19 +80,22 @@ export default function UserRouter() {
     <Suspense fallback={<Loader />}>
       <Routes>
         <Route element={<UserLayout />}>
-          {/* Home & Discovery */}
-          <Route path="" element={<Home />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="category/:category" element={<CategoryPage />} />
-          <Route path="sellers" element={<Sellers />} />
-          <Route path="sellers/:slug" element={<SellerDetails />} />
-          <Route path="search" element={<SearchResults />} />
-          <Route path="product/:id" element={<ProductDetail />} />
-
-          {/* Cart - Now Public */}
-          <Route path="cart" element={<Cart />} />
-          <Route path="cart/select-address" element={<SelectAddress />} />
-          <Route path="cart/address-selector" element={<AddressSelectorPage />} />
+          {/* Storefronts: e-commerce shop at "/" and quick store at "/quick".
+              Same page components; they read the mode from useStoreMode(). */}
+          {["", "quick"].map((base) => (
+            <Route key={base || "shop"} path={base || undefined}>
+              <Route index element={<Home />} />
+              <Route path="categories" element={<Categories />} />
+              <Route path="category/:category" element={<CategoryPage />} />
+              <Route path="sellers" element={<Sellers />} />
+              <Route path="sellers/:slug" element={<SellerDetails />} />
+              <Route path="search" element={<SearchResults />} />
+              <Route path="product/:id" element={<ProductDetail />} />
+              <Route path="cart" element={<Cart />} />
+              <Route path="cart/select-address" element={<SelectAddress />} />
+              <Route path="cart/address-selector" element={<AddressSelectorPage />} />
+            </Route>
+          ))}
 
           {/* Orders - Protected (require user auth) */}
           <Route

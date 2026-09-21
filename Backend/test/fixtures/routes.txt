@@ -89,6 +89,12 @@ GET /api/v1/admin/products/bulk-upload/template
 GET /api/v1/admin/products/pending-approvals
 GET /api/v1/admin/queues
 GET /api/v1/admin/referral-settings
+GET /api/v1/admin/reports/coin-liability
+GET /api/v1/admin/reports/coin-liability/export
+GET /api/v1/admin/reports/commission
+GET /api/v1/admin/reports/commission/export
+GET /api/v1/admin/reports/delivery-sla
+GET /api/v1/admin/reports/delivery-sla/export
 GET /api/v1/admin/reports/payments/reconciliation
 GET /api/v1/admin/reports/sellers
 GET /api/v1/admin/reports/tax

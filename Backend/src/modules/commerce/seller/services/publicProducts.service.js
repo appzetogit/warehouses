@@ -3,6 +3,7 @@ import { Product } from '../../admin/models/product.model.js';
 import { Seller } from '../models/seller.model.js';
 import { getProductDisplayOtherPrice, getProductDisplayPrice, serializeProductVariants } from '../../admin/services/productVariant.service.js';
 import { restoreExpiredProductAvailability } from './productAvailability.service.js';
+import { parseFulfilmentMode, fulfilmentModeProductFilter } from '../../search/validators/storefront.validator.js';
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -17,12 +18,19 @@ const buildCategoryKeywords = (categorySlug) => {
 
 export async function listPublicProducts(query = {}) {
     const limit = Math.min(Math.max(parseInt(query.limit, 10) || 500, 1), 1000);
-    const zoneIdRaw = String(query.zoneId || '').trim();
+    const fulfilmentMode = parseFulfilmentMode(query.fulfilmentMode);
+    // The shop storefront ships anywhere; zones only narrow quick delivery.
+    const zoneIdRaw = fulfilmentMode === 'standard' ? '' : String(query.zoneId || '').trim();
+    const sellerIdRaw = String(query.sellerId || '').trim();
     const categorySlug = String(query.categorySlug || query.category || '').trim().toLowerCase();
 
     const sellerFilter = { status: 'approved' };
     if (zoneIdRaw && mongoose.Types.ObjectId.isValid(zoneIdRaw)) {
         sellerFilter.zoneId = new mongoose.Types.ObjectId(zoneIdRaw);
+    }
+    if (sellerIdRaw) {
+        if (!mongoose.Types.ObjectId.isValid(sellerIdRaw)) return { products: [], total: 0 };
+        sellerFilter._id = new mongoose.Types.ObjectId(sellerIdRaw);
     }
 
     const sellers = await Seller.find(sellerFilter)
@@ -45,6 +53,9 @@ export async function listPublicProducts(query = {}) {
         approvalStatus: 'approved',
         isAvailable: { $ne: false }
     };
+
+    const modeFilter = fulfilmentModeProductFilter(fulfilmentMode);
+    if (modeFilter) productFilter.$and = [modeFilter];
 
     const keywords = buildCategoryKeywords(categorySlug);
     if (keywords.length > 0) {

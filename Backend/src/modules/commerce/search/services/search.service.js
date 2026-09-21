@@ -2,6 +2,7 @@ import { Seller } from '../../seller/models/seller.model.js';
 import { Product } from '../../admin/models/product.model.js';
 import { Category } from '../../admin/models/category.model.js';
 import mongoose from 'mongoose';
+import { parseFulfilmentMode, fulfilmentModeProductFilter } from '../validators/storefront.validator.js';
 
 const SELLER_SEARCH_SELECT = [
     'sellerName',
@@ -72,9 +73,14 @@ export const searchUnified = async (query = {}, options = {}) => {
         isVeg,
         page = 1,
         limit = 20,
-        zoneId,
-        strictZone
+        zoneId: zoneIdQuery,
+        strictZone,
+        fulfilmentMode: fulfilmentModeQuery
     } = query;
+    const fulfilmentMode = parseFulfilmentMode(fulfilmentModeQuery);
+    // The shop storefront ships anywhere; zones only narrow quick delivery.
+    const zoneId = fulfilmentMode === 'standard' ? undefined : zoneIdQuery;
+    const modeFilter = fulfilmentModeProductFilter(fulfilmentMode) || {};
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
     const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
@@ -107,7 +113,8 @@ export const searchUnified = async (query = {}, options = {}) => {
     if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
         const catProducts = await Product.find({
             categoryId: new mongoose.Types.ObjectId(categoryId),
-            approvalStatus: 'approved'
+            approvalStatus: 'approved',
+            ...modeFilter
         }).select('sellerId').limit(fetchLimit * 4).lean();
 
         const catSellerIds = [...new Set(catProducts.map((product) => product.sellerId.toString()))];
@@ -136,7 +143,7 @@ export const searchUnified = async (query = {}, options = {}) => {
             sellerDetailsMap.set(seller._id.toString(), { ...seller, matchType: 'seller' });
         });
 
-        const productFilters = { approvalStatus: 'approved' };
+        const productFilters = { approvalStatus: 'approved', ...modeFilter };
         if (isVeg === 'true') productFilters.foodType = 'Veg';
 
         const matchedProducts = await Product.find({

@@ -1,4 +1,5 @@
 import { sendResponse } from '../../../../utils/response.js';
+import { validateFulfilmentModeQuery } from '../../admin/validators/adminPanel.validator.js';
 import * as orderService from '../services/order.service.js';
 import * as orderPaymentLedgerService from '../services/orderPaymentLedger.service.js';
 import {
@@ -387,7 +388,8 @@ export async function switchToCashController(req, res, next) {
 
 export async function listOrdersAdminController(req, res, next) {
     try {
-        const result = await orderService.listOrdersAdmin(req.query);
+        const fulfilmentMode = validateFulfilmentModeQuery(req.query);
+        const result = await orderService.listOrdersAdmin({ ...req.query, fulfilmentMode });
         return sendResponse(res, 200, 'Orders retrieved', result);
     } catch (err) {
         next(err);

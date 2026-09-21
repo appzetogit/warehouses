@@ -4,6 +4,7 @@ import { Order, DispatchSettings } from '../models/order.model.js';
 import { logger } from '../../../../utils/logger.js';
 import { User } from '../../../../core/users/user.model.js';
 import { Product } from '../../admin/models/product.model.js';
+import { orderFulfilmentModeFilter } from '../../admin/validators/adminPanel.validator.js';
 import { Seller } from '../../seller/models/seller.model.js';
 import { DeliveryPartner } from '../../delivery/models/deliveryPartner.model.js';
 import { Zone } from '../../admin/models/zone.model.js';
@@ -2522,6 +2523,7 @@ export async function listOrdersAdmin(query) {
   await applyAdminOrderSearchFilter(filter, searchRaw);
   applyAdminPaymentStatusFilter(filter, paymentStatusRaw);
   applyAdminAmountFilter(filter, minAmountRaw, maxAmountRaw);
+  Object.assign(filter, orderFulfilmentModeFilter(query.fulfilmentMode));
 
   const [docs, total] = await Promise.all([
     Order.find(filter)

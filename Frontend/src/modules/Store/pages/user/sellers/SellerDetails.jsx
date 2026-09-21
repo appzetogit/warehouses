@@ -1,3 +1,4 @@
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { useState, useEffect, useRef, Component, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -97,6 +98,7 @@ const buildHeroImages = (seller) => {
 }
 
 function SellerDetailsContent() {
+  const { fulfilmentMode } = useStoreMode()
   const { slug } = useParams()
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
@@ -884,63 +886,45 @@ function SellerDetailsContent() {
             }
 
             try {
-              debugLog('? Fetching inventory for seller ID:', sellerIdForMenu)
-              let inventoryResponse = null
-              let resolvedInventoryLookupId = null
-              for (const lookupId of normalizedLookupIds) {
-                try {
-                  debugLog('? Fetching inventory for seller lookup ID:', lookupId)
-                  const response = await sellerAPI.getInventoryBySellerId(lookupId)
-                  if (response?.data?.success) {
-                    inventoryResponse = response
-                    resolvedInventoryLookupId = lookupId
-                    break
-                  }
-                } catch (lookupError) {
-                  if (lookupError?.response?.status !== 404) {
-                    throw lookupError
-                  }
+              // The store's products for this storefront, grouped into
+              // categories: GET /catalog/products?sellerId=&fulfilmentMode=
+              // returns { products: [...] } and takes a Mongo id only.
+              const productSellerId = normalizedLookupIds.find((value) => /^[a-f0-9]{24}$/i.test(value))
+              if (productSellerId) {
+                const response = await sellerAPI.getPublicProducts({ sellerId: productSellerId, fulfilmentMode, limit: 1000 })
+                const products = response?.data?.data?.products || []
+                const byCategory = new Map()
+                for (const product of Array.isArray(products) ? products : []) {
+                  const name = product.categoryName || "Other"
+                  if (!byCategory.has(name)) byCategory.set(name, [])
+                  byCategory.get(name).push(product)
                 }
-              }
-              if (!inventoryResponse) {
-                throw Object.assign(new Error('Inventory not found'), { response: { status: 404 } })
-              }
-              debugLog('? Inventory resolved using lookup ID:', resolvedInventoryLookupId)
-              if (inventoryResponse.data && inventoryResponse.data.success && inventoryResponse.data.data && inventoryResponse.data.data.inventory) {
-                const inventoryCategories = inventoryResponse.data.data.inventory.categories || []
-
-                // Normalize inventory categories to ensure proper structure
-                const normalizedInventory = inventoryCategories.map((category, index) => ({
-                  id: category.id || `category-${index}`,
-                  name: category.name || "Unnamed Category",
-                  description: category.description || "",
-                  itemCount: category.itemCount || (category.items?.length || 0),
-                  inStock: category.inStock !== undefined ? category.inStock : true,
-                  items: Array.isArray(category.items) ? category.items.map(item => ({
-                    id: String(item.id || Date.now() + Math.random()),
+                const normalizedInventory = [...byCategory.entries()].map(([name, items], index) => ({
+                  id: `category-${index}`,
+                  name,
+                  description: "",
+                  itemCount: items.length,
+                  inStock: items.some((item) => item.isAvailable !== false),
+                  items: items.map((item) => ({
+                    id: String(item._id || item.id),
                     name: item.name || "Unnamed Item",
-                    inStock: item.inStock !== undefined ? item.inStock : true,
-                    isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null,
-                    stockQuantity: item.stockQuantity || "Unlimited",
-                    unit: item.unit || "piece",
-                    expiryDate: item.expiryDate || null,
-                    lastRestocked: item.lastRestocked || null,
-                  })) : [],
-                  order: category.order !== undefined ? category.order : index,
+                    inStock: item.isAvailable !== false,
+                    isVeg: item.foodType === "Veg" ? true : item.foodType === "Non-Veg" ? false : null,
+                    stockQuantity: "Unlimited",
+                    unit: "piece",
+                    expiryDate: null,
+                    lastRestocked: null,
+                  })),
+                  order: index,
                 }))
 
                 setSeller(prev => ({
                   ...prev,
                   inventory: normalizedInventory,
                 }))
-                debugLog('? Fetched and normalized inventory categories:', normalizedInventory)
               }
             } catch (inventoryError) {
-              if (inventoryError.response && inventoryError.response.status === 404) {
-                debugLog('? Inventory not found for this seller.')
-              } else {
-                debugError('? Error fetching inventory:', inventoryError)
-              }
+              debugError('? Error fetching store products:', inventoryError)
             }
           }
           else {
@@ -1001,7 +985,7 @@ function SellerDetailsContent() {
     }
 
     fetchSeller()
-  }, [slug, zoneId])
+  }, [slug, zoneId, fulfilmentMode])
 
   // Track previous distance label to avoid loops
   const prevDistanceRef = useRef(null)

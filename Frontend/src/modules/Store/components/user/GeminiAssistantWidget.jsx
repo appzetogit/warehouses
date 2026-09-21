@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react"
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Sparkles,
@@ -29,6 +30,7 @@ const QUICK_PROMPTS = [
 ]
 
 export default function GeminiAssistantWidget() {
+  const { storePath } = useStoreMode()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([
     {
@@ -89,7 +91,7 @@ export default function GeminiAssistantWidget() {
   }
 
   const handleProductClick = (productId) => {
-    navigate(`/product/${productId}`)
+    navigate(storePath(`/product/${productId}`))
     setIsOpen(false)
   }
 

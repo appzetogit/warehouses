@@ -6,6 +6,7 @@ import { Input } from "@store/components/ui/input"
 import { Switch } from "@store/components/ui/switch"
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { useCart } from "@store/context/CartContext"
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { useLocationSelector, useSearchOverlay } from "./UserLayout"
 import { useProfile } from "@store/context/ProfileContext"
 import { FaLocationDot } from "react-icons/fa6"
@@ -38,6 +39,7 @@ export default function DesktopNavbar() {
     const [hasScrolledPastBanner, setHasScrolledPastBanner] = useState(false)
     const navRef = useRef(null)
     const cartCount = getCartCount()
+    const { storePath } = useStoreMode()
 
 
     // Show area if available, otherwise show city
@@ -62,6 +64,7 @@ export default function DesktopNavbar() {
     const isDelivery = !isProfile && (location.pathname === "/" || location.pathname === "/food" || (location.pathname.startsWith("/") && !location.pathname.includes("/profile")))
     const isBannerRoute =
         location.pathname === "/" ||
+        location.pathname === "/quick" ||
         location.pathname === "/food"
 
     // Load business settings logo
@@ -160,7 +163,7 @@ export default function DesktopNavbar() {
                         <div className="flex items-center gap-4 lg:gap-6 flex-shrink-0">
                             {/* Logo */}
                             <Link
-                              to="/"
+                              to={storePath("/")}
                               onClick={() => clearHomeScrollState()}
                               className="flex items-center justify-center flex-shrink-0"
                             >
@@ -230,7 +233,7 @@ export default function DesktopNavbar() {
                                             }}
                                             onKeyDown={(e) => {
                                                 if (e.key === "Enter" && heroSearch.trim()) {
-                                                    navigate(`/food/search?q=${encodeURIComponent(heroSearch.trim())}`)
+                                                    navigate(`${storePath("/search")}?q=${encodeURIComponent(heroSearch.trim())}`)
                                                 }
                                             }}
                                             className="h-6 p-0 border-0 bg-transparent text-sm font-medium placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -292,7 +295,7 @@ export default function DesktopNavbar() {
                             </Link>
 
                             {/* Cart Icon */}
-                            <Link to="/cart">
+                            <Link to={storePath("/cart")}>
                                 <Button
                                     variant="ghost"
                                     className="relative h-10 w-10 lg:h-12 lg:w-12 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -318,7 +321,7 @@ export default function DesktopNavbar() {
                         {/* Navigation Links */}
                         <div className="flex items-center space-x-6">
                             <Link
-                                to="/"
+                                to={storePath("/")}
                                 onClick={() => clearHomeScrollState()}
                                 className={`text-xs font-bold tracking-wide uppercase transition-colors ${
                                     isDelivery ? "text-orange-600 dark:text-orange-500" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -327,13 +330,13 @@ export default function DesktopNavbar() {
                                 Storefront
                             </Link>
                             <Link
-                                to="/categories"
+                                to={storePath("/categories")}
                                 className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                             >
                                 Categories
                             </Link>
                             <Link
-                                to="/sellers"
+                                to={storePath("/sellers")}
                                 className="text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                             >
                                 Stores & Sellers
@@ -350,18 +353,6 @@ export default function DesktopNavbar() {
                         <div className="flex items-center p-0.5 bg-gray-100 dark:bg-neutral-800 rounded-full border border-gray-200 dark:border-neutral-700 shadow-inner">
                             <button
                                 type="button"
-                                onClick={() => setCommerceMode("quick")}
-                                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                                    commerceMode === "quick"
-                                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm scale-[1.02]"
-                                        : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                                }`}
-                            >
-                                <Zap className="w-3.5 h-3.5 fill-current" />
-                                <span>⚡ Quick (15-30m)</span>
-                            </button>
-                            <button
-                                type="button"
                                 onClick={() => setCommerceMode("standard")}
                                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
                                     commerceMode === "standard"
@@ -370,7 +361,19 @@ export default function DesktopNavbar() {
                                 }`}
                             >
                                 <Package className="w-3.5 h-3.5" />
-                                <span>📦 Standard Courier</span>
+                                <span>Shop</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCommerceMode("quick")}
+                                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                    commerceMode === "quick"
+                                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm scale-[1.02]"
+                                        : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                                }`}
+                            >
+                                <Zap className="w-3.5 h-3.5 fill-current" />
+                                <span>Quick · 10 min</span>
                             </button>
                         </div>
 

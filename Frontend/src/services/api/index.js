@@ -262,8 +262,8 @@ export const notificationAPI = {
 
 /** Admin API - new backend only (GET /auth/me, PATCH /auth/admin/profile, POST /auth/admin/change-password) */
 export const adminAPI = {
-  getSidebarBadges: () =>
-    apiClient.get("/admin/sidebar-badges", { contextModule: "admin" }),
+  getSidebarBadges: (params = {}) =>
+    apiClient.get("/admin/sidebar-badges", { params, contextModule: "admin" }),
   login: (email, password) => authService.adminLogin(email, password),
   /** POST /auth/admin/forgot-password/request-otp – only accepts registered admin email */
   requestForgotPasswordOtp: (email) =>
@@ -889,6 +889,19 @@ export const adminAPI = {
       params: { page: 1, limit: 1000, ...params },
       contextModule: "admin",
     }),
+  /** Delivery SLA / commission / coin liability reports; params: from, to, fulfilmentMode. */
+  getDeliverySlaReport: (params = {}) =>
+    apiClient.get("/admin/reports/delivery-sla", { params, contextModule: "admin" }),
+  exportDeliverySlaReport: (params = {}) =>
+    apiClient.get("/admin/reports/delivery-sla/export", { params, responseType: "blob", contextModule: "admin" }),
+  getCommissionReport: (params = {}) =>
+    apiClient.get("/admin/reports/commission", { params, contextModule: "admin" }),
+  exportCommissionReport: (params = {}) =>
+    apiClient.get("/admin/reports/commission/export", { params, responseType: "blob", contextModule: "admin" }),
+  getCoinLiabilityReport: (params = {}) =>
+    apiClient.get("/admin/reports/coin-liability", { params, contextModule: "admin" }),
+  exportCoinLiabilityReport: (params = {}) =>
+    apiClient.get("/admin/reports/coin-liability/export", { params, responseType: "blob", contextModule: "admin" }),
   getTaxReport: (params = {}) =>
     apiClient.get("/admin/reports/tax", {
       params: { page: 1, limit: 1000, ...params },
@@ -2823,6 +2836,24 @@ export const spinAPI = {
   getStatus: () => apiClient.get("/user/spin/status", { contextModule: "user" }),
   /** POST /user/spin/play (Bearer USER) */
   play: () => apiClient.post("/user/spin/play", {}, { contextModule: "user" }),
+};
+
+/** Admin: spin wheel campaigns (only one runs at a time) and the monthly report. */
+export const spinAdminAPI = {
+  listCampaigns: () => apiClient.get("/admin/spin/campaigns", { contextModule: "admin" }),
+  /** body: { title, segments: [{ label, type: 'coins'|'none', value, weight, color }], dailyLimit, monthlyCoinBudget } */
+  createCampaign: (body) => apiClient.post("/admin/spin/campaigns", body, { contextModule: "admin" }),
+  updateCampaign: (id, body) => apiClient.patch(`/admin/spin/campaigns/${id}`, body, { contextModule: "admin" }),
+  setCampaignActive: (id, isActive) =>
+    apiClient.patch(`/admin/spin/campaigns/${id}/active`, { isActive }, { contextModule: "admin" }),
+  /** params: { month: 'YYYY-MM' } */
+  getReport: (params = {}) => apiClient.get("/admin/spin/report", { params, contextModule: "admin" }),
+};
+
+/** Admin: online payments checked against the gateway. params: { from, to } (ISO dates). */
+export const paymentReconciliationAPI = {
+  getReconciliation: (params = {}) =>
+    apiClient.get("/admin/reports/payments/reconciliation", { params, contextModule: "admin" }),
 };
 
 export const aiAPI = {

@@ -178,6 +178,8 @@ export const serializeCategoryForResponse = (category = {}, options = {}) => {
         /** null means top level; the app groups subcategories under their parent. */
         parentId: category.parentId || null,
         sortOrder: category.sortOrder || 0,
+        /** Admin views only: the category's own commission (null = inherit / none). */
+        ...(options.currentSellerId ? {} : { commissionPercent: category.commissionPercent ?? null }),
         itemCount: options.includeCounts ? Number(stats?.totalProducts || 0) : undefined,
         approvedProductCount: options.includeCounts ? Number(stats?.approvedProducts || 0) : undefined,
         createdAt: category.createdAt,

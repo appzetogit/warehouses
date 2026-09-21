@@ -4,12 +4,14 @@ import { MapPin, ArrowLeft, Search } from "lucide-react"
 import { adminAPI } from "@store/api"
 import { getGoogleMapsApiKey } from "@store/utils/googleMapsApiKey"
 import { Loader } from "@googlemaps/js-api-loader"
+import { useAdminBase } from "@store/components/admin/useAdminPanel"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
 export default function AllZonesMap() {
+  const adminBase = useAdminBase()
   const navigate = useNavigate()
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
@@ -374,7 +376,7 @@ export default function AllZonesMap() {
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button
-            onClick={() => navigate("/admin/store/zone-setup")}
+            onClick={() => navigate(`${adminBase}/zone-setup`)}
             className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-slate-600" />

@@ -20,55 +20,61 @@ export const ADMIN_PERMISSION_SECTIONS = [
 ];
 
 const PATH_PREFIX_TO_SECTION = [
-  { prefix: "/admin/store/point-of-sale", section: "point_of_sale" },
-  { prefix: "/admin/store/fee-settings", section: "delivery_management" },
-  { prefix: "/admin/store/delivery-cash-limit", section: "delivery_management" },
-  { prefix: "/admin/store/cash-limit-settlement", section: "delivery_management" },
-  { prefix: "/admin/store/delivery-withdrawal", section: "delivery_management" },
-  { prefix: "/admin/store/delivery-boy-wallet", section: "delivery_management" },
-  { prefix: "/admin/store/delivery-emergency-help", section: "delivery_management" },
-  { prefix: "/admin/store/delivery-support-tickets", section: "delivery_management" },
-  { prefix: "/admin/store/delivery-order-reassignment-requests", section: "delivery_management" },
-  { prefix: "/admin/store/product-approval", section: "product_management" },
-  { prefix: "/admin/store/products", section: "product_management" },
+  { prefix: "/point-of-sale", section: "point_of_sale" },
+  { prefix: "/fee-settings", section: "delivery_management" },
+  { prefix: "/delivery-cash-limit", section: "delivery_management" },
+  { prefix: "/cash-limit-settlement", section: "delivery_management" },
+  { prefix: "/delivery-withdrawal", section: "delivery_management" },
+  { prefix: "/delivery-boy-wallet", section: "delivery_management" },
+  { prefix: "/delivery-emergency-help", section: "delivery_management" },
+  { prefix: "/delivery-support-tickets", section: "delivery_management" },
+  { prefix: "/delivery-order-reassignment-requests", section: "delivery_management" },
+  { prefix: "/product-approval", section: "product_management" },
+  { prefix: "/products", section: "product_management" },
   // Legacy twins of the routes above. The router still serves them so old
   // bookmarks resolve, and without a prefix here those visits would match no
   // section and be refused for someone who is allowed in.
-  { prefix: "/admin/store/products", section: "product_management" },
-  { prefix: "/admin/store/categories", section: "product_management" },
-  { prefix: "/admin/store/zone-setup", section: "seller_management" },
-  { prefix: "/admin/store/sellers", section: "seller_management" },
-  { prefix: "/admin/store/sellers", section: "seller_management" },
-  { prefix: "/admin/store/orders", section: "order_management" },
-  { prefix: "/admin/store/order-detect-delivery", section: "order_management" },
-  { prefix: "/admin/store/coupons", section: "promotions_management" },
-  { prefix: "/admin/store/referral-settings", section: "referral_rewards" },
-  { prefix: "/admin/store/customers", section: "customer_management" },
-  { prefix: "/admin/store/support-tickets", section: "customer_management" },
-  { prefix: "/admin/store/delivery", section: "delivery_management" },
-  { prefix: "/admin/store/delivery-partners", section: "delivery_management" },
-  { prefix: "/admin/store/contact-messages", section: "support_management" },
-  { prefix: "/admin/store/safety-emergency-reports", section: "support_management" },
-  { prefix: "/admin/store/transaction-report", section: "report_management" },
-  { prefix: "/admin/store/order-report", section: "report_management" },
-  { prefix: "/admin/store/tax-report", section: "report_management" },
-  { prefix: "/admin/store/seller-report", section: "report_management" },
-  { prefix: "/admin/store/customer-report", section: "report_management" },
-  { prefix: "/admin/store/seller-withdraws", section: "transaction_management" },
-  { prefix: "/admin/store/hero-banner-management", section: "banner_management" },
-  { prefix: "/admin/store/promotional-banner", section: "banner_management" },
-  { prefix: "/admin/store/feature-settings", section: "system_settings" },
-  { prefix: "/admin/store/power-scanning", section: "system_settings" },
-  { prefix: "/admin/store/business-setup", section: "system_settings" },
-  { prefix: "/admin/store/broadcast-notification", section: "system_settings" },
-  { prefix: "/admin/store/pages-social-media", section: "pages_social_media" },
-  { prefix: "/admin/store/employees", section: "sub_admin_management" },
-  { prefix: "/admin/store/employee-role", section: "sub_admin_management" },
+  { prefix: "/products", section: "product_management" },
+  { prefix: "/categories", section: "product_management" },
+  { prefix: "/zone-setup", section: "seller_management" },
+  { prefix: "/sellers", section: "seller_management" },
+  { prefix: "/sellers", section: "seller_management" },
+  { prefix: "/orders", section: "order_management" },
+  { prefix: "/order-detect-delivery", section: "order_management" },
+  { prefix: "/coupons", section: "promotions_management" },
+  { prefix: "/referral-settings", section: "referral_rewards" },
+  { prefix: "/customers", section: "customer_management" },
+  { prefix: "/support-tickets", section: "customer_management" },
+  { prefix: "/delivery", section: "delivery_management" },
+  { prefix: "/delivery-partners", section: "delivery_management" },
+  { prefix: "/contact-messages", section: "support_management" },
+  { prefix: "/safety-emergency-reports", section: "support_management" },
+  { prefix: "/transaction-report", section: "report_management" },
+  { prefix: "/order-report", section: "report_management" },
+  { prefix: "/tax-report", section: "report_management" },
+  { prefix: "/seller-report", section: "report_management" },
+  { prefix: "/customer-report", section: "report_management" },
+  { prefix: "/seller-withdraws", section: "transaction_management" },
+  // The same sections the backend enforces for these API paths.
+  { prefix: "/reports", section: "report_management" },
+  { prefix: "/payments/reconciliation", section: "report_management" },
+  { prefix: "/coins", section: "transaction_management" },
+  { prefix: "/spin-campaigns", section: "promotions_management" },
+  { prefix: "/attributes", section: "product_management" },
+  { prefix: "/hero-banner-management", section: "banner_management" },
+  { prefix: "/promotional-banner", section: "banner_management" },
+  { prefix: "/feature-settings", section: "system_settings" },
+  { prefix: "/power-scanning", section: "system_settings" },
+  { prefix: "/business-setup", section: "system_settings" },
+  { prefix: "/broadcast-notification", section: "system_settings" },
+  { prefix: "/pages-social-media", section: "pages_social_media" },
+  { prefix: "/employees", section: "sub_admin_management" },
+  { prefix: "/employee-role", section: "sub_admin_management" },
 ];
 
 const ALWAYS_ALLOWED_FOR_SUB_ADMIN = new Set([
-  "/admin/store/profile",
-  "/admin/store/settings",
+  "/profile",
+  "/settings",
 ]);
 
 export function isSuperAdmin(adminUser) {
@@ -88,9 +94,18 @@ export function canAdminAccess(adminUser, section, action = "view") {
   return actions.includes(action);
 }
 
+// The prefixes above are relative to the panel base: the same pages are served
+// under /admin/quick and /admin/shop (and the legacy /admin/store, which redirects).
+const ADMIN_PANEL_PREFIX = /^\/admin\/(quick|shop|store)(?=\/|$)/;
+
+const toPanelSubPath = (pathname = "") =>
+  String(pathname || "").replace(ADMIN_PANEL_PREFIX, "").replace(/\/+$/, "");
+
 export function resolvePermissionSectionByPath(pathname = "") {
-  if (pathname === "/admin/store" || pathname === "/admin/store/") return "dashboard";
-  const match = PATH_PREFIX_TO_SECTION.find((item) => pathname.startsWith(item.prefix));
+  if (!ADMIN_PANEL_PREFIX.test(String(pathname || ""))) return null;
+  const subPath = toPanelSubPath(pathname);
+  if (subPath === "") return "dashboard";
+  const match = PATH_PREFIX_TO_SECTION.find((item) => subPath.startsWith(item.prefix));
   return match?.section || null;
 }
 
@@ -99,8 +114,10 @@ export function canAccessAdminPath(pathname, action = "view") {
   const section = resolvePermissionSectionByPath(pathname);
   if (!section) {
     if (isSuperAdmin(adminUser)) return true;
-    const normalized = String(pathname || "").replace(/\/+$/, "") || "/";
-    return ALWAYS_ALLOWED_FOR_SUB_ADMIN.has(normalized);
+    return (
+      ADMIN_PANEL_PREFIX.test(String(pathname || "")) &&
+      ALWAYS_ALLOWED_FOR_SUB_ADMIN.has(toPanelSubPath(pathname))
+    );
   }
   return canAdminAccess(adminUser, section, action);
 }
@@ -116,33 +133,34 @@ export function canCurrentAdminAction(action = "view", pathname = "") {
   return canAdminAccess(adminUser, section, action);
 }
 
-export function findFirstAllowedAdminPath(adminUser) {
+export function findFirstAllowedAdminPath(adminUser, panel = "quick") {
+  const base = `/admin/${panel === "shop" ? "shop" : "quick"}`;
   const sectionHomePath = {
-    dashboard: "/admin/store",
-    point_of_sale: "/admin/store/point-of-sale",
-    product_management: "/admin/store/product-approval",
-    seller_management: "/admin/store/sellers",
-    order_management: "/admin/store/orders/all",
-    promotions_management: "/admin/store/coupons",
-    referral_rewards: "/admin/store/referral-settings",
-    customer_management: "/admin/store/customers",
-    delivery_management: "/admin/store/delivery-partners",
-    support_management: "/admin/store/contact-messages",
-    report_management: "/admin/store/transaction-report",
-    transaction_management: "/admin/store/seller-withdraws",
-    banner_management: "/admin/store/hero-banner-management",
-    pages_social_media: "/admin/store/pages-social-media/about",
+    dashboard: `${base}`,
+    point_of_sale: `${base}/point-of-sale`,
+    product_management: `${base}/product-approval`,
+    seller_management: `${base}/sellers`,
+    order_management: `${base}/orders/all`,
+    promotions_management: `${base}/coupons`,
+    referral_rewards: `${base}/referral-settings`,
+    customer_management: `${base}/customers`,
+    delivery_management: `${base}/delivery-partners`,
+    support_management: `${base}/contact-messages`,
+    report_management: `${base}/transaction-report`,
+    transaction_management: `${base}/seller-withdraws`,
+    banner_management: `${base}/hero-banner-management`,
+    pages_social_media: `${base}/pages-social-media/about`,
   };
 
   if (isSuperAdmin(adminUser)) {
-    return "/admin/store";
+    return `${base}`;
   }
 
   for (const section of ADMIN_PERMISSION_SECTIONS) {
     if (canAdminAccess(adminUser, section, "view")) {
-      return sectionHomePath[section] || "/admin/store/profile";
+      return sectionHomePath[section] || `${base}/profile`;
     }
   }
 
-  return "/admin/store/profile";
+  return `${base}/profile`;
 }

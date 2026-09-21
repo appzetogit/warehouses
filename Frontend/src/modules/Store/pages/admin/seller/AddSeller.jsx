@@ -8,6 +8,7 @@ import { Label } from "@store/components/ui/label"
 import { Button } from "@store/components/ui/button"
 import { adminAPI, uploadAPI, zoneAPI } from "@store/api"
 import { toast } from "sonner"
+import { useAdminBase } from "@store/components/admin/useAdminPanel"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => { console.warn(...args) }
 const debugError = (...args) => { console.error(...args) }
@@ -145,6 +146,7 @@ const clearAllFilesFromDB = async () => {
 }
 
 export default function AddSeller() {
+  const adminBase = useAdminBase()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -630,7 +632,7 @@ export default function AddSeller() {
         toast.success("Seller created successfully!")
         setShowSuccessDialog(true)
         setTimeout(() => {
-          navigate("/admin/store/sellers")
+          navigate(`${adminBase}/sellers`)
         }, 2000)
       } else {
         throw new Error(response?.data?.message || "Failed to create seller")

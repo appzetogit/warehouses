@@ -1,14 +1,24 @@
-export const adminSidebarMenu = [
+const BOTH = ["quick", "shop"]
+const QUICK = ["quick"]
+const SHOP = ["shop"]
+
+/**
+ * One menu for both admin panels. Paths are relative to the panel base
+ * (/admin/quick or /admin/shop); `panels` on an item, or failing that on its
+ * section, says which panel shows it. Untagged entries appear in both.
+ */
+const adminSidebarMenuTemplate = [
   {
     type: "link",
     label: "Dashboard",
-    path: "/admin/store",
+    path: "",
     icon: "LayoutDashboard",
   },
   {
     type: "link",
     label: "Point of Sale",
-    path: "/admin/store/point-of-sale",
+    panels: QUICK,
+    path: "/point-of-sale",
     icon: "CreditCard",
   },
   {
@@ -18,7 +28,7 @@ export const adminSidebarMenu = [
       {
         type: "link",
         label: "Product Approval",
-        path: "/admin/store/product-approval",
+        path: "/product-approval",
         icon: "CheckCircle2",
       },
       {
@@ -26,20 +36,21 @@ export const adminSidebarMenu = [
         label: "Products",
         icon: "Utensils",
         subItems: [
-          { label: "Seller Products List", path: "/admin/store/products" },
+          { label: "Seller Products List", path: "/products" },
         ],
       },
       {
         type: "link",
         label: "Categories",
         icon: "FolderTree",
-        path: "/admin/store/categories",
+        path: "/categories",
       },
       {
         type: "link",
         label: "Attributes & Sets",
+        panels: SHOP,
         icon: "FolderTree",
-        path: "/admin/store/attributes",
+        path: "/attributes",
       },
     ],
   },
@@ -50,7 +61,8 @@ export const adminSidebarMenu = [
       {
         type: "link",
         label: "Zone Setup",
-        path: "/admin/store/zone-setup",
+        panels: QUICK,
+        path: "/zone-setup",
         icon: "MapPin",
       },
       {
@@ -58,14 +70,14 @@ export const adminSidebarMenu = [
         label: "Sellers",
         icon: "UtensilsCrossed",
         subItems: [
-          { label: "Sellers List", path: "/admin/store/sellers" },
-          { label: "New Seller Requests", path: "/admin/store/sellers/joining-request" },
-          { label: "Unregistered Sellers", path: "/admin/store/sellers/unregistered" },
-          { label: "Seller Reviews", path: "/admin/store/sellers/reviews" },
-          { label: "Seller Complaints", path: "/admin/store/sellers/complaints" },
-          { label: "Seller Settings", path: "/admin/store/sellers/settings" },
-          { label: "Subscription Settings", path: "/admin/store/sellers/subscription-settings" },
-          { label: "Subscription Billing", path: "/admin/store/sellers/subscription-history" },
+          { label: "Sellers List", path: "/sellers" },
+          { label: "New Seller Requests", path: "/sellers/joining-request" },
+          { label: "Unregistered Sellers", path: "/sellers/unregistered" },
+          { label: "Seller Reviews", path: "/sellers/reviews" },
+          { label: "Seller Complaints", path: "/sellers/complaints" },
+          { label: "Seller Settings", path: "/sellers/settings" },
+          { label: "Subscription Settings", path: "/sellers/subscription-settings" },
+          { label: "Subscription Billing", path: "/sellers/subscription-history" },
         ],
       },
     ],
@@ -79,23 +91,24 @@ export const adminSidebarMenu = [
         label: "Orders",
         icon: "FileText",
         subItems: [
-          { label: "All", path: "/admin/store/orders/all" },
-          { label: "Pending", path: "/admin/store/orders/pending" },
-          { label: "Processing", path: "/admin/store/orders/processing" },
-          { label: "Out For Delivery", path: "/admin/store/orders/out-for-delivery" },
-          { label: "Delivered", path: "/admin/store/orders/delivered" },
-          { label: "Cancelled", path: "/admin/store/orders/canceled" },
-          { label: "Seller cancelled", path: "/admin/store/orders/seller-cancelled" },
-          { label: "Payment Failed", path: "/admin/store/orders/payment-failed" },
-          { label: "Refunded", path: "/admin/store/orders/refunded" },
-          { label: "Offline Payments", path: "/admin/store/orders/offline-payments" },
-          { label: "User Carts", path: "/admin/store/orders/user-carts" },
+          { label: "All", path: "/orders/all" },
+          { label: "Pending", path: "/orders/pending" },
+          { label: "Processing", path: "/orders/processing" },
+          { label: "Out For Delivery", path: "/orders/out-for-delivery", panels: QUICK },
+          { label: "Delivered", path: "/orders/delivered" },
+          { label: "Cancelled", path: "/orders/canceled" },
+          { label: "Seller cancelled", path: "/orders/seller-cancelled" },
+          { label: "Payment Failed", path: "/orders/payment-failed" },
+          { label: "Refunded", path: "/orders/refunded" },
+          { label: "Offline Payments", path: "/orders/offline-payments" },
+          { label: "User Carts", path: "/orders/user-carts" },
         ],
       },
       {
         type: "link",
         label: "Order Detect Delivery",
-        path: "/admin/store/order-detect-delivery",
+        panels: QUICK,
+        path: "/order-detect-delivery",
         icon: "Truck",
       },
     ],
@@ -107,7 +120,7 @@ export const adminSidebarMenu = [
       {
         type: "link",
         label: "Seller Coupons & Offers",
-        path: "/admin/store/coupons",
+        path: "/coupons",
         icon: "Gift",
       },
     ],
@@ -116,8 +129,9 @@ export const adminSidebarMenu = [
     type: "section",
     label: "COINS & REWARDS",
     items: [
-      { type: "link", label: "Platform Coins", path: "/admin/store/coins", icon: "Award" },
-      { type: "link", label: "Referral Settings", path: "/admin/store/referral-settings", icon: "Gift" },
+      { type: "link", label: "Platform Coins", path: "/coins", icon: "Award" },
+      { type: "link", label: "Spin Wheel", path: "/spin-campaigns", icon: "Disc3" },
+      { type: "link", label: "Referral Settings", path: "/referral-settings", icon: "Gift" },
     ],
   },
   {
@@ -127,13 +141,13 @@ export const adminSidebarMenu = [
       {
         type: "link",
         label: "Customers",
-        path: "/admin/store/customers",
+        path: "/customers",
         icon: "Users",
       },
       {
         type: "link",
         label: "Support Tickets (User & Seller)",
-        path: "/admin/store/support-tickets",
+        path: "/support-tickets",
         icon: "MessageSquare",
       },
     ],
@@ -141,26 +155,27 @@ export const adminSidebarMenu = [
   {
     type: "section",
     label: "DELIVERY MANAGEMENT",
+    panels: QUICK,
     items: [
-      { type: "link", label: "Delivery & Platform Fee", path: "/admin/store/fee-settings", icon: "DollarSign" },
-      { type: "link", label: "Delivery Withdrawal", path: "/admin/store/delivery-withdrawal", icon: "Wallet" },
-      { type: "link", label: "Delivery boy Wallet", path: "/admin/store/delivery-boy-wallet", icon: "PiggyBank" },
-      { type: "link", label: "Delivery Emergency Help", path: "/admin/store/delivery-emergency-help", icon: "Phone" },
-      { type: "link", label: "Delivery Support Tickets", path: "/admin/store/delivery-support-tickets", icon: "MessageSquare" },
-      { type: "link", label: "Order Reassignment Requests", path: "/admin/store/delivery-order-reassignment-requests", icon: "AlertTriangle" },
+      { type: "link", label: "Delivery & Platform Fee", path: "/fee-settings", icon: "DollarSign" },
+      { type: "link", label: "Delivery Withdrawal", path: "/delivery-withdrawal", icon: "Wallet" },
+      { type: "link", label: "Delivery boy Wallet", path: "/delivery-boy-wallet", icon: "PiggyBank" },
+      { type: "link", label: "Delivery Emergency Help", path: "/delivery-emergency-help", icon: "Phone" },
+      { type: "link", label: "Delivery Support Tickets", path: "/delivery-support-tickets", icon: "MessageSquare" },
+      { type: "link", label: "Order Reassignment Requests", path: "/delivery-order-reassignment-requests", icon: "AlertTriangle" },
       {
         type: "expandable",
         label: "Deliveryman",
         icon: "Package",
         subItems: [
-          { label: "New Join Request", path: "/admin/store/delivery-partners/join-request" },
-          { label: "Deliveryman List", path: "/admin/store/delivery-partners" },
-          { label: "Live Tracking", path: "/admin/store/delivery-partners/live-tracking" },
-          { label: "Deliveryman Reviews", path: "/admin/store/delivery-partners/reviews" },
-          { label: "Bonus", path: "/admin/store/delivery-partners/bonus" },
-          { label: "Earning Addon", path: "/admin/store/delivery-partners/earning-addon" },
-          { label: "Earning Addon History", path: "/admin/store/delivery-partners/earning-addon-history" },
-          { label: "Delivery Earning", path: "/admin/store/delivery-partners/earnings" },
+          { label: "New Join Request", path: "/delivery-partners/join-request" },
+          { label: "Deliveryman List", path: "/delivery-partners" },
+          { label: "Live Tracking", path: "/delivery-partners/live-tracking" },
+          { label: "Deliveryman Reviews", path: "/delivery-partners/reviews" },
+          { label: "Bonus", path: "/delivery-partners/bonus" },
+          { label: "Earning Addon", path: "/delivery-partners/earning-addon" },
+          { label: "Earning Addon History", path: "/delivery-partners/earning-addon-history" },
+          { label: "Delivery Earning", path: "/delivery-partners/earnings" },
         ],
       },
     ],
@@ -169,28 +184,31 @@ export const adminSidebarMenu = [
     type: "section",
     label: "HELP & SUPPORT",
     items: [
-      { type: "link", label: "User Feedback", path: "/admin/store/contact-messages", icon: "Mail" },
-      { type: "link", label: "Safety Emergency Reports", path: "/admin/store/safety-emergency-reports", icon: "AlertTriangle" },
+      { type: "link", label: "User Feedback", path: "/contact-messages", icon: "Mail" },
+      { type: "link", label: "Safety Emergency Reports", panels: QUICK, path: "/safety-emergency-reports", icon: "AlertTriangle" },
     ],
   },
   {
     type: "section",
     label: "REPORT MANAGEMENT",
     items: [
-      { type: "link", label: "Transaction Report", path: "/admin/store/transaction-report", icon: "FileText" },
-      { type: "link", label: "Order Report", path: "/admin/store/order-report/regular", icon: "FileText" },
-      { type: "link", label: "Tax Report", path: "/admin/store/tax-report", icon: "Receipt" },
+      { type: "link", label: "Transaction Report", path: "/transaction-report", icon: "FileText" },
+      { type: "link", label: "Delivery SLA", path: "/reports/delivery-sla", icon: "Timer" },
+      { type: "link", label: "Commission Report", path: "/reports/commission", icon: "Percent" },
+      { type: "link", label: "Coin Liability", path: "/reports/coin-liability", icon: "Coins" },
+      { type: "link", label: "Order Report", path: "/order-report/regular", icon: "FileText" },
+      { type: "link", label: "Tax Report", path: "/tax-report", icon: "Receipt" },
       {
         type: "expandable",
         label: "Seller Report",
         icon: "FileText",
-        subItems: [{ label: "Seller Report", path: "/admin/store/seller-report" }],
+        subItems: [{ label: "Seller Report", path: "/seller-report" }],
       },
       {
         type: "expandable",
         label: "Customer Report",
         icon: "FileText",
-        subItems: [{ label: "Feedback Experience", path: "/admin/store/customer-report/feedback-experience" }],
+        subItems: [{ label: "Feedback Experience", path: "/customer-report/feedback-experience" }],
       },
     ],
   },
@@ -198,52 +216,82 @@ export const adminSidebarMenu = [
     type: "section",
     label: "TRANSACTION MANAGEMENT",
     items: [
-      { type: "link", label: "Seller Withdraws", path: "/admin/store/seller-withdraws", icon: "CreditCard" },
+      { type: "link", label: "Seller Withdraws", path: "/seller-withdraws", icon: "CreditCard" },
+      { type: "link", label: "Payment Reconciliation", path: "/payments/reconciliation", icon: "Scale" },
     ],
   },
   {
     type: "section",
     label: "BANNER SETTINGS",
     items: [
-      { type: "link", label: "Landing Page Management", path: "/admin/store/hero-banner-management", icon: "Image" },
-      { type: "link", label: "Promotional Banners", path: "/admin/store/promotional-banner", icon: "Megaphone" },
-// { type: "link", label: "General Banners", path: "/admin/store/banners", icon: "Image" },
+      { type: "link", label: "Landing Page Management", path: "/hero-banner-management", icon: "Image" },
+      { type: "link", label: "Promotional Banners", path: "/promotional-banner", icon: "Megaphone" },
+// { type: "link", label: "General Banners", path: "/banners", icon: "Image" },
     ],
   },
   {
     type: "section",
     label: "SYSTEM SETTINGS",
     items: [
-      { type: "link", label: "Broadcast Notification", path: "/admin/store/broadcast-notification", icon: "Bell" },
-      { type: "link", label: "Business Setup", path: "/admin/store/business-setup", icon: "Settings" },
+      { type: "link", label: "Broadcast Notification", path: "/broadcast-notification", icon: "Bell" },
+      { type: "link", label: "Business Setup", path: "/business-setup", icon: "Settings" },
     ],
   },
   {
     type: "section",
     label: "SUPER POWERS",
     items: [
-      { type: "link", label: "Feature Settings", path: "/admin/store/feature-settings", icon: "Settings" },
-      { type: "link", label: "Power Scanning", path: "/admin/store/power-scanning", icon: "Zap" },
+      { type: "link", label: "Feature Settings", path: "/feature-settings", icon: "Settings" },
+      { type: "link", label: "Power Scanning", path: "/power-scanning", icon: "Zap" },
     ],
   },
   {
     type: "section",
     label: "ADMIN ACCESS",
     items: [
-      { type: "link", label: "Sub Admin List", path: "/admin/store/employees", icon: "UserCog" },
+      { type: "link", label: "Sub Admin List", path: "/employees", icon: "UserCog" },
     ],
   },
   {
     type: "section",
     label: "PAGES & SOCIAL MEDIA",
     items: [
-      { type: "link", label: "About Us", path: "/admin/store/pages-social-media/about", icon: "Globe" },
-      { type: "link", label: "Terms & Conditions", path: "/admin/store/pages-social-media/terms", icon: "FileText" },
-      { type: "link", label: "Privacy Policy", path: "/admin/store/pages-social-media/privacy", icon: "Lock" },
-      { type: "link", label: "Support", path: "/admin/store/pages-social-media/support", icon: "Headset" },
-      { type: "link", label: "Refund Policy", path: "/admin/store/pages-social-media/refund", icon: "Receipt" },
-      { type: "link", label: "Shipping Policy", path: "/admin/store/pages-social-media/shipping", icon: "Truck" },
-      { type: "link", label: "Cancellation Policy", path: "/admin/store/pages-social-media/cancellation", icon: "X" },
+      { type: "link", label: "About Us", path: "/pages-social-media/about", icon: "Globe" },
+      { type: "link", label: "Terms & Conditions", path: "/pages-social-media/terms", icon: "FileText" },
+      { type: "link", label: "Privacy Policy", path: "/pages-social-media/privacy", icon: "Lock" },
+      { type: "link", label: "Support", path: "/pages-social-media/support", icon: "Headset" },
+      { type: "link", label: "Refund Policy", path: "/pages-social-media/refund", icon: "Receipt" },
+      { type: "link", label: "Shipping Policy", path: "/pages-social-media/shipping", icon: "Truck" },
+      { type: "link", label: "Cancellation Policy", path: "/pages-social-media/cancellation", icon: "X" },
     ],
   },
 ];
+
+const isInPanel = (entry, panel, inherited = BOTH) => (entry.panels || inherited).includes(panel)
+
+const withBase = (path, base) => (typeof path === "string" ? `${base}${path}` : path)
+
+/** The sidebar for one panel, with every path made absolute under /admin/<panel>. */
+export function getAdminSidebarMenu(panel = "quick") {
+  const base = `/admin/${panel}`
+  const mapItem = (item, inherited) => {
+    if (!isInPanel(item, panel, inherited)) return null
+    const panels = item.panels || inherited
+    const next = { ...item, path: withBase(item.path, base) }
+    if (Array.isArray(item.subItems)) {
+      next.subItems = item.subItems
+        .filter((sub) => isInPanel(sub, panel, panels))
+        .map((sub) => ({ ...sub, path: withBase(sub.path, base) }))
+      if (next.subItems.length === 0) return null
+    }
+    if (Array.isArray(item.items)) {
+      next.items = item.items.map((child) => mapItem(child, panels)).filter(Boolean)
+      if (next.items.length === 0) return null
+    }
+    return next
+  }
+  return adminSidebarMenuTemplate.map((entry) => mapItem(entry, BOTH)).filter(Boolean)
+}
+
+/** Every entry across both panels (for label lookups that must not depend on the panel). */
+export const adminSidebarMenu = [...getAdminSidebarMenu("quick"), ...getAdminSidebarMenu("shop")]

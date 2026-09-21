@@ -8,6 +8,7 @@ import confetti from "canvas-confetti"
 import AnimatedPage from "@store/components/user/AnimatedPage"
 import { Button } from "@store/components/ui/button"
 import { useCart } from "@store/context/CartContext"
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { useProfile } from "@store/context/ProfileContext"
 import { useOrders } from "@store/context/OrdersContext"
 import { useLocation as useUserLocation } from "@store/hooks/useLocation"
@@ -325,6 +326,7 @@ export default function Cart() {
   const [showCookingSheet, setShowCookingSheet] = useState(false)
   const [showOffersView, setShowOffersView] = useState(false)
   const [deliverySectionTab, setDeliverySectionTab] = useState("modes")
+  const { fulfilmentMode: storeFulfilmentMode, storePath } = useStoreMode()
   const [deliveryMode, setDeliveryMode] = useState("basic")
   const [selectedDeliveryInstruction, setSelectedDeliveryInstruction] = useState(null)
   const [deliveryInstructionMode, setDeliveryInstructionMode] = useState("preset")
@@ -1060,14 +1062,8 @@ export default function Cart() {
     const sellers = new Set(
       cart.map((item) => String(item.sellerId || item.seller?._id || "")).filter(Boolean),
     )
-    let mode = "quick"
-    try {
-      mode = localStorage.getItem("commerce_delivery_mode") || "quick"
-    } catch {
-      // keep quick
-    }
-    return sellers.size > 1 || mode === "standard" || useCoins
-  }, [cart, useCoins])
+    return sellers.size > 1 || storeFulfilmentMode === "standard" || useCoins
+  }, [cart, useCoins, storeFulfilmentMode])
 
   useEffect(() => {
     if (!usesSplitCheckout || cart.length === 0 || !hasSavedAddress) {
@@ -1076,12 +1072,6 @@ export default function Cart() {
     }
     let cancelled = false
     const quote = async () => {
-      let mode = "quick"
-      try {
-        mode = localStorage.getItem("commerce_delivery_mode") || "quick"
-      } catch {
-        // keep quick
-      }
       try {
         const res = await orderAPI.calculateCheckout({
           items: cart.map((item) => ({
@@ -1093,7 +1083,7 @@ export default function Cart() {
             quantity: item.quantity || 1,
           })),
           deliveryAddress: pricingAddress,
-          fulfilmentMode: mode === "standard" ? "standard" : "quick",
+          fulfilmentMode: storeFulfilmentMode,
           couponCode: appliedCoupon?.code || couponCode || undefined,
           // Ask for as many as the customer has; the server caps it.
           coins: useCoins ? Math.floor(Number(coinBalance?.usable) || 0) : 0,
@@ -1108,7 +1098,7 @@ export default function Cart() {
     return () => {
       cancelled = true
     }
-  }, [usesSplitCheckout, cart, hasSavedAddress, pricingAddress, appliedCoupon, couponCode, useCoins, coinBalance?.usable])
+  }, [usesSplitCheckout, cart, hasSavedAddress, pricingAddress, appliedCoupon, couponCode, useCoins, coinBalance?.usable, storeFulfilmentMode])
 
   // Calculate pricing from backend whenever cart, address, or coupon changes
   useEffect(() => {
@@ -1462,13 +1452,7 @@ export default function Cart() {
   const discount = effectivePricing.discount
   const totalBeforeDiscount = subtotal + deliveryFee + deliveryFeeGst + platformFee + gstCharges
   const total = effectivePricing.total
-  const commerceMode = useMemo(() => {
-    try {
-      return localStorage.getItem('commerce_delivery_mode') || 'quick'
-    } catch {
-      return 'quick'
-    }
-  }, [])
+  const commerceMode = storeFulfilmentMode
 
   const maxCoinsRedeemable = useMemo(() => {
     if (!coinBalance?.isEnabled || !coinBalance?.usable) return 0
@@ -1529,7 +1513,7 @@ export default function Cart() {
 
   const handleOpenAddAddress = () => {
     setShowAddressSheet(false)
-    navigate("/cart/address-selector", { state: { backTo: "/cart" } })
+    navigate(storePath("/cart/address-selector"), { state: { backTo: storePath("/cart") } })
   }
 
   const handleSelectAddressFromSheet = async (address) => {
@@ -1653,7 +1637,7 @@ export default function Cart() {
     // Priority: slug > sellerId (both work for the seller details route)
     const idOrSlug = sellerData?.slug || sellerId
     if (idOrSlug) {
-      navigate(`/sellers/${idOrSlug}`)
+      navigate(storePath(`/sellers/${idOrSlug}`))
     } else {
       goBack()
     }
@@ -2006,7 +1990,7 @@ export default function Cart() {
           })),
           deliveryAddress: pricingAddress,
           address: pricingAddress,
-          fulfilmentMode: commerceMode === 'standard' ? 'standard' : 'quick',
+          fulfilmentMode: storeFulfilmentMode,
           couponCode: resolvedCouponCode,
           coins: useCoins ? Number(checkoutQuote?.coinsUsed) || 0 : 0,
           paymentMethod: selectedPaymentMethod === "wallet" ? "wallet" : (selectedPaymentMethod === "cash" ? "cash" : "razorpay"),
@@ -2546,7 +2530,7 @@ export default function Cart() {
           </div>
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">Your cart is empty</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Add items from a seller to start a new order</p>
-          <Link to="/user">
+          <Link to={storePath("/")}>
             <Button
               className="text-white border-0"
               style={{

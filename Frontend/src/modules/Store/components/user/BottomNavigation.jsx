@@ -1,13 +1,15 @@
 import { Link, useLocation } from "react-router-dom"
 import { User, Truck, ShoppingCart } from "lucide-react"
 import { clearHomeScrollState } from "@store/utils/homeScrollRestore"
+import { useStoreMode } from "@store/context/StoreModeContext"
 
 export default function BottomNavigation() {
   const location = useLocation()
   const pathname = location.pathname
+  const { storePath } = useStoreMode()
 
   // Check active routes - support both /user/* and /* paths
-  const isCart = pathname === "/cart" || pathname.startsWith("/cart")
+  const isCart = pathname.startsWith(storePath("/cart"))
   const isProfile = pathname.startsWith("/profile") || pathname.startsWith("/profile")
   const isDelivery =
     !isCart &&
@@ -36,7 +38,7 @@ export default function BottomNavigation() {
         
         {/* Delivery Tab */}
         <Link
-          to="/"
+          to={storePath("/")}
           onClick={handleHomeNavClick}
           className={`flex flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 relative rounded-full ${isDelivery
               ? ""
@@ -54,7 +56,7 @@ export default function BottomNavigation() {
 
         {/* Cart Tab */}
         <Link
-          to="/cart"
+          to={storePath("/cart")}
           className={`flex flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 relative rounded-full ${isCart
               ? ""
               : "text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-gray-800/50"

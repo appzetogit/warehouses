@@ -4,6 +4,7 @@ import { ProfileProvider } from "@store/context/ProfileContext"
 import { DeliveryLocationProvider } from "@store/context/DeliveryLocationContext"
 import LocationPrompt from "./LocationPrompt"
 import { CartProvider } from "@store/context/CartContext"
+import { getStoreModeFromPath, useStoreMode } from "@store/context/StoreModeContext"
 import AutoCouponController from "@store/components/user/AutoCouponController"
 import { OrdersProvider } from "@store/context/OrdersContext"
 const debugLog = (...args) => {}
@@ -145,13 +146,14 @@ export function useLocationSelector() {
 }
 
 function LocationSelectorProvider({ children }) {
+  const { storePath } = useStoreMode()
   const navigate = useNavigate()
   const location = useLocation()
 
   const openLocationSelector = () => {
     // Navigate to the standalone address selector page
     // Provide current pathname to state so back button returns here accurately
-    navigate("/cart/address-selector", { state: { backTo: location.pathname } })
+    navigate(storePath("/cart/address-selector"), { state: { backTo: location.pathname } })
   }
 
   const closeLocationSelector = () => { }
@@ -190,14 +192,16 @@ export default function UserLayout() {
     location.pathname.length > 1 ? location.pathname.replace(/\/+$/, "") : location.pathname
 
   const isProfileRoot = normalizedPath === "/profile"
+  const storeMode = getStoreModeFromPath(normalizedPath)
 
   const showBottomNav = normalizedPath === "/" ||
+    normalizedPath === "/quick" ||
     isProfileRoot ||
     normalizedPath === "" // Handle empty string edge case
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
-      <CartProvider>
+      <CartProvider key={storeMode} mode={storeMode}>
         <AutoCouponController />
         <ProfileProvider>
           <DeliveryLocationProvider>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useAdminPanel } from "@store/components/admin/useAdminPanel"
 import { Card, CardContent, CardHeader, CardTitle } from "@store/components/ui/card"
 import {
   Select,
@@ -39,6 +40,8 @@ function formatCurrency(amount, options = {}) {
 
 export default function AdminHome() {
   const navigate = useNavigate()
+  const { panel, fulfilmentMode, label: panelLabel } = useAdminPanel()
+  const base = `/admin/${panel}`
   const [selectedZone, setSelectedZone] = useState("all")
   const [selectedPeriod, setSelectedPeriod] = useState("overall")
   const [isLoading, setIsLoading] = useState(true)
@@ -68,6 +71,7 @@ export default function AdminHome() {
         setIsLoading(true)
         const params = {
           period: selectedPeriod,
+          fulfilmentMode,
           ...(selectedZone !== "all" ? { zoneId: selectedZone } : {}),
         }
         const response = await adminAPI.getDashboardStats(params)
@@ -87,7 +91,7 @@ export default function AdminHome() {
     }
 
     fetchDashboardStats()
-  }, [selectedZone, selectedPeriod])
+  }, [selectedZone, selectedPeriod, fulfilmentMode])
 
   // Get order stats from real data
   const getOrderStats = () => {
@@ -184,7 +188,7 @@ export default function AdminHome() {
           <div className="flex items-center gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Admin Overview</p>
-              <h1 className="text-2xl font-semibold text-neutral-900">Operations Command</h1>
+              <h1 className="text-2xl font-semibold text-neutral-900">Operations Command · {panelLabel}</h1>
             </div>
 
           </div>
@@ -225,7 +229,7 @@ export default function AdminHome() {
               helper={`${periodLabel} transaction volume`}
               icon={<ShoppingBag className="h-5 w-5 text-emerald-600" />}
               accent="bg-emerald-200/40"
-              path="/admin/store/transaction-report"
+              path={`${base}/transaction-report`}
             />
             <MetricCard
               title="Commission earned"
@@ -233,7 +237,7 @@ export default function AdminHome() {
               helper={`${periodLabel} seller cut`}
               icon={<ArrowUpRight className="h-5 w-5 text-indigo-600" />}
               accent="bg-indigo-200/40"
-              path="/admin/store/sellers/commission"
+              path={`${base}/sellers/commission`}
             />
             <MetricCard
               title="Orders processed"
@@ -241,7 +245,7 @@ export default function AdminHome() {
               helper="Seller accepted — awaiting rider"
               icon={<Activity className="h-5 w-5 text-amber-600" />}
               accent="bg-amber-200/40"
-              path="/admin/store/orders/processing"
+              path={`${base}/orders/processing`}
             />
             <MetricCard
               title="Platform fee"
@@ -249,7 +253,7 @@ export default function AdminHome() {
               helper={`Platform service fees: ${periodLabel}`}
               icon={<CreditCard className="h-5 w-5 text-purple-600" />}
               accent="bg-purple-200/40"
-              path="/admin/store/fee-settings"
+              path={`${base}/fee-settings`}
             />
             <MetricCard
               title="Delivery fee"
@@ -257,7 +261,7 @@ export default function AdminHome() {
               helper={`Total delivery fees: ${periodLabel}`}
               icon={<Truck className="h-5 w-5 text-blue-600" />}
               accent="bg-blue-200/40"
-              path="/admin/store/transaction-report"
+              path={`${base}/transaction-report`}
             />
             <MetricCard
               title="GST"
@@ -265,7 +269,7 @@ export default function AdminHome() {
               helper={`Total tax collected: ${periodLabel}`}
               icon={<Receipt className="h-5 w-5 text-orange-600" />}
               accent="bg-orange-200/40"
-              path="/admin/store/tax-report"
+              path={`${base}/tax-report`}
             />
             <MetricCard
               title="Platform Total"
@@ -273,7 +277,7 @@ export default function AdminHome() {
               helper={totalRevenueHelper}
               icon={<DollarSign className="h-5 w-5 text-green-600" />}
               accent="bg-green-200/40"
-              path="/admin/store/transaction-report"
+              path={`${base}/transaction-report`}
             />
             <MetricCard
               title="Total sellers"
@@ -281,7 +285,7 @@ export default function AdminHome() {
               helper="Approved sellers"
               icon={<Store className="h-5 w-5 text-blue-600" />}
               accent="bg-blue-200/40"
-              path="/admin/store/sellers"
+              path={`${base}/sellers`}
             />
             <MetricCard
               title="Seller requests pending"
@@ -289,7 +293,7 @@ export default function AdminHome() {
               helper="Awaiting approval"
               icon={<UserCheck className="h-5 w-5 text-orange-600" />}
               accent="bg-orange-200/40"
-              path="/admin/store/sellers/joining-request"
+              path={`${base}/sellers/joining-request`}
             />
             <MetricCard
               title="Total delivery boy"
@@ -297,7 +301,7 @@ export default function AdminHome() {
               helper="Approved delivery partners"
               icon={<Truck className="h-5 w-5 text-indigo-600" />}
               accent="bg-indigo-200/40"
-              path="/admin/store/delivery-partners"
+              path={`${base}/delivery-partners`}
             />
             <MetricCard
               title="Delivery boy request pending"
@@ -305,7 +309,7 @@ export default function AdminHome() {
               helper="Awaiting verification"
               icon={<Clock className="h-5 w-5 text-yellow-600" />}
               accent="bg-yellow-200/40"
-              path="/admin/store/delivery-partners/join-request"
+              path={`${base}/delivery-partners/join-request`}
             />
             <MetricCard
               title="Total products"
@@ -313,7 +317,7 @@ export default function AdminHome() {
               helper="Approved products"
               icon={<Package className="h-5 w-5 text-purple-600" />}
               accent="bg-purple-200/40"
-              path="/admin/store/products"
+              path={`${base}/products`}
             />
             <MetricCard
               title="Total customers"
@@ -321,7 +325,7 @@ export default function AdminHome() {
               helper="Registered users"
               icon={<UserCircle className="h-5 w-5 text-cyan-600" />}
               accent="bg-cyan-200/40"
-              path="/admin/store/customers"
+              path={`${base}/customers`}
             />
             <MetricCard
               title="Pending orders"
@@ -329,7 +333,7 @@ export default function AdminHome() {
               helper="Orders awaiting processing"
               icon={<Clock className="h-5 w-5 text-red-600" />}
               accent="bg-red-200/40"
-              path="/admin/store/orders/pending"
+              path={`${base}/orders/pending`}
             />
             <MetricCard
               title="Completed orders"
@@ -337,7 +341,7 @@ export default function AdminHome() {
               helper="Successfully delivered"
               icon={<CheckCircle className="h-5 w-5 text-emerald-600" />}
               accent="bg-emerald-200/40"
-              path="/admin/store/orders/delivered"
+              path={`${base}/orders/delivered`}
             />
           </div>
 
@@ -444,12 +448,12 @@ export default function AdminHome() {
                       key={item.label}
                     onClick={() => {
                         const routes = {
-                          'Delivered': '/admin/store/orders/delivered',
-                          'Cancelled': '/admin/store/orders/canceled',
-                          'Refunded': '/admin/store/orders/refunded',
-                          'Pending': '/admin/store/orders/pending'
+                          'Delivered': `${base}/orders/delivered`,
+                          'Cancelled': `${base}/orders/canceled`,
+                          'Refunded': `${base}/orders/refunded`,
+                          'Pending': `${base}/orders/pending`
                         }
-                        navigate(routes[item.label] || '/admin/store/orders/all')
+                        navigate(routes[item.label] || `${base}/orders/all`)
                       }}
                       className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2 cursor-pointer hover:bg-neutral-50 hover:border-neutral-300 transition-all group"
                     >
@@ -574,12 +578,12 @@ export default function AdminHome() {
                     key={item.label}
                     onClick={() => {
                       const routes = {
-                        'Delivered': '/admin/store/orders/delivered',
-                        'Cancelled': '/admin/store/orders/canceled',
-                        'Refunded': '/admin/store/orders/refunded',
-                        'Pending': '/admin/store/orders/pending'
+                        'Delivered': `${base}/orders/delivered`,
+                        'Cancelled': `${base}/orders/canceled`,
+                        'Refunded': `${base}/orders/refunded`,
+                        'Pending': `${base}/orders/pending`
                       }
-                      navigate(routes[item.label] || '/admin/store/orders/all')
+                      navigate(routes[item.label] || `${base}/orders/all`)
                     }}
                     className="flex items-center justify-between rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-3 cursor-pointer hover:bg-neutral-100 transition-colors group"
                   >
