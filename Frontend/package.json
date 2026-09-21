@@ -8,7 +8,11 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server.js"
+    "start": "node server.js",
+    "check:api-paths": "node scripts/check-api-paths.mjs . ../Backend/test/fixtures/routes.txt",
+    "check:api-methods": "node scripts/check-api-methods.mjs .",
+    "check:unreachable": "node scripts/check-unreachable.mjs .",
+    "check": "npm run check:api-paths && npm run check:api-methods && npm run check:unreachable"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
