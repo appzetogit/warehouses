@@ -1,6 +1,6 @@
 # API conventions for the apps
 
-The shared rules for all three Flutter apps and the web app. Each app's
+The shared rules for every client of the API (the web app today, and any future mobile app). Each app's
 endpoints are listed in its own file:
 
 | App | Endpoints |

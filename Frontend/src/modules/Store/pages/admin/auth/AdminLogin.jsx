@@ -25,6 +25,10 @@ const debugError = (...args) => {}
 // default — business settings override it per tenant.
 const THEME = "#16A34A"
 const THEME_RGB = "22,163,74"
+const BRAND = "#FD920B"
+const BRAND_INK = "#B45309"
+// Brand orange fails contrast as text on light surfaces; use the ink shade there.
+const inkFor = (c) => (String(c).toUpperCase() === BRAND ? BRAND_INK : c)
 
 export default function AdminLogin() {
   const navigate = useNavigate()
@@ -213,7 +217,7 @@ export default function AdminLogin() {
                     className="rounded-xl px-4 py-3 text-sm"
                     style={{
                       backgroundColor: `rgba(${THEME_RGB},0.08)`,
-                      color: themeColor,
+                      color: inkFor(themeColor),
                       border: `1px solid rgba(${THEME_RGB},0.15)`,
                     }}
                   >
@@ -242,7 +246,7 @@ export default function AdminLogin() {
                     disabled={isLoading}
                     autoComplete="off"
                     required
-                    className="h-12 rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm transition-all placeholder:text-gray-400 focus:border-gray-300 focus:bg-white focus-visible:ring-2 focus-visible:ring-primary-orange/30"
+                    className="h-12 rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm transition-all placeholder:text-gray-400 focus:border-gray-300 focus:bg-white focus-visible:ring-2 focus-visible:ring-wh-brand/30"
                   />
                 </div>
 
@@ -260,7 +264,7 @@ export default function AdminLogin() {
                       disabled={isLoading}
                       autoComplete="new-password"
                       required
-                      className="h-12 rounded-xl border border-gray-200 bg-white pr-12 text-gray-900 shadow-sm transition-all placeholder:text-gray-400 focus:border-gray-300 focus:bg-white focus-visible:ring-2 focus-visible:ring-primary-orange/30 [&::-ms-reveal]:hidden [&::-webkit-password-reveal-button]:hidden"
+                      className="h-12 rounded-xl border border-gray-200 bg-white pr-12 text-gray-900 shadow-sm transition-all placeholder:text-gray-400 focus:border-gray-300 focus:bg-white focus-visible:ring-2 focus-visible:ring-wh-brand/30 [&::-ms-reveal]:hidden [&::-webkit-password-reveal-button]:hidden"
                     />
                     <button
                       type="button"
@@ -283,7 +287,7 @@ export default function AdminLogin() {
                     type="button"
                     onClick={() => navigate("/admin/forgot-password")}
                     className="cursor-pointer text-sm font-medium transition-colors hover:underline focus-visible:outline-none"
-                    style={{ color: themeColor }}
+                    style={{ color: inkFor(themeColor) }}
                     disabled={isLoading}
                   >
                     Forgot password?
@@ -293,7 +297,7 @@ export default function AdminLogin() {
                 <Button
                   type="submit"
                   variant="ghost"
-                  className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2"
+                  className={`h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold ${String(themeColor).toUpperCase() === BRAND ? "text-wh-text" : "text-white"} shadow-sm transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2`}
                   style={{ backgroundColor: themeColor }}
                   disabled={isLoading}
                 >

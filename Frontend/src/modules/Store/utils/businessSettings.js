@@ -44,17 +44,14 @@ const LEGACY_BRAND_HEXES = [
   "#FA0272",
   "#00B761",
   "#2563EB",
-  "#DC2626",
   "#EB590E",
   "#D94F0C",
   "#C44409",
   "#FF8100",
 ];
-const LEGACY_BRAND_TAILWIND_COLORS = [
-  "emerald-50", "emerald-100", "emerald-200", "emerald-300", "emerald-400", "emerald-500", "emerald-600", "emerald-700", "emerald-800", "emerald-900",
-  "green-50", "green-100", "green-200", "green-300", "green-400", "green-500", "green-600", "green-700", "green-800", "green-900",
-  "teal-50", "teal-100", "teal-200", "teal-300", "teal-400", "teal-500", "teal-600", "teal-700", "teal-800", "teal-900",
-];
+// Semantic Tailwind palettes (green/emerald/teal = success, in stock, paid, veg; red = danger)
+// are deliberately NOT recoloured to the theme: doing so turned green badges with white text
+// into white-on-pale-tint. Only the explicit legacy brand hexes above are remapped.
 
 const hexToRgbTuple = (hex) => {
   const raw = String(hex || "").trim();
@@ -95,17 +92,6 @@ const buildThemeOverrideCss = () => {
   const hoverTextSelectors = [];
   const hoverBorderSelectors = [];
   const focusRingSelectors = [];
-  const twTextSelectors = [];
-  const twBgSelectors = [];
-  const twBorderSelectors = [];
-  const twFillSelectors = [];
-  const twStrokeSelectors = [];
-  const twFromSelectors = [];
-  const twToSelectors = [];
-  const twViaSelectors = [];
-  const twHoverTextSelectors = [];
-  const twHoverBgSelectors = [];
-  const twHoverBorderSelectors = [];
 
   const bgOpacityRules = {};
   const textOpacityRules = {};
@@ -164,19 +150,6 @@ const buildThemeOverrideCss = () => {
     });
   });
 
-  LEGACY_BRAND_TAILWIND_COLORS.forEach((colorToken) => {
-    twTextSelectors.push(`.text-${colorToken}`);
-    twBgSelectors.push(`.bg-${colorToken}`);
-    twBorderSelectors.push(`.border-${colorToken}`);
-    twFillSelectors.push(`.fill-${colorToken}`);
-    twStrokeSelectors.push(`.stroke-${colorToken}`);
-    twFromSelectors.push(`.from-${colorToken}`);
-    twToSelectors.push(`.to-${colorToken}`);
-    twViaSelectors.push(`.via-${colorToken}`);
-    twHoverTextSelectors.push(`.hover\\:text-${colorToken}:hover`);
-    twHoverBgSelectors.push(`.hover\\:bg-${colorToken}:hover`);
-    twHoverBorderSelectors.push(`.hover\\:border-${colorToken}:hover`);
-  });
 
   const makeOpacityRuleBlock = (selectorMap, propertyBuilder) =>
     Object.entries(selectorMap)
@@ -268,32 +241,6 @@ const buildThemeOverrideCss = () => {
     }
     ${hoverBorderSelectors.join(", ")} {
       border-color: var(--module-theme-color) !important;
-    }
-    ${twTextSelectors.join(", ")}, ${twHoverTextSelectors.join(", ")} {
-      color: var(--module-theme-ink, var(--module-theme-color)) !important;
-    }
-    ${twBgSelectors.join(", ")}, ${twHoverBgSelectors.join(", ")} {
-      background-color: rgba(var(--module-theme-rgb), 0.10) !important;
-    }
-    ${twBorderSelectors.join(", ")}, ${twHoverBorderSelectors.join(", ")} {
-      border-color: rgba(var(--module-theme-rgb), 0.24) !important;
-    }
-    ${twFillSelectors.join(", ")} {
-      fill: var(--module-theme-color) !important;
-    }
-    ${twStrokeSelectors.join(", ")} {
-      stroke: var(--module-theme-color) !important;
-    }
-    ${twFromSelectors.join(", ")} {
-      --tw-gradient-from: rgba(var(--module-theme-rgb), 0.28) var(--tw-gradient-from-position) !important;
-      --tw-gradient-to: rgba(var(--module-theme-rgb), 0) var(--tw-gradient-to-position) !important;
-      --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
-    }
-    ${twToSelectors.join(", ")} {
-      --tw-gradient-to: rgba(var(--module-theme-rgb), 0.75) var(--tw-gradient-to-position) !important;
-    }
-    ${twViaSelectors.join(", ")} {
-      --tw-gradient-stops: var(--tw-gradient-from), rgba(var(--module-theme-rgb), 0.52), var(--tw-gradient-to) !important;
     }
 
     ${makeOpacityRuleBlock(bgOpacityRules, (alpha) => `background-color: rgba(var(--module-theme-rgb), ${alpha}) !important;`)}

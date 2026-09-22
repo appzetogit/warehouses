@@ -376,7 +376,7 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
                       compareAmount={compareUnit > 0 ? compareUnit * qty : 0}
                       decimals={2}
                       plainClassName="text-sm font-semibold text-slate-900 tabular-nums"
-                      saleClassName="inline-flex items-center rounded-full border border-[#FA0272] bg-[#FA0272]/10 px-2 py-0.5 text-sm font-bold text-[#FA0272] tabular-nums"
+                      saleClassName="inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-sm font-bold text-wh-brand-ink tabular-nums"
                     />
                   </div>
                   )
@@ -496,7 +496,7 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
                     compareAmount={compareItemTotal}
                     decimals={2}
                     plainClassName="font-medium text-slate-900 tabular-nums"
-                    saleClassName="inline-flex items-center rounded-full border border-[#FA0272] bg-[#FA0272]/10 px-2 py-0.5 text-sm font-bold text-[#FA0272] tabular-nums"
+                    saleClassName="inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-sm font-bold text-wh-brand-ink tabular-nums"
                   />
                 </div>
               )}
@@ -532,7 +532,7 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
                 </div>
               )}
               {quickDeliveryFee > 0 && (
-                <div className="flex justify-between text-sm font-semibold text-[#FA0272]">
+                <div className="flex justify-between text-sm font-semibold text-wh-brand-ink">
                   <span>Quick Mode</span>
                   <span>₹{quickDeliveryFee.toFixed(2)}</span>
                 </div>
@@ -559,7 +559,7 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
                     compareAmount={compareOrderTotal}
                     decimals={2}
                     plainClassName="text-xl font-bold text-emerald-600 tabular-nums"
-                    saleClassName="inline-flex items-center rounded-full border border-[#FA0272] bg-[#FA0272]/10 px-2 py-0.5 text-base font-bold text-[#FA0272] tabular-nums"
+                    saleClassName="inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-base font-bold text-wh-brand-ink tabular-nums"
                   />
                 </div>
               </div>

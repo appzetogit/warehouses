@@ -15,7 +15,9 @@ import {
   getModulePowerScanning,
 } from "@store/utils/businessSettings"
 
-const THEME = "#FA0272"
+const THEME = "#FD920B"
+const THEME_INK = "#B45309"
+const inkFor = (c) => (String(c).toUpperCase() === THEME ? THEME_INK : c)
 
 const STEP_META = {
   1: { title: "Forgot password", subtitle: "Enter your email to receive a verification code" },
@@ -32,7 +34,7 @@ function StepIndicator({ step, themeColor }) {
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors"
             style={{
               backgroundColor: s <= step ? themeColor : "#E5E7EB",
-              color: s <= step ? "#fff" : "#9CA3AF",
+              color: s <= step ? "#0F1111" : "#9CA3AF",
             }}
           >
             {s}
@@ -257,7 +259,7 @@ export default function AdminForgotPassword() {
       }
 
   const inputClass =
-    "h-12 rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm transition-all placeholder:text-gray-400 focus:border-gray-300 focus:bg-white focus-visible:ring-2 focus-visible:ring-primary-orange/30"
+    "h-12 rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm transition-all placeholder:text-gray-400 focus:border-gray-300 focus:bg-white focus-visible:ring-2 focus-visible:ring-wh-brand/30"
 
   const { title, subtitle } = STEP_META[step]
 
@@ -346,7 +348,7 @@ export default function AdminForgotPassword() {
                   <Button
                     type="submit"
                     variant="ghost"
-                    className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90"
+                    className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-wh-text shadow-sm transition-all hover:opacity-90"
                     style={{ backgroundColor: themeColor }}
                     disabled={isLoading}
                   >
@@ -384,7 +386,7 @@ export default function AdminForgotPassword() {
                           onChange={(e) => handleOtpChange(index, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(index, e)}
                           onPaste={index === 0 ? handleOtpPaste : undefined}
-                          className="h-12 w-11 rounded-xl border border-gray-200 bg-white p-0 text-center text-lg font-semibold shadow-sm focus-visible:ring-2 focus-visible:ring-primary-orange/30 sm:h-14 sm:w-12 sm:text-xl"
+                          className="h-12 w-11 rounded-xl border border-gray-200 bg-white p-0 text-center text-lg font-semibold shadow-sm focus-visible:ring-2 focus-visible:ring-wh-brand/30 sm:h-14 sm:w-12 sm:text-xl"
                           disabled={isLoading}
                           aria-label={`Digit ${index + 1}`}
                         />
@@ -410,7 +412,7 @@ export default function AdminForgotPassword() {
                       onClick={handleResendOtp}
                       disabled={resendTimer > 0 || isLoading}
                       className="cursor-pointer font-medium transition-colors hover:underline disabled:cursor-not-allowed disabled:text-gray-400 disabled:no-underline"
-                      style={{ color: resendTimer > 0 ? undefined : themeColor }}
+                      style={{ color: resendTimer > 0 ? undefined : inkFor(themeColor) }}
                     >
                       {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
                     </button>
@@ -419,7 +421,7 @@ export default function AdminForgotPassword() {
                   <Button
                     type="submit"
                     variant="ghost"
-                    className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90"
+                    className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-wh-text shadow-sm transition-all hover:opacity-90"
                     style={{ backgroundColor: themeColor }}
                     disabled={isLoading}
                   >
@@ -504,7 +506,7 @@ export default function AdminForgotPassword() {
                   <Button
                     type="submit"
                     variant="ghost"
-                    className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90"
+                    className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-wh-text shadow-sm transition-all hover:opacity-90"
                     style={{ backgroundColor: themeColor }}
                     disabled={isLoading}
                   >

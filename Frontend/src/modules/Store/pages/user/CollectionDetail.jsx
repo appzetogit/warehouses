@@ -8,6 +8,7 @@ import { Button } from "@store/components/ui/button"
 import { Badge } from "@store/components/ui/badge"
 import { useProfile } from "@store/context/ProfileContext"
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation"
+import { imagePlaceholder } from "@store/constants/images"
 
 export default function CollectionDetail() {
   const { id } = useParams()
@@ -123,7 +124,7 @@ export default function CollectionDetail() {
                       className="w-full h-full object-cover"
                       loading="lazy"
                       onError={(e) => {
-                        e.target.src = `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop&q=80`
+                        e.target.src = imagePlaceholder
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />

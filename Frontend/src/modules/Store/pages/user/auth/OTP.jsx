@@ -8,7 +8,6 @@ import apiClient, { authAPI } from "@store/api"
 import { setAuthData as setUserAuthData } from "@store/utils/auth"
 import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@store/utils/firebaseMessaging"
 import { motion, AnimatePresence } from "framer-motion"
-import loginBanner from "@store/assets/loginbanner.png"
 import { useCompanyName } from "@store/hooks/useCompanyName"
 
 const FULL_NAME_REGEX = /^[A-Za-z ]+$/

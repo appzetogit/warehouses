@@ -1,5 +1,5 @@
 import { Check } from "lucide-react"
-import { ONBOARDING_STEPS, SELLER_BRAND } from "./onboardingStyles"
+import { ONBOARDING_STEPS, SELLER_BRAND_INK } from "./onboardingStyles"
 
 const PROGRESS_GREEN = "#10b981"
 const PROGRESS_GREEN_MID = "#34d399"
@@ -31,8 +31,8 @@ function StepCircle({ stepId, currentStep, compact = false, variant = "default" 
           ? ""
           : isActive
             ? isSidebar
-              ? "border-white bg-white text-[#FA0272] shadow-lg shadow-black/20"
-              : "border-[#FA0272] bg-[#FA0272] text-white shadow-lg shadow-[#FA0272]/25 motion-safe:scale-105"
+              ? "border-white bg-white text-wh-brand-ink shadow-lg shadow-black/20"
+              : "border-wh-brand bg-wh-brand text-wh-text shadow-lg shadow-wh-brand/25 motion-safe:scale-105"
             : isSidebar
               ? "border-white/35 bg-white/10 text-white/60"
               : "border-slate-200 bg-white text-slate-400"
@@ -85,13 +85,13 @@ export function OnboardingProgressBarHorizontal({ currentStep }) {
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: SELLER_BRAND }}>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: SELLER_BRAND_INK }}>
             Step {currentStep} of {ONBOARDING_STEPS.length}
           </p>
           <p className="truncate text-sm font-bold text-slate-900">{activeStep?.title}</p>
         </div>
-        <div className="shrink-0 rounded-full bg-[#FA0272]/10 px-3 py-1">
-          <span className="text-xs font-bold" style={{ color: SELLER_BRAND }}>
+        <div className="shrink-0 rounded-full bg-wh-brand/10 px-3 py-1">
+          <span className="text-xs font-bold" style={{ color: SELLER_BRAND_INK }}>
             {Math.round((currentStep / ONBOARDING_STEPS.length) * 100)}%
           </span>
         </div>

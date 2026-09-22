@@ -14,7 +14,8 @@ import { loadBusinessSettings, getModuleLogoUrl } from "@store/utils/businessSet
 import SellerPartnerHero from "@store/components/seller/auth/SellerPartnerHero"
 import brandMark from "@/config/brandMark"
 
-const THEME = "#FA0272"
+const THEME = "#FD920B"
+const THEME_INK = "#B45309"
 
 export default function SellerOTP() {
   const companyName = useCompanyName()
@@ -327,7 +328,7 @@ export default function SellerOTP() {
               <h2 className="text-2xl font-bold tracking-tight text-gray-900">Verify OTP</h2>
               <p className="mt-1 text-sm text-gray-500">
                 Enter the 4-digit code sent to{" "}
-                <span className="font-semibold" style={{ color: THEME }}>
+                <span className="font-semibold" style={{ color: THEME_INK }}>
                   {contactInfo}
                 </span>
               </p>
@@ -360,7 +361,7 @@ export default function SellerOTP() {
                         error
                           ? "border-red-300 bg-red-50"
                           : focusedIndex === index
-                            ? "border-[#FA0272] ring-4 ring-[#FA0272]/15"
+                            ? "border-wh-brand ring-4 ring-wh-brand/15"
                             : "border-gray-200"
                       }`}
                     />
@@ -371,7 +372,7 @@ export default function SellerOTP() {
                   onClick={() => handleVerify()}
                   disabled={isLoading || !isOtpComplete}
                   variant="ghost"
-                  className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 disabled:opacity-50"
+                  className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-wh-text shadow-sm transition-all hover:opacity-90 disabled:opacity-50"
                   style={{ backgroundColor: THEME }}
                 >
                   {isLoading ? (
@@ -387,8 +388,8 @@ export default function SellerOTP() {
                 <div className="flex flex-col items-center gap-3 pt-1">
                   {resendTimer > 0 ? (
                     <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-                      <Timer className="h-3.5 w-3.5" style={{ color: THEME }} />
-                      Resend in <span style={{ color: THEME }}>{resendTimer}s</span>
+                      <Timer className="h-3.5 w-3.5" style={{ color: THEME_INK }} />
+                      Resend in <span style={{ color: THEME_INK }}>{resendTimer}s</span>
                     </div>
                   ) : (
                     <button
@@ -396,7 +397,7 @@ export default function SellerOTP() {
                       onClick={handleResend}
                       disabled={isLoading}
                       className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
-                      style={{ color: THEME }}
+                      style={{ color: THEME_INK }}
                     >
                       <RefreshCw className="h-4 w-4" />
                       Resend code

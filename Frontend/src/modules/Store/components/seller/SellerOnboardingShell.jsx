@@ -67,7 +67,7 @@ export default function SellerOnboardingShell({
               <button
                 type="button"
                 onClick={onBack}
-                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FA0272]/30"
+                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wh-brand/30"
                 aria-label={step > 1 ? "Go back" : "Close onboarding"}
               >
                 {step > 1 ? <ChevronLeft className="h-5 w-5" /> : <X className="h-5 w-5" />}
@@ -85,7 +85,7 @@ export default function SellerOnboardingShell({
                   onClick={onEnableEdit}
                   variant="outline"
                   size="sm"
-                  className="cursor-pointer border-[#FA0272]/20 bg-[#FA0272]/5 text-[#FA0272] hover:bg-[#FA0272]/10"
+                  className="cursor-pointer border-wh-brand/20 bg-wh-brand/5 text-wh-brand-ink hover:bg-wh-brand/10"
                 >
                   <Sparkles className="mr-1.5 h-3.5 w-3.5" />
                   Edit
@@ -127,7 +127,7 @@ export default function SellerOnboardingShell({
                 type="button"
                 onClick={onEnableEdit}
                 variant="outline"
-                className="cursor-pointer border-[#FA0272]/20 bg-[#FA0272]/5 text-[#FA0272] hover:bg-[#FA0272]/10"
+                className="cursor-pointer border-wh-brand/20 bg-wh-brand/5 text-wh-brand-ink hover:bg-wh-brand/10"
               >
                 <Sparkles className="mr-1.5 h-4 w-4" />
                 Edit Details
@@ -154,7 +154,7 @@ export default function SellerOnboardingShell({
           <div className="mx-auto w-full max-w-3xl space-y-5">
             {loading ? (
               <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-gray-200 bg-white py-20 shadow-sm">
-                <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-gray-200 border-t-[#FA0272]" />
+                <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-gray-200 border-t-wh-brand" />
                 <p className="text-sm font-medium text-gray-500">Loading your onboarding details...</p>
               </div>
             ) : (
@@ -192,7 +192,7 @@ export default function SellerOnboardingShell({
               type="button"
               onClick={onNext}
               disabled={nextDisabled}
-              className="min-w-[140px] cursor-pointer rounded-xl px-8 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className={`min-w-[140px] cursor-pointer rounded-xl px-8 text-sm font-semibold ${nextDisabled ? "text-white" : "text-wh-text"} shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50`}
               style={{ backgroundColor: nextDisabled ? undefined : SELLER_BRAND }}
             >
               {label}

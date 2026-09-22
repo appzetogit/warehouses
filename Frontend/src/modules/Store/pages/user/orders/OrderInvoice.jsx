@@ -9,6 +9,7 @@ import { Button } from "@store/components/ui/button"
 import { Badge } from "@store/components/ui/badge"
 import { useOrders } from "@store/context/OrdersContext"
 import { useCompanyName } from "@store/hooks/useCompanyName"
+import { orderAPI } from "@store/api"
 
 export default function OrderInvoice() {
   const companyName = useCompanyName()

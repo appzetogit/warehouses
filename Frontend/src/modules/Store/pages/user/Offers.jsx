@@ -11,6 +11,7 @@ import { useDelayedLoading } from "@store/hooks/useDelayedLoading"
 
 // Import banner image
 import offerBanner from "@store/assets/offerpagebanner.png"
+import { imagePlaceholder } from "@store/constants/images"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -112,7 +113,7 @@ export default function Offers() {
                         {/* Image Container */}
                         <div className="relative h-32 sm:h-36 rounded-xl overflow-hidden mb-2">
                           <img 
-                            src={dish.dishImage || dish.sellerImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop"} 
+                            src={dish.dishImage || dish.sellerImage || imagePlaceholder} 
                             alt={dish.dishName}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />

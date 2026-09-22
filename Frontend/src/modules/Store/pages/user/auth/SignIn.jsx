@@ -6,7 +6,6 @@ import { Button } from "@store/components/ui/button"
 import { Input } from "@store/components/ui/input"
 import { authAPI } from "@store/api"
 import { motion } from "framer-motion"
-import loginBanner from "@store/assets/loginbanner.png"
 import { brandLogoOnDark } from "@/config/brandMark"
 import { APP_CONFIG } from "@/config/constants"
 const debugLog = (...args) => { }

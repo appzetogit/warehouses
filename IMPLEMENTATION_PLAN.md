@@ -1,7 +1,9 @@
 # Implementation Plan — Multi-Vendor E-Commerce + Quick Commerce
 
 Source: *Scope of Work — E-Commerce + Quick Delivery Platform* (60-day build, 1-year maintenance).
-Baseline: this repo (`Backend/` Node/Express/Mongo, `Frontend/` React/Vite admin + seller + customer web + rider web) and the three Flutter apps in their own repos.
+Baseline: this repo (`Backend/` Node/Express/Mongo, `Frontend/` React/Vite admin + seller + customer web + rider web).
+
+> **Scope change (2026-09-22):** the native Flutter apps (customer, seller, delivery) are **out of scope** for this project. The deliverable is the backend, the admin and seller panels, and the customer website (desktop and mobile web). The API docs stay client-neutral so any future app can use them.
 
 The code today does quick commerce from one seller per order. It started as a food-delivery product and still reads like one. The SOW asks for three things on top of that:
 
@@ -69,7 +71,7 @@ Most of the rest already exists and needs extending, not rebuilding (see §1).
 ## 2. Target architecture — key design decisions
 
 ### 2.1 Rename strategy (food → commerce)
-We rename the whole thing in one clean break. Nothing is live and the Flutter apps are rebuilt on top of this repo at the end, so no old paths or names are kept for compatibility. *(Done in Phase 1.)*
+We rename the whole thing in one clean break. Nothing is live, so no old paths or names are kept for compatibility. *(Done in Phase 1.)*
 
 | Layer | From | To |
 |---|---|---|
@@ -123,7 +125,7 @@ The wallet is real money: top-ups and cashback. Coins are a promotional liabilit
 ### 2.6 Payment gateway abstraction
 - A `PaymentGateway` interface with `createOrder`, `verify`, `refund`, `webhook`, and Razorpay as the first implementation.
 - The SOW says the client supplies the gateway, so swapping means adding one adapter instead of editing the order service.
-- UPI intent goes through the gateway SDK in the Flutter apps. COD keeps the current cash-limit and deposit flow for riders. Standard COD orders are reconciled against the courier's COD remittance.
+- UPI goes through the gateway checkout on the web. COD keeps the current cash-limit and deposit flow for riders. Standard COD orders are reconciled against the courier's COD remittance.
 
 ### 2.7 AI (Gemini)
 - A backend-only `ai` module. The API key stays on the server and is set in admin (the same pattern as the Maps and Firebase keys).
@@ -155,7 +157,7 @@ Tags: **[BE]** backend · **[AD]** admin web · **[SW]** seller web · **[CW]** 
 - [x] Run the four `*.selfcheck.mjs` files, and exercise the atomic stock decrement and restock against a real Mongo (still marked untested in `QUICK_COMMERCE_CHANGES.md`).
 - [x] Add a minimal test harness (`node --test` + in-memory Mongo replica set, `npm test` in `Backend/`).
 - [ ] Extend it into an API smoke suite covering checkout, cancel, refund and dispatch. All the refactors below depend on it.
-- [ ] Agree on the brand name, package ids and bundle ids for the three apps (iOS needs them early for provisioning).
+- [x] Agree on the brand name (decided: "The Warehouses", from config).
 
 ### 3.2 Phase 1 — De-food and rename (weeks 1–2)
 
@@ -167,7 +169,6 @@ Nothing is live, so the rename is a clean break: there is no `/api/v1/food` alia
 - [x] **[BE]** Remove dining, table booking, add-ons, cutlery, cuisines, pure-veg stores, veg-scoped categories, gourmet/under-250/coffee/hyperpure and the saved menu layout. Veg/non-veg stays as an optional mark (`foodType`: `'Veg' | 'Non-Veg' | null`). FSSAI is optional everywhere; making it required per category moves to Phase 2a.
 - [x] **[BE]** Role `RESTAURANT` → `SELLER`, socket rooms `seller:<id>`, notification sources and stored values renamed. The last bare "food" values (`module`, favourites, approvals, upload folders) are migrated by `2026-09-rename-food-values.mjs`. New orders are numbered `ORD-…`.
 - [x] **[AD][SW][CW]** `modules/Food` → `modules/Store` (`@store`). Dining, gourmet, Under250, Coffee and Hyperpure pages deleted. On-screen copy says product/order, the brand name comes from business settings (`VITE_BRAND_NAME` until they load), and `/` opens the store. **Moving the customer site to `/` and the rider app off `/food/delivery` happens with the Phase 2 storefront**, as decided.
-- [ ] **[CA][SA][DA]** The Flutter apps: rebuilt at the end on top of this repo against the new API docs, so there is nothing to flag or alias now.
 - **Done when:** a `grep -ri "food\|restaurant\|dining\|veg"` over `src/` returns only the optional veg mark, the `/food/*` web URLs that move in Phase 2, comments, and internal identifiers users never see (the `food` Redux slice, local variables). *Status: met.* The smoke suite (§3.1) still has to be written.
 
 ### 3.3 Phase 2a — Catalogue: attributes and variants (weeks 2–3)
@@ -214,7 +215,6 @@ Nothing is live, so the rename is a clean break: there is no `/api/v1/food` alia
 ### 3.7 Phase 3c — Payments (runs in parallel, weeks 4–6)
 - [ ] **[BE]** Refactor to the `PaymentGateway` interface. Checkout-level payment, with idempotent webhooks keyed on the gateway payment id.
 - [ ] **[BE]** Reconciliation report: gateway settlements vs checkouts vs refunds. COD ledger split by rider (quick) and courier (standard).
-- [ ] **[CA]** Gateway Flutter SDK with UPI intent, cards, netbanking and wallets. Retry-payment for pending checkouts.
 
 ### 3.8 Phase 4a — AI assistant (week 6)
 - [ ] **[BE]** `ai` module: a Gemini client, the tool definitions (§2.7), conversation storage, rate limits and cost caps. An admin setting for the key, model, system prompt and each use case.
@@ -257,23 +257,13 @@ Extend the existing report pages and add these:
 
 All reports export to XLSX. Heavy aggregations are pre-computed nightly into a `daily_metrics` collection so the dashboard stays fast.
 
-### 3.11 Phase 5 — Apps, website and iOS (weeks 2–8, alongside the backend)
-The Flutter apps follow the backend one phase behind, against the updated API specs.
-- **Customer app:** rebrand; variant picker; multi-seller cart; quick vs standard promise; coins; spin; AI chat; courier tracking; gateway SDK.
-- **Seller app:** rebrand; variant and stock editor; standard-order pack-and-ship flow; label view; reports.
-- **Delivery app:** rebrand; confirm the existing flow on the renamed API; COD summary; incentives screen.
-- **iOS, for all three apps:**
-  - Apple Developer account and bundle ids
-  - APNs key in Firebase
-  - Location permission strings. The delivery app needs "Always" location with a background mode and a justification App Review accepts.
-  - The gateway's iOS SDK
-  - Sign in with Apple is **not** required while login is phone OTP only. It becomes required if Google or social login is added.
-  - TestFlight builds from week 6.
+### 3.11 Phase 5 — Customer website (weeks 2–8, alongside the backend)
 - **Customer website:**
   - Responsive pass at phone, tablet and desktop widths
   - Per-route meta tags, `sitemap.xml` and `robots.txt`
   - Product and store pages reachable by URL
   - Optional pre-rendering of category and product pages if SEO matters to the client
+
 
 ### 3.12 Phase 6 — QA, UAT, launch (weeks 8–9)
 - [ ] End-to-end scripts for:
@@ -285,24 +275,23 @@ The Flutter apps follow the backend one phase behind, against the updated API sp
   - AI order-status lookup
 - [ ] Load test checkout and dispatch (the `REMEDIATION_PLAN` targets 10k orders/day).
 - [ ] Production migration rehearsal on a restored backup, then the live migration in a maintenance window.
-- [ ] Store submissions: Play Store for all three apps; App Store for all three apps (allow for 1–2 review cycles).
 - [ ] Handover: updated API specs, an admin user guide, a runbook, and the start of the 1-year maintenance period.
 
 ---
 
 ## 4. Timeline (60 days)
 
-| Week | Backend | Web (admin / seller / customer) | Flutter apps |
-|---|---|---|---|
-| 1 | Phase 0 + start rename | Rename `modules/Food`, remove food pages | Rebrand, point at new paths behind a flag |
-| 2 | Rename + migration done; attributes/variants | Variant editor | Rebrand done, iOS provisioning |
-| 3 | Variant stock, search facets; cart v2 | Filters, store pages | Variant picker, filters |
-| 4 | Split checkout, gateway interface | Grouped cart and checkout | Multi-seller cart |
-| 5 | Courier integration, coins | Shipments admin, coin settings | Checkout, coins, courier tracking |
-| 6 | Spin, first-order, AI, notifications | Spin builder, AI settings | Spin, AI chat; **TestFlight / internal testing** |
-| 7 | Reports, hardening | Reports | Seller ship flow, polish |
-| 8 | Load test, migration rehearsal | UAT fixes | UAT fixes, store submission |
-| 9 (days 57–60) | Production migration + launch | Launch | Store release |
+| Week | Backend | Web (admin / seller / customer) |
+|---|---|---|
+| 1 | Phase 0 + start rename | Rename `modules/Food`, remove food pages |
+| 2 | Rename + migration done; attributes/variants | Variant editor |
+| 3 | Variant stock, search facets; cart v2 | Filters, store pages |
+| 4 | Split checkout, gateway interface | Grouped cart and checkout |
+| 5 | Courier integration, coins | Shipments admin, coin settings |
+| 6 | Spin, first-order, AI, notifications | Spin builder, AI settings |
+| 7 | Reports, hardening | Reports |
+| 8 | Load test, migration rehearsal | UAT fixes |
+| 9 (days 57–60) | Production migration + launch | Launch |
 
 The critical path is Phase 0 decisions → multi-seller checkout → coins and courier. The dependencies below come from SOW §16:
 
@@ -321,7 +310,7 @@ Each week one of these slips moves launch by about a week.
 ## 5. Decisions (all settled; the client can override any by config or admin settings)
 
 | # | Decision | Why it blocks | Suggested default |
-|---|---|---|---|
+|---|---|---|
 | B1 | Which refund reasons pay out in coins and which go back to the original payment | Refund logic | **Decided (2026-09-21):** refunds go back to the original payment method by default; at cancellation the customer may choose coins instead, credited in full with the 80% rule applied. Coins spent on the order always come back as coins. Cash orders have nothing to refund |
 | B2 | ~~How the 80% rule applies~~ | — | **Decided (2026-09-21):** 1,000 coins credited, at most 800 ever spendable; the other 20% is never redeemable |
 | B3 | ~~Coin expiry and per-order limit~~ | — | **Decided:** 90 days, oldest coins used first; coins pay at most 50% of an order. Both editable in admin |
@@ -331,7 +320,7 @@ Each week one of these slips moves launch by about a week.
 | B7 | Commission basis (per seller, per category, flat + %) | Settlement | **Decided (2026-09-21):** a seller-specific rule (percentage or flat) wins; otherwise each line pays its category's `commissionPercent` (inherited from the parent) on its share of the subtotal after discounts. Tax, delivery and packaging are never commissioned. The platform bears coins and platform coupons; sellers bear their own coupons |
 | B8 | Spin eligibility and budget (daily / after order) | Spin rules | **Decided (2026-09-21):** one spin per customer per day (store timezone), weighted rewards, a monthly coin budget per wheel, campaigns scheduled from admin. Daily rather than per order, so it brings customers back without rewarding order-splitting |
 | B9 | AI use cases in scope (SOW §11 lists 5 as "potential") | AI effort | **Decided (2026-09-21):** shopping assistant (product search and help) and order-status answers on Gemini 2.5 Flash, key in `GEMINI_API_KEY`, 20 messages a minute per customer. Recommendations stay rule-based (no LLM cost per page view) |
-| B10 | Brand name, domain, app ids | Rename, store listings | **Decided (2026-09-21):** brand from `BRAND_NAME` (default "Warehouses"); domain is `FRONTEND_URL`; app ids `com.warehouses.customer`, `.seller`, `.delivery` for the Flutter apps. Both can be swapped by config |
+| B10 | Brand name, domain, app ids | Rename, store listings | **Decided (2026-09-21):** brand from `BRAND_NAME` (default "Warehouses"); domain is `FRONTEND_URL`; Both can be swapped by config |
 | B11 | ~~Keep the old `/api/v1/food` alias until when?~~ | — | Settled: no alias, since nothing is live |
 
 ---

@@ -26,6 +26,8 @@ import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { useDelayedLoading } from "@store/hooks/useDelayedLoading"
 import { getSellerAvailabilityStatus } from "@store/utils/sellerAvailability"
 
+const debugError = (...args) => {}
+
 // Filter options
 const filterOptions = [
   { id: 'under-30-mins', label: 'Under 30 mins' },

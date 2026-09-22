@@ -9,6 +9,8 @@ import { FaLocationDot } from "react-icons/fa6"
 import { getCachedSettings, loadBusinessSettings } from "@store/utils/businessSettings"
 import brandMark from "@/config/brandMark"
 
+const debugError = (...args) => {}
+
 export default function PageNavbar({
   textColor = "white",
   zIndex = 20,

@@ -11,7 +11,7 @@ import SellerPartnerHero from "@store/components/seller/auth/SellerPartnerHero"
 import brandMark from "@/config/brandMark"
 
 const DEFAULT_COUNTRY_CODE = "+91"
-const THEME = "#FA0272"
+const THEME = "#FD920B"
 
 export default function SellerLogin() {
   const companyName = useCompanyName()
@@ -187,7 +187,7 @@ export default function SellerLogin() {
                   <Label htmlFor="seller-phone" className="text-sm font-medium text-gray-700">
                     Mobile number
                   </Label>
-                  <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all focus-within:ring-2 focus-within:ring-[#FA0272]/30">
+                  <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all focus-within:ring-2 focus-within:ring-wh-brand/30">
                     <div className="flex items-center border-r border-gray-200 bg-gray-50 px-4 text-sm font-semibold text-gray-700">
                       +91
                     </div>
@@ -211,7 +211,7 @@ export default function SellerLogin() {
                   onClick={handleSendOTP}
                   disabled={!isValidPhone || isSending}
                   variant="ghost"
-                  className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 disabled:opacity-50"
+                  className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-wh-text shadow-sm transition-all hover:opacity-90 disabled:opacity-50"
                   style={{ backgroundColor: THEME }}
                 >
                   {isSending ? (
@@ -231,15 +231,15 @@ export default function SellerLogin() {
                 Secure partner login &middot; {companyName}
               </p>
               <p className="text-[11px] text-gray-400">
-                <Link to="/seller/terms" className="transition-colors hover:text-[#FA0272]">
+                <Link to="/seller/terms" className="transition-colors hover:text-wh-brand-ink">
                   Terms
                 </Link>
                 {" · "}
-                <Link to="/seller/privacy" className="transition-colors hover:text-[#FA0272]">
+                <Link to="/seller/privacy" className="transition-colors hover:text-wh-brand-ink">
                   Privacy
                 </Link>
                 {" · "}
-                <Link to="/seller/help-content" className="transition-colors hover:text-[#FA0272]">
+                <Link to="/seller/help-content" className="transition-colors hover:text-wh-brand-ink">
                   Support
                 </Link>
               </p>

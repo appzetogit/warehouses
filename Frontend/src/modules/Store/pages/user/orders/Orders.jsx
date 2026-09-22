@@ -6,6 +6,7 @@ import { useCart } from "@store/context/CartContext"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@store/utils/businessSettings"
 import { useCompanyName } from "@store/hooks/useCompanyName"
+import { imagePlaceholder } from "@store/constants/images"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
 const debugError = (...args) => { }
@@ -787,7 +788,7 @@ Order again from this seller in the ${companyName} app.`
             const firstItemImage = order.items?.[0]?.image
             const sellerImage = firstItemImage
               || order.sellerImage
-              || "https://images.unsplash.com/photo-1604908176997-125188eb3c52?auto=format&fit=crop&w=200&q=80"
+              || imagePlaceholder
             const location = order.sellerLocation || `${order.address?.city || ''}, ${order.address?.state || ''}`.trim() || 'Location not available'
 
             return (
@@ -802,7 +803,7 @@ Order again from this seller in the ${companyName} app.`
                         alt={order.seller}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.target.src = "https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?auto=format&fit=crop&w=100&q=80"
+                          e.target.src = imagePlaceholder
                         }}
                       />
                     </div>

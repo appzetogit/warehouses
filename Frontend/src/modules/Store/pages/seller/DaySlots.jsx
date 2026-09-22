@@ -25,6 +25,9 @@ import {
   PopoverTrigger,
 } from "@store/components/ui/popover"
 import { useCompanyName } from "@store/hooks/useCompanyName"
+// Same key the rest of the seller app registers (and clears on logout).
+const STORAGE_KEY = "seller_outlet_timings"
+
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}

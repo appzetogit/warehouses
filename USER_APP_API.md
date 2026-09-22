@@ -1,7 +1,7 @@
 # Customer app API
 
 Endpoints for the customer app and website. Read
-[FLUTTER_API_SPEC.md](FLUTTER_API_SPEC.md) first: it covers the base URL, the
+[API_CONVENTIONS.md](API_CONVENTIONS.md) first: it covers the base URL, the
 response envelope, login and token refresh, push, sockets and data
 conventions. Every path below is under `/api/v1`.
 
@@ -231,4 +231,4 @@ listen for `order_status_update`, `location-update` and `delivery_drop_otp`.
 
 ## Push and inbox
 
-See [FLUTTER_API_SPEC.md](FLUTTER_API_SPEC.md#push-notifications).
+See [API_CONVENTIONS.md](API_CONVENTIONS.md#push-notifications).

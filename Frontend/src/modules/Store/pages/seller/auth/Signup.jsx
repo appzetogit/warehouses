@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Phone, User, AlertCircle, Loader2, UtensilsCrossed } from "lucide-react"
+import { Phone, User, AlertCircle, Loader2, Store } from "lucide-react"
 import { sellerAPI } from "@store/api"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@store/components/ui/card"
 import { Button } from "@store/components/ui/button"
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@store/components/ui/select"
-import loginBg from "@store/assets/loginbanner.png"
+import { brandLogoOnDark } from "@/config/brandMark"
 import { useCompanyName } from "@store/hooks/useCompanyName"
 
 const countryCodes = [
@@ -21,6 +21,7 @@ const countryCodes = [
 ]
 
 export default function SellerSignup() {
+  const companyName = useCompanyName()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     phone: "",
@@ -137,16 +138,15 @@ export default function SellerSignup() {
   return (
     <div className="h-screen w-full flex bg-white overflow-hidden">
       {/* Left image section */}
-      <div className="hidden lg:flex lg:w-1/2 relative">
-        <img
-          src={loginBg}
-          alt="Seller background"
-          className="w-full h-full object-cover"
-        />
+      <div
+        className="hidden lg:flex lg:w-1/2 relative"
+        style={{ background: "linear-gradient(160deg, var(--wh-nav, #131921) 0%, var(--wh-nav-2, #232F3E) 100%)" }}
+      >
+        <img src={brandLogoOnDark()} alt="" className="absolute left-1/2 top-[12%] h-24 w-auto -translate-x-1/2 object-contain" />
         {/* Orange half-circle text block attached to the left with animation */}
-        <div className="absolute inset-0 flex items-center text-white pointer-events-none">
+        <div className="absolute inset-0 flex items-center text-wh-text pointer-events-none">
           <div
-            className="bg-primary-orange/80 rounded-r-full py-10 xl:py-20 pl-10 xl:pl-14 pr-10 xl:pr-20 max-w-[70%] shadow-xl backdrop-blur-[1px]"
+            className="bg-wh-brand/90 rounded-r-full py-10 xl:py-20 pl-10 xl:pl-14 pr-10 xl:pr-20 max-w-[70%] shadow-xl backdrop-blur-[1px]"
             style={{ animation: "slideInLeft 0.8s ease-out both" }}
           >
             <h1 className="text-3xl xl:text-4xl font-extrabold mb-4 tracking-wide leading-tight">
@@ -155,7 +155,7 @@ export default function SellerSignup() {
               SELLER PARTNER
             </h1>
             <p className="text-base xl:text-lg opacity-95 max-w-xl">
-              Register your seller and start serving customers.
+              Open your store on {companyName} and start selling, delivered in minutes or shipped anywhere.
             </p>
           </div>
         </div>
@@ -169,20 +169,17 @@ export default function SellerSignup() {
             className="flex items-center gap-3"
             style={{ animation: "fadeInDown 0.7s ease-out both" }}
           >
-            <div className="h-11 w-11 rounded-xl bg-primary-orange flex items-center justify-center text-white shadow-lg">
-              <UtensilsCrossed className="h-6 w-6" />
+            <div className="h-11 w-11 rounded-xl bg-wh-brand flex items-center justify-center text-wh-text shadow-lg">
+              <Store className="h-6 w-6" />
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-2xl font-bold tracking-wide text-primary-orange">
+              <span className="text-2xl font-bold tracking-wide text-wh-brand-ink">
                 {companyName}
               </span>
               <span className="text-xs font-medium text-gray-500">
                 Seller Panel
               </span>
             </div>
-          </div>
-          <div className="absolute right-6 sm:right-10 lg:right-16 top-6 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-medium text-emerald-700 shadow-sm">
-            Software Version : 1.0.0
           </div>
         </div>
 
@@ -222,7 +219,7 @@ export default function SellerSignup() {
                   placeholder="Enter seller name"
                   value={formData.name}
                   onChange={handleChange}
-                  className={`h-11 pl-9 border-gray-300 rounded-md shadow-sm focus-visible:ring-primary-orange focus-visible:ring-2 transition-colors placeholder:text-gray-400 ${errors.name ? "border-red-500" : ""}`}
+                  className={`h-11 pl-9 border-gray-300 rounded-md shadow-sm focus-visible:ring-wh-brand focus-visible:ring-2 transition-colors placeholder:text-gray-400 ${errors.name ? "border-red-500" : ""}`}
                   required
                 />
               </div>
@@ -270,7 +267,7 @@ export default function SellerSignup() {
                       placeholder="Enter phone number"
                       value={formData.phone}
                       onChange={handleChange}
-                      className={`h-11 pl-9 border-gray-300 rounded-md shadow-sm focus-visible:ring-primary-orange focus-visible:ring-2 transition-colors placeholder:text-gray-400 ${errors.phone ? "border-red-500" : ""}`}
+                      className={`h-11 pl-9 border-gray-300 rounded-md shadow-sm focus-visible:ring-wh-brand focus-visible:ring-2 transition-colors placeholder:text-gray-400 ${errors.phone ? "border-red-500" : ""}`}
                       required
                     />
                   </div>
@@ -293,7 +290,7 @@ export default function SellerSignup() {
             {/* Sign up button */}
             <Button
               type="submit"
-              className="mt-2 h-11 w-full bg-primary-orange hover:bg-primary-orange/90 text-white text-base font-semibold rounded-md shadow-md transition-colors"
+              className="mt-2 h-11 w-full bg-wh-brand hover:bg-wh-brand/90 text-wh-text text-base font-semibold rounded-md shadow-md transition-colors"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -313,15 +310,15 @@ export default function SellerSignup() {
             <button
               type="button"
               onClick={() => navigate("/seller/login")}
-              className="text-primary-orange hover:underline font-medium"
+              className="text-wh-brand-ink hover:underline font-medium"
             >
               Login
             </button>
           </div>
 
-          {/* Demo credentials / info bar */}
-          <div className="mt-8 w-full max-w-lg rounded-lg border border-orange-100 bg-orange-50 px-4 py-3 text-xs sm:text-sm text-gray-800 flex items-start gap-3">
-            <div className="mt-0.5 text-primary-orange">
+          {/* Demo credentials: local development only, never on a real site */}
+          {import.meta.env.DEV && <div className="mt-8 w-full max-w-lg rounded-lg border border-orange-100 bg-orange-50 px-4 py-3 text-xs sm:text-sm text-gray-800 flex items-start gap-3">
+            <div className="mt-0.5 text-wh-brand-ink">
               <AlertCircle className="h-4 w-4" />
             </div>
             <div>
@@ -333,7 +330,7 @@ export default function SellerSignup() {
                 <span className="font-semibold">OTP :</span> 1234
               </div>
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* Simple keyframe animations */}

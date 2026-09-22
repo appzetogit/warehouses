@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@store/components/ui/c
 import { Button } from "@store/components/ui/button"
 import { useProfile } from "@store/context/ProfileContext"
 import { toast } from "sonner"
+import { imagePlaceholder } from "@store/constants/images"
 
 export default function Favorites() {
   const { getFavorites, removeFavorite, getDishFavorites, removeDishFavorite } = useProfile()
@@ -150,7 +151,7 @@ export default function Favorites() {
                       className="w-full h-full object-cover"
                       loading="lazy"
                       onError={(e) => {
-                        e.target.src = `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop&q=80`
+                        e.target.src = imagePlaceholder
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -228,12 +229,12 @@ export default function Favorites() {
                       <Card className="overflow-hidden h-full cursor-pointer hover:shadow-lg transition-shadow">
                         <div className="h-32 w-full relative overflow-hidden">
                           <img
-                            src={dish.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop&q=80"}
+                            src={dish.image || imagePlaceholder}
                             alt={dish.name}
                             className="w-full h-full object-cover"
                             loading="lazy"
                             onError={(e) => {
-                              e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop&q=80"
+                              e.target.src = imagePlaceholder
                             }}
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />

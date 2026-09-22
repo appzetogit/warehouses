@@ -16,6 +16,7 @@ import { API_BASE_URL } from "@store/api/config"
 import { useDelayedLoading } from "@store/hooks/useDelayedLoading"
 import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
 import { StoresDesktop } from "@store/components/user/desktop/IndexDesktop"
+import { imagePlaceholder } from "@store/constants/images"
 
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "")
 
@@ -206,7 +207,7 @@ export default function Sellers() {
 
                         <div className="w-36 sm:w-44 md:w-56 lg:w-64 xl:w-72 flex-shrink-0 relative overflow-hidden group/image">
                           <img
-                            src={seller.image || "https://via.placeholder.com/400x300?text=Store"}
+                            src={seller.image || imagePlaceholder}
                             alt={seller.name}
                             className="w-full h-full object-cover"
                           />

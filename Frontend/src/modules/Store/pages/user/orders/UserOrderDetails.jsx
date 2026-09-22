@@ -22,6 +22,7 @@ import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@store/utils/p
 import { DualMoney } from "@store/components/user/ProductPriceDisplay"
 import OrderReturnsSection from "./OrderReturnsSection"
 import CompletePaymentCard from "@store/components/user/CompletePaymentCard"
+import { imagePlaceholder } from "@store/constants/images"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -425,7 +426,7 @@ export default function UserOrderDetails() {
                   sellerObj.profileImage?.url ||
                   sellerObj.profileImage ||
                   order.sellerImage ||
-                  "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80"
+                  imagePlaceholder
                 }
                 alt={sellerName}
                 className="w-10 h-10 rounded-lg object-cover"

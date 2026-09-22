@@ -1,7 +1,7 @@
 # Delivery (rider) app API
 
 Endpoints for the delivery app and the rider web app. Read
-[FLUTTER_API_SPEC.md](FLUTTER_API_SPEC.md) first: it covers the base URL, the
+[API_CONVENTIONS.md](API_CONVENTIONS.md) first: it covers the base URL, the
 response envelope, login and token refresh, push, sockets and data
 conventions. Every path below is under `/api/v1`.
 
@@ -124,7 +124,7 @@ Cash collected counts against the rider's cash limit (below).
 
 ## Push, inbox and chat
 
-See [FLUTTER_API_SPEC.md](FLUTTER_API_SPEC.md#push-notifications). The rider
+See [API_CONVENTIONS.md](API_CONVENTIONS.md#push-notifications). The rider
 uses the same `/notifications/*`, `/chat/*` and `/fcm-tokens/*` endpoints as
 the other apps.
 

@@ -114,7 +114,6 @@ import { API_BASE_URL } from "@store/api/config";
 import OptimizedImage from "@store/components/OptimizedImage";
 import { getSellerAvailabilityStatus } from "@store/utils/sellerAvailability";
 import HomeHeader from "@store/components/user/home/HomeHeader";
-import QuickSection from "@store/components/user/home/QuickSection";
 import PromoRow from "@store/components/user/home/PromoRow";
 import PromotionBannerCarousel from "@store/components/user/home/PromotionBannerCarousel";
 import OutOfZoneScreen from "@store/components/user/OutOfZoneScreen";
