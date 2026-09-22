@@ -1,8 +1,10 @@
 export class ValidationError extends Error {
-    constructor(message) {
+    /** `data` (optional) is sent back as the response's `data`, for machine-readable details. */
+    constructor(message, data) {
         super(message);
         this.name = 'ValidationError';
         this.statusCode = 400;
+        if (data !== undefined) this.data = data;
     }
 }
 

@@ -40,7 +40,7 @@ async function toolSearchProducts(query, maxPrice = null) {
     }
 
     const items = await Product.find(filter)
-        .select('_id name brand price mrp image images categoryName sellerId stockQty variants')
+        .select('_id name brand price mrp image images categoryName sellerId isAvailable availableIn variants')
         .limit(6)
         .lean();
 
@@ -55,7 +55,8 @@ async function toolSearchProducts(query, maxPrice = null) {
             discount: p.mrp && p.mrp > p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0,
             image: primaryImage,
             hasVariants: Array.isArray(p.variants) && p.variants.length > 0,
-            inStock: (p.stockQty ?? 1) > 0,
+            inStock: p.isAvailable !== false,
+            availableIn: { quick: p.availableIn?.quick !== false, shop: p.availableIn?.shop !== false },
         };
     });
 }

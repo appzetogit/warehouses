@@ -13,9 +13,11 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { sellerAPI } from "@store/api"
+import { CHANNELS, CHANNEL_INFO, channelStock, channelThreshold, toStockValue } from "./channels"
+import StockByChannelEditor from "./StockByChannelEditor"
 
 export default function BulkStockModal({ isOpen, onClose, categories = [], onStockUpdated }) {
-  const [activeTab, setActiveTab] = useState("export") // 'export' | 'import'
+  const [activeTab, setActiveTab] = useState("edit") // 'edit' | 'export' | 'import'
   const [file, setFile] = useState(null)
   const [parsedRows, setParsedRows] = useState([])
   const [isProcessing, setIsProcessing] = useState(false)
@@ -32,9 +34,10 @@ export default function BulkStockModal({ isOpen, onClose, categories = [], onSto
         "SKU",
         "Category",
         "Price",
-        "Stock Qty",
-        "Low Stock Threshold",
-        "Is Available",
+        "Quick Stock",
+        "Shop Stock",
+        "Quick Low Stock",
+        "Shop Low Stock",
       ]
 
       const rows = []
@@ -51,9 +54,8 @@ export default function BulkStockModal({ isOpen, onClose, categories = [], onSto
                 `"${v.sku || item.sku || ""}"`,
                 `"${(cat.name || "").replace(/"/g, '""')}"`,
                 v.price ?? item.price ?? 0,
-                v.stockQty ?? item.stockQty ?? 0,
-                v.lowStockThreshold ?? item.lowStockThreshold ?? 5,
-                v.isActive !== false && item.isAvailable !== false ? "YES" : "NO",
+                ...CHANNELS.map((c) => channelStock(v, c) ?? ""),
+                ...CHANNELS.map((c) => channelThreshold(v, c) ?? ""),
               ])
             })
           } else {
@@ -65,9 +67,8 @@ export default function BulkStockModal({ isOpen, onClose, categories = [], onSto
               `"${item.sku || ""}"`,
               `"${(cat.name || "").replace(/"/g, '""')}"`,
               item.price ?? 0,
-              item.stockQty ?? 0,
-              item.lowStockThreshold ?? 5,
-              item.isAvailable !== false ? "YES" : "NO",
+              ...CHANNELS.map((c) => channelStock(item, c) ?? ""),
+              ...CHANNELS.map((c) => channelThreshold(item, c) ?? ""),
             ])
           }
         })
@@ -118,12 +119,13 @@ export default function BulkStockModal({ isOpen, onClose, categories = [], onSto
         const variantIdIdx = rawHeaders.findIndex((h) => h.includes("variant id"))
         const nameIdx = rawHeaders.findIndex((h) => h.includes("name") || h.includes("product"))
         const skuIdx = rawHeaders.findIndex((h) => h.includes("sku"))
-        const stockIdx = rawHeaders.findIndex((h) => h.includes("stock qty") || h === "stock")
-        const lowStockIdx = rawHeaders.findIndex((h) => h.includes("low stock"))
-        const availIdx = rawHeaders.findIndex((h) => h.includes("available"))
+        const stockIdx = {
+          quick: rawHeaders.findIndex((h) => h === "quick stock"),
+          shop: rawHeaders.findIndex((h) => h === "shop stock"),
+        }
 
-        if (itemIdIdx === -1 || stockIdx === -1) {
-          return toast.error("CSV must contain 'Item ID' and 'Stock Qty' columns")
+        if (itemIdIdx === -1 || (stockIdx.quick === -1 && stockIdx.shop === -1)) {
+          return toast.error("CSV must contain 'Item ID' and a 'Quick Stock' or 'Shop Stock' column")
         }
 
         const entries = []
@@ -137,21 +139,13 @@ export default function BulkStockModal({ isOpen, onClose, categories = [], onSto
           const variantId = variantIdIdx !== -1 ? clean(row[variantIdIdx]) : ""
           const name = nameIdx !== -1 ? clean(row[nameIdx]) : "Item"
           const sku = skuIdx !== -1 ? clean(row[skuIdx]) : ""
-          const stockQty = parseInt(clean(row[stockIdx]), 10)
-          const lowStockThreshold = lowStockIdx !== -1 ? parseInt(clean(row[lowStockIdx]), 10) : undefined
-          const availStr = availIdx !== -1 ? clean(row[availIdx]).toUpperCase() : "YES"
-          const isAvailable = availStr === "YES" || availStr === "TRUE" || availStr === "1"
-
-          if (itemId && Number.isFinite(stockQty)) {
-            entries.push({
-              itemId,
-              variantId: variantId || undefined,
-              name,
-              sku,
-              stockQty,
-              lowStockThreshold: Number.isFinite(lowStockThreshold) ? lowStockThreshold : undefined,
-              isAvailable,
-            })
+          if (!itemId) continue
+          // One entry per channel column that has a number; blank cells are left untouched.
+          for (const channel of CHANNELS) {
+            if (stockIdx[channel] === -1) continue
+            const qty = toStockValue(clean(row[stockIdx[channel]]))
+            if (qty === null) continue
+            entries.push({ itemId, variantId: variantId || undefined, name, sku, channel, qty })
           }
         }
 
@@ -179,9 +173,8 @@ export default function BulkStockModal({ isOpen, onClose, categories = [], onSto
         const batch = parsedRows.slice(i, i + BATCH_SIZE).map((r) => ({
           itemId: r.itemId,
           variantId: r.variantId,
-          stockQty: r.stockQty,
-          lowStockThreshold: r.lowStockThreshold,
-          isAvailable: r.isAvailable,
+          channel: r.channel,
+          qty: r.qty,
         }))
 
         const res = await sellerAPI.updateStock(batch)
@@ -239,6 +232,17 @@ export default function BulkStockModal({ isOpen, onClose, categories = [], onSto
           {/* Navigation Tabs */}
           <div className="flex border-b border-slate-200 dark:border-slate-800 px-6 pt-2">
             <button
+              onClick={() => setActiveTab("edit")}
+              className={`pb-3 px-4 font-semibold text-xs border-b-2 transition-all flex items-center gap-2 ${
+                activeTab === "edit"
+                  ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+              }`}
+            >
+              <ArrowUpDown className="w-4 h-4" />
+              <span>Stock by channel</span>
+            </button>
+            <button
               onClick={() => setActiveTab("export")}
               className={`pb-3 px-4 font-semibold text-xs border-b-2 transition-all flex items-center gap-2 ${
                 activeTab === "export"
@@ -269,13 +273,15 @@ export default function BulkStockModal({ isOpen, onClose, categories = [], onSto
 
           {/* Body Content */}
           <div className="p-6 flex-1 overflow-y-auto">
-            {activeTab === "export" ? (
+            {activeTab === "edit" ? (
+              <StockByChannelEditor categories={categories} onStockUpdated={onStockUpdated} />
+            ) : activeTab === "export" ? (
               <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
                   <p className="font-semibold mb-1">💡 How Bulk Export & Import works:</p>
                   <ul className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-300">
                     <li>Download your current stock snapshot containing item IDs, variants, SKUs, and quantities.</li>
-                    <li>Edit the <code className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 font-mono">Stock Qty</code> and <code className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 font-mono">Is Available</code> columns in Microsoft Excel or Google Sheets.</li>
+                    <li>Edit the <code className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 font-mono">Quick Stock</code> and <code className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 font-mono">Shop Stock</code> columns (blank cells are left unchanged) in Microsoft Excel or Google Sheets.</li>
                     <li>Save as CSV and upload it in the <strong>Import</strong> tab to batch-apply changes immediately.</li>
                   </ul>
                 </div>
@@ -331,8 +337,8 @@ export default function BulkStockModal({ isOpen, onClose, categories = [], onSto
                           <tr>
                             <th className="p-2.5">Item</th>
                             <th className="p-2.5">SKU</th>
+                            <th className="p-2.5 text-center">Channel</th>
                             <th className="p-2.5 text-right">New Stock</th>
-                            <th className="p-2.5 text-center">Status</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
@@ -344,17 +350,13 @@ export default function BulkStockModal({ isOpen, onClose, categories = [], onSto
                               <td className="p-2.5 font-mono text-[11px] text-slate-500">
                                 {r.sku || "—"}
                               </td>
-                              <td className="p-2.5 text-right font-bold text-blue-600 dark:text-blue-400">
-                                {r.stockQty}
-                              </td>
                               <td className="p-2.5 text-center">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  r.isAvailable
-                                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
-                                    : "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300"
-                                }`}>
-                                  {r.isAvailable ? "In Stock" : "Unavailable"}
+                                <span className={`px-2 py-0.5 rounded border text-[10px] font-bold ${CHANNEL_INFO[r.channel].badge}`}>
+                                  {CHANNEL_INFO[r.channel].label}
                                 </span>
+                              </td>
+                              <td className="p-2.5 text-right font-bold text-blue-600 dark:text-blue-400">
+                                {r.qty}
                               </td>
                             </tr>
                           ))}

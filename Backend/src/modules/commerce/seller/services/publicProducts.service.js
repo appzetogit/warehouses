@@ -3,7 +3,13 @@ import { Product } from '../../admin/models/product.model.js';
 import { Seller } from '../models/seller.model.js';
 import { getProductDisplayOtherPrice, getProductDisplayPrice, serializeProductVariants } from '../../admin/services/productVariant.service.js';
 import { restoreExpiredProductAvailability } from './productAvailability.service.js';
-import { parseFulfilmentMode, fulfilmentModeProductFilter } from '../../search/validators/storefront.validator.js';
+import {
+    channelForFulfilmentMode,
+    fulfilmentModeProductFilter,
+    fulfilmentModeSellerFilter,
+    parseFulfilmentMode
+} from '../../search/validators/storefront.validator.js';
+import { productChannelFields, serializeSellerChannels } from '../../shared/channels.js';
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -16,15 +22,21 @@ const buildCategoryKeywords = (categorySlug) => {
     return [...new Set([raw, normalized, ...words])];
 };
 
+/** Variants for a storefront: those not listed in the channel are dropped. */
+const channelVariants = (product, channel) =>
+    serializeProductVariants(product.variants, { product, channel })
+        .filter((v) => !channel || v.enabledIn[channel]);
+
 export async function listPublicProducts(query = {}) {
     const limit = Math.min(Math.max(parseInt(query.limit, 10) || 500, 1), 1000);
     const fulfilmentMode = parseFulfilmentMode(query.fulfilmentMode);
+    const channel = channelForFulfilmentMode(fulfilmentMode);
     // The shop storefront ships anywhere; zones only narrow quick delivery.
     const zoneIdRaw = fulfilmentMode === 'standard' ? '' : String(query.zoneId || '').trim();
     const sellerIdRaw = String(query.sellerId || '').trim();
     const categorySlug = String(query.categorySlug || query.category || '').trim().toLowerCase();
 
-    const sellerFilter = { status: 'approved' };
+    const sellerFilter = { status: 'approved', ...(fulfilmentModeSellerFilter(fulfilmentMode) || {}) };
     if (zoneIdRaw && mongoose.Types.ObjectId.isValid(zoneIdRaw)) {
         sellerFilter.zoneId = new mongoose.Types.ObjectId(zoneIdRaw);
     }
@@ -34,7 +46,7 @@ export async function listPublicProducts(query = {}) {
     }
 
     const sellers = await Seller.find(sellerFilter)
-        .select('_id sellerName slug zoneId profileImage rating totalRatings ratingCount estimatedDeliveryTime estimatedDeliveryTimeMinutes location coverImages menuImages isActive isAcceptingOrders outletTimings openDays deliveryTimings openingTime closingTime')
+        .select('_id sellerName slug status channels zoneId profileImage rating totalRatings ratingCount estimatedDeliveryTime estimatedDeliveryTimeMinutes location coverImages menuImages isActive isAcceptingOrders outletTimings openDays deliveryTimings openingTime closingTime')
         .lean();
 
     if (!sellers.length) {
@@ -97,8 +109,9 @@ export async function listPublicProducts(query = {}) {
             // checkout — which reads the dish from the database — correctly
             // refused with "please select a size". The customer was left with an
             // error and no control that could clear it.
-            variants: serializeProductVariants(product.variants, { productStockQty: product.stockQty ?? null }),
-            variations: serializeProductVariants(product.variants, { productStockQty: product.stockQty ?? null }),
+            variants: channelVariants(product, channel),
+            variations: channelVariants(product, channel),
+            ...productChannelFields(product, channel, seller || null),
             image: product.image || '',
             // Falls back to the single image so a dish saved before galleries
             // existed still returns a one-entry list — the app can then always
@@ -107,7 +120,6 @@ export async function listPublicProducts(query = {}) {
                 ? product.images
                 : (product.image ? [product.image] : []),
             foodType: product.foodType || null,
-            quickEligible: product.quickEligible !== false,
             tags: Array.isArray(product.tags) ? product.tags : [],
             isAvailable: product.isAvailable !== false,
             preparationTime: product.preparationTime || '',
@@ -128,18 +140,21 @@ export async function listPublicProducts(query = {}) {
  * Only approved products of approved stores; anything else is "not found",
  * so a pending or rejected product never leaks through a guessed id.
  */
-export async function getPublicProduct(productId) {
+export async function getPublicProduct(productId, query = {}) {
     if (!productId || !mongoose.Types.ObjectId.isValid(String(productId))) return null;
+    const channel = channelForFulfilmentMode(parseFulfilmentMode(query.fulfilmentMode));
     const product = await Product.findOne({ _id: productId, approvalStatus: 'approved' }).lean();
     if (!product) return null;
     const seller = await Seller.findOne({ _id: product.sellerId, status: 'approved' })
-        .select('_id sellerName profileImage rating totalRatings estimatedDeliveryTime estimatedDeliveryTimeMinutes isAcceptingOrders zoneId location.area location.city')
+        .select('_id sellerName status channels profileImage rating totalRatings estimatedDeliveryTime estimatedDeliveryTimeMinutes isAcceptingOrders zoneId location.area location.city')
         .lean();
     if (!seller) return null;
 
     const { getCategoryAttributes } = await import('../../admin/services/attribute.service.js');
     const { attributes } = await getCategoryAttributes(product.categoryId);
-    const variants = serializeProductVariants(product.variants, { productStockQty: product.stockQty ?? null });
+    // Every variant with its per-channel channels/stock, so the page can offer
+    // the other store; `channel` (optional) adds stockForChannel and inStock there.
+    const variants = serializeProductVariants(product.variants, { product, channel });
 
     // The attributes this product actually uses, in the category's order, with
     // the category's swatches; attributes outside any set come after.
@@ -180,15 +195,14 @@ export async function getPublicProduct(productId) {
             images: product.images?.length ? product.images : (product.image ? [product.image] : []),
             foodType: product.foodType || null,
             isAvailable: product.isAvailable !== false,
-            stockQty: product.stockQty ?? null,
+            ...productChannelFields(product, channel, seller),
             maxQtyPerOrder: product.maxQtyPerOrder ?? null,
-            quickEligible: product.quickEligible !== false,
             rating: product.rating || 0,
             totalRatings: product.totalRatings || 0,
             tags: product.tags || [],
             variants,
             options,
         },
-        seller: { ...seller, isAcceptingOrders: seller.isAcceptingOrders !== false },
+        seller: { ...seller, channels: serializeSellerChannels(seller), isAcceptingOrders: seller.isAcceptingOrders !== false },
     };
 }

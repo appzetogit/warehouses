@@ -1,5 +1,14 @@
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
+import {
+    CHANNELS,
+    countsOf,
+    effectiveStockFor,
+    isVariantSellableIn,
+    parseChannelCounts,
+    parseVariantChannels,
+    variantChannelEnabled
+} from '../../shared/channels.js';
 
 const toTrimmedString = (value) => (value == null ? '' : String(value).trim());
 
@@ -15,12 +24,13 @@ export const extractRawProductVariants = (value = {}) => {
     return [];
 };
 
-/** A stock-like count: null (not counted) or a whole number >= 0. */
-const toStockCount = (value, label) => {
-    if (value === undefined || value === null || value === '') return null;
-    const n = Number(value);
-    if (!Number.isInteger(n) || n < 0) throw new ValidationError(`${label} must be a whole number of 0 or more`);
-    return n;
+/** Variant channels / stock / thresholds, each { quick, shop }; keys not sent stay null. */
+const variantChannelInput = (entry, name) => {
+    const channels = parseVariantChannels(entry?.channels) || {};
+    const stock = parseChannelCounts(entry?.stock, `Stock for ${name}`) || {};
+    const low = parseChannelCounts(entry?.lowStockThreshold, `Low-stock alert for ${name}`) || {};
+    const fill = (obj) => Object.fromEntries(CHANNELS.map((c) => [c, obj[c] ?? null]));
+    return { channels: fill(channels), stock: fill(stock), lowStockThreshold: fill(low) };
 };
 
 const normalizeAttributes = (value) => {
@@ -106,16 +116,11 @@ export const normalizeProductVariantsInput = (value = [], options = {}) => {
                 sku: toTrimmedString(entry?.sku),
                 barcode: toTrimmedString(entry?.barcode),
                 mrp,
-                stockQty: toStockCount(entry?.stockQty, `Stock for ${name}`),
-                lowStockThreshold: toStockCount(entry?.lowStockThreshold, `Low-stock alert for ${name}`),
+                ...variantChannelInput(entry, name),
                 images: Array.isArray(entry?.images)
                     ? entry.images.map(toTrimmedString).filter(Boolean).slice(0, 10)
                     : [],
                 isActive: entry?.isActive !== false,
-                quickEligible:
-                    entry?.quickEligible === undefined || entry?.quickEligible === null
-                        ? null
-                        : entry.quickEligible !== false,
             };
 
             const variantId = entry?._id || entry?.id;
@@ -137,9 +142,14 @@ export const normalizeProductVariantsInput = (value = [], options = {}) => {
 /**
  * A variant as the apps see it. `inStock` is worked out here so every client
  * agrees: an inactive variant is never in stock, and one without its own count
- * is in stock when the product is (the caller passes the product's count).
+ * in a channel is in stock there when the product is.
+ *
+ * `product` gives the product the variants belong to (for inherited switches
+ * and shared counts). With `channel`, `inStock` is for that channel and
+ * `stockForChannel` is the count that applies; without it, `inStock` means
+ * "in stock in at least one channel".
  */
-export const serializeProductVariants = (value = [], { productStockQty = null } = {}) =>
+export const serializeProductVariants = (value = [], { product = null, channel = null } = {}) =>
     (Array.isArray(value) ? value : [])
         .map((entry = {}) => {
             const name = toTrimmedString(entry?.name);
@@ -147,10 +157,11 @@ export const serializeProductVariants = (value = [], { productStockQty = null } 
             if (!name || !Number.isFinite(price) || price <= 0) return null;
 
             const variantId = entry?._id || entry?.id;
-            const ownStock = entry?.stockQty === undefined ? null : entry.stockQty;
             const isActive = entry?.isActive !== false;
-            const effectiveStock = ownStock !== null ? ownStock : productStockQty;
-            return {
+            const owner = product || {};
+            const enabledIn = Object.fromEntries(CHANNELS.map((c) => [c, variantChannelEnabled(owner, entry, c)]));
+            const availableIn = Object.fromEntries(CHANNELS.map((c) => [c, isVariantSellableIn(owner, entry, c)]));
+            const out = {
                 id: variantId ? String(variantId) : '',
                 _id: variantId ? String(variantId) : '',
                 name,
@@ -162,13 +173,20 @@ export const serializeProductVariants = (value = [], { productStockQty = null } 
                 sku: toTrimmedString(entry?.sku),
                 barcode: toTrimmedString(entry?.barcode),
                 mrp: entry?.mrp ?? null,
-                stockQty: ownStock,
-                lowStockThreshold: entry?.lowStockThreshold ?? null,
+                channels: Object.fromEntries(CHANNELS.map((c) => {
+                    const v = entry?.channels?.[c];
+                    return [c, v === true || v === false ? v : null];
+                })),
+                stock: countsOf(entry?.stock),
+                lowStockThreshold: countsOf(entry?.lowStockThreshold),
+                enabledIn,
+                availableIn,
                 images: Array.isArray(entry?.images) ? entry.images : [],
                 isActive,
-                quickEligible: entry?.quickEligible ?? null,
-                inStock: isActive && (effectiveStock === null || effectiveStock === undefined || Number(effectiveStock) > 0),
+                inStock: channel ? availableIn[channel] : CHANNELS.some((c) => availableIn[c]),
             };
+            if (channel) out.stockForChannel = effectiveStockFor(owner, entry, channel);
+            return out;
         })
         .filter(Boolean);
 

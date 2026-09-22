@@ -61,7 +61,7 @@ before(async () => {
     const category = await Category.create({ name: 'Grocery' });
     ids.category = category._id;
 
-    const seller = await Seller.create({
+    const seller = await Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: 'Sweep Mart', ownerName: 'Owner', ownerPhone: '9200000001', phone: '9200000001',
         status: 'approved', isAcceptingOrders: true, zoneId: zone._id,
         location: { type: 'Point', coordinates: [SELLER_AT.lng, SELLER_AT.lat], latitude: SELLER_AT.lat, longitude: SELLER_AT.lng },
@@ -69,7 +69,7 @@ before(async () => {
     ids.seller = seller._id;
 
     const product = await Product.create({
-        sellerId: seller._id, name: 'Milk 1L', price: 60, stockQty: 10, isAvailable: true,
+        sellerId: seller._id, name: 'Milk 1L', price: 60, stock: { quick: 10 }, isAvailable: true,
         approvalStatus: 'approved', categoryId: category._id,
         variants: [{ name: '500ml', price: 32, attributes: [{ name: 'Size', value: '500ml' }] }],
     });

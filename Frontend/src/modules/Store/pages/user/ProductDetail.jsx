@@ -27,6 +27,7 @@ import { brandMarkUrl } from "@/config/brandMark"
 import SEOHead from "@store/components/SEOHead"
 import { useCart } from "@store/context/CartContext"
 import { Button } from "@store/components/ui/button"
+import { CHANNEL_COPY, channelAvailability, otherChannel, productInChannel, stockLabel, variantInChannel } from "@store/utils/channelStock"
 
 export default function ProductDetail() {
   const { storePath, fulfilmentMode, isQuick } = useStoreMode()
@@ -105,17 +106,23 @@ export default function ProductDetail() {
   const displayMrp = currentVariant ? currentVariant.mrp : (product?.mrp ?? 0)
   const hasDiscount = displayMrp > displayPrice
   const discountPercent = hasDiscount ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100) : 0
-  // stockQty null means the product isn't counted, so only isAvailable decides.
-  const isAvailable = currentVariant
-    ? currentVariant.inStock
-    : product?.isAvailable !== false && (product?.stockQty == null || product.stockQty > 0)
-
-  // The quick store only sells what can go by quick delivery; a variant's own
-  // setting (null = inherit) wins over the product's.
-  const canGoQuick = currentVariant && typeof currentVariant.quickEligible === "boolean"
-    ? currentVariant.quickEligible
-    : product?.quickEligible !== false
-  const notInThisStore = isQuick && !canGoQuick
+  // Stock and availability for this store's channel (see CHANNELS_CONTRACT.md).
+  const channel = isQuick ? "quick" : "shop"
+  const altChannel = otherChannel(channel)
+  const avail = channelAvailability(product, channel, currentVariant)
+  const isAvailable = avail.inStock
+  const notInThisStore = !!product && !avail.enabled
+  const altAvail = channelAvailability(product, altChannel, currentVariant)
+  const altPath = altChannel === "quick" ? `/quick/product/${id}` : `/product/${id}`
+  const isValueEnabled = (optName, val) => {
+    if (!Array.isArray(product?.variants) || product.variants.length === 0) return true
+    const matches = product.variants.filter((v) => {
+      const a = v.attributes
+      if (!a) return false
+      return Array.isArray(a) ? a.some((x) => x.name === optName && x.value === val) : a[optName] === val
+    })
+    return matches.length === 0 || matches.some((v) => variantInChannel(v, product, channel))
+  }
 
   // Images list: variant images first, then product images
   const allImages = useMemo(() => {
@@ -132,7 +139,7 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (notInThisStore) {
-      return toast.error("This item isn't available for quick delivery. Find it in the Shop.")
+      return toast.error(`This item isn't available in ${CHANNEL_COPY[channel].label}.`)
     }
     if (!isAvailable) {
       return toast.error("Selected item variant is currently out of stock")
@@ -155,7 +162,7 @@ export default function ProductDetail() {
       sellerName: seller?.sellerName || "Store",
       quantity,
       selectedAttributes: selectedAttrs,
-      quickEligible: product.quickEligible,
+      channels: product.channels,
     })
 
     toast.success(`Added ${quantity} × ${product.name} to cart!`)
@@ -207,7 +214,7 @@ export default function ProductDetail() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2 text-xs font-semibold">
-            {product.quickEligible ? (
+            {isQuick ? (
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                 <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                 Quick 20-30 Mins
@@ -327,7 +334,7 @@ export default function ProductDetail() {
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? "bg-emerald-500" : "bg-rose-500"}`} />
-                  {isAvailable ? "In Stock" : "Out of Stock"}
+                  {stockLabel(avail)}
                 </span>
 
                 {currentVariant?.sku && (
@@ -361,13 +368,15 @@ export default function ProductDetail() {
                           const valStr = typeof v === "object" ? v.value : v
                           const hex = typeof v === "object" ? v.hex : null
                           const isSelected = selectedVal === valStr
+                          const valEnabled = isValueEnabled(opt.name, valStr)
 
                           if (isColor) {
                             return (
                               <button
                                 key={valStr}
                                 onClick={() => handleSelectAttribute(opt.name, valStr)}
-                                title={valStr}
+                                disabled={!valEnabled}
+                                title={valEnabled ? valStr : `${valStr} (not available in ${CHANNEL_COPY[channel].label})`}
                                 className={`relative w-9 h-9 rounded-full transition-all flex items-center justify-center border-2 ${
                                   isSelected
                                     ? "border-orange-500 scale-110 shadow-md ring-2 ring-orange-500/30"
@@ -386,7 +395,8 @@ export default function ProductDetail() {
                             <button
                               key={valStr}
                               onClick={() => handleSelectAttribute(opt.name, valStr)}
-                              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                              disabled={!valEnabled}
+                              className={`${valEnabled ? "" : "opacity-40 line-through cursor-not-allowed "}px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
                                 isSelected
                                   ? "border-orange-500 bg-orange-500 text-white shadow-sm"
                                   : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-gray-300"
@@ -429,9 +439,24 @@ export default function ProductDetail() {
                 className="flex-1 py-3.5 px-8 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold shadow-lg shadow-orange-500/25 transition-all text-sm flex items-center justify-center gap-2"
               >
                 <ShoppingBag className="w-5 h-5" />
-                {notInThisStore ? "Not available for quick delivery" : (isAvailable ? "Add to Cart" : "Currently Out of Stock")}
+                {notInThisStore ? `Not available in ${CHANNEL_COPY[channel].label}` : (isAvailable ? "Add to Cart" : "Currently Out of Stock")}
               </Button>
             </div>
+
+            {notInThisStore && (
+              <div className="p-4 rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 text-sm">
+                <p className="font-bold text-gray-900 dark:text-white">
+                  {currentVariant && productInChannel(product, channel)
+                    ? `This option isn't sold in ${CHANNEL_COPY[channel].label}.`
+                    : `This product isn't sold in ${CHANNEL_COPY[channel].label}.`}
+                </p>
+                {altAvail.inStock && (
+                  <Link to={altPath} className="mt-1 inline-flex items-center gap-1 font-semibold text-orange-600 hover:text-orange-700">
+                    Available in {CHANNEL_COPY[altChannel].label} — {CHANNEL_COPY[altChannel].eta} <ChevronRight className="w-4 h-4" />
+                  </Link>
+                )}
+              </div>
+            )}
 
             {/* Seller Store Card */}
             {seller && (

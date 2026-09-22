@@ -1,6 +1,18 @@
 import mongoose from 'mongoose';
 import { Product } from '../../admin/models/product.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
+import {
+  effectiveStockFor,
+  isSellerApprovedFor,
+  productChannelEnabled,
+  variantChannelEnabled,
+} from '../../shared/channels.js';
+
+const CHANNEL_LABEL = { quick: 'Quick', shop: 'Shop' };
+
+/** A 400 whose body says which line failed and why, for the storefront to act on. */
+const lineError = (message, { productId, variantId = null, channel, reason }) =>
+  new ValidationError(message, { productId: String(productId), variantId: variantId ? String(variantId) : null, channel, reason });
 
 function toObjectIds(ids = []) {
   return [...new Set(ids)]
@@ -52,7 +64,13 @@ function resolveProductPrice(productDoc, rawItem) {
   };
 }
 
-export async function resolveOrderCartItems(sellerId, rawItems = []) {
+/**
+ * Resolves and checks a store's cart lines for one channel ('quick' | 'shop').
+ * A line is refused (400 with { productId, variantId, channel, reason }) when
+ * the seller is not approved for the channel, the product or variant is not
+ * listed in it, or the channel's stock is short.
+ */
+export async function resolveOrderCartItems(sellerId, rawItems = [], { channel = 'quick', seller = null } = {}) {
   const items = Array.isArray(rawItems) ? rawItems : [];
   if (!items.length) throw new ValidationError('At least one item required');
 
@@ -81,6 +99,18 @@ export async function resolveOrderCartItems(sellerId, rawItems = []) {
 
     const productDoc = productById.get(itemId);
     if (productDoc) {
+      if (seller && !isSellerApprovedFor(seller, channel)) {
+        throw lineError(
+          `${seller.sellerName || 'This store'} does not sell in ${CHANNEL_LABEL[channel]}`,
+          { productId: itemId, variantId: rawItem?.variantId || null, channel, reason: 'seller_not_approved' },
+        );
+      }
+      if (!productChannelEnabled(productDoc, channel)) {
+        throw lineError(
+          `${productDoc.name} is not available in ${CHANNEL_LABEL[channel]}`,
+          { productId: itemId, variantId: rawItem?.variantId || null, channel, reason: 'not_in_channel' },
+        );
+      }
       if (productDoc.isAvailable === false) {
         throw new ValidationError(`${productDoc.name} is currently unavailable`);
       }
@@ -94,17 +124,22 @@ export async function resolveOrderCartItems(sellerId, rawItems = []) {
       }
 
       const { variant, ...pricing } = resolveProductPrice(productDoc, rawItem);
-
-      // A variant with its own count is checked against that; otherwise the
-      // product's count applies.
-      const counted = variant && variant.stockQty !== null && variant.stockQty !== undefined;
-      const onHand = counted ? variant.stockQty : productDoc.stockQty;
       const label = variant ? `${productDoc.name} (${variant.name})` : productDoc.name;
-      if (onHand !== null && onHand !== undefined && Number(onHand) < quantity) {
-        throw new ValidationError(
+      if (variant && !variantChannelEnabled(productDoc, variant, channel)) {
+        throw lineError(
+          `${label} is not available in ${CHANNEL_LABEL[channel]}`,
+          { productId: itemId, variantId: variant._id, channel, reason: 'variant_not_in_channel' },
+        );
+      }
+
+      // The channel's count: the variant's own when it has one, else the product's.
+      const onHand = effectiveStockFor(productDoc, variant, channel);
+      if (onHand !== null && Number(onHand) < quantity) {
+        throw lineError(
           Number(onHand) > 0
             ? `Only ${Number(onHand)} left of ${label}. Please reduce the quantity.`
             : `${label} just went out of stock`,
+          { productId: itemId, variantId: variant?._id || null, channel, reason: 'out_of_stock' },
         );
       }
 

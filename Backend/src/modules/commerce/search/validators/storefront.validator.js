@@ -1,4 +1,5 @@
 import { ValidationError } from '../../../../core/auth/errors.js';
+import { channelForMode } from '../../shared/channels.js';
 
 /**
  * The customer site has two storefronts: the e-commerce shop (courier-shipped,
@@ -18,22 +19,26 @@ export function parseFulfilmentMode(value) {
     return mode;
 }
 
+/** The channel a storefront reads from: quick -> quick, standard -> shop; null when no mode. */
+export const channelForFulfilmentMode = (mode) => (mode ? channelForMode(mode) : null);
+
 /**
- * Product filter for a storefront.
- *
- * quick: the product can go by quick delivery (product-level `quickEligible`
- *   not false), or at least one variant explicitly opts in.
- * standard: every approved product can be shipped by courier; there is no
- *   "not shippable" flag on products, so this adds no restriction.
+ * Product filter for a storefront: listed in the channel and available there
+ * (in stock or not counted, and not switched off). The seller half of "can
+ * appear in this channel" is fulfilmentModeSellerFilter.
  */
 export function fulfilmentModeProductFilter(mode) {
-    if (mode === 'quick') {
-        return {
-            $or: [
-                { quickEligible: { $ne: false } },
-                { variants: { $elemMatch: { quickEligible: true } } },
-            ],
-        };
-    }
-    return null;
+    const channel = channelForFulfilmentMode(mode);
+    if (!channel) return null;
+    return {
+        [`channels.${channel}`]: { $ne: false },
+        [`availableIn.${channel}`]: { $ne: false },
+    };
+}
+
+/** Seller filter for a storefront: account approved and approved for the channel. */
+export function fulfilmentModeSellerFilter(mode) {
+    const channel = channelForFulfilmentMode(mode);
+    if (!channel) return null;
+    return { status: 'approved', [`channels.${channel}.status`]: 'approved' };
 }

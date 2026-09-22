@@ -301,6 +301,7 @@ PATCH /api/v1/admin/seller-settings/order-acceptance
 PATCH /api/v1/admin/seller-subscription-settings
 PATCH /api/v1/admin/sellers/:id
 PATCH /api/v1/admin/sellers/:id/approve
+PATCH /api/v1/admin/sellers/:id/channels/:channel
 PATCH /api/v1/admin/sellers/:id/location
 PATCH /api/v1/admin/sellers/:id/reject
 PATCH /api/v1/admin/sellers/:id/status
@@ -438,6 +439,7 @@ POST /api/v1/payments/webhook/razorpay
 POST /api/v1/seller/banners
 POST /api/v1/seller/bulk-upload
 POST /api/v1/seller/categories
+POST /api/v1/seller/channels/:channel/apply
 POST /api/v1/seller/feedback-experience
 POST /api/v1/seller/media/cover-image
 POST /api/v1/seller/media/gallery

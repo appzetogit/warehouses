@@ -15,7 +15,7 @@ before(async () => {
 
     ids.zone = new mongoose.Types.ObjectId();
     ids.otherZone = new mongoose.Types.ObjectId();
-    const store = (name, zoneId) => Seller.create({
+    const store = (name, zoneId) => Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: name, ownerName: 'O', ownerPhone: `9${Math.floor(Math.random() * 1e9)}`, status: 'approved', zoneId,
         location: { type: 'Point', coordinates: [77.59, 12.97], latitude: 12.97, longitude: 77.59 },
     });
@@ -25,12 +25,13 @@ before(async () => {
 
     const product = (sellerId, fields) => Product.create({ sellerId, approvalStatus: 'approved', price: 10, ...fields });
     await product(local._id, { name: 'Mode Milk' });
-    await product(local._id, { name: 'Mode Sofa', quickEligible: false });
+    await product(local._id, { name: 'Mode Sofa', channels: { quick: false, shop: true } });
     await product(local._id, {
-        name: 'Mode Rug', quickEligible: false,
+        name: 'Mode Rug',
         variants: [
-            { _id: new mongoose.Types.ObjectId(), name: 'Small', price: 10, quickEligible: true, attributes: [{ name: 'Size', value: 'S' }] },
-            { _id: new mongoose.Types.ObjectId(), name: 'Large', price: 20, attributes: [{ name: 'Size', value: 'L' }] },
+            { _id: new mongoose.Types.ObjectId(), name: 'Small', price: 10, attributes: [{ name: 'Size', value: 'S' }] },
+            // Too big for a rider: Shop only.
+            { _id: new mongoose.Types.ObjectId(), name: 'Large', price: 20, channels: { quick: false }, attributes: [{ name: 'Size', value: 'L' }] },
         ],
     });
     await product(faraway._id, { name: 'Mode Lamp' });
@@ -119,11 +120,11 @@ test('store menu: quick drops non-quick products and variants; standard lists ev
 test('store listing: quick hides stores without quick products and keeps the zone; standard ignores the zone', async () => {
     const { Seller } = await import('../src/modules/commerce/seller/models/seller.model.js');
     const { Product } = await import('../src/modules/commerce/admin/models/product.model.js');
-    const bulky = await Seller.create({
+    const bulky = await Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: 'Bulky Store', ownerName: 'O', ownerPhone: `9${Math.floor(Math.random() * 1e9)}`, status: 'approved', zoneId: ids.zone,
         location: { type: 'Point', coordinates: [77.59, 12.97], latitude: 12.97, longitude: 77.59 },
     });
-    await Product.create({ sellerId: bulky._id, approvalStatus: 'approved', price: 10, name: 'Mode Wardrobe', quickEligible: false });
+    await Product.create({ sellerId: bulky._id, approvalStatus: 'approved', price: 10, name: 'Mode Wardrobe', channels: { quick: false, shop: true } });
     const stores = async (params) => {
         const qs = new URLSearchParams({ limit: '100', ...params }).toString();
         const data = ok(await call('GET', `/catalog/stores?${qs}`), `stores ${qs}`);

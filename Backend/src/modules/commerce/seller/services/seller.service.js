@@ -1,5 +1,6 @@
 import { Seller } from '../models/seller.model.js';
-import { parseFulfilmentMode, fulfilmentModeProductFilter } from '../../search/validators/storefront.validator.js';
+import { parseFulfilmentMode, fulfilmentModeProductFilter, fulfilmentModeSellerFilter } from '../../search/validators/storefront.validator.js';
+import { CHANNELS, emptySellerChannel, parseChannelList, serializeSellerChannels } from '../../shared/channels.js';
 import { uploadImageBuffer } from '../../../../services/cloudinary.service.js';
 import { normalizeMediaUrlForStorage } from '../../../../services/storage.service.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
@@ -398,6 +399,7 @@ const toSellerProfile = (doc) => {
         onboardingFeePaymentId: doc.onboardingFeePaymentId || '',
         onboardingFeePaymentSignature: doc.onboardingFeePaymentSignature || '',
         status: doc.status || null,
+        channels: serializeSellerChannels(doc),
         locationUpdateStatus: doc.locationUpdateStatus || 'none',
         locationUpdateRequestedAt: doc.locationUpdateRequestedAt || null,
         locationUpdateReviewedAt: doc.locationUpdateReviewedAt || null,
@@ -711,6 +713,26 @@ export const registerSeller = async (payload, files) => {
         menuImages: preUploadedMenuImages
     } = payload;
 
+    // Channels the seller asks to sell in; each starts pending, the others none.
+    const pickedChannels = parseChannelList(payload.channels);
+    if (!pickedChannels.length) {
+        throw new ValidationError('Pick at least one channel to sell in: quick, shop or both');
+    }
+    const zoneIdText = String(zoneId || '').trim();
+    if (pickedChannels.includes('quick') && !mongoose.Types.ObjectId.isValid(zoneIdText)) {
+        throw new ValidationError('Quick needs a service zone. Pick the zone your store is in.');
+    }
+    if (pickedChannels.includes('shop') && !/^\d{6}$/.test(String(pincode || '').trim())) {
+        throw new ValidationError('Shop needs a pickup address with a 6-digit pincode.');
+    }
+    const registrationTime = new Date();
+    const initialChannels = Object.fromEntries(CHANNELS.map((c) => [
+        c,
+        pickedChannels.includes(c)
+            ? { status: 'pending', rejectionReason: null, appliedAt: registrationTime, decidedAt: null }
+            : emptySellerChannel(),
+    ]));
+
     if (!ownerPhone) {
         throw new ValidationError('Owner phone is required to register a store');
     }
@@ -910,6 +932,7 @@ export const registerSeller = async (payload, files) => {
             ownerPhoneDigits,
             ownerPhoneLast10,
             primaryContactNumber,
+            channels: initialChannels,
             zoneId: zoneId && mongoose.Types.ObjectId.isValid(String(zoneId).trim())
                 ? new mongoose.Types.ObjectId(String(zoneId).trim())
                 : undefined,
@@ -1069,6 +1092,8 @@ export const getCurrentSellerProfile = async (sellerId) => {
                 'onboardingFeePaymentId',
                 'onboardingFeePaymentSignature',
                 'status',
+                'channels',
+                'zoneId',
                 'createdAt',
                 'updatedAt'
             ].join(' ')
@@ -1740,13 +1765,15 @@ export const listApprovedSellers = async (query = {}) => {
 
     const filter = { status: 'approved' };
     const fulfilmentMode = parseFulfilmentMode(query.fulfilmentMode);
-    if (fulfilmentMode === 'quick') {
-        // Quick storefront: only stores that have something quick-deliverable.
-        const quickSellerIds = await Product.distinct('sellerId', {
+    if (fulfilmentMode) {
+        // A storefront lists stores approved for its channel that have
+        // something that can appear there.
+        Object.assign(filter, fulfilmentModeSellerFilter(fulfilmentMode));
+        const channelSellerIds = await Product.distinct('sellerId', {
             approvalStatus: 'approved',
-            ...fulfilmentModeProductFilter('quick'),
+            ...fulfilmentModeProductFilter(fulfilmentMode),
         });
-        filter._id = { $in: quickSellerIds };
+        filter._id = { $in: channelSellerIds };
     }
 
     if (query.city && String(query.city).trim()) {

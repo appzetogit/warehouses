@@ -29,7 +29,8 @@ export function getAdminSubPath(pathname = "") {
 export function useAdminPanel() {
   const { pathname } = useLocation()
   const panel = getAdminPanelFromPath(pathname)
-  return { panel, fulfilmentMode: ADMIN_PANELS[panel].fulfilmentMode, label: ADMIN_PANELS[panel].label }
+  // channel: the seller/product sales channel this panel shows (quick|shop), see CHANNELS_CONTRACT.md
+  return { panel, channel: panel, fulfilmentMode: ADMIN_PANELS[panel].fulfilmentMode, label: ADMIN_PANELS[panel].label }
 }
 
 /** "/admin/quick" or "/admin/shop"; append sub-paths to it. */

@@ -10,6 +10,7 @@ import { DeliveryPartner } from '../../delivery/models/deliveryPartner.model.js'
 import { Zone } from '../../admin/models/zone.model.js';
 import { ValidationError, ForbiddenError, NotFoundError } from '../../../../core/auth/errors.js';
 import { reserveStockForItems, releaseReservations, restoreOrderStock } from './inventory.service.js';
+import { channelForMode } from '../../shared/channels.js';
 import { findZoneForPoint, readAddressPoint } from '../../shared/zoneServiceability.js';
 import { buildPaginationOptions, buildPaginatedResult } from '../../../../utils/helpers.js';
 import { Offer } from '../../admin/models/offer.model.js';
@@ -601,6 +602,7 @@ export async function createOrder(userId, dto, options = {}) {
         deliveryAddress,
         couponCode: dto.pricing?.couponCode || undefined,
         deliveryMode: dto.deliveryMode || "basic",
+        fulfilmentMode: checkout?.fulfilmentMode || dto.fulfilmentMode || "quick",
       },
       { at: orderAt, seller, skipAvailabilityCheck: true, skipCoupons: Boolean(checkout) },
     );
@@ -721,7 +723,7 @@ export async function createOrder(userId, dto, options = {}) {
     // report measures against it: the checkout quote, else the same
     // packing-plus-ride estimate, else the store's advertised delivery time.
     // Standard orders are measured against shipment.etd instead.
-    const orderFulfilmentMode = checkout?.fulfilmentMode || "quick";
+    const orderFulfilmentMode = checkout?.fulfilmentMode || dto.fulfilmentMode || "quick";
     const promisedEtaMinutes =
       orderFulfilmentMode === "quick"
         ? [
@@ -774,11 +776,11 @@ export async function createOrder(userId, dto, options = {}) {
       scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
       riderEarning: Number(riderEarning) || 0,
       platformProfit: Number(platformProfit) || 0,
+      fulfilmentMode: orderFulfilmentMode,
       ...(checkout
         ? {
           checkoutId: checkout.checkoutId,
           orderGroupId: checkout.orderGroupId,
-          fulfilmentMode: checkout.fulfilmentMode,
           coinsUsed: Number(checkout.coinsUsed) || 0,
           coinsDiscount: normalizedPricing.coinsDiscount,
         }
@@ -813,7 +815,9 @@ export async function createOrder(userId, dto, options = {}) {
     // awaiting online payment: the units have to be held while the customer is
     // on the payment sheet, or two people pay for the same last unit. The
     // pending-payment cleanup gives them back.
-    const reservation = await reserveStockForItems(resolvedItems);
+    const reservation = await reserveStockForItems(resolvedItems, {
+      channel: channelForMode(orderFulfilmentMode),
+    });
     if (reservation.length > 0) {
       order.stockReservedAt = new Date();
       order.stockReservations = reservation;

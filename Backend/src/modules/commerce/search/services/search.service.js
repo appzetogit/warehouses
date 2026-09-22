@@ -2,7 +2,7 @@ import { Seller } from '../../seller/models/seller.model.js';
 import { Product } from '../../admin/models/product.model.js';
 import { Category } from '../../admin/models/category.model.js';
 import mongoose from 'mongoose';
-import { parseFulfilmentMode, fulfilmentModeProductFilter } from '../validators/storefront.validator.js';
+import { parseFulfilmentMode, fulfilmentModeProductFilter, fulfilmentModeSellerFilter } from '../validators/storefront.validator.js';
 
 const SELLER_SEARCH_SELECT = [
     'sellerName',
@@ -93,7 +93,7 @@ export const searchUnified = async (query = {}, options = {}) => {
     const fetchLimit = Math.min(limitNumber * 3, 120);
 
     // 1. Initial Filter (approved status and basic conditions)
-    const sellerFilter = { status: 'approved' };
+    const sellerFilter = { status: 'approved', ...(fulfilmentModeSellerFilter(fulfilmentMode) || {}) };
 
     if (zoneId && mongoose.Types.ObjectId.isValid(zoneId)) {
         sellerFilter.zoneId = new mongoose.Types.ObjectId(zoneId);

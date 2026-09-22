@@ -10,6 +10,8 @@ import { logger } from '../../../../utils/logger.js';
 import { buildOrderIdentityFilter, notifyOwnerSafely } from './order.helpers.js';
 import { applyCancellationRefund } from './order.service.js';
 import * as userWalletService from '../../user/services/userWallet.service.js';
+import { restockReturnedItems } from './inventory.service.js';
+import { channelForMode } from '../../shared/channels.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const DEFAULT_RETURN_WINDOW_DAYS = 7;
@@ -360,6 +362,21 @@ export async function receiveAndRefundReturnAdmin(id, adminId, { note = '' } = {
         if (current.status === 'refunded' || current.refund?.status === 'processed') throw new ConflictError('This return has already been refunded');
         if (current.refund?.status === 'processing') throw new ConflictError('A refund for this return is already in progress');
         throw new ConflictError(`A return that is '${current.status}' cannot be refunded`);
+    }
+
+    // The units are back with the seller: return them to the order's channel, once.
+    try {
+        const claimed = await ReturnRequest.findOneAndUpdate(
+            { _id: ret._id, restockedAt: null },
+            { $set: { restockedAt: now } },
+            { new: true, projection: { items: 1, orderId: 1 } },
+        ).lean();
+        if (claimed) {
+            const order = await Order.findById(claimed.orderId).select('fulfilmentMode').lean();
+            await restockReturnedItems(claimed.items, channelForMode(order?.fulfilmentMode));
+        }
+    } catch (err) {
+        logger.error(`[CRITICAL] return restock failed for ${ret._id}: ${err?.message || err}`);
     }
 
     let outcome;

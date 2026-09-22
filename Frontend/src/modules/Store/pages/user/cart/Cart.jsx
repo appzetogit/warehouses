@@ -15,6 +15,8 @@ import { useLocation as useUserLocation } from "@store/hooks/useLocation"
 import { useZone } from "@store/hooks/useZone"
 import { orderAPI, sellerAPI, adminAPI, userAPI, coinsAPI, API_ENDPOINTS } from "@store/api"
 import { API_BASE_URL } from "@store/api/config"
+import { catalogAPI } from "@/services/api"
+import { CHANNEL_COPY, addToOtherStoreCart, channelAvailability, findUnavailableCartItem, otherChannel } from "@store/utils/channelStock"
 import { initRazorpayPayment } from "@store/utils/razorpay"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@store/utils/businessSettings"
@@ -312,7 +314,7 @@ export default function Cart() {
     );
   }
 
-  const { cart, updateQuantity, getCartCount, clearCart, cleanCartForSeller, replaceCart } = cartContext;
+  const { cart, updateQuantity, getCartCount, clearCart, cleanCartForSeller, replaceCart, removeFromCart } = cartContext;
   const { getDefaultAddress, getDefaultPaymentMethod, setDefaultAddress, addresses, paymentMethods, userProfile } = useProfile()
   const { createOrder } = useOrders()
   const { location: currentLocation, loading: currentLocationLoading } = useUserLocation() // Get live location address
@@ -350,6 +352,9 @@ export default function Cart() {
   })
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+  // A cart line the server refused at checkout because it isn't sold in this
+  // store's channel: { item, message, altAvailable: null (checking) | boolean }.
+  const [unavailableLine, setUnavailableLine] = useState(null)
   const [showBillDetails, setShowBillDetails] = useState(true)
   const [showPlacingOrder, setShowPlacingOrder] = useState(false)
   const [isScheduled, setIsScheduled] = useState(false)
@@ -2487,6 +2492,26 @@ export default function Cart() {
       else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         errorMessage = "Request timed out. The server is taking too long to respond. Please try again."
       }
+      // An item not sold in this store's channel: let the customer fix the cart.
+      else if (findUnavailableCartItem(error, cart)) {
+        const hit = findUnavailableCartItem(error, cart)
+        setUnavailableLine({ ...hit, altAvailable: null })
+        setIsPlacingOrder(false)
+        const productId = hit.item.productId || hit.item.itemId || hit.item.id
+        const alt = otherChannel(storeFulfilmentMode === "quick" ? "quick" : "shop")
+        catalogAPI.getProduct(productId)
+          .then((res) => {
+            const data = res?.data?.data || res?.data
+            const product = data?.product
+            const variant = hit.item.variantId && Array.isArray(product?.variants)
+              ? product.variants.find((v) => String(v._id || v.id) === String(hit.item.variantId))
+              : null
+            const ok = !!product && channelAvailability(product, alt, variant).inStock
+            setUnavailableLine((cur) => (cur && cur.item === hit.item ? { ...cur, altAvailable: ok } : cur))
+          })
+          .catch(() => setUnavailableLine((cur) => (cur && cur.item === hit.item ? { ...cur, altAvailable: false } : cur)))
+        return
+      }
       // Handle other axios errors
       else if (error.response) {
         // Server responded with error status
@@ -4087,6 +4112,49 @@ export default function Cart() {
           </AnimatePresence>,
           document.body
         )}
+      {unavailableLine && (() => {
+        const channel = storeFulfilmentMode === "quick" ? "quick" : "shop"
+        const alt = otherChannel(channel)
+        const line = unavailableLine.item
+        const close = () => setUnavailableLine(null)
+        return (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+            <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#1a1a1a] p-5 shadow-xl">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                {line.name}{line.variantName ? ` (${line.variantName})` : ""} isn't available in {CHANNEL_COPY[channel].label}
+              </h3>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                {unavailableLine.message || "Remove it to place your order."}
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                {unavailableLine.altAvailable === null && (
+                  <p className="text-xs text-gray-500">Checking {CHANNEL_COPY[alt].label}…</p>
+                )}
+                {unavailableLine.altAvailable && (
+                  <Button
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                    onClick={() => {
+                      if (addToOtherStoreCart(line, alt)) {
+                        removeFromCart(line.id)
+                        toast.success(`Moved to your ${CHANNEL_COPY[alt].label} cart (${CHANNEL_COPY[alt].eta})`)
+                      } else {
+                        toast.error("Couldn't move the item. Please try again.")
+                      }
+                      close()
+                    }}
+                  >
+                    Move to {CHANNEL_COPY[alt].label} cart — {CHANNEL_COPY[alt].eta}
+                  </Button>
+                )}
+                <Button variant="outline" className="w-full" onClick={() => { removeFromCart(line.id); close() }}>
+                  Remove from cart
+                </Button>
+                <button type="button" className="text-xs text-gray-500 py-1" onClick={close}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
-}      
+}

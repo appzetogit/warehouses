@@ -18,6 +18,13 @@ import {
     GLOBAL_CATEGORY_FILTER
 } from '../../shared/categoryWorkflow.js';
 import { normalizeFoodType } from '../../shared/foodType.js';
+import {
+    CHANNELS,
+    assertChannel,
+    buildProductChannelFields,
+    countsOf,
+    productChannelFields
+} from '../../shared/channels.js';
 
 const toStr = (v) => (v != null ? String(v).trim() : '');
 const APPROVED_CATEGORY_FILTER = [
@@ -135,7 +142,6 @@ const buildCatalogUpdate = (body = {}) => {
         const raw = Array.isArray(body.tags) ? body.tags : String(body.tags || '').split(',');
         update.tags = [...new Set(raw.map((t) => toStr(t).toLowerCase()).filter(Boolean))].slice(0, 20);
     }
-    if (body.quickEligible !== undefined) update.quickEligible = body.quickEligible !== false && body.quickEligible !== 'false';
     if (body.packSize !== undefined) update.packSize = toStr(body.packSize);
     if (body.sku !== undefined) update.sku = toStr(body.sku);
     if (body.barcode !== undefined) update.barcode = toStr(body.barcode);
@@ -195,30 +201,16 @@ const buildAvailabilityUpdate = (body = {}) => {
     const update = {};
     const unset = {};
 
-    const stockQty = parseStockNumber(body.stockQty);
-    if (stockQty !== undefined) {
-        update.stockQty = stockQty;
-        // A restock has to bring the item back: it went dark automatically when
-        // it hit zero, so leaving it hidden would make the count meaningless.
-        if (stockQty !== null && stockQty > 0 && body.isAvailable === undefined) {
-            update.isAvailable = true;
-            unset.stockOffMode = 1;
-            unset.stockResumeAt = 1;
-        }
-        if (stockQty === 0) update.isAvailable = false;
-    }
-
-    const lowStockThreshold = parseStockNumber(body.lowStockThreshold);
-    if (lowStockThreshold !== undefined) update.lowStockThreshold = lowStockThreshold;
-
     const maxQtyPerOrder = parseStockNumber(body.maxQtyPerOrder, { min: 1 });
     if (maxQtyPerOrder !== undefined) update.maxQtyPerOrder = maxQtyPerOrder;
 
     if (body.isAvailable !== undefined) {
-        update.isAvailable = body.isAvailable !== false;
         if (body.isAvailable !== false) {
             unset.stockResumeAt = 1;
             unset.stockOffMode = 1;
+        } else if (body.stockOffMode === undefined) {
+            // Switched off by hand: kept in stockOffMode so a restock cannot undo it.
+            update.stockOffMode = 'manual';
         }
     }
 
@@ -252,14 +244,15 @@ const getSellerContext = async (sellerId) => {
     }
 
     const seller = await Seller.findById(sellerId)
-        .select('_id')
+        .select('_id status channels')
         .lean();
     if (!seller?._id) {
         throw new ValidationError('Store not found');
     }
 
     return {
-        sellerId: new mongoose.Types.ObjectId(String(sellerId))
+        sellerId: new mongoose.Types.ObjectId(String(sellerId)),
+        seller
     };
 };
 
@@ -331,15 +324,16 @@ const resolveCategoryForSeller = async (context, body = {}) => {
 };
 
 /**
- * Sets stock on many products at once.
+ * Sets stock on many products at once, per channel.
  *
- * A seller taking a delivery counts thirty things in one go. Making them open
- * thirty screens is how inventory stops being maintained, and stock nobody
- * maintains is worse than no stock tracking at all -- it is wrong with
- * confidence.
+ * Each entry: { itemId, channel: 'quick'|'shop', qty, variantId? } sets the
+ * absolute count for that channel (qty null = stop counting there). Optional
+ * extras: lowStockThreshold (for that channel), maxQtyPerOrder, isAvailable,
+ * and isActive (variants).
  *
- * Per-item results rather than all-or-nothing: one unknown id in a long list
- * should not throw away thirty correct counts.
+ * A seller taking a delivery counts thirty things in one go. Per-item results
+ * rather than all-or-nothing: one unknown id in a long list should not throw
+ * away thirty correct counts.
  *
  * ponytail: a loop of updates, not bulkWrite. Fine for a seller's catalogue;
  * revisit if someone starts pushing thousands of rows at once.
@@ -347,6 +341,7 @@ const resolveCategoryForSeller = async (context, body = {}) => {
 export async function updateSellerProductStock(sellerId, entries = []) {
     const context = await getSellerContext(sellerId);
 
+    if (entries && !Array.isArray(entries) && typeof entries === 'object') entries = [entries];
     if (!Array.isArray(entries) || entries.length === 0) {
         throw new ValidationError('No stock updates provided');
     }
@@ -359,72 +354,77 @@ export async function updateSellerProductStock(sellerId, entries = []) {
 
     for (const entry of entries) {
         const productId = toStr(entry?.itemId ?? entry?.id ?? entry?._id);
-        if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
-            failed.push({ itemId: productId, reason: 'Invalid item id' });
-            continue;
-        }
-
         const variantId = toStr(entry?.variantId);
-        if (variantId) {
-            try {
-                updated.push(await updateVariantStock(context.sellerId, productId, variantId, entry));
-            } catch (err) {
-                failed.push({ itemId: productId, variantId, reason: err?.message || 'Update failed' });
-            }
+        if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+            failed.push({ itemId: productId, variantId: variantId || null, reason: 'Invalid item id' });
             continue;
         }
-
         try {
-            const { update, unset } = buildAvailabilityUpdate({
-                stockQty: entry?.stockQty,
-                lowStockThreshold: entry?.lowStockThreshold,
-                maxQtyPerOrder: entry?.maxQtyPerOrder,
-                ...(entry?.isAvailable !== undefined ? { isAvailable: entry.isAvailable } : {})
-            });
-
-            if (Object.keys(update).length === 0 && Object.keys(unset).length === 0) {
-                failed.push({ itemId: productId, reason: 'Nothing to update' });
-                continue;
-            }
-
-            const doc = await Product.findOneAndUpdate(
-                { _id: new mongoose.Types.ObjectId(productId), sellerId: context.sellerId },
-                {
-                    ...(Object.keys(update).length ? { $set: update } : {}),
-                    ...(Object.keys(unset).length ? { $unset: unset } : {})
-                },
-                { new: true }
-            )
-                .select('_id name stockQty lowStockThreshold maxQtyPerOrder isAvailable')
-                .lean();
-
-            if (!doc) {
-                failed.push({ itemId: productId, reason: 'Item not found for this seller' });
-                continue;
-            }
-            // A zero shared count must not hide variants that are counted on their own.
-            await syncProductAvailability(doc._id);
-            const fresh = await Product.findById(doc._id).select('isAvailable').lean();
-            updated.push({ ...doc, isAvailable: fresh?.isAvailable !== false });
+            const row = variantId
+                ? await updateVariantStock(context.sellerId, productId, variantId, entry)
+                : await updateProductStock(context.sellerId, productId, entry);
+            updated.push(row);
         } catch (err) {
-            failed.push({ itemId: productId, reason: err?.message || 'Update failed' });
+            failed.push({ itemId: productId, variantId: variantId || null, reason: err?.message || 'Update failed' });
         }
     }
 
     return { updated, failed, updatedCount: updated.length, failedCount: failed.length };
 }
 
+/** channel + qty / lowStockThreshold of one stock entry, as $set paths under `prefix`. */
+function channelStockSet(entry, prefix) {
+    const set = {};
+    const needsChannel = entry.qty !== undefined || entry.lowStockThreshold !== undefined;
+    if (!needsChannel) return { set, channel: null };
+    if (entry.channel === undefined || entry.channel === null || entry.channel === '') {
+        throw new ValidationError('channel is required (quick or shop)');
+    }
+    const channel = assertChannel(entry.channel);
+    const qty = parseStockNumber(entry.qty);
+    if (qty !== undefined) {
+        set[`${prefix}stock.${channel}`] = qty;
+        // A new count in a channel clears its "told the seller" flag.
+        set[`${prefix}lowStockNotifiedAt.${channel}`] = null;
+    }
+    const low = parseStockNumber(entry.lowStockThreshold);
+    if (low !== undefined) set[`${prefix}lowStockThreshold.${channel}`] = low;
+    return { set, channel, qty };
+}
+
+async function updateProductStock(sellerId, productId, entry = {}) {
+    const { set, channel, qty } = channelStockSet(entry, '');
+    const unset = {};
+    const maxQtyPerOrder = parseStockNumber(entry.maxQtyPerOrder, { min: 1 });
+    if (maxQtyPerOrder !== undefined) set.maxQtyPerOrder = maxQtyPerOrder;
+    if (entry.isAvailable !== undefined) {
+        if (entry.isAvailable === false) set.stockOffMode = 'manual';
+        else { unset.stockOffMode = 1; unset.stockResumeAt = 1; }
+    } else if (qty !== undefined && qty !== null && qty > 0) {
+        // A restock ends a timed "out of stock" window.
+        unset.stockResumeAt = 1;
+    }
+    if (!Object.keys(set).length && !Object.keys(unset).length) throw new ValidationError('Nothing to update');
+
+    const doc = await Product.findOneAndUpdate(
+        { _id: new mongoose.Types.ObjectId(productId), sellerId },
+        { ...(Object.keys(set).length ? { $set: set } : {}), ...(Object.keys(unset).length ? { $unset: unset } : {}) },
+        { new: true },
+    ).select('_id').lean();
+    if (!doc) throw new ValidationError('Item not found for this seller');
+
+    await syncProductAvailability(doc._id);
+    const fresh = await Product.findById(doc._id).lean();
+    return stockRow(fresh, null, channel);
+}
+
 /**
- * Sets one variant's count, low-stock mark or on/off switch.
- * `stockQty: null` hands the variant back to the product's shared count.
+ * Sets one variant's count or low-stock mark in a channel, or its on/off switch.
+ * `qty: null` hands the variant back to the product's shared count there.
  */
 async function updateVariantStock(sellerId, productId, variantId, entry = {}) {
     if (!mongoose.Types.ObjectId.isValid(variantId)) throw new ValidationError('Invalid variant id');
-    const set = {};
-    const stockQty = parseStockNumber(entry.stockQty);
-    if (stockQty !== undefined) set['variants.$.stockQty'] = stockQty;
-    const low = parseStockNumber(entry.lowStockThreshold);
-    if (low !== undefined) set['variants.$.lowStockThreshold'] = low;
+    const { set, channel } = channelStockSet(entry, 'variants.$.');
     if (entry.isActive !== undefined) set['variants.$.isActive'] = entry.isActive !== false;
     if (!Object.keys(set).length) throw new ValidationError('Nothing to update');
 
@@ -432,64 +432,91 @@ async function updateVariantStock(sellerId, productId, variantId, entry = {}) {
         { _id: new mongoose.Types.ObjectId(productId), sellerId, 'variants._id': new mongoose.Types.ObjectId(variantId) },
         { $set: set },
         { new: true },
-    ).select('_id name isAvailable variants').lean();
+    ).select('_id').lean();
     if (!doc) throw new ValidationError('Variant not found for this seller');
 
     await syncProductAvailability(productId);
-    const variant = doc.variants.find((v) => String(v._id) === variantId);
+    const fresh = await Product.findById(productId).lean();
+    const variant = (fresh.variants || []).find((v) => String(v._id) === variantId);
+    return stockRow(fresh, variant, channel);
+}
+
+/** One stock row as the seller app shows it. */
+function stockRow(product, variant, channel) {
+    const own = variant || product;
     return {
-        _id: doc._id,
-        name: doc.name,
-        variantId,
+        _id: product._id,
+        itemId: String(product._id),
+        variantId: variant ? String(variant._id) : null,
+        name: variant ? `${product.name} (${variant.name})` : product.name,
         variantName: variant?.name || '',
-        stockQty: variant?.stockQty ?? null,
-        lowStockThreshold: variant?.lowStockThreshold ?? null,
-        isActive: variant?.isActive !== false,
+        channel: channel || null,
+        qty: channel ? (own.stock?.[channel] ?? null) : null,
+        threshold: channel ? (own.lowStockThreshold?.[channel] ?? null) : null,
+        stock: countsOf(own.stock),
+        lowStockThreshold: countsOf(own.lowStockThreshold),
+        maxQtyPerOrder: product.maxQtyPerOrder ?? null,
+        ...(variant ? { isActive: variant.isActive !== false } : {}),
+        isAvailable: product.isAvailable !== false,
+        availableIn: productChannelFields(product).availableIn,
     };
 }
 
-/** Products at or below their own low-stock mark, so the seller knows what to reorder. */
-export async function listLowStockProducts(sellerId) {
+/**
+ * Shelves at or below their own low-stock mark, per channel, so the seller
+ * knows what to reorder. `channel` narrows to one channel. Each row says its
+ * channel: { itemId, variantId|null, name, channel, qty, threshold }.
+ */
+export async function listLowStockProducts(sellerId, { channel } = {}) {
     const context = await getSellerContext(sellerId);
-
-    const items = await Product.find({
-        sellerId: context.sellerId,
-        stockQty: { $ne: null },
-        lowStockThreshold: { $ne: null }
-    })
-        .select('_id name brand packSize image stockQty lowStockThreshold isAvailable')
-        .lean();
+    const channels = channel !== undefined && channel !== null && channel !== '' ? [assertChannel(channel)] : CHANNELS;
 
     // Compared in code rather than in the query: Mongo cannot compare two fields
     // of the same document in a plain find, and a seller's catalogue is small
     // enough that filtering here is cheaper than an aggregation pipeline.
-    const low = items.filter((item) => Number(item.stockQty) <= Number(item.lowStockThreshold));
-
-    // Variants counted on their own, at or below their own mark.
-    const withVariants = await Product.find({
+    const products = await Product.find({
         sellerId: context.sellerId,
-        variants: { $elemMatch: { stockQty: { $ne: null }, lowStockThreshold: { $ne: null } } },
+        $or: channels.flatMap((c) => [
+            { [`lowStockThreshold.${c}`]: { $ne: null } },
+            { variants: { $elemMatch: { [`lowStockThreshold.${c}`]: { $ne: null } } } },
+        ]),
     })
-        .select('_id name brand packSize image isAvailable variants')
+        .select('_id name brand packSize image isAvailable channels stock lowStockThreshold variants')
         .lean();
-    for (const product of withVariants) {
-        for (const v of product.variants || []) {
-            if (v.stockQty === null || v.stockQty === undefined || v.lowStockThreshold === null || v.lowStockThreshold === undefined) continue;
-            if (v.isActive === false || Number(v.stockQty) > Number(v.lowStockThreshold)) continue;
-            low.push({
-                _id: product._id,
-                name: `${product.name} (${v.name})`,
-                brand: product.brand,
-                packSize: product.packSize,
-                image: v.images?.[0] || product.image,
-                variantId: String(v._id),
-                stockQty: v.stockQty,
-                lowStockThreshold: v.lowStockThreshold,
-                isAvailable: product.isAvailable,
-            });
+
+    const isLow = (count, threshold) =>
+        count !== null && count !== undefined && threshold !== null && threshold !== undefined && Number(count) <= Number(threshold);
+
+    const low = [];
+    for (const p of products) {
+        for (const c of channels) {
+            if (p.channels?.[c] === false) continue;
+            const base = {
+                _id: p._id,
+                itemId: String(p._id),
+                brand: p.brand,
+                packSize: p.packSize,
+                isAvailable: p.isAvailable,
+                channel: c,
+            };
+            if (isLow(p.stock?.[c], p.lowStockThreshold?.[c])) {
+                low.push({ ...base, variantId: null, name: p.name, image: p.image, qty: p.stock[c], threshold: p.lowStockThreshold[c] });
+            }
+            for (const v of p.variants || []) {
+                if (v.isActive === false || v.channels?.[c] === false) continue;
+                if (!isLow(v.stock?.[c], v.lowStockThreshold?.[c])) continue;
+                low.push({
+                    ...base,
+                    variantId: String(v._id),
+                    name: `${p.name} (${v.name})`,
+                    image: v.images?.[0] || p.image,
+                    qty: v.stock[c],
+                    threshold: v.lowStockThreshold[c],
+                });
+            }
         }
     }
-    low.sort((a, b) => Number(a.stockQty) - Number(b.stockQty));
+    low.sort((a, b) => Number(a.qty) - Number(b.qty));
 
     return { items: low, total: low.length };
 }
@@ -527,10 +554,9 @@ export async function createSellerProduct(sellerId, body = {}) {
         ...(normalizeProductImages(body) ?? { image: '', images: [] }),
         foodType,
         isAvailable,
-        // Undefined leaves the schema default (null = untracked), so a seller
-        // who never enters a count keeps the old always-in-stock behaviour.
-        stockQty: parseStockNumber(body.stockQty) ?? undefined,
-        lowStockThreshold: parseStockNumber(body.lowStockThreshold) ?? undefined,
+        // channels default to where the seller is approved; stock left out is
+        // null = not counted, the old always-in-stock behaviour.
+        ...buildProductChannelFields(context.seller, body, null, variants),
         maxQtyPerOrder: parseStockNumber(body.maxQtyPerOrder, { min: 1 }) ?? undefined,
         ...catalogFields,
         isRecommended: body.isRecommended === true,
@@ -594,6 +620,7 @@ export async function updateSellerProduct(sellerId, productId, body = {}) {
     );
     const availabilityUpdate = buildAvailabilityUpdate(body);
     Object.assign(update, availabilityUpdate.update);
+    Object.assign(update, buildProductChannelFields(context.seller, body, existing, update.variants));
     if (body.preparationTime !== undefined) update.preparationTime = toStr(body.preparationTime);
     if (body.isRecommended !== undefined) update.isRecommended = body.isRecommended === true;
 

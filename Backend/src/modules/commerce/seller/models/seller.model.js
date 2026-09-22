@@ -40,6 +40,16 @@ const geoPointSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const sellerChannelSchema = new mongoose.Schema(
+  {
+    status: { type: String, enum: ["none", "pending", "approved", "rejected"], default: "none" },
+    rejectionReason: { type: String, trim: true, default: null },
+    appliedAt: { type: Date, default: null },
+    decidedAt: { type: Date, default: null },
+  },
+  { _id: false }
+);
+
 const sellerSchema = new mongoose.Schema(
   {
     sellerName: {
@@ -288,6 +298,15 @@ const sellerSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+    /**
+     * Per-channel approval (Quick = rider, Shop = courier). The seller sells
+     * in a channel only when `status` (the account/KYC approval) is approved
+     * AND that channel is approved. See CHANNELS_CONTRACT.md.
+     */
+    channels: {
+      quick: { type: sellerChannelSchema, default: () => ({}) },
+      shop: { type: sellerChannelSchema, default: () => ({}) },
+    },
     approvedAt: {
       type: Date,
     },
@@ -520,6 +539,8 @@ sellerSchema.index(
   },
 );
 sellerSchema.index({ status: 1, createdAt: -1 });
+sellerSchema.index({ "channels.quick.status": 1 });
+sellerSchema.index({ "channels.shop.status": 1 });
 
 export const Seller = mongoose.model(
   "Seller",

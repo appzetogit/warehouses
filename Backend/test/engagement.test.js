@@ -34,7 +34,7 @@ before(async () => {
         isActive: true,
     });
 
-    const seller = await Seller.create({
+    const seller = await Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: 'AI Test Store',
         ownerName: 'AI Owner',
         phone: '9777700002',
@@ -49,7 +49,7 @@ before(async () => {
         name: 'Wireless Bluetooth Headset',
         price: 799,
         mrp: 1499,
-        stockQty: 50,
+        stock: { quick: 50 },
         isAvailable: true,
     });
 });

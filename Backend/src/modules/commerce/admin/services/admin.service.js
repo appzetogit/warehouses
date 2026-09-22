@@ -16,6 +16,15 @@ import { sendNotificationToOwner } from '../../../../core/notifications/firebase
 import { SellerSubscriptionSettings } from '../models/sellerSubscriptionSettings.model.js';
 import { Zone } from '../models/zone.model.js';
 import { invalidateActiveZonesCache } from '../../shared/zoneServiceability.js';
+import {
+    CHANNELS,
+    CHANNEL_STATUSES,
+    assertChannel,
+    buildProductChannelFields,
+    channelForMode,
+    productChannelFields,
+    serializeSellerChannels
+} from '../../shared/channels.js';
 import { Category } from '../models/category.model.js';
 import { Product } from '../models/product.model.js';
 import { Offer } from '../models/offer.model.js';
@@ -381,6 +390,25 @@ export async function getSellers(query) {
         }
         filter.$or = or;
     }
+    // Channel filters: `channel` alone = sellers who have that channel (any
+    // status but none); with `channelStatus` = that exact status. The panels'
+    // fulfilmentMode maps to a channel when no channel is given.
+    const channelRaw = query.channel ?? (query.fulfilmentMode ? channelForMode(query.fulfilmentMode) : undefined);
+    const channel = channelRaw !== undefined && channelRaw !== '' ? assertChannel(channelRaw) : null;
+    const channelStatusRaw = query.channelStatus;
+    let channelStatus = null;
+    if (channelStatusRaw !== undefined && channelStatusRaw !== '') {
+        channelStatus = String(channelStatusRaw).trim().toLowerCase();
+        if (!CHANNEL_STATUSES.includes(channelStatus)) {
+            throw new ValidationError(`channelStatus must be one of: ${CHANNEL_STATUSES.join(', ')}`);
+        }
+    }
+    const statusMatch = (st) => (st === 'none' ? { $in: ['none', null] } : st);
+    if (channel) {
+        filter[`channels.${channel}.status`] = channelStatus ? statusMatch(channelStatus) : { $nin: ['none', null] };
+    } else if (channelStatus) {
+        filter.$and = [{ $or: CHANNELS.map((c) => ({ [`channels.${c}.status`]: statusMatch(channelStatus) })) }];
+    }
     if (isActiveRaw === 'true' || isActiveRaw === true) {
         // Treat missing isActive as active (legacy sellers may not have the field).
         filter.isActive = { $ne: false };
@@ -406,7 +434,7 @@ export async function getSellers(query) {
         .sort(sort)
         .skip(skip)
         .limit(limit)
-        .select('sellerName slug location area city status ownerName ownerPhone primaryContactNumber zoneId profileImage coverImages menuImages rating totalRatings isActive')
+        .select('sellerName slug location area city status channels ownerName ownerPhone primaryContactNumber zoneId profileImage coverImages menuImages rating totalRatings isActive')
         .populate('zoneId', 'name zoneName')
         .lean();
     const countPromise = Seller.countDocuments(filter);
@@ -428,7 +456,12 @@ export async function getSellers(query) {
         ...statsPromises,
     ]);
 
-    const result = { sellers, total, page, limit };
+    const result = {
+        sellers: sellers.map((row) => ({ ...row, channels: serializeSellerChannels(row) })),
+        total,
+        page,
+        limit,
+    };
     if (includeStats) {
         result.stats = {
             total: Number(statsTotal || 0),
@@ -623,7 +656,7 @@ export async function getDashboardStats(query = {}) {
         Product.countDocuments({
             approvalStatus: 'approved',
             ...zoneScopedSellerMatch,
-            ...(query.fulfilmentMode === 'quick' ? { quickEligible: { $ne: false } } : {}),
+            ...(query.fulfilmentMode ? { [`channels.${channelForMode(query.fulfilmentMode)}`]: { $ne: false } } : {}),
         }),
         zoneId
             ? Order.distinct('userId', { ...orderMatch, userId: { $ne: null } }).then((ids) => ids.length)
@@ -2578,10 +2611,11 @@ export async function getSellerReviews(query = {}) {
 
 export async function getSellerById(id) {
     if (!id || !mongoose.Types.ObjectId.isValid(id)) return null;
-    return Seller.findById(id)
+    const seller = await Seller.findById(id)
         .select('-__v')
         .populate('zoneId', 'name zoneName serviceLocation isActive')
         .lean();
+    return seller ? { ...seller, channels: serializeSellerChannels(seller) } : seller;
 }
 
 function formatSubscriptionPlanLabel(plan) {
@@ -2971,7 +3005,10 @@ export async function getPendingSellers() {
     const sellers = await Seller.find({
         $or: [
             { status: { $in: ['pending', 'rejected'] } },
-            { locationUpdateStatus: 'pending' }
+            { locationUpdateStatus: 'pending' },
+            // A channel request shows as a join request for that channel.
+            { 'channels.quick.status': 'pending' },
+            { 'channels.shop.status': 'pending' }
         ]
     })
         .populate('zoneId', 'name zoneName')
@@ -2983,6 +3020,8 @@ export async function getPendingSellers() {
         sl: i + 1,
         zone: r.zoneId?.zoneName || r.zoneId?.name || null,
         pendingZone: r.pendingZoneId?.zoneName || r.pendingZoneId?.name || null,
+        channels: serializeSellerChannels(r),
+        channelRequests: CHANNELS.filter((c) => r.channels?.[c]?.status === 'pending'),
     }));
 }
 
@@ -3538,10 +3577,13 @@ export async function getProducts(query) {
     if (query.approvalStatus && ['pending', 'approved', 'rejected'].includes(String(query.approvalStatus))) {
         filter.approvalStatus = String(query.approvalStatus);
     }
-    // Products only record quick eligibility and any product can be courier-shipped,
-    // so the shop panel sees every product and the quick panel only quick-eligible ones.
-    if (query.fulfilmentMode === 'quick') {
-        filter.quickEligible = { $ne: false };
+    // /admin/quick lists products listed in Quick, /admin/shop those in Shop.
+    // `channel` wins; the panels' fulfilmentMode maps to a channel otherwise.
+    const listChannel = query.channel !== undefined && query.channel !== ''
+        ? assertChannel(query.channel)
+        : (query.fulfilmentMode ? channelForMode(query.fulfilmentMode) : null);
+    if (listChannel) {
+        filter[`channels.${listChannel}`] = { $ne: false };
     }
 
     const [list, total] = await Promise.all([
@@ -3570,8 +3612,9 @@ export async function getProducts(query) {
         description: f.description || '',
         price: getProductDisplayPrice(f),
         otherPrice: getProductDisplayOtherPrice(f),
-        variants: serializeProductVariants(f.variants, { productStockQty: f.stockQty ?? null }),
-        variations: serializeProductVariants(f.variants, { productStockQty: f.stockQty ?? null }),
+        variants: serializeProductVariants(f.variants, { product: f }),
+        variations: serializeProductVariants(f.variants, { product: f }),
+        ...productChannelFields(f, listChannel),
         image: f.image || '',
         // Falls back to the single image so a dish saved before galleries existed
         // still returns a one-entry list, rather than the panel having to special
@@ -3694,7 +3737,7 @@ export async function createProduct(body) {
         throw new ValidationError('Valid sellerId is required');
     }
     const seller = await Seller.findById(sellerId)
-        .select('_id')
+        .select('_id status channels')
         .lean();
     if (!seller?._id) {
         throw new ValidationError('Store not found');
@@ -3724,6 +3767,7 @@ export async function createProduct(body) {
         ...(normalizeProductImages(body) ?? { image: '', images: [] }),
         foodType,
         isAvailable: body.isAvailable !== false,
+        ...buildProductChannelFields(seller, body, null, checkedVariants),
         preparationTime: typeof body.preparationTime === 'string' ? body.preparationTime.trim() : '',
         // Same grocery fields the seller-side create accepts. Without these the
         // admin panel silently dropped them, so anything catalogued centrally
@@ -3756,14 +3800,11 @@ function buildAdminCatalogFields(body = {}) {
         packSize: typeof body.packSize === 'string' ? body.packSize.trim() : undefined,
         mrp,
         gstRate: num(body.gstRate, { max: 100 }),
-        stockQty: num(body.stockQty),
-        lowStockThreshold: num(body.lowStockThreshold),
         maxQtyPerOrder: num(body.maxQtyPerOrder, { min: 1 }),
         tags: body.tags === undefined
             ? undefined
             : [...new Set((Array.isArray(body.tags) ? body.tags : String(body.tags || '').split(','))
-                .map((t) => String(t).trim().toLowerCase()).filter(Boolean))].slice(0, 20),
-        quickEligible: body.quickEligible === undefined ? undefined : body.quickEligible !== false && body.quickEligible !== 'false'
+                .map((t) => String(t).trim().toLowerCase()).filter(Boolean))].slice(0, 20)
     };
 }
 
@@ -3772,7 +3813,7 @@ export async function updateProduct(id, body) {
     const doc = await Product.findById(id);
     if (!doc) return null;
     const seller = await Seller.findById(doc.sellerId)
-        .select('_id')
+        .select('_id status channels')
         .lean();
     if (!seller?._id) {
         throw new ValidationError('Store not found');
@@ -3789,7 +3830,12 @@ export async function updateProduct(id, body) {
         doc.image = nextImages.image;
     }
     if (body.foodType !== undefined) doc.foodType = normalizeFoodType(body.foodType);
-    if (body.isAvailable !== undefined) doc.isAvailable = body.isAvailable !== false;
+    if (body.isAvailable !== undefined) {
+        // The switch lives in stockOffMode, so a restock cannot undo it.
+        doc.stockOffMode = body.isAvailable === false ? (doc.stockOffMode || 'manual') : undefined;
+        if (body.isAvailable !== false) doc.stockResumeAt = undefined;
+    }
+    Object.assign(doc, buildProductChannelFields(seller, body, doc.toObject(), pricingUpdate.variants));
     if (body.preparationTime !== undefined) doc.preparationTime = String(body.preparationTime || '').trim();
     // MRP is validated against whichever price ends up on the document, so
     // editing either one alone cannot leave the item priced above its MRP.

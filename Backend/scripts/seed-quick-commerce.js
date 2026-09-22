@@ -1,6 +1,11 @@
 /**
  * Seeds a quick-commerce catalog: a zone, two sellers, grocery categories with
- * subcategories, and products with real stock counts.
+ * subcategories, and products with real stock counts per channel.
+ *
+ * Channels: the first seller sells in Quick and Shop, the second in Quick
+ * only. The first seller's products rotate between Quick-only, Shop-only and
+ * both (with a different count in each channel); the second seller's are
+ * Quick-only.
  *
  * Idempotent — re-running updates the same documents rather than duplicating
  * them, so it is safe to run against a database that already has this data.
@@ -14,6 +19,7 @@ import { Zone } from '../src/modules/commerce/admin/models/zone.model.js';
 import { Category } from '../src/modules/commerce/admin/models/category.model.js';
 import { Product } from '../src/modules/commerce/admin/models/product.model.js';
 import { Seller } from '../src/modules/commerce/seller/models/seller.model.js';
+import { availableInPipeline } from '../src/modules/commerce/shared/channels.js';
 
 const SEED_TAG = 'seed:quick-commerce';
 
@@ -133,7 +139,9 @@ async function main() {
 
     // --- sellers ---
     const sellers = [];
-    for (const s of SELLERS) {
+    const approvedChannel = { status: 'approved', rejectionReason: null, appliedAt: new Date(), decidedAt: new Date() };
+    const noChannel = { status: 'none', rejectionReason: null, appliedAt: null, decidedAt: null };
+    for (const [sellerIndex, s] of SELLERS.entries()) {
         const doc = await Seller.findOneAndUpdate(
             { ownerPhone: s.ownerPhone },
             {
@@ -142,6 +150,11 @@ async function main() {
                     zoneId: zone._id,
                     status: 'approved',
                     approvedAt: new Date(),
+                    // First seller: both channels; second: Quick only.
+                    channels: {
+                        quick: approvedChannel,
+                        shop: sellerIndex === 0 ? approvedChannel : noChannel,
+                    },
                     isAcceptingOrders: true,
                     // Open around the clock so a test order is never refused for
                     // being outside trading hours.
@@ -209,7 +222,7 @@ async function main() {
 
     // --- products, spread across both sellers ---
     let created = 0;
-    for (const [subName, name, brand, packSize, price, mrp, gstRate, stockQty, foodType] of PRODUCTS) {
+    for (const [productIndex, [subName, name, brand, packSize, price, mrp, gstRate, stockQty, foodType]] of PRODUCTS.entries()) {
         const category = subByName.get(subName);
         if (!category) continue;
 
@@ -219,7 +232,17 @@ async function main() {
             if (index === 1 && created % 3 === 0) continue;
             const sellerPrice = index === 1 ? Math.min(Math.round(price * 1.05), mrp || Infinity) : price;
 
-            await Product.findOneAndUpdate(
+            // Which channels this listing is in, and its count in each.
+            const count = index === 1 ? Math.ceil(stockQty / 2) : stockQty;
+            const kind = index === 1 ? 'quick' : ['quick', 'shop', 'both'][productIndex % 3];
+            const channels = { quick: kind !== 'shop', shop: kind !== 'quick' };
+            const stock = {
+                quick: channels.quick ? count : null,
+                // Shop keeps its own, larger warehouse count.
+                shop: channels.shop ? (kind === 'both' ? count * 3 : count) : null,
+            };
+
+            const doc = await Product.findOneAndUpdate(
                 { sellerId: seller._id, name },
                 {
                     $set: {
@@ -234,12 +257,10 @@ async function main() {
                         mrp: mrp || null,
                         otherPrice: 0,
                         gstRate,
-                        stockQty: index === 1 ? Math.ceil(stockQty / 2) : stockQty,
-                        lowStockThreshold: 10,
+                        channels,
+                        stock,
+                        lowStockThreshold: { quick: channels.quick ? 10 : null, shop: channels.shop ? 10 : null },
                         maxQtyPerOrder: 10,
-                        // Kept consistent with the count, which is what the
-                        // reservation and every listing filter rely on.
-                        isAvailable: stockQty > 0,
                         foodType,
                         approvalStatus: 'approved',
                         approvedAt: new Date(),
@@ -247,6 +268,8 @@ async function main() {
                 },
                 { upsert: true, new: true, setDefaultsOnInsert: true },
             );
+            // availableIn / isAvailable follow the counts, as every listing expects.
+            await Product.collection.updateOne({ _id: doc._id }, availableInPipeline());
             created++;
         }
     }
@@ -254,7 +277,7 @@ async function main() {
 
     const outOfStock = await Product.countDocuments({
         sellerId: { $in: sellers.map((s) => s._id) },
-        stockQty: 0,
+        $or: [{ 'stock.quick': 0 }, { 'stock.shop': 0 }],
     });
     console.log(`   (${outOfStock} deliberately out of stock)`);
 

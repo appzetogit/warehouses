@@ -198,3 +198,14 @@ export const registerUnregisteredSellerController = async (req, res, next) => {
         next(error);
     }
 };
+
+/** POST /seller/channels/:channel/apply — ask to sell in Quick or Shop. */
+export const applyForChannelController = async (req, res, next) => {
+    try {
+        const { applyForChannel } = await import('../services/sellerChannels.service.js');
+        const data = await applyForChannel(req.user?.userId, req.params.channel);
+        return sendResponse(res, 200, 'Channel request submitted', data);
+    } catch (error) {
+        next(error);
+    }
+};

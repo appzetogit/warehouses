@@ -7,6 +7,7 @@ import { Label } from "@store/components/ui/label"
 import { getGoogleMapsApiKey } from "@store/utils/googleMapsApiKey"
 import { ArrowLeft, Loader2, Trash2, Upload } from "lucide-react"
 import { useAdminBase } from "@store/components/admin/useAdminPanel"
+import { SellerChannelsPanel } from "@store/components/admin/sellers/SellerChannels"
 
 const debugError = (..._args) => {}
 
@@ -518,6 +519,11 @@ export default function EditSeller() {
           </div>
         ) : (
           <div className="space-y-6">
+            <section className="bg-white rounded-xl border border-slate-200 p-6">
+              <h2 className="text-lg font-semibold text-slate-900 mb-1">Sales Channels</h2>
+              <p className="text-xs text-slate-500 mb-4">Approve or reject each channel. Account (KYC) approval is separate.</p>
+              <SellerChannelsPanel seller={{ ...(seller || {}), _id: seller?._id || sellerId }} onUpdated={(next) => setSeller((prev) => ({ ...(prev || {}), channels: next.channels }))} />
+            </section>
             <section className="bg-white rounded-xl border border-slate-200 p-6">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <h2 className="text-lg font-semibold text-slate-900">Basic Details</h2>

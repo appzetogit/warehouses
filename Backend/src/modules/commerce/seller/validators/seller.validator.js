@@ -60,6 +60,8 @@ const sellerRegisterSchema = z.object({
     latitude: z.string().optional(),
     longitude: z.string().optional(),
     zoneId: z.string().optional(),
+    // 'quick', 'shop' or 'quick,shop' (multipart sends a string); an array is accepted too.
+    channels: z.union([z.string(), z.array(z.string())]).optional(),
     openingTime: z.string().optional(),
     closingTime: z.string().optional(),
     estimatedDeliveryTime: z.string().optional(),

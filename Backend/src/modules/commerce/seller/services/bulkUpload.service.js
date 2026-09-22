@@ -5,6 +5,7 @@ import { Category } from '../../admin/models/category.model.js';
 import { Seller } from '../models/seller.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { normalizeFoodType } from '../../shared/foodType.js';
+import { CHANNELS, approvedChannelsOf, availableInPipeline } from '../../shared/channels.js';
 import { isHostedUploadUrl, saveImageFromUrl } from '../../../../services/storage.service.js';
 
 const PREP_TIME_OPTIONS = [
@@ -181,6 +182,10 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
     }
 
     const seller = await Seller.findById(sellerId).lean();
+    const approvedChannels = approvedChannelsOf(seller);
+    const insertChannels = approvedChannels.length
+        ? Object.fromEntries(CHANNELS.map((c) => [c, approvedChannels.includes(c)]))
+        : { quick: true, shop: true };
     if (!seller) throw new ValidationError('Store not found');
 
     const items = [];
@@ -374,7 +379,9 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
                                     : { approvedAt: new Date(), requestedAt: null }),
                                 rejectionReason: '',
                                 rejectedAt: null
-                            }
+                            },
+                            // New rows are listed where the seller may sell.
+                            $setOnInsert: { channels: insertChannels }
                         },
                         upsert: true
                     }
@@ -397,6 +404,8 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
     if (bulkOps.length > 0) {
         try {
             await Product.bulkWrite(bulkOps);
+            // availableIn / isAvailable are worked out from the stored document.
+            await Product.collection.updateMany({ sellerId: seller._id }, availableInPipeline());
         } catch (bulkErr) {
             console.error('Bulk write failed:', bulkErr.message);
             results.details.push({ row: 'N/A', error: `Database saving failed: ${bulkErr.message}` });

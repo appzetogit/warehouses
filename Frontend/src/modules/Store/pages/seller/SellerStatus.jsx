@@ -1,3 +1,4 @@
+import SalesChannelsCard from "@store/components/seller/SalesChannelsCard"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import useSellerBackNavigation from "@store/hooks/useSellerBackNavigation"
@@ -322,6 +323,7 @@ export default function SellerStatus() {
 
       {/* Main Content */}
       <div className="px-4 py-6">
+        <SalesChannelsCard className="mb-4" />
         {/* Store Information Card */}
         <Card className="bg-gray-50 border-none py-0 shadow-sm rounded-b-none rounded-t-lg">
           <CardContent className="p-4 gap-6 flex flex-col">

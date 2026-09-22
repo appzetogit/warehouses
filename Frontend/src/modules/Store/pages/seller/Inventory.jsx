@@ -26,6 +26,7 @@ import SellerNavbar from "@store/components/seller/SellerNavbar"
 import BottomNavOrders from "@store/components/seller/BottomNavOrders"
 import { Switch } from "@store/components/ui/switch"
 import BulkStockModal from "@store/components/seller/BulkStockModal"
+import { ChannelBadges } from "@store/components/seller/channels"
 import { useNavigate } from "react-router-dom"
 import { sellerAPI } from "@store/api"
 import { toast } from "sonner"
@@ -955,7 +956,10 @@ export default function Inventory() {
                 approvalStatus: String(item.approvalStatus || "approved").toLowerCase(),
                 rejectionReason: item.rejectionReason || "",
                 isRecommended: item.isRecommended === true,
-                stockQuantity: item.stock || "Unlimited",
+                channels: item.channels,
+                stock: item.stock,
+                lowStockThreshold: item.lowStockThreshold,
+                availableIn: item.availableIn,
                 unit: item.itemSizeUnit || "piece",
               })
             })
@@ -982,7 +986,10 @@ export default function Inventory() {
                     approvalStatus: String(item.approvalStatus || "approved").toLowerCase(),
                     rejectionReason: item.rejectionReason || "",
                     isRecommended: item.isRecommended === true,
-                    stockQuantity: item.stock || "Unlimited",
+                    channels: item.channels,
+                stock: item.stock,
+                lowStockThreshold: item.lowStockThreshold,
+                availableIn: item.availableIn,
                     unit: item.itemSizeUnit || "piece",
                   })
                 })
@@ -1812,6 +1819,7 @@ export default function Inventory() {
                                         <p className={`text-xs font-medium ${item.inStock ? "text-emerald-600" : "text-rose-600"}`}>
                                           {item.inStock ? "In stock" : getRuleStatusLabel(item.stockRule)}
                                         </p>
+                                        <ChannelBadges product={item} showStock className="mt-1" />
                                       </div>
                                     </div>
                                   </td>
@@ -2054,6 +2062,7 @@ export default function Inventory() {
                                   }`}>
                                     {item.inStock ? "In stock" : getRuleStatusLabel(item.stockRule)}
                                   </p>
+                                  <ChannelBadges product={item} showStock className="mt-1" />
                                   <p className="mt-1 text-sm font-semibold text-slate-900">
                                     Amount: ₹{Number(item.price || 0).toFixed(2)}
                                   </p>

@@ -16,6 +16,7 @@ import { fetchDrivingRoute } from '../utils/googleMaps.js';
 import { attachOutletTimingsToSellers } from '../../seller/services/outletTimings.service.js';
 import { getSellerAvailabilityStatus } from '../../seller/helpers/sellerAvailability.helper.js';
 import { resolveOrderCartItems } from '../helpers/order-cart-items.helper.js';
+import { channelForMode } from '../../shared/channels.js';
 import { AVG_SPEED_KMPH, PACKING_MINUTES } from './order.helpers.js';
 
 const round2 = (value) => Math.round((Number(value) || 0) * 100) / 100;
@@ -60,7 +61,7 @@ export async function loadSellerForOrdering(sellerId) {
       // autoAcceptOrders is read at order creation to decide whether the order
       // waits for a seller. Left out of this projection it is always undefined,
       // so the flag silently does nothing however it is set.
-      'status sellerName zoneId location isAcceptingOrders autoAcceptOrders outsideHoursOverride openingTime closingTime openDays deliveryTimings isActive',
+      'status channels sellerName zoneId location isAcceptingOrders autoAcceptOrders outsideHoursOverride openingTime closingTime openDays deliveryTimings isActive',
     )
     .lean();
 
@@ -515,7 +516,9 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
     await resolveDeliveryAddress(userId, dto),
   );
 
-  const resolvedItems = await resolveOrderCartItems(dto.sellerId, dto.items);
+  // The order's channel: quick orders draw on Quick stock, standard on Shop.
+  const channel = options.channel || channelForMode(dto.fulfilmentMode);
+  const resolvedItems = await resolveOrderCartItems(dto.sellerId, dto.items, { channel, seller });
   const items = resolvedItems.map((item) => ({
     ...item,
     price: Number(item.price) || 0,

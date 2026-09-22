@@ -1,7 +1,13 @@
 import mongoose from 'mongoose';
 import { Seller } from '../../seller/models/seller.model.js';
 import { Product } from '../../admin/models/product.model.js';
-import { parseFulfilmentMode, fulfilmentModeProductFilter } from '../validators/storefront.validator.js';
+import {
+    channelForFulfilmentMode,
+    fulfilmentModeProductFilter,
+    fulfilmentModeSellerFilter,
+    parseFulfilmentMode
+} from '../validators/storefront.validator.js';
+import { productChannelFields } from '../../shared/channels.js';
 import { serializeProductVariants } from '../../admin/services/productVariant.service.js';
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -20,7 +26,7 @@ const SEARCH_FIELDS = ['name', 'brand', 'tags', 'categoryName'];
 
 const PROJECTION = Object.fromEntries(
     ('_id sellerId name brand packSize image images price otherPrice mrp categoryId categoryName foodType rating '
-        + 'totalRatings isAvailable stockQty maxQtyPerOrder variants quickEligible tags createdAt')
+        + 'totalRatings isAvailable channels stock lowStockThreshold availableIn stockOffMode maxQtyPerOrder variants tags createdAt')
         .split(' ').map((f) => [f, 1]),
 );
 
@@ -180,13 +186,14 @@ export async function searchProducts(query = {}) {
     const term = String(query.q || '').trim().slice(0, 100);
     const sortKey = SORTS[query.sort] ? query.sort : 'relevance';
     const fulfilmentMode = parseFulfilmentMode(query.fulfilmentMode);
+    const channel = channelForFulfilmentMode(fulfilmentMode);
     // Zones are a quick-delivery concept: the shop storefront ships anywhere,
     // so a zone only narrows the sellers when not browsing the shop.
     const zoneId = fulfilmentMode === 'standard' ? undefined : query.zoneId;
 
     // Only sellers that are live and serving this zone, so nothing comes back
     // that nobody can deliver.
-    const sellerFilter = { status: 'approved' };
+    const sellerFilter = { status: 'approved', ...(fulfilmentModeSellerFilter(fulfilmentMode) || {}) };
     if (zoneId && mongoose.Types.ObjectId.isValid(zoneId)) sellerFilter.zoneId = new mongoose.Types.ObjectId(zoneId);
     const sellers = await Seller.find(sellerFilter)
         .select('sellerName profileImage rating isAcceptingOrders estimatedDeliveryTime estimatedDeliveryTimeMinutes zoneId')
@@ -201,7 +208,7 @@ export async function searchProducts(query = {}) {
     }
     if (isTrue(query.isVeg)) filters.push({ foodType: 'Veg' });
     if (isTrue(query.inStockOnly)) filters.push({ isAvailable: { $ne: false } });
-    if (isTrue(query.quickOnly)) filters.push({ quickEligible: { $ne: false } });
+    if (isTrue(query.quickOnly)) filters.push({ 'channels.quick': { $ne: false } });
     const modeFilter = fulfilmentModeProductFilter(fulfilmentMode);
     if (modeFilter) filters.push(modeFilter);
     const brands = toList(query.brand);
@@ -243,9 +250,10 @@ export async function searchProducts(query = {}) {
             ...product,
             // "From ₹X" for products with variants; the same number price sorts use.
             displayPrice: _price,
-            variants: serializeProductVariants(product.variants, { productStockQty: product.stockQty ?? null }),
-            quickEligible: product.quickEligible !== false,
-            inStock: product.isAvailable !== false,
+            variants: serializeProductVariants(product.variants, { product, channel })
+                .filter((v) => !channel || v.enabledIn[channel]),
+            ...productChannelFields(product, channel),
+            inStock: channel ? productChannelFields(product).availableIn[channel] : product.isAvailable !== false,
             seller: seller
                 ? {
                     _id: seller._id,

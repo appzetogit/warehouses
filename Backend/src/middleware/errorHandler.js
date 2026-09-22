@@ -34,7 +34,8 @@ const errorHandler = (err, req, res, next) => {
         // `message` matches sendError() and every success response, so clients reading
         // data.message see thrown-error text (ValidationError, NotFoundError, ...) too.
         message,
-        error: message // retained for clients already reading this key
+        error: message, // retained for clients already reading this key
+        ...(err.data !== undefined && statusCode < 500 ? { data: err.data } : {})
     });
 };
 

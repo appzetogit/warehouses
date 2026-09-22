@@ -72,7 +72,7 @@ before(async () => {
     const zone = await Zone.create({ name: 'Smoke Zone', country: 'India', coordinates: ZONE, isActive: true });
     ids.zone = zone._id;
 
-    const seller = await Seller.create({
+    const seller = await Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: 'Smoke Mart',
         ownerName: 'Owner',
         ownerPhone: '9000000001',
@@ -88,7 +88,7 @@ before(async () => {
         sellerId: seller._id,
         name: 'Milk 1L',
         price: 60,
-        stockQty: 10,
+        stock: { quick: 10 },
         isAvailable: true,
         approvalStatus: 'approved',
     });
@@ -155,7 +155,7 @@ test('a customer prices and places a cash order, and stock is reserved', async (
     if (quote.pricing.deliveryPromiseMinutes) assert.equal(stored.promisedEtaMinutes, quote.pricing.deliveryPromiseMinutes, 'same promise as the quote');
 
     const product = await ids.db.collection('products').findOne({ _id: ids.product });
-    assert.equal(product.stockQty, 8, 'two units reserved');
+    assert.equal(product.stock.quick, 8, 'two units reserved');
 });
 
 test('the seller packs it, a rider delivers it with the handover OTP', async () => {
@@ -189,7 +189,7 @@ test('the seller packs it, a rider delivers it with the handover OTP', async () 
     assert.equal((done.order || done).orderStatus, 'delivered');
 });
 
-const stockOf = async () => (await ids.db.collection('products').findOne({ _id: ids.product })).stockQty;
+const stockOf = async () => (await ids.db.collection('products').findOne({ _id: ids.product })).stock.quick;
 const orderDoc = (id) => ids.db.collection('orders').findOne({ _id: new mongoose.Types.ObjectId(String(id)) });
 
 async function placeOrder(paymentMethod, qty = 1) {
@@ -288,9 +288,10 @@ test('a product with attribute variants: the seller creates it, a customer order
         body: {
             name: 'Cotton Tee',
             tags: 'tee, Cotton',
+            channels: { quick: true, shop: false },
             variants: [
-                { attributes: [{ name: 'Size', value: 'M' }, { name: 'Color', value: 'Red' }], price: 399, mrp: 499, stockQty: 2 },
-                { attributes: { Size: 'L', Color: 'Red' }, price: 399, mrp: 499, stockQty: 0 },
+                { attributes: [{ name: 'Size', value: 'M' }, { name: 'Color', value: 'Red' }], price: 399, mrp: 499, stock: { quick: 2 } },
+                { attributes: { Size: 'L', Color: 'Red' }, price: 399, mrp: 499, stock: { quick: 0 } },
             ],
         },
     }), 'create product', 201).product;
@@ -321,14 +322,14 @@ test('a product with attribute variants: the seller creates it, a customer order
     const line = placed.order.items[0];
     assert.deepEqual(line.variantAttributes, [{ name: 'Size', value: 'M' }, { name: 'Color', value: 'Red' }]);
     const product = await ids.db.collection('products').findOne({ _id: new mongoose.Types.ObjectId(String(created._id)) });
-    assert.equal(product.variants[0].stockQty, 0);
+    assert.equal(product.variants[0].stock.quick, 0);
     assert.equal(product.isAvailable, false, 'every variant is sold out');
 
     // The seller restocks L alone.
     const restock = ok(await call('PATCH', '/seller/products/stock', {
-        as: seller, body: [{ itemId: String(created._id), variantId: l, stockQty: 5 }],
+        as: seller, body: [{ itemId: String(created._id), variantId: l, channel: 'quick', qty: 5 }],
     }), 'restock variant');
-    assert.equal(restock.updated[0].stockQty, 5);
+    assert.equal(restock.updated[0].qty, 5);
     const after = await ids.db.collection('products').findOne({ _id: product._id });
     assert.equal(after.isAvailable, true, 'listed again');
 

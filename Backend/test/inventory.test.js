@@ -22,14 +22,20 @@ beforeEach(clearDb);
 // required-field validation.
 const product = async (fields) => {
     const _id = new mongoose.Types.ObjectId();
-    await Product.collection.insertOne({ _id, name: `item-${_id}`, isAvailable: true, stockOffMode: null, ...fields });
+    // Quick-only unless a test says otherwise, so "sold out" means sold out everywhere.
+    await Product.collection.insertOne({ _id, name: `item-${_id}`, isAvailable: true, stockOffMode: null, channels: { quick: true, shop: false }, ...fields });
     return _id;
 };
-const stockOf = async (id) => Product.findById(id).select('stockQty isAvailable').lean();
+// The quick count and availability, shaped like the old single-count fields
+// so the assertions below read the same.
+const stockOf = async (id) => {
+    const p = await Product.findById(id).select('stock isAvailable').lean();
+    return { _id: p._id, stockQty: p.stock?.quick ?? null, isAvailable: p.isAvailable };
+};
 const line = (itemId, quantity) => ({ itemId: String(itemId), quantity });
 
 test('two buyers racing for the last unit: exactly one gets it', async () => {
-    const id = await product({ stockQty: 1 });
+    const id = await product({ stock: { quick: 1 } });
 
     const results = await Promise.allSettled(
         Array.from({ length: 8 }, () => reserveStockForItems([line(id, 1)]))
@@ -41,7 +47,7 @@ test('two buyers racing for the last unit: exactly one gets it', async () => {
 });
 
 test('many concurrent orders never oversell', async () => {
-    const id = await product({ stockQty: 10 });
+    const id = await product({ stock: { quick: 10 } });
 
     const results = await Promise.allSettled(
         Array.from({ length: 25 }, () => reserveStockForItems([line(id, 3)]))
@@ -52,8 +58,8 @@ test('many concurrent orders never oversell', async () => {
 });
 
 test('a short line puts back what the earlier lines took', async () => {
-    const plenty = await product({ stockQty: 5 });
-    const scarce = await product({ stockQty: 1 });
+    const plenty = await product({ stock: { quick: 5 } });
+    const scarce = await product({ stock: { quick: 1 } });
 
     await assert.rejects(
         reserveStockForItems([line(plenty, 2), line(scarce, 3)]),
@@ -64,21 +70,21 @@ test('a short line puts back what the earlier lines took', async () => {
 });
 
 test('lines for the same product are summed against the shelf', async () => {
-    const id = await product({ stockQty: 3 });
+    const id = await product({ stock: { quick: 3 } });
     await assert.rejects(reserveStockForItems([line(id, 2), line(id, 2)]), /Only 3 left of/);
     assert.equal((await stockOf(id)).stockQty, 3);
 });
 
 test('untracked products pass through and are never decremented', async () => {
-    const id = await product({ stockQty: null });
+    const id = await product({ stock: { quick: null } });
     const taken = await reserveStockForItems([line(id, 50)]);
     assert.deepEqual(taken, []);
     assert.deepEqual(await stockOf(id), { _id: id, stockQty: null, isAvailable: true });
 });
 
 test('restocking a sold-out product brings it back, unless the seller switched it off', async () => {
-    const soldOut = await product({ stockQty: 1 });
-    const switchedOff = await product({ stockQty: 1 });
+    const soldOut = await product({ stock: { quick: 1 } });
+    const switchedOff = await product({ stock: { quick: 1 } });
 
     const orderFor = async (itemId) => {
         await reserveStockForItems([line(itemId, 1)]);
@@ -98,7 +104,7 @@ test('restocking a sold-out product brings it back, unless the seller switched i
 });
 
 test('an order dying on several paths at once is restocked once', async () => {
-    const id = await product({ stockQty: 4 });
+    const id = await product({ stock: { quick: 4 } });
     await reserveStockForItems([line(id, 4)]);
     const _id = new mongoose.Types.ObjectId();
     await Order.collection.insertOne({ _id, items: [line(id, 4)], stockReservedAt: new Date(), stockRestoredAt: null });
@@ -115,16 +121,23 @@ test('an order dying on several paths at once is restocked once', async () => {
 
 const variant = (name, fields = {}) => ({ _id: new mongoose.Types.ObjectId(), name, price: 100, ...fields });
 const vline = (itemId, variantId, quantity) => ({ itemId: String(itemId), variantId: String(variantId), quantity });
-const variantsOf = async (id) => (await Product.findById(id).select('variants stockQty isAvailable').lean());
+const variantsOf = async (id) => {
+    const p = await Product.findById(id).select('variants stock isAvailable').lean();
+    return {
+        ...p,
+        stockQty: p.stock?.quick ?? null,
+        variants: p.variants.map((v) => ({ ...v, stockQty: v.stock?.quick ?? null })),
+    };
+};
 
 test('a variant with its own count is decremented there, not on the product', async () => {
-    const m = variant('M', { stockQty: 5 });
-    const l = variant('L', { stockQty: 2 });
-    const id = await product({ stockQty: 50, variants: [m, l] });
+    const m = variant('M', { stock: { quick: 5 } });
+    const l = variant('L', { stock: { quick: 2 } });
+    const id = await product({ stock: { quick: 50 }, variants: [m, l] });
 
     const taken = await reserveStockForItems([vline(id, m._id, 3)]);
 
-    assert.deepEqual(taken, [{ itemId: String(id), variantId: String(m._id), qty: 3 }]);
+    assert.deepEqual(taken, [{ itemId: String(id), variantId: String(m._id), channel: 'quick', qty: 3 }]);
     const doc = await variantsOf(id);
     assert.equal(doc.variants[0].stockQty, 2);
     assert.equal(doc.variants[1].stockQty, 2);
@@ -132,9 +145,9 @@ test('a variant with its own count is decremented there, not on the product', as
 });
 
 test('two buyers racing for the last unit of a variant: exactly one gets it', async () => {
-    const m = variant('M', { stockQty: 1 });
-    const l = variant('L', { stockQty: 4 });
-    const id = await product({ variants: [m, l], stockQty: null });
+    const m = variant('M', { stock: { quick: 1 } });
+    const l = variant('L', { stock: { quick: 4 } });
+    const id = await product({ variants: [m, l], stock: { quick: null } });
 
     const results = await Promise.allSettled(
         Array.from({ length: 8 }, () => reserveStockForItems([vline(id, m._id, 1)]))
@@ -150,7 +163,7 @@ test('two buyers racing for the last unit of a variant: exactly one gets it', as
 test('variants without their own count share the product count, summed across lines', async () => {
     const half = variant('500 g');
     const kilo = variant('1 kg');
-    const id = await product({ stockQty: 3, variants: [half, kilo] });
+    const id = await product({ stock: { quick: 3 }, variants: [half, kilo] });
 
     await assert.rejects(
         reserveStockForItems([vline(id, half._id, 2), vline(id, kilo._id, 2)]),
@@ -159,17 +172,17 @@ test('variants without their own count share the product count, summed across li
     assert.equal((await variantsOf(id)).stockQty, 3, 'nothing taken');
 
     const taken = await reserveStockForItems([vline(id, half._id, 1), vline(id, kilo._id, 2)]);
-    assert.deepEqual(taken, [{ itemId: String(id), variantId: '', qty: 3 }]);
+    assert.deepEqual(taken, [{ itemId: String(id), variantId: '', channel: 'quick', qty: 3 }]);
     const doc = await variantsOf(id);
     assert.equal(doc.stockQty, 0);
     assert.equal(doc.isAvailable, false, 'hidden once the shared count is gone');
 });
 
 test('a product hides when its last counted variant sells out, and returns on restock', async () => {
-    const m = variant('M', { stockQty: 1 });
-    const l = variant('L', { stockQty: 0 });
-    const off = variant('XL', { stockQty: 9, isActive: false });
-    const id = await product({ stockQty: null, variants: [m, l, off] });
+    const m = variant('M', { stock: { quick: 1 } });
+    const l = variant('L', { stock: { quick: 0 } });
+    const off = variant('XL', { stock: { quick: 9 }, isActive: false });
+    const id = await product({ stock: { quick: null }, variants: [m, l, off] });
 
     const taken = await reserveStockForItems([vline(id, m._id, 1)]);
     assert.equal((await variantsOf(id)).isAvailable, false, 'an inactive variant does not keep it listed');
@@ -187,13 +200,13 @@ test('a product hides when its last counted variant sells out, and returns on re
 
 test('a restock returns units to where they were taken from, even if the variant changed since', async () => {
     const m = variant('M');
-    const id = await product({ stockQty: 5, variants: [m] });
+    const id = await product({ stock: { quick: 5 }, variants: [m] });
 
     const taken = await reserveStockForItems([vline(id, m._id, 2)]);
-    assert.deepEqual(taken, [{ itemId: String(id), variantId: '', qty: 2 }], 'from the shared count');
+    assert.deepEqual(taken, [{ itemId: String(id), variantId: '', channel: 'quick', qty: 2 }], 'from the shared count');
 
     // The seller starts counting M separately before the order is cancelled.
-    await Product.updateOne({ _id: id, 'variants._id': m._id }, { $set: { 'variants.$.stockQty': 10 } });
+    await Product.updateOne({ _id: id, 'variants._id': m._id }, { $set: { 'variants.$.stock.quick': 10 } });
 
     const _id = new mongoose.Types.ObjectId();
     await Order.collection.insertOne({
@@ -207,8 +220,8 @@ test('a restock returns units to where they were taken from, even if the variant
 });
 
 test('low stock: the seller hears once per crossing, and again after a restock', async () => {
-    const id = await product({ stockQty: 5, lowStockThreshold: 2, sellerId: new mongoose.Types.ObjectId() });
-    const flag = async () => (await Product.findById(id).select('lowStockNotifiedAt').lean()).lowStockNotifiedAt;
+    const id = await product({ stock: { quick: 5 }, lowStockThreshold: { quick: 2 }, sellerId: new mongoose.Types.ObjectId() });
+    const flag = async () => (await Product.findById(id).select('lowStockNotifiedAt').lean()).lowStockNotifiedAt?.quick;
 
     await reserveStockForItems([line(id, 2)]); // 3 left, above threshold
     assert.equal(await flag(), undefined);
@@ -217,7 +230,7 @@ test('low stock: the seller hears once per crossing, and again after a restock',
     assert.ok(await flag());
     assert.equal(await notifyLowStock(id), false, 'already told');
 
-    await Product.updateOne({ _id: id }, { $inc: { stockQty: 1 }, $set: { lowStockNotifiedAt: null } });
+    await Product.updateOne({ _id: id }, { $inc: { 'stock.quick': 1 }, $set: { 'lowStockNotifiedAt.quick': null } });
     assert.equal(await flag(), null);
     await reserveStockForItems([line(id, 2)]); // 1 left: crosses again
     assert.ok(await flag());

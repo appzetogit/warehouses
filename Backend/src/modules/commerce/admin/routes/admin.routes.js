@@ -241,6 +241,7 @@ router.patch('/sellers/:id/status', adminController.updateSellerStatus);
 router.patch('/sellers/:id/location', adminController.updateSellerLocation);
 router.patch('/sellers/:id/approve', adminController.approveSeller);
 router.patch('/sellers/:id/reject', adminController.rejectSeller);
+router.patch('/sellers/:id/channels/:channel', adminController.decideSellerChannel);
 router.delete('/sellers/:id', adminController.deleteSeller);
 
 

@@ -30,7 +30,11 @@ const check = (name, ok, detail = '') => {
     ok ? pass++ : fail++;
 };
 
-const qtyOf = async (id) => (await Product.findById(id).select('stockQty isAvailable').lean());
+// Quick-channel count, shaped like the old single count so the checks read the same.
+const qtyOf = async (id) => {
+    const p = await Product.findById(id).select('stock isAvailable').lean();
+    return { stockQty: p?.stock?.quick ?? null, isAvailable: p?.isAvailable };
+};
 
 async function main() {
     await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
@@ -46,7 +50,8 @@ async function main() {
     const mk = async (name, stockQty) =>
         Product.create({
             sellerId: seller._id, name: `${TAG} ${name}`, description: TAG,
-            price: 100, stockQty, isAvailable: true, approvalStatus: 'approved', foodType: 'Veg',
+            price: 100, stock: { quick: stockQty, shop: null }, channels: { quick: true, shop: false },
+            isAvailable: true, approvalStatus: 'approved', foodType: 'Veg',
         });
 
     try {
@@ -124,7 +129,7 @@ async function main() {
         // ---- 5. untracked products still sell ---------------------------------
         console.log('\n5. products with no count behave as before');
         const e = await mk('untracked', null);
-        await Product.updateOne({ _id: e._id }, { $set: { stockQty: null } });
+        await Product.updateOne({ _id: e._id }, { $set: { 'stock.quick': null } });
         const taken = await reserveStockForItems([{ itemId: String(e._id), quantity: 999 }]);
         const eAfter = await qtyOf(e._id);
         check('unlimited quantity allowed', eAfter.stockQty === null, `stockQty=${eAfter.stockQty}`);

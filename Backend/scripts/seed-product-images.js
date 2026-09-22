@@ -11,6 +11,7 @@
  *
  * Safe to re-run: products are matched by name per seller and updated in place.
  */
+import { availableInPipeline } from '../src/modules/commerce/shared/channels.js';
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { Product } from '../src/modules/commerce/admin/models/product.model.js';
@@ -281,10 +282,10 @@ async function main() {
             mrp: mrp || null,
             otherPrice: 0,
             gstRate,
-            stockQty: index > 0 ? Math.ceil(stockQty / 2) : stockQty,
-            lowStockThreshold: 10,
+            // Counted in Quick; Shop left uncounted. Channels are left as they are.
+            'stock.quick': index > 0 ? Math.ceil(stockQty / 2) : stockQty,
+            'lowStockThreshold.quick': 10,
             maxQtyPerOrder: 10,
-            isAvailable: stockQty > 0,
             foodType: 'Veg',
             image,
             images: image ? [image] : [],
@@ -294,6 +295,7 @@ async function main() {
         },
         { upsert: true, new: true, setDefaultsOnInsert: true },
       );
+      await Product.collection.updateOne({ sellerId: seller._id, name }, availableInPipeline());
 
       created++;
       image ? withImage++ : noImage++;

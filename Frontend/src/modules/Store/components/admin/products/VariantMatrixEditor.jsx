@@ -12,11 +12,23 @@ import { catalogAPI, uploadAPI } from "@store/api"
  *
  * Draft shape (strings for inputs, converted by toVariantPayload):
  * { id, name, attributes: [{ name, value }], sku, barcode, price, otherPrice, mrp,
- *   stockQty, lowStockThreshold, isActive, images: [url] }
+ *   stock: { quick, shop }, lowStockThreshold: { quick, shop },
+ *   channels: { quick: "inherit"|"on"|"off", shop: ... }, isActive, images: [url] }
+ *
+ * Payload (CHANNELS_CONTRACT.md): channels { quick: Boolean|null, shop } (null = inherit
+ * the product's), stock { quick: Number|null, shop } (null = draws on the product's
+ * stock for that channel), lowStockThreshold { quick: Number|null, shop }.
  */
+
+export const CHANNELS = ["quick", "shop"]
+export const CHANNEL_LABEL = { quick: "Quick", shop: "Shop" }
+const overrideToDraft = (v) => (v === true ? "on" : v === false ? "off" : "inherit")
+const overrideToPayload = (v) => (v === "on" ? true : v === "off" ? false : null)
 
 const newId = () => `variant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 const str = (v) => (v === null || v === undefined ? "" : String(v))
+/** { quick, shop } of input strings from a { quick, shop } object of numbers/nulls. */
+export const perChannelDraft = (obj) => ({ quick: str(obj?.quick), shop: str(obj?.shop) })
 
 export const createVariantDraft = (variant = {}) => ({
   id: String(variant?.id || variant?._id || newId()),
@@ -29,8 +41,12 @@ export const createVariantDraft = (variant = {}) => ({
   price: variant?.price != null ? String(variant.price) : "",
   otherPrice: variant?.otherPrice ? String(variant.otherPrice) : "",
   mrp: str(variant?.mrp),
-  stockQty: str(variant?.stockQty),
-  lowStockThreshold: str(variant?.lowStockThreshold),
+  stock: perChannelDraft(variant?.stock),
+  lowStockThreshold: perChannelDraft(variant?.lowStockThreshold),
+  channels: {
+    quick: typeof variant?.channels?.quick === "string" ? variant.channels.quick : overrideToDraft(variant?.channels?.quick),
+    shop: typeof variant?.channels?.shop === "string" ? variant.channels.shop : overrideToDraft(variant?.channels?.shop),
+  },
   isActive: variant?.isActive !== false,
   images: Array.isArray(variant?.images) ? variant.images.filter(Boolean) : [],
 })
@@ -42,6 +58,19 @@ const attributeKey = (attributes = []) =>
     .join("|")
 
 const optionalNumber = (v) => (str(v).trim() === "" ? null : Number(v))
+
+/** Converts a { quick, shop } draft of strings; returns [error, { quick, shop }]. */
+export const perChannelPayload = (draft, label, name) => {
+  const out = {}
+  for (const c of CHANNELS) {
+    const n = optionalNumber(draft?.[c])
+    if (n !== null && !(Number.isInteger(n) && n >= 0)) {
+      return [`${CHANNEL_LABEL[c]} ${label}${name ? ` for ${name}` : ""} must be a whole number of 0 or more`, null]
+    }
+    out[c] = n
+  }
+  return [null, out]
+}
 
 /** Validates drafts and returns [error, payload] in the shape the product endpoints accept. */
 export const toVariantPayload = (drafts = []) => {
@@ -58,11 +87,11 @@ export const toVariantPayload = (drafts = []) => {
     const mrp = optionalNumber(d.mrp)
     if (mrp !== null && (!Number.isFinite(mrp) || mrp <= 0)) return [`MRP for ${name} is invalid`, null]
     if (mrp !== null && price > mrp) return [`Price of ${name} cannot be above its MRP`, null]
-    const stockQty = optionalNumber(d.stockQty)
-    const lowStockThreshold = optionalNumber(d.lowStockThreshold)
-    for (const [label, n] of [["Stock", stockQty], ["Low-stock alert", lowStockThreshold]]) {
-      if (n !== null && !(Number.isInteger(n) && n >= 0)) return [`${label} for ${name} must be a whole number of 0 or more`, null]
-    }
+    const [stockErr, stock] = perChannelPayload(d.stock, "stock", name)
+    if (stockErr) return [stockErr, null]
+    const [lowErr, lowStockThreshold] = perChannelPayload(d.lowStockThreshold, "low-stock alert", name)
+    if (lowErr) return [lowErr, null]
+    const channels = { quick: overrideToPayload(d.channels?.quick), shop: overrideToPayload(d.channels?.shop) }
     if (d.attributes.length) {
       const key = attributeKey(d.attributes)
       if (seen.has(key)) return [`Two variants have the same options: ${name}`, null]
@@ -78,7 +107,8 @@ export const toVariantPayload = (drafts = []) => {
       sku: str(d.sku).trim(),
       barcode: str(d.barcode).trim(),
       mrp,
-      stockQty,
+      channels,
+      stock,
       lowStockThreshold,
       isActive: d.isActive !== false,
       images: (d.images || []).map((u) => str(u).trim()).filter(Boolean).slice(0, 10),
@@ -93,7 +123,12 @@ const cartesian = (lists) =>
 const inputCls =
   "w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs outline-none focus:border-slate-900 bg-white"
 
-export default function VariantMatrixEditor({ categoryId, variants = [], onChange }) {
+/**
+ * `productChannels` = the product's channel toggles { quick, shop }; only enabled
+ * channels get stock / override columns.
+ */
+export default function VariantMatrixEditor({ categoryId, variants = [], onChange, productChannels = { quick: true, shop: true } }) {
+  const activeChannels = CHANNELS.filter((c) => productChannels?.[c])
   const [attrLoading, setAttrLoading] = useState(false)
   const [attributeSet, setAttributeSet] = useState(null)
   const [setAttributes, setSetAttributes] = useState([])
@@ -101,7 +136,7 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
   const [picked, setPicked] = useState({})
   // Free-form options when the category has no attribute set: [{ name, values: "S, M, L" }].
   const [freeOptions, setFreeOptions] = useState([{ name: "", values: "" }])
-  const [defaults, setDefaults] = useState({ price: "", mrp: "", stockQty: "", lowStockThreshold: "" })
+  const [defaults, setDefaults] = useState({ price: "", mrp: "", stock_quick: "", stock_shop: "", low_quick: "", low_shop: "" })
   const [uploadingId, setUploadingId] = useState(null)
 
   useEffect(() => {
@@ -195,8 +230,8 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
         attributes,
         price: defaults.price || undefined,
         mrp: defaults.mrp,
-        stockQty: defaults.stockQty,
-        lowStockThreshold: defaults.lowStockThreshold,
+        stock: { quick: defaults.stock_quick, shop: defaults.stock_shop },
+        lowStockThreshold: { quick: defaults.low_quick, shop: defaults.low_shop },
       })
     })
     const manual = variants.filter((v) => !v.attributes?.length)
@@ -208,6 +243,9 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
   }
 
   const update = (id, field, value) => onChange(variants.map((v) => (v.id === id ? { ...v, [field]: value } : v)))
+  /** Sets one channel's value inside a { quick, shop } field. */
+  const updateChannel = (id, field, channel, value) =>
+    onChange(variants.map((v) => (v.id === id ? { ...v, [field]: { ...(v[field] || {}), [channel]: value } } : v)))
   const remove = (id) => onChange(variants.filter((v) => v.id !== id))
   const addManual = () => onChange([...variants, createVariantDraft()])
   const applyDefaultsToAll = () =>
@@ -216,8 +254,14 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
         ...v,
         ...(defaults.price !== "" ? { price: defaults.price } : {}),
         ...(defaults.mrp !== "" ? { mrp: defaults.mrp } : {}),
-        ...(defaults.stockQty !== "" ? { stockQty: defaults.stockQty } : {}),
-        ...(defaults.lowStockThreshold !== "" ? { lowStockThreshold: defaults.lowStockThreshold } : {}),
+        stock: {
+          quick: defaults.stock_quick !== "" ? defaults.stock_quick : v.stock?.quick ?? "",
+          shop: defaults.stock_shop !== "" ? defaults.stock_shop : v.stock?.shop ?? "",
+        },
+        lowStockThreshold: {
+          quick: defaults.low_quick !== "" ? defaults.low_quick : v.lowStockThreshold?.quick ?? "",
+          shop: defaults.low_shop !== "" ? defaults.low_shop : v.lowStockThreshold?.shop ?? "",
+        },
       })),
     )
 
@@ -339,8 +383,10 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
           {[
             ["price", "Default price"],
             ["mrp", "Default MRP"],
-            ["stockQty", "Default stock"],
-            ["lowStockThreshold", "Default low-stock alert"],
+            ...activeChannels.flatMap((c) => [
+              [`stock_${c}`, `Default ${CHANNEL_LABEL[c]} stock`],
+              [`low_${c}`, `Default ${CHANNEL_LABEL[c]} low alert`],
+            ]),
           ].map(([key, label]) => (
             <div key={key}>
               <label className="mb-1 block text-[11px] font-medium text-slate-600">{label}</label>
@@ -387,8 +433,9 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
                 <th className="px-2 py-2 text-left">SKU</th>
                 <th className="px-2 py-2 text-left">Price *</th>
                 <th className="px-2 py-2 text-left">MRP</th>
-                <th className="px-2 py-2 text-left">Stock</th>
-                <th className="px-2 py-2 text-left">Low alert</th>
+                {activeChannels.map((c) => (
+                  <th key={c} className="px-2 py-2 text-left">{CHANNEL_LABEL[c]}: sell / stock / low</th>
+                ))}
                 <th className="px-2 py-2 text-center">Active</th>
                 <th className="px-2 py-2 text-left">Images</th>
                 <th className="px-2 py-2" />
@@ -423,21 +470,46 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
                   <td className="px-2 py-2 align-top w-24">
                     <input type="number" min="0" step="0.01" className={inputCls} value={v.mrp} onChange={(e) => update(v.id, "mrp", e.target.value)} />
                   </td>
-                  <td className="px-2 py-2 align-top w-20">
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      className={inputCls}
-                      placeholder="Shared"
-                      title="Empty: draws on the product's stock"
-                      value={v.stockQty}
-                      onChange={(e) => update(v.id, "stockQty", e.target.value)}
-                    />
-                  </td>
-                  <td className="px-2 py-2 align-top w-20">
-                    <input type="number" min="0" step="1" className={inputCls} value={v.lowStockThreshold} onChange={(e) => update(v.id, "lowStockThreshold", e.target.value)} />
-                  </td>
+                  {activeChannels.map((c) => (
+                    <td key={c} className="px-2 py-2 align-top w-40">
+                      <div className="space-y-1">
+                        <select
+                          className={inputCls}
+                          value={v.channels?.[c] || "inherit"}
+                          title={`Sell this variant in ${CHANNEL_LABEL[c]}`}
+                          onChange={(e) => updateChannel(v.id, "channels", c, e.target.value)}
+                        >
+                          <option value="inherit">Inherit product</option>
+                          <option value="on">On</option>
+                          <option value="off">Off</option>
+                        </select>
+                        <div className="grid grid-cols-2 gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            className={inputCls}
+                            placeholder="Shared"
+                            title={`${CHANNEL_LABEL[c]} stock. Empty: draws on the product stock for this channel`}
+                            disabled={v.channels?.[c] === "off"}
+                            value={v.stock?.[c] ?? ""}
+                            onChange={(e) => updateChannel(v.id, "stock", c, e.target.value)}
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            className={inputCls}
+                            placeholder="Low"
+                            title={`${CHANNEL_LABEL[c]} low-stock alert`}
+                            disabled={v.channels?.[c] === "off"}
+                            value={v.lowStockThreshold?.[c] ?? ""}
+                            onChange={(e) => updateChannel(v.id, "lowStockThreshold", c, e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                  ))}
                   <td className="px-2 py-2 align-top text-center">
                     <input type="checkbox" checked={v.isActive} onChange={(e) => update(v.id, "isActive", e.target.checked)} />
                   </td>
@@ -487,7 +559,7 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
             </tbody>
           </table>
           <p className="px-3 py-2 text-[11px] text-slate-500">
-            Empty stock means the variant draws on the product&apos;s shared stock. Empty MRP falls back to the product&apos;s MRP.
+            Each channel has its own stock. Empty stock means the variant draws on the product&apos;s stock for that channel. Empty MRP falls back to the product&apos;s MRP.
           </p>
         </div>
       ) : (

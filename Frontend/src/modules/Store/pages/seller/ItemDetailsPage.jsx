@@ -28,6 +28,15 @@ import { toast } from "sonner"
 import { ImageSourcePicker } from "@store/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@store/utils/imageUploadUtils"
 import { getProductVariants } from "@store/utils/productVariants"
+import { CHANNELS } from "@store/components/seller/channels"
+import {
+  ProductChannelFields,
+  VariantChannelFields,
+  emptyChannelDraft,
+  channelDraftFrom,
+  channelDraftToPayload,
+  variantChannelsFrom,
+} from "@store/components/seller/ChannelStockFields"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -50,7 +59,9 @@ const createVariantDraft = (variant = {}) => ({
   price: variant?.price != null ? String(variant.price) : "",
   otherPrice: variant?.otherPrice != null ? String(variant.otherPrice) : "",
   sku: String(variant?.sku || ""),
-  stock: variant?.stock != null ? String(variant.stock) : "50",
+  channels: variantChannelsFrom(variant),
+  channelStock: channelDraftFrom(variant?.stock),
+  channelThreshold: channelDraftFrom(variant?.lowStockThreshold),
   attributes: Array.isArray(variant?.attributes) ? variant.attributes : [],
 })
 
@@ -87,6 +98,10 @@ export default function ItemDetailsPage() {
   const [gst, setGst] = useState("5.0")
   const [isRecommended, setIsRecommended] = useState(false)
   const [isInStock, setIsInStock] = useState(true)
+  const [sellerProfile, setSellerProfile] = useState(null)
+  const [prodChannels, setProdChannels] = useState(null) // null until known (new item: approved channels)
+  const [prodStock, setProdStock] = useState(emptyChannelDraft)
+  const [prodThreshold, setProdThreshold] = useState(emptyChannelDraft)
   const [weightPerServing, setWeightPerServing] = useState("")
   const [calorieCount, setCalorieCount] = useState("")
   const [proteinCount, setProteinCount] = useState("")
@@ -123,6 +138,31 @@ export default function ItemDetailsPage() {
   const currentApprovalStatus = String(itemData?.approvalStatus || "").toLowerCase()
   const currentRejectionReason = String(itemData?.rejectionReason || "").trim()
 
+  useEffect(() => {
+    let alive = true
+    sellerAPI
+      .getCurrentSeller()
+      .then((res) => {
+        const d = res?.data?.data
+        const seller = d?.seller || d?.user || d
+        if (!alive) return
+        setSellerProfile(seller || null)
+        // New item: default to the channels the seller is approved for.
+        setProdChannels((prev) =>
+          prev ?? {
+            quick: seller?.channels?.quick?.status === "approved",
+            shop: seller?.channels?.shop?.status === "approved",
+          },
+        )
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const effectiveProdChannels = prodChannels || { quick: false, shop: false }
+
   const populateFormFromItem = (item = {}) => {
     setItemData(item)
 
@@ -143,6 +183,9 @@ export default function ItemDetailsPage() {
     setGst(item.gst?.toString() || "5.0")
     setIsRecommended(item.isRecommended || false)
     setIsInStock(item.isAvailable !== false)
+    setProdChannels({ quick: item?.channels?.quick !== false, shop: item?.channels?.shop !== false })
+    setProdStock(channelDraftFrom(item?.stock))
+    setProdThreshold(channelDraftFrom(item?.lowStockThreshold))
     setSelectedTags(item.tags || [])
 
     const existingImages = Array.isArray(item.images) && item.images.length > 0
@@ -685,6 +728,11 @@ export default function ItemDetailsPage() {
           name: String(variant.name || "").trim(),
           price: Number(variant.price),
           otherPrice: Number(variant.otherPrice) || 0,
+          sku: String(variant.sku || "").trim(),
+          attributes: variant.attributes,
+          channels: variant.channels || { quick: null, shop: null },
+          stock: channelDraftToPayload(variant.channelStock),
+          lowStockThreshold: channelDraftToPayload(variant.channelThreshold),
         }))
         .filter((variant) => variant.name || variant.persistedId || variant.price)
 
@@ -696,6 +744,12 @@ export default function ItemDetailsPage() {
 
       if (normalizedVariants.some((variant) => !Number.isFinite(variant.price) || variant.price <= 0)) {
         toast.error("Each variant price must be greater than 0")
+        setUploadingImages(false)
+        return
+      }
+
+      if (!CHANNELS.some((c) => effectiveProdChannels[c])) {
+        toast.error("Turn on at least one sales channel (Quick or Shop)")
         setUploadingImages(false)
         return
       }
@@ -726,7 +780,9 @@ export default function ItemDetailsPage() {
         price: variant.price,
         otherPrice: variant.otherPrice > 0 ? variant.otherPrice : 0,
         sku: variant.sku || undefined,
-        stock: Number.isFinite(Number(variant.stock)) ? Number(variant.stock) : 50,
+        channels: variant.channels,
+        stock: variant.stock,
+        lowStockThreshold: variant.lowStockThreshold,
         attributes: Array.isArray(variant.attributes) ? variant.attributes : [],
       }))
 
@@ -739,6 +795,9 @@ export default function ItemDetailsPage() {
           price: hasVariants ? undefined : parsedBasePrice,
           otherPrice: hasVariants ? 0 : parsedOtherPrice,
           variants: variantPayload,
+          channels: { quick: effectiveProdChannels.quick, shop: effectiveProdChannels.shop },
+          stock: channelDraftToPayload(prodStock),
+          lowStockThreshold: channelDraftToPayload(prodThreshold),
           image: allImageUrls.length > 0 ? allImageUrls[0] : "",
           // The full gallery, primary first. `image` stays as [0] so callers
           // that only read a single image are unaffected.
@@ -766,6 +825,9 @@ export default function ItemDetailsPage() {
           price: hasVariants ? undefined : parsedBasePrice,
           otherPrice: hasVariants ? 0 : parsedOtherPrice,
           variants: variantPayload,
+          channels: { quick: effectiveProdChannels.quick, shop: effectiveProdChannels.shop },
+          stock: channelDraftToPayload(prodStock),
+          lowStockThreshold: channelDraftToPayload(prodThreshold),
           image: allImageUrls.length > 0 ? allImageUrls[0] : "",
           // The full gallery, primary first. `image` stays as [0] so callers
           // that only read a single image are unaffected.
@@ -853,7 +915,9 @@ export default function ItemDetailsPage() {
         name: variantName,
         price: basePrice ? String(basePrice) : "",
         otherPrice: otherPrice ? String(otherPrice) : "",
-        stock: "50",
+        channels: { quick: null, shop: null },
+        channelStock: emptyChannelDraft(),
+        channelThreshold: emptyChannelDraft(),
         sku,
         attributes: attrCombo,
       }
@@ -1408,17 +1472,12 @@ export default function ItemDetailsPage() {
                               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">{"\u20B9"}</span>
                             </div>
                           </div>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">Stock</label>
-                            <input
-                              type="number"
-                              value={variant.stock ?? 50}
-                              onChange={(e) => handleVariantChange(variant.localId, "stock", e.target.value)}
-                              placeholder="Qty"
-                              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
-                            />
-                          </div>
                         </div>
+                        <VariantChannelFields
+                          productChannels={effectiveProdChannels}
+                          variant={variant}
+                          onChange={(field, value) => handleVariantChange(variant.localId, field, value)}
+                        />
                       </div>
                     ))}
                   </div>
@@ -1426,6 +1485,16 @@ export default function ItemDetailsPage() {
                   <p className="text-xs text-gray-500">No variants added. This item will use the base price only.</p>
                 )}
               </div>
+
+              <ProductChannelFields
+                seller={sellerProfile}
+                channels={effectiveProdChannels}
+                onChannels={setProdChannels}
+                stock={prodStock}
+                onStock={setProdStock}
+                threshold={prodThreshold}
+                onThreshold={setProdThreshold}
+              />
 
               {/* Preparation Time */}
               <div className="relative">

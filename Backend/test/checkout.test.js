@@ -82,7 +82,7 @@ before(async () => {
 
     const zone = await Zone.create({ name: 'Checkout Zone', country: 'India', coordinates: ZONE, isActive: true });
     ids.zone = zone._id;
-    const store = (name, lat, lng, phone) => Seller.create({
+    const store = (name, lat, lng, phone) => Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: name, ownerName: 'Owner', ownerPhone: phone, phone, status: 'approved',
         isAcceptingOrders: true, zoneId: zone._id,
         location: { type: 'Point', coordinates: [lng, lat], latitude: lat, longitude: lng },
@@ -91,8 +91,8 @@ before(async () => {
     const b = await store('Store B', 12.9500, 77.6000, '9111000002');
     ids.a = a._id;
     ids.b = b._id;
-    ids.pa = (await Product.create({ sellerId: a._id, name: 'Rice 1kg', price: 300, stockQty: 50, isAvailable: true, approvalStatus: 'approved' }))._id;
-    ids.pb = (await Product.create({ sellerId: b._id, name: 'Soap', price: 100, stockQty: 50, isAvailable: true, approvalStatus: 'approved' }))._id;
+    ids.pa = (await Product.create({ sellerId: a._id, name: 'Rice 1kg', price: 300, stock: { quick: 50 }, isAvailable: true, approvalStatus: 'approved' }))._id;
+    ids.pb = (await Product.create({ sellerId: b._id, name: 'Soap', price: 100, stock: { quick: 50 }, isAvailable: true, approvalStatus: 'approved' }))._id;
 });
 
 after(stopApp);
@@ -190,16 +190,16 @@ test('a wallet checkout is charged once, for the whole cart', async () => {
 test('closing the payment sheet gives back the stock and the coins', async () => {
     const buyer = await newCustomer();
     await models.coins.creditCoins({ userId: buyer.id, amount: 50, source: 'spin', refId: `spin-${buyer.id}` });
-    const before = (await models.Product.findById(ids.pa).lean()).stockQty;
+    const before = (await models.Product.findById(ids.pa).lean()).stock.quick;
 
     const { checkout } = ok(await call('POST', '/orders/checkout', {
         as: buyer.as, body: checkoutBody({ paymentMethod: 'razorpay', coins: 50 }),
     }), 'checkout', 201);
-    assert.equal((await models.Product.findById(ids.pa).lean()).stockQty, before - 1, 'held while paying');
+    assert.equal((await models.Product.findById(ids.pa).lean()).stock.quick, before - 1, 'held while paying');
 
     ok(await call('POST', `/orders/checkout/${checkout.checkoutId}/abandon`, { as: buyer.as }), 'abandon');
 
-    assert.equal((await models.Product.findById(ids.pa).lean()).stockQty, before);
+    assert.equal((await models.Product.findById(ids.pa).lean()).stock.quick, before);
     assert.equal((await models.coins.getCoinBalance(buyer.id)).usable, 50);
     assert.equal((await childrenOf(checkout)).length, 0);
     assert.equal((await models.Checkout.findById(checkout._id).lean()).status, 'cancelled');

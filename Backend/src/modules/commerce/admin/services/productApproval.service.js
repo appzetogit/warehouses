@@ -1,3 +1,4 @@
+import { productChannelFields } from '../../shared/channels.js';
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { Product } from '../models/product.model.js';
@@ -56,7 +57,8 @@ export async function listPendingProductApprovals(query = {}) {
         approvalStatus: f.approvalStatus || 'pending',
         price: getProductDisplayPrice(f),
         otherPrice: getProductDisplayOtherPrice(f),
-        variants: serializeProductVariants(f.variants, { productStockQty: f.stockQty ?? null }),
+        variants: serializeProductVariants(f.variants, { product: f }),
+        ...productChannelFields(f),
         image: f.image || '',
         images: f.image ? [f.image] : [],
         requestedAt: f.requestedAt || f.createdAt,

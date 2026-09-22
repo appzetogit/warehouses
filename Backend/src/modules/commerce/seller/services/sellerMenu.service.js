@@ -5,18 +5,15 @@ import { Product } from '../../admin/models/product.model.js';
 import { Category } from '../../admin/models/category.model.js';
 import { getProductDisplayOtherPrice, getProductDisplayPrice, serializeProductVariants } from '../../admin/services/productVariant.service.js';
 import { restoreExpiredProductAvailability } from './productAvailability.service.js';
-import { parseFulfilmentMode, fulfilmentModeProductFilter } from '../../search/validators/storefront.validator.js';
+import { channelForFulfilmentMode, parseFulfilmentMode, fulfilmentModeProductFilter } from '../../search/validators/storefront.validator.js';
+import { isSellerApprovedFor, productChannelFields } from '../../shared/channels.js';
 
-/** Quick storefront: keep only variants that can go by quick delivery. */
-function keepQuickVariants(product) {
-    if (!Array.isArray(product.variants) || product.variants.length === 0) return product;
-    const productQuick = product.quickEligible !== false;
-    const variants = product.variants.filter((v) =>
-        v?.quickEligible === true || (productQuick && v?.quickEligible !== false));
-    return { ...product, variants };
-}
+/** Variants for a menu; on a storefront, those not listed in the channel are dropped. */
+const menuVariants = (product, channel) =>
+    serializeProductVariants(product.variants, { product, channel })
+        .filter((v) => !channel || v.enabledIn[channel]);
 
-const buildMenuFromProducts = async (products = []) => {
+const buildMenuFromProducts = async (products = [], { channel = null, seller = undefined } = {}) => {
     const categoryIds = Array.from(
         new Set(
             (products || [])
@@ -63,8 +60,10 @@ const buildMenuFromProducts = async (products = []) => {
             description: product.description || '',
             price: getProductDisplayPrice(product),
             otherPrice: getProductDisplayOtherPrice(product),
-            variants: serializeProductVariants(product.variants, { productStockQty: product.stockQty ?? null }),
-            variations: serializeProductVariants(product.variants, { productStockQty: product.stockQty ?? null }),
+            variants: menuVariants(product, channel),
+            variations: menuVariants(product, channel),
+            // channels, stock, lowStockThreshold, availableIn (+ stockForChannel).
+            ...productChannelFields(product, channel, seller),
             image: product.image || '',
             // Same fallback as the public feed: existing dishes have no gallery,
             // so return their single image as a one-entry list rather than an
@@ -74,14 +73,6 @@ const buildMenuFromProducts = async (products = []) => {
                 : (product.image ? [product.image] : []),
             foodType: product.foodType || null,
             isAvailable: product.isAvailable !== false,
-            // null means the seller does not count this item, which the app has
-            // to tell apart from zero so it does not render "0 left" on
-            // everything that predates inventory.
-            stockQty: product.stockQty ?? null,
-            // Was written and stored but never returned, so the seller app had
-            // no threshold to read and flagged every product at a hardcoded 10
-            // regardless of what the seller had set.
-            lowStockThreshold: product.lowStockThreshold ?? null,
             maxQtyPerOrder: product.maxQtyPerOrder ?? null,
             brand: product.brand || '',
             packSize: product.packSize || '',
@@ -89,7 +80,6 @@ const buildMenuFromProducts = async (products = []) => {
             barcode: product.barcode || '',
             expiryDate: product.expiryDate ?? null,
             mrp: product.mrp ?? null,
-            quickEligible: product.quickEligible !== false,
             tags: Array.isArray(product.tags) ? product.tags : [],
             approvalStatus: product.approvalStatus || 'approved',
             rejectionReason: product.rejectionReason || '',
@@ -154,12 +144,12 @@ export async function getPublicApprovedSellerMenu(sellerIdOrSlug, options = {}) 
     let seller = null;
     if (/^[0-9a-fA-F]{24}$/.test(value)) {
         seller = await Seller.findOne({ _id: value, status: 'approved' })
-            .select('_id status')
+            .select('_id status channels')
             .lean();
     } else {
         const normalized = value.trim().toLowerCase().replace(/-/g, ' ').replace(/\s+/g, ' ');
         seller = await Seller.findOne({ sellerNameNormalized: normalized, status: 'approved' })
-            .select('_id status')
+            .select('_id status channels')
             .lean();
     }
 
@@ -167,15 +157,13 @@ export async function getPublicApprovedSellerMenu(sellerIdOrSlug, options = {}) 
         return null;
     }
     await restoreExpiredProductAvailability({ sellerId: seller._id });
+    const channel = channelForFulfilmentMode(fulfilmentMode);
+    // A store not approved for the channel shows nothing there.
+    if (channel && !isSellerApprovedFor(seller, channel)) return buildMenuFromProducts([], { channel, seller });
     const modeFilter = fulfilmentModeProductFilter(fulfilmentMode) || {};
-    let products = await Product.find({ sellerId: seller._id, approvalStatus: 'approved', ...modeFilter })
+    const products = await Product.find({ sellerId: seller._id, approvalStatus: 'approved', ...modeFilter })
         .sort({ createdAt: -1 })
         .limit(2000)
         .lean();
-    if (fulfilmentMode === 'quick') {
-        products = products.map(keepQuickVariants)
-            .filter((p) => p.quickEligible !== false || p.variants.length > 0);
-    }
-    return buildMenuFromProducts(products);
+    return buildMenuFromProducts(products, { channel, seller });
 }
-

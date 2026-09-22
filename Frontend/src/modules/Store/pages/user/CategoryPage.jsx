@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, startTransition, useDeferredValue } from "react"
 import { useStoreMode } from "@store/context/StoreModeContext"
+import { channelAvailability } from "@store/utils/channelStock"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -192,7 +193,7 @@ export default function CategoryPage() {
 
     return products
       .filter((food) => {
-        if (food?.isAvailable === false) return false
+        if (!channelAvailability(food, isQuick ? "quick" : "shop").inStock) return false
         if (String(food?.approvalStatus || "").toLowerCase() !== "approved") return false
 
         const categoryName = String(food?.categoryName || food?.category || "").toLowerCase()

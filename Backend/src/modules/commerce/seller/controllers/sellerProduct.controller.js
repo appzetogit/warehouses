@@ -22,7 +22,7 @@ export const createSellerProductController = async (req, res, next) => {
 export const updateSellerProductStockController = async (req, res, next) => {
     try {
         const sellerId = req.user?.userId;
-        const entries = Array.isArray(req.body) ? req.body : req.body?.items;
+        const entries = Array.isArray(req.body) ? req.body : (req.body?.items ?? (req.body?.itemId ? req.body : undefined));
         const result = await updateSellerProductStock(sellerId, entries);
         return sendResponse(res, 200, 'Stock updated successfully', result);
     } catch (error) {
@@ -34,7 +34,7 @@ export const updateSellerProductStockController = async (req, res, next) => {
 export const listLowStockProductsController = async (req, res, next) => {
     try {
         const sellerId = req.user?.userId;
-        const result = await listLowStockProducts(sellerId);
+        const result = await listLowStockProducts(sellerId, { channel: req.query?.channel });
         return sendResponse(res, 200, 'Low stock items fetched successfully', result);
     } catch (error) {
         next(error);

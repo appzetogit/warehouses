@@ -116,7 +116,7 @@ export async function calculateCheckoutPricing(userId, dto = {}) {
     for (const [sellerId, sellerItems] of itemsBySeller) {
         const result = await calculateOrderPricing(
             userId,
-            { sellerId, items: sellerItems, deliveryAddress, deliveryMode },
+            { sellerId, items: sellerItems, deliveryAddress, deliveryMode, fulfilmentMode },
             { skipAvailabilityCheck: true, skipCoupons: true },
         );
         stores.push({ sellerId, rawItems: sellerItems, items: result.items, base: result.pricing });

@@ -372,12 +372,13 @@ const orderSchema = new mongoose.Schema(
         /**
          * Exactly what was taken off the shelf: which product, which variant
          * (when the variant is counted on its own; '' means the product's count),
-         * and how many. A restock returns stock to the same place, even if the
+         * which channel ('quick' | 'shop'; empty on older orders, which use the
+         * order's fulfilmentMode), and how many. A restock returns stock to the same place, even if the
          * seller has since switched a variant to or from its own count.
          * Empty on orders placed before variants had stock; those restock by item.
          */
         stockReservations: {
-            type: [{ _id: false, itemId: String, variantId: { type: String, default: '' }, qty: Number }],
+            type: [{ _id: false, itemId: String, variantId: { type: String, default: '' }, channel: { type: String, default: '' }, qty: Number }],
             default: [],
         },
         /**

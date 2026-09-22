@@ -1,4 +1,10 @@
 import mongoose from 'mongoose';
+import { computeAvailableIn, isManuallyOff } from '../../shared/channels.js';
+
+/** { quick, shop } of a given type, without an _id. */
+const perChannel = (field) => new mongoose.Schema({ quick: field, shop: field }, { _id: false });
+const countField = () => ({ type: Number, min: 0, default: null });
+const dateField = () => ({ type: Date, default: null });
 
 /** One attribute value a variant carries, e.g. { name: 'Size', value: 'M' }. */
 const variantAttributeSchema = new mongoose.Schema(
@@ -15,10 +21,11 @@ const variantAttributeSchema = new mongoose.Schema(
  * Every field beyond name/price is optional, so the {name, price} variants that
  * already exist are valid as they stand and need no migration.
  *
- * Stock: `stockQty: null` means the variant has no count of its own and draws on
- * the product's `stockQty`, which is how pack-size variants of one shelf item
- * have always worked. A number means the variant is counted separately, as a
- * T-shirt in size M is.
+ * Stock is per channel (quick / shop). `stock.<channel>: null` means the
+ * variant has no count of its own there and draws on the product's
+ * `stock.<channel>`, which is how pack-size variants of one shelf item work. A
+ * number means the variant is counted separately, as a T-shirt in size M is.
+ * `channels.<channel>: null` inherits the product's switch; false narrows it.
  */
 const productVariantSchema = new mongoose.Schema(
     {
@@ -31,16 +38,15 @@ const productVariantSchema = new mongoose.Schema(
         barcode: { type: String, trim: true, default: '' },
         /** Printed MRP for this variant; falls back to the product's `mrp` when null. */
         mrp: { type: Number, min: 0, default: null },
-        stockQty: { type: Number, min: 0, default: null },
-        lowStockThreshold: { type: Number, min: 0, default: null },
-        /** Set when the seller was told this variant ran low; cleared on restock. */
-        lowStockNotifiedAt: { type: Date, default: null },
+        channels: { type: perChannel({ type: Boolean, default: null }), default: () => ({}) },
+        stock: { type: perChannel(countField()), default: () => ({}) },
+        lowStockThreshold: { type: perChannel(countField()), default: () => ({}) },
+        /** Per channel: set when the seller was told this variant ran low; cleared on restock. */
+        lowStockNotifiedAt: { type: perChannel(dateField()), default: () => ({}) },
         /** Variant-specific photos, e.g. the red one. Empty means use the product's images. */
         images: { type: [String], default: [] },
-        /** The seller's switch. Running out of stock does not change it; see `stockQty`. */
+        /** The seller's switch. Running out of stock does not change it; see `stock`. */
         isActive: { type: Boolean, default: true },
-        /** Whether this variant can go by quick delivery; null inherits the product's setting. */
-        quickEligible: { type: Boolean, default: null },
     },
     { _id: true }
 );
@@ -117,28 +123,30 @@ const productSchema = new mongoose.Schema(
          * what every item created before this field existed does.
          */
         gstRate: { type: Number, min: 0, max: 100, default: null },
+        /** Kept for old readers: available in at least one channel. New code reads `availableIn`. */
         isAvailable: { type: Boolean, default: true, index: true },
-        /**
-         * Whether the product can go by quick (~30 min) delivery. Bulky or
-         * made-to-order items are standard-delivery only. Defaults to true
-         * because every existing product is a quick-commerce product.
-         */
-        quickEligible: { type: Boolean, default: true },
+        /** Which channels the product is listed in. At least one is true. */
+        channels: {
+            type: perChannel({ type: Boolean, default: true }),
+            default: () => ({ quick: true, shop: true }),
+        },
+        /** Server-computed: listed, in stock (or not counted) and not switched off, per channel. */
+        availableIn: {
+            type: perChannel({ type: Boolean, default: false }),
+            default: () => ({ quick: false, shop: false }),
+        },
         /** Free-text search keywords the seller adds ("tee", "cotton", "gift"). */
         tags: { type: [String], default: [] },
         /**
-         * Units on hand. `null` means untracked — the item behaves exactly as it
-         * did before inventory existed, which is what every already-created
-         * document gets, so nothing needs a migration to keep selling.
-         *
-         * Variants with their own `stockQty` are counted there instead; this
-         * count covers the product itself and any variants without one.
+         * Units on hand per channel. `null` means not counted (always in stock).
+         * Variants with their own `stock.<channel>` are counted there instead;
+         * this count covers the product itself and any variants without one.
          */
-        stockQty: { type: Number, default: null, min: 0 },
-        /** Below this, the item is flagged to the seller. `null` disables the flag. */
-        lowStockThreshold: { type: Number, default: null, min: 0 },
-        /** Set when the seller was told this item ran low; cleared on restock. */
-        lowStockNotifiedAt: { type: Date, default: null },
+        stock: { type: perChannel(countField()), default: () => ({ quick: null, shop: null }) },
+        /** At or below this, the item is flagged to the seller, per channel. `null` disables the flag. */
+        lowStockThreshold: { type: perChannel(countField()), default: () => ({ quick: null, shop: null }) },
+        /** Per channel: set when the seller was told this item ran low; cleared on restock. */
+        lowStockNotifiedAt: { type: perChannel(dateField()), default: () => ({ quick: null, shop: null }) },
         /** Cap per single order, so one buyer cannot clear the shelf. `null` = uncapped. */
         maxQtyPerOrder: { type: Number, default: null, min: 1 },
         /** Running average of per-dish ratings left by customers. */
@@ -165,7 +173,22 @@ const productSchema = new mongoose.Schema(
     }
 );
 
+/**
+ * Keeps `availableIn` / `isAvailable` right on every save. `isAvailable: false`
+ * on a new document is the seller switching it off, which lives in
+ * `stockOffMode` so a restock does not undo it.
+ */
+productSchema.pre('validate', function syncAvailability(next) {
+    if (this.isNew && this.isAvailable === false && !isManuallyOff(this)) this.stockOffMode = 'manual';
+    const availableIn = computeAvailableIn(this.toObject({ depopulate: true }));
+    this.availableIn = availableIn;
+    this.isAvailable = availableIn.quick || availableIn.shop;
+    next();
+});
+
 productSchema.index({ sellerId: 1, createdAt: -1 });
+productSchema.index({ 'channels.quick': 1, 'availableIn.quick': 1 });
+productSchema.index({ 'channels.shop': 1, 'availableIn.shop': 1 });
 productSchema.index({ approvalStatus: 1, createdAt: -1 });
 productSchema.index({ approvalStatus: 1, requestedAt: -1 });
 productSchema.index({ sellerId: 1, approvalStatus: 1, createdAt: -1 });

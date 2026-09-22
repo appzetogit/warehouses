@@ -22,7 +22,7 @@ before(async () => {
 
     const zone = new mongoose.Types.ObjectId();
     ids.zone = zone;
-    const store = (name, lat, lng, extra = {}) => Seller.create({
+    const store = (name, lat, lng, extra = {}) => Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: name, ownerName: 'O', ownerPhone: `9${Math.floor(Math.random() * 1e9)}`, status: 'approved', zoneId: zone,
         location: { type: 'Point', coordinates: [lng, lat], latitude: lat, longitude: lng }, ...extra,
     });
@@ -36,7 +36,7 @@ before(async () => {
     const product = (fields) => Product.create({ sellerId: near._id, approvalStatus: 'approved', price: 1, ...fields });
     ids.tee = (await product({ name: 'Cotton Tee', brand: 'Acme', tags: ['tshirt'], price: 300, variants: [v('M', 'Red', 300), v('L', 'Blue', 350)] }))._id;
     await product({ name: 'Linen Shirt', brand: 'Bolt', price: 900, variants: [v('M', 'Blue', 900), v('L', 'Red', 950)] });
-    await product({ name: 'Wool Scarf', brand: 'Acme', price: 500, quickEligible: false });
+    await product({ name: 'Wool Scarf', brand: 'Acme', price: 500, channels: { quick: false, shop: true } });
     await product({ name: 'Red Apple', brand: 'Farm', price: 40, categoryName: 'Fruits' });
     await product({ name: 'Cheap Tee', brand: 'Bolt', price: 100, variants: [v('M', 'Red', 100, { isActive: false }), v('S', 'Red', 1200)] });
     ids.hidden = (await Product.create({ sellerId: mid._id, name: 'Hidden Tee', approvalStatus: 'pending', price: 10 }))._id;

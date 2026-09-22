@@ -4,6 +4,8 @@ import {
   FileText, Image as ImageIcon, ExternalLink, CreditCard, Calendar, Star, Building2, User, Phone, Mail, MapPin, Clock
 } from "lucide-react"
 import { adminAPI, sellerAPI } from "@store/api"
+import { useAdminPanel } from "@store/components/admin/useAdminPanel"
+import { getChannelInfo, SellerChannelsPanel } from "@store/components/admin/sellers/SellerChannels"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -18,7 +20,18 @@ const formatTime12Hour = (timeStr) => {
 }
 
 
+const listFromResponse = (response) => {
+  const body = response?.data
+  const data = body?.data
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.sellers)) return data.sellers
+  if (Array.isArray(body?.sellers)) return body.sellers
+  return []
+}
+
 export default function JoiningRequest() {
+  // Join requests are per channel: /admin/quick shows quick requests, /admin/shop shop ones.
+  const { channel, label: panelLabel } = useAdminPanel()
   const [activeTab, setActiveTab] = useState("pending")
   const [searchQuery, setSearchQuery] = useState("")
   const [pendingRequests, setPendingRequests] = useState([])
@@ -52,22 +65,43 @@ export default function JoiningRequest() {
     }
 
     // On subsequent tab changes, refetch only when switching away from "pending"
-    if (activeTab !== "pending") {
-      fetchRequests()
-    }
-  }, [activeTab])
+    fetchRequests()
+  }, [activeTab, channel])
 
   const fetchRequests = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await adminAPI.getPendingSellers()
-      const list = response?.data?.data || []
+      const wantedChannelStatus = activeTab === "pending" ? "pending" : "rejected"
+      const [accountRes, channelRes] = await Promise.all([
+        adminAPI.getPendingSellers(),
+        // Channel requests: sellers whose account may already be approved but who applied for this channel.
+        adminAPI.getSellers({ channel, channelStatus: wantedChannelStatus }).catch((e) => {
+          debugError("Error fetching channel requests:", e)
+          return null
+        }),
+      ])
+      // Account (KYC) requests, limited to sellers who picked this panel's channel.
+      const accountList = listFromResponse(accountRes).filter((r) => {
+        if (r?.channels && getChannelInfo(r, channel).status === "none") return false
+        return activeTab === "pending"
+          ? r.status === "pending" || r.locationUpdateStatus === "pending"
+          : r.status === "rejected"
+      })
+      const byId = new Map()
+      for (const r of accountList) byId.set(String(r._id || r.id), r)
+      for (const r of listFromResponse(channelRes)) {
+        if (getChannelInfo(r, channel).status !== wantedChannelStatus) continue
+        const id = String(r._id || r.id)
+        const prev = byId.get(id)
+        byId.set(id, prev ? { ...prev, channels: r.channels || prev.channels } : { ...r, sellerName: r.sellerName || r.name, ownerPhone: r.ownerPhone || r.phone })
+      }
+      const list = [...byId.values()]
       if (activeTab === "pending") {
-        setPendingRequests(list.filter((r) => r.status === "pending" || r.locationUpdateStatus === "pending"))
+        setPendingRequests(list)
       } else {
-        setRejectedRequests(list.filter((r) => r.status === "rejected"))
+        setRejectedRequests(list)
       }
     } catch (err) {
       debugError("Error fetching seller requests:", err)
@@ -278,7 +312,7 @@ export default function JoiningRequest() {
             <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
               <UtensilsCrossed className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">New Seller Join Request</h1>
+            <h1 className="text-2xl font-bold text-slate-900">New Seller Join Request <span className="text-base font-medium text-slate-500">({panelLabel} channel)</span></h1>
           </div>
 
           {/* Tabs */}
@@ -374,27 +408,28 @@ export default function JoiningRequest() {
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-700 uppercase tracking-wider">Action</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">{panelLabel} channel</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-700 uppercase tracking-wider">Account</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-20 text-center">
+                    <td colSpan={8} className="px-6 py-20 text-center">
                       <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
                       <p className="text-lg font-semibold text-slate-700">Loading seller requests...</p>
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-20 text-center">
+                    <td colSpan={8} className="px-6 py-20 text-center">
                       <p className="text-lg font-semibold text-red-600 mb-1">Error: {error}</p>
                       <p className="text-sm text-slate-500">Failed to load seller requests. Please try again.</p>
                     </td>
                   </tr>
                 ) : filteredRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-20 text-center">
+                    <td colSpan={8} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <p className="text-lg font-semibold text-slate-700 mb-1">No Data Found</p>
                         <p className="text-sm text-slate-500">No seller requests match your search</p>
@@ -454,6 +489,9 @@ export default function JoiningRequest() {
                           {request.status}
                         </span>
                       </td>
+                      <td className="px-6 py-4 min-w-[220px]">
+                        <SellerChannelsPanel seller={request} only={channel} onUpdated={() => fetchRequests()} />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button
@@ -463,13 +501,13 @@ export default function JoiningRequest() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          {activeTab === "pending" && (
+                          {activeTab === "pending" && String(request.status || "").toLowerCase() !== "approved" && (
                             <>
                               <button
                                 onClick={() => handleApprove(request)}
                                 disabled={processing}
                                 className="p-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Approve"
+                                title="Approve account (KYC)"
                               >
                                 <Check className="w-4 h-4" />
                               </button>
@@ -477,7 +515,7 @@ export default function JoiningRequest() {
                                 onClick={() => handleReject(request)}
                                 disabled={processing}
                                 className="p-1.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Reject"
+                                title="Reject account (KYC)"
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -678,6 +716,17 @@ export default function JoiningRequest() {
 
             {/* Modal Content */}
             <div className="p-6">
+              <div className="mb-6">
+                <h3 className="text-sm font-bold text-slate-900 mb-3">Sales channels</h3>
+                <SellerChannelsPanel
+                  seller={sellerDetails?.channels ? sellerDetails : selectedRequest}
+                  onUpdated={(next) => {
+                    setSellerDetails((prev) => (prev ? { ...prev, channels: next.channels } : prev))
+                    setSelectedRequest((prev) => (prev ? { ...prev, channels: next.channels } : prev))
+                    fetchRequests()
+                  }}
+                />
+              </div>
               {loadingDetails && (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-600" />

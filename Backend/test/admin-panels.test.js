@@ -49,9 +49,9 @@ before(async () => {
 
     const sellerId = new mongoose.Types.ObjectId();
     await db.collection('products').insertMany([
-        { name: 'Milk', sellerId, approvalStatus: 'approved', quickEligible: true, createdAt: new Date() },
+        { name: 'Milk', sellerId, approvalStatus: 'approved', channels: { quick: true, shop: true }, createdAt: new Date() },
         { name: 'Bread', sellerId, approvalStatus: 'approved', createdAt: new Date() },
-        { name: 'Sofa', sellerId, approvalStatus: 'approved', quickEligible: false, createdAt: new Date() },
+        { name: 'Sofa', sellerId, approvalStatus: 'approved', channels: { quick: false, shop: true }, createdAt: new Date() },
     ]);
 });
 

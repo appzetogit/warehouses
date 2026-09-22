@@ -1,28 +1,32 @@
 import { Product } from '../../admin/models/product.model.js';
+import { syncProductAvailability } from '../../orders/services/inventory.service.js';
 
 /**
  * Re-enable products whose scheduled out-of-stock window has expired.
  * Manual off (no stockResumeAt) is left unchanged until the seller turns it back on.
+ *
+ * Only the switch is cleared; whether the item then shows in each channel is
+ * worked out from that channel's stock, so a timer never undoes a count.
  */
 export async function restoreExpiredProductAvailability(filter = {}) {
     const now = new Date();
-    const result = await Product.updateMany(
-        {
-            ...filter,
-            isAvailable: false,
-            stockResumeAt: { $ne: null, $lte: now },
-            // A timer must not undo a count. An item that ran out while its
-            // resume window was ticking would otherwise come back listed as
-            // available with nothing on the shelf, and every customer who added
-            // it would be refused at checkout by the stock reservation.
-            // Untracked items (null) resume exactly as they did before.
-            $or: [{ stockQty: null }, { stockQty: { $gt: 0 } }]
-        },
-        {
-            $set: { isAvailable: true },
-            $unset: { stockResumeAt: 1, stockOffMode: 1 }
-        }
-    );
+    const due = await Product.find({
+        ...filter,
+        stockResumeAt: { $ne: null, $lte: now },
+    })
+        .select('_id')
+        .lean();
 
-    return result.modifiedCount || 0;
+    let restored = 0;
+    for (const { _id } of due) {
+        const res = await Product.updateOne(
+            { _id, stockResumeAt: { $ne: null, $lte: now } },
+            { $unset: { stockResumeAt: 1, stockOffMode: 1 } },
+        );
+        if (!res.modifiedCount) continue;
+        await syncProductAvailability(_id);
+        const fresh = await Product.findById(_id).select('isAvailable').lean();
+        if (fresh?.isAvailable) restored += 1;
+    }
+    return restored;
 }

@@ -1,4 +1,5 @@
 import { useStoreMode } from "@store/context/StoreModeContext"
+import { channelAvailability, stockLabel } from "@store/utils/channelStock"
 import { useState, useEffect, useRef, Component, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -765,7 +766,8 @@ function SellerDetailsContent() {
                       price: getProductDisplayPrice(item),
                       variants: getProductVariants(item),
                       variations: getProductVariants(item),
-                      isAvailable: item.isAvailable !== false,
+                      isAvailable: channelAvailability(item, (fulfilmentMode === "quick" ? "quick" : "shop")).inStock,
+                      stockNote: channelAvailability(item, (fulfilmentMode === "quick" ? "quick" : "shop")).low ? stockLabel(channelAvailability(item, (fulfilmentMode === "quick" ? "quick" : "shop"))) : null,
                       isRecommended,
                       isSpicy,
                      description: typeof item.description === "string" ? item.description : "",
@@ -904,13 +906,13 @@ function SellerDetailsContent() {
                   name,
                   description: "",
                   itemCount: items.length,
-                  inStock: items.some((item) => item.isAvailable !== false),
+                  inStock: items.some((item) => channelAvailability(item, (fulfilmentMode === "quick" ? "quick" : "shop")).inStock),
                   items: items.map((item) => ({
                     id: String(item._id || item.id),
                     name: item.name || "Unnamed Item",
-                    inStock: item.isAvailable !== false,
+                    inStock: channelAvailability(item, (fulfilmentMode === "quick" ? "quick" : "shop")).inStock,
                     isVeg: item.foodType === "Veg" ? true : item.foodType === "Non-Veg" ? false : null,
-                    stockQuantity: "Unlimited",
+                    stockQuantity: channelAvailability(item, (fulfilmentMode === "quick" ? "quick" : "shop")).qty ?? "Unlimited",
                     unit: "piece",
                     expiryDate: null,
                     lastRestocked: null,
@@ -2472,6 +2474,7 @@ function SellerDetailsContent() {
                               </div>
 
                               <h3 className="font-bold text-gray-800 dark:text-white text-lg leading-tight">{item.name}</h3>
+{item.stockNote && <p className="text-xs font-semibold text-rose-600 mt-0.5">{item.stockNote}</p>}
 
                               {/* Highly Reordered Progress Bar - Show if recommended */}
                               {isRecommendedItem(item) && (
@@ -2700,6 +2703,7 @@ function SellerDetailsContent() {
                                         </div>
 
                                         <h3 className="font-bold text-gray-800 dark:text-white text-lg leading-tight">{item.name}</h3>
+{item.stockNote && <p className="text-xs font-semibold text-rose-600 mt-0.5">{item.stockNote}</p>}
 
                                         {/* Highly Reordered Progress Bar - Show if recommended */}
                                         {isRecommendedItem(item) && (

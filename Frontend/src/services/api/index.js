@@ -362,6 +362,13 @@ export const adminAPI = {
       { reason },
       { contextModule: "admin" },
     ),
+  /** Approve or reject one sales channel. action: 'approve'|'reject'; reject needs a reason. */
+  setSellerChannelStatus: (id, channel, action, reason) =>
+    apiClient.patch(
+      `/admin/sellers/${String(id)}/channels/${channel}`,
+      action === "reject" ? { action, reason: String(reason || "").trim() } : { action },
+      { contextModule: "admin" },
+    ),
   /** Delivery partner join requests - uses /food/admin/delivery/* (new backend API) */
   getDeliveryPartnerJoinRequests: (params) =>
     apiClient.get("/admin/delivery/join-requests", {
@@ -1528,11 +1535,20 @@ export const sellerAPI = {
     apiClient.patch(`/seller/products/${String(id)}`, body ?? {}, {
       contextModule: "seller",
     }),
-  /** Bulk stock: up to 500 `{ itemId, variantId?, stockQty, lowStockThreshold, maxQtyPerOrder, isAvailable|isActive }`. */
+  /** Bulk stock: up to 500 `{ itemId, channel: 'quick'|'shop', qty, variantId? }` (absolute count for that channel). */
   updateStock: (items) =>
     apiClient.patch("/seller/products/stock", { items }, { contextModule: "seller" }),
-  getLowStock: () =>
-    apiClient.get("/seller/products/low-stock", { contextModule: "seller" }),
+  /** Low-stock rows; optional channel 'quick'|'shop'. Each row carries its channel. */
+  getLowStock: (channel) =>
+    apiClient.get("/seller/products/low-stock", {
+      params: channel ? { channel } : undefined,
+      contextModule: "seller",
+    }),
+  /** POST /seller/channels/:channel/apply — none/rejected -> pending; 400 says what's missing. */
+  applyForChannel: (channel) =>
+    apiClient.post(`/seller/channels/${encodeURIComponent(String(channel))}/apply`, {}, {
+      contextModule: "seller",
+    }),
   bulkUploadTemplate: () =>
     apiClient.get("/seller/bulk-upload/template", {
       responseType: 'blob',

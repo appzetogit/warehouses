@@ -1743,3 +1743,14 @@ export async function updateFeatureSetting(req, res, next) {
         next(error);
     }
 }
+
+/** PATCH /admin/sellers/:id/channels/:channel — { action: 'approve'|'reject', reason? }. */
+export async function decideSellerChannel(req, res, next) {
+    try {
+        const { decideSellerChannel: decide } = await import('../../seller/services/sellerChannels.service.js');
+        const seller = await decide(req.params.id, req.params.channel, req.body || {});
+        return res.status(200).json({ success: true, message: 'Channel updated', data: seller });
+    } catch (error) {
+        next(error);
+    }
+}

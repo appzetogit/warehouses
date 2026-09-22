@@ -44,6 +44,8 @@ before(async () => {
     const db = await startApp();
     ({ Order } = await import('../src/modules/commerce/orders/models/order.model.js'));
     ({ ReturnRequest } = await import('../src/modules/commerce/orders/models/returnRequest.model.js'));
+    // The one-open-return rule is a unique index; build it before racing on it.
+    await ReturnRequest.init();
     const { Seller } = await import('../src/modules/commerce/seller/models/seller.model.js');
     const { User } = await import('../src/core/users/user.model.js');
     const { MockShippingProvider } = await import('../src/modules/commerce/delivery/services/shipping/mockShipping.provider.js');
@@ -54,7 +56,7 @@ before(async () => {
     setShippingProvider(courier);
     await updateCoinSettings({ isEnabled: true, redeemPercent: 80, expiryDays: 90, maxOrderPercent: 50, coinValue: 1 });
 
-    const seller = await Seller.create({
+    const seller = await Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: 'Courier Mart', ownerName: 'Owner', ownerPhone: '9100000001', phone: '9100000001', status: 'approved',
         location: { type: 'Point', coordinates: [77.59, 12.97] },
     });

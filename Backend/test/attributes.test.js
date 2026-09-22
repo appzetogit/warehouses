@@ -22,7 +22,7 @@ before(async () => {
     admin = tokenFor('ADMIN', ids.admin, { adminType: 'super_admin' });
 
     const { Seller } = await import('../src/modules/commerce/seller/models/seller.model.js');
-    const store = await Seller.create({
+    const store = await Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: 'Tee Shop', ownerName: 'Owner', ownerPhone: '9100000001', phone: '9100000001', status: 'approved',
     });
     ids.seller = store._id;

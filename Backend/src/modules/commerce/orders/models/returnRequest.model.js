@@ -44,6 +44,8 @@ const returnRequestSchema = new mongoose.Schema(
             coinsBack: { type: Number, default: 0 },
         },
         rejectionReason: { type: String, default: '' },
+        /** Set once the returned units went back on the shelf (the order's channel); guards a double restock. */
+        restockedAt: { type: Date, default: null },
         reverseShipment: { type: mongoose.Schema.Types.Mixed, default: null },
         refund: {
             status: { type: String, enum: ['none', 'processing', 'processed', 'failed', 'not_applicable'], default: 'none' },

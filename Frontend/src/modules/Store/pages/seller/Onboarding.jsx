@@ -666,6 +666,7 @@ export default function SellerOnboarding() {
     ownerEmail: "",
     ownerPhone: "",
     primaryContactNumber: "",
+    channels: ["quick"],
     zoneId: "",
     location: {
       formattedAddress: "",
@@ -1040,6 +1041,9 @@ export default function SellerOnboarding() {
               ownerPhone: localData.step1.ownerPhone || "",
               primaryContactNumber: localData.step1.primaryContactNumber || "",
               zoneId: localData.step1.zoneId || "",
+              channels: Array.isArray(localData.step1.channels) && localData.step1.channels.length
+                ? localData.step1.channels.filter((c) => c === "quick" || c === "shop")
+                : prev.channels,
               location: {
                 formattedAddress: localData.step1.location?.formattedAddress || "",
                 addressLine1: localData.step1.location?.addressLine1 || "",
@@ -1414,11 +1418,25 @@ export default function SellerOnboarding() {
     } else if (!INDIAN_PHONE_REGEX.test(step1.primaryContactNumber.trim())) {
       errors.push("Please enter a valid 10-digit Indian phone number for seller")
     }
-    if (!step1.zoneId?.trim()) {
-      errors.push("Service zone is required")
+    const pickedChannels = Array.isArray(step1.channels) ? step1.channels : []
+    if (pickedChannels.length === 0) {
+      errors.push("Pick at least one sales channel (Quick or Shop)")
     }
-    if (zoneDetectionState.status === "out_of_zone") {
-      errors.push("No active zone found at this location")
+    if (pickedChannels.includes("quick")) {
+      if (!step1.zoneId?.trim()) {
+        errors.push("Service zone is required for Quick")
+      }
+      if (zoneDetectionState.status === "out_of_zone") {
+        errors.push("No active zone found at this location (needed for Quick)")
+      }
+    }
+    if (pickedChannels.includes("shop")) {
+      if (!/^\d{6}$/.test(String(step1.location?.pincode || "").trim())) {
+        errors.push("A 6-digit pickup pincode is required for Shop")
+      }
+      if (!step1.location?.addressLine1?.trim() && !step1.location?.formattedAddress?.trim()) {
+        errors.push("Pickup address is required for Shop")
+      }
     }
     if (!step1.location?.area?.trim()) {
       errors.push("Area/Sector/Locality is required")
@@ -1615,6 +1633,7 @@ export default function SellerOnboarding() {
     formData.append('ownerEmail', (step1.ownerEmail || '').trim())
     formData.append('ownerPhone', normalizePhoneDigits(step1.ownerPhone))
     formData.append('primaryContactNumber', normalizePhoneDigits(step1.primaryContactNumber))
+    formData.append('channels', (Array.isArray(step1.channels) ? step1.channels : []).filter((c) => c === 'quick' || c === 'shop').join(','))
     formData.append('zoneId', step1.zoneId || '')
     formData.append('addressLine1', step1.location?.addressLine1 || '')
     formData.append('addressLine2', step1.location?.addressLine2 || '')
@@ -1831,8 +1850,48 @@ export default function SellerOnboarding() {
     })
   }
 
+  const toggleStep1Channel = (channel, checked) => {
+    setStep1((prev) => {
+      const current = Array.isArray(prev.channels) ? prev.channels : []
+      const next = checked ? [...new Set([...current, channel])] : current.filter((c) => c !== channel)
+      return { ...prev, channels: ["quick", "shop"].filter((c) => next.includes(c)) }
+    })
+  }
+
   const renderStep1 = () => (
     <div className="space-y-6">
+      <section className={ONBOARDING_SECTION_FULL}>
+        <h2 className={`${ONBOARDING_SECTION_TITLE} mb-2`}>Where do you want to sell?*</h2>
+        <p className={`${ONBOARDING_SECTION_DESC} mb-4`}>
+          Pick one or both. Each channel is reviewed separately and you can apply for the other one later.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { id: "quick", title: "Quick", desc: "Delivered by our riders in minutes from your store. Your store must be inside a service zone." },
+            { id: "shop", title: "Shop", desc: "Shipped by courier to customers anywhere. We pick up from your address, so a 6-digit pincode is needed." },
+          ].map((opt) => {
+            const checked = (step1.channels || []).includes(opt.id)
+            return (
+              <label
+                key={opt.id}
+                className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer ${checked ? "border-black bg-gray-50" : "border-gray-200"}`}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={checked}
+                  disabled={!isEditing}
+                  onChange={(e) => toggleStep1Channel(opt.id, e.target.checked)}
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-gray-900">{opt.title}</span>
+                  <span className="block text-xs text-gray-500">{opt.desc}</span>
+                </span>
+              </label>
+            )
+          })}
+        </div>
+      </section>
       <section className={ONBOARDING_SECTION_FULL}>
         <h2 className={`${ONBOARDING_SECTION_TITLE} mb-4`}>Store information</h2>
         <div className="space-y-3">
@@ -2179,13 +2238,16 @@ export default function SellerOnboarding() {
                   location: { ...step1.location, pincode: e.target.value },
                 })
               }
-              readOnly={isAutoFilledLocationLocked}
+              readOnly={isAutoFilledLocationLocked && /^\d{6}$/.test(String(step1.location?.pincode || ""))}
               className={ONBOARDING_INPUT}
-              placeholder="Pincode"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder={(step1.channels || []).includes("shop") ? "Pincode (6 digits, required for Shop)" : "Pincode"}
             />
           </div>
           <p className={ONBOARDING_HINT}>
             Please ensure that this address is the same as mentioned on your FSSAI license.
+            {(step1.channels || []).includes("shop") ? " This is also your pickup address for Shop (courier) orders." : ""}
           </p>
         </div>
       </section>

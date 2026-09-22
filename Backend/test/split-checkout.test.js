@@ -29,7 +29,7 @@ before(async () => {
 
     const zone = await Zone.create({ name: 'Split Zone', country: 'India', coordinates: ZONE, isActive: true });
 
-    const sellerA = await Seller.create({
+    const sellerA = await Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: 'Fashion Hub (Seller A)',
         ownerName: 'Owner A',
         ownerPhone: '9888800001',
@@ -41,7 +41,7 @@ before(async () => {
     });
     sellerAId = sellerA._id;
 
-    const sellerB = await Seller.create({
+    const sellerB = await Seller.create({ channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: 'Electronics Direct (Seller B)',
         ownerName: 'Owner B',
         ownerPhone: '9888800002',
@@ -57,7 +57,7 @@ before(async () => {
         sellerId: sellerA._id,
         name: 'Cotton T-Shirt',
         price: 300,
-        stockQty: 20,
+        stock: { quick: 20 },
         isAvailable: true,
         approvalStatus: 'approved',
     });
@@ -66,7 +66,7 @@ before(async () => {
         sellerId: sellerB._id,
         name: 'Bluetooth Earphones',
         price: 700,
-        stockQty: 10,
+        stock: { quick: 10 },
         isAvailable: true,
         approvalStatus: 'approved',
     });
@@ -129,8 +129,8 @@ test('createSplitCheckout creates parent checkout and split child orders atomica
     const { Checkout } = await import('../src/modules/commerce/orders/models/checkout.model.js');
     const { Order } = await import('../src/modules/commerce/orders/models/order.model.js');
 
-    const stockABefore = (await Product.findById(productA._id).lean()).stockQty;
-    const stockBBefore = (await Product.findById(productB._id).lean()).stockQty;
+    const stockABefore = (await Product.findById(productA._id).lean()).stock.quick;
+    const stockBBefore = (await Product.findById(productB._id).lean()).stock.quick;
 
     const res = await call('POST', '/orders/checkout', {
         as: userToken,
@@ -163,8 +163,8 @@ test('createSplitCheckout creates parent checkout and split child orders atomica
     assert.equal(savedCheckout.childOrderCodes.length, 2);
 
     // Verify stock decremented on both products
-    const stockAAfter = (await Product.findById(productA._id).lean()).stockQty;
-    const stockBAfter = (await Product.findById(productB._id).lean()).stockQty;
+    const stockAAfter = (await Product.findById(productA._id).lean()).stock.quick;
+    const stockBAfter = (await Product.findById(productB._id).lean()).stock.quick;
     assert.equal(stockAAfter, stockABefore - 2);
     assert.equal(stockBAfter, stockBBefore - 1);
 
@@ -185,8 +185,8 @@ test('createSplitCheckout creates parent checkout and split child orders atomica
 test('split checkout rolls back all stock reservations if any item is out of stock', async () => {
     const { Product } = await import('../src/modules/commerce/admin/models/product.model.js');
 
-    const stockABefore = (await Product.findById(productA._id).lean()).stockQty;
-    const stockBBefore = (await Product.findById(productB._id).lean()).stockQty;
+    const stockABefore = (await Product.findById(productA._id).lean()).stock.quick;
+    const stockBBefore = (await Product.findById(productB._id).lean()).stock.quick;
 
     const res = await call('POST', '/orders/checkout', {
         as: userToken,
@@ -210,8 +210,8 @@ test('split checkout rolls back all stock reservations if any item is out of sto
     assert.equal(res.status, 400);
 
     // Stock for Seller A must NOT have been changed (atomic rollback)
-    const stockAAfter = (await Product.findById(productA._id).lean()).stockQty;
-    const stockBAfter = (await Product.findById(productB._id).lean()).stockQty;
+    const stockAAfter = (await Product.findById(productA._id).lean()).stock.quick;
+    const stockBAfter = (await Product.findById(productB._id).lean()).stock.quick;
     assert.equal(stockAAfter, stockABefore);
     assert.equal(stockBAfter, stockBBefore);
 });

@@ -16,7 +16,8 @@ import {
     uploadSellerAttachmentController,
     deleteCurrentSellerAccountController,
     registerUnregisteredSellerController,
-    getSellerSubscriptionHistoryController
+    getSellerSubscriptionHistoryController,
+    applyForChannelController
 } from '../controllers/seller.controller.js';
 import {
     createSellerOfferController,
@@ -111,6 +112,7 @@ router.post('/upload-attachment', upload.single('file'), uploadSellerAttachmentC
 // Seller dashboard/profile (Bearer token + SELLER role)
 router.get('/current', authMiddleware, requireSeller, getCurrentSellerController);
 router.post('/reverify', authMiddleware, requireSeller, resubmitController(Seller));
+router.post('/channels/:channel/apply', authMiddleware, requireSeller, applyForChannelController);
 /**
  * Account deletion, initiated by the seller themselves.
  *

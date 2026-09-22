@@ -11,7 +11,8 @@ import { getGoogleMapsApiKey } from "@store/utils/googleMapsApiKey"
 import locationIcon from "@store/assets/Dashboard-icons/image1.png"
 import sellerIcon from "@store/assets/Dashboard-icons/image2.png"
 import inactiveIcon from "@store/assets/Dashboard-icons/image3.png"
-import { useAdminBase } from "@store/components/admin/useAdminPanel"
+import { useAdminBase, useAdminPanel } from "@store/components/admin/useAdminPanel"
+import { ChannelStatusBadges, SellerChannelsPanel } from "@store/components/admin/sellers/SellerChannels"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -164,6 +165,7 @@ const getPrimarySellerImage = (seller, fallback = "") => {
 
 export default function SellersList() {
   const adminBase = useAdminBase()
+  const { channel, label: panelLabel } = useAdminPanel()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
@@ -282,6 +284,8 @@ export default function SellersList() {
           ...(debouncedSearchQuery && { search: debouncedSearchQuery }),
           sortBy: getSortByParam(sortConfig),
           includeStats: page === 1,
+          // Panel scope: sellers that have this channel (any status except none).
+          channel,
         })
 
         if (cancelled) return
@@ -343,7 +347,7 @@ export default function SellersList() {
       cancelled = true
       clearTimeout(t)
     }
-  }, [page, debouncedSearchQuery, sortConfig, zones, navigate])
+  }, [page, debouncedSearchQuery, sortConfig, zones, navigate, channel])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -1220,7 +1224,7 @@ export default function SellersList() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900">Sellers List</h1>
+              <h1 className="text-2xl font-bold text-slate-900">Sellers List <span className="text-base font-medium text-slate-500">({panelLabel} channel)</span></h1>
             </div>
 
           </div>
@@ -1412,13 +1416,14 @@ export default function SellersList() {
                         <ArrowUpDown className={`w-3 h-3 ${sortConfig.key === 'status' ? 'text-blue-600' : 'text-slate-400'}`} />
                       </div>
                     </th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-700 uppercase tracking-wider">Channels</th>
                     <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-700 uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-100">
                   {filteredSellers.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-20 text-center">
+                      <td colSpan={8} className="px-6 py-20 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <p className="text-lg font-semibold text-slate-700 mb-1">No Data Found</p>
                           <p className="text-sm text-slate-500">No sellers match your search</p>
@@ -1487,6 +1492,9 @@ export default function SellersList() {
                               Outlet: {seller.isActive ? "Active" : "Inactive"}
                             </span>
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <ChannelStatusBadges seller={seller.originalData} />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-2">
@@ -1915,6 +1923,17 @@ export default function SellersList() {
                 const hasRegistrationDocuments = hasPanSection || hasGstSection || hasFssaiSection || hasBankSection
                 return (
                 <div className="space-y-10">
+                  {/* Sales channels: approve / reject per channel (account KYC approval is separate) */}
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 mb-3">Sales channels</h3>
+                    <SellerChannelsPanel
+                      seller={r}
+                      onUpdated={(next) => {
+                        setSellerDetails(next)
+                        setSellers((prev) => prev.map((s) => (s._id && s._id === next._id ? { ...s, originalData: { ...s.originalData, channels: next.channels } } : s)))
+                      }}
+                    />
+                  </div>
                   {/* Seller Basic Info */}
                   <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
                     <div className="w-32 h-32 rounded-3xl overflow-hidden bg-slate-50 shrink-0 shadow-inner group">
