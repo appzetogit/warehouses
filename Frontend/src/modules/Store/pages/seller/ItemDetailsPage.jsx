@@ -15,28 +15,25 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Layers,
-  Palette,
-  Sparkles,
-  Grid
 } from "lucide-react"
 import { Switch } from "@store/components/ui/switch"
 // Removed getAllProducts and saveProduct - now using menu API
 import api from "@store/api"
-import { sellerAPI, uploadAPI, catalogAPI } from "@store/api"
+import { sellerAPI, uploadAPI } from "@store/api"
 import { toast } from "sonner"
 import { ImageSourcePicker } from "@store/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@store/utils/imageUploadUtils"
-import { getProductVariants } from "@store/utils/productVariants"
-import { CHANNELS } from "@store/components/seller/channels"
+import { CHANNELS, isChannelApproved } from "@store/components/seller/channels"
 import {
   ProductChannelFields,
-  VariantChannelFields,
   emptyChannelDraft,
   channelDraftFrom,
   channelDraftToPayload,
-  variantChannelsFrom,
 } from "@store/components/seller/ChannelStockFields"
+import VariantMatrixEditor, {
+  createVariantDraft,
+  toVariantPayload,
+} from "@store/components/shared/products/VariantMatrixEditor"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -52,18 +49,29 @@ const getUploadErrorMessage = (error, fileName = "image") => {
   return `Failed to upload ${fileName}: ${message}`
 }
 
-const createVariantDraft = (variant = {}) => ({
-  localId: String(variant?.id || variant?._id || `variant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
-  persistedId: String(variant?.id || variant?._id || ""),
-  name: String(variant?.name || ""),
-  price: variant?.price != null ? String(variant.price) : "",
-  otherPrice: variant?.otherPrice != null ? String(variant.otherPrice) : "",
-  sku: String(variant?.sku || ""),
-  channels: variantChannelsFrom(variant),
-  channelStock: channelDraftFrom(variant?.stock),
-  channelThreshold: channelDraftFrom(variant?.lowStockThreshold),
-  attributes: Array.isArray(variant?.attributes) ? variant.attributes : [],
-})
+/**
+ * The item's variants as the seller menu returns them, in full: attributes,
+ * images, SKU, MRP, per-channel stock / low-stock alert / channel switches and
+ * the active flag (inactive ones included, so saving does not drop them).
+ */
+const fullItemVariants = (item = {}) =>
+  (Array.isArray(item?.variants) ? item.variants : Array.isArray(item?.variations) ? item.variations : [])
+    .filter((v) => String(v?.name || "").trim() && Number(v?.price) > 0)
+
+/** Uploads one product/variant photo for the seller; resolves to its URL. */
+const uploadSellerImage = async (file) => {
+  let res
+  try {
+    res = await uploadAPI.uploadMedia(file, { folder: "sellers/products" })
+  } catch (folderUploadError) {
+    // Fallback: retry without folder in case provider/account rejects custom folder.
+    debugWarn(`Retrying upload without folder for ${file?.name}:`, folderUploadError)
+    res = await uploadAPI.uploadMedia(file)
+  }
+  const url = res?.data?.data?.url || res?.data?.url
+  if (!url) throw new Error("Failed to get uploaded image URL")
+  return url
+}
 
 export default function ItemDetailsPage() {
   const navigate = useNavigate()
@@ -90,10 +98,6 @@ export default function ItemDetailsPage() {
   const [basePrice, setBasePrice] = useState("")
   const [otherPrice, setOtherPrice] = useState("")
   const [variants, setVariants] = useState([])
-  const [availableAttributes, setAvailableAttributes] = useState([])
-  const [selectedAttributeValues, setSelectedAttributeValues] = useState({})
-  const [loadingAttributes, setLoadingAttributes] = useState(false)
-  const [showMatrixGenerator, setShowMatrixGenerator] = useState(false)
   const [preparationTime, setPreparationTime] = useState("")
   const [gst, setGst] = useState("5.0")
   const [isRecommended, setIsRecommended] = useState(false)
@@ -162,6 +166,8 @@ export default function ItemDetailsPage() {
   }, [])
 
   const effectiveProdChannels = prodChannels || { quick: false, shop: false }
+  // Variants can only be switched on / stocked in channels the seller is approved for.
+  const approvedChannels = CHANNELS.filter((c) => isChannelApproved(sellerProfile, c))
 
   const populateFormFromItem = (item = {}) => {
     setItemData(item)
@@ -175,8 +181,8 @@ export default function ItemDetailsPage() {
     setItemSizeUnit(item.itemSizeUnit || "piece")
     setItemDescription(item.description || "")
     setFoodType(item.foodType === "Veg" || item.foodType === "Non-Veg" ? item.foodType : null)
-    const itemVariants = getProductVariants(item)
-    setVariants(itemVariants.map(createVariantDraft))
+    const itemVariants = fullItemVariants(item)
+    setVariants(itemVariants.map((v) => createVariantDraft(v)))
     setBasePrice(itemVariants.length === 0 ? item.price?.toString() || "" : "")
     setOtherPrice(itemVariants.length === 0 ? item.otherPrice?.toString() || "" : "")
     setPreparationTime(item.preparationTime || "")
@@ -331,37 +337,6 @@ export default function ItemDetailsPage() {
 
     fetchCategories()
   }, [category, defaultCategory, defaultCategoryId, isNewItem, selectedCategoryId])
-
-  // Fetch category attributes for variant matrix
-  useEffect(() => {
-    let active = true
-    const loadAttributes = async () => {
-      if (!selectedCategoryId) {
-        setAvailableAttributes([])
-        return
-      }
-      try {
-        setLoadingAttributes(true)
-        const res = await catalogAPI.getCategoryAttributes(selectedCategoryId)
-        const attrs = res?.data?.data?.attributes || res?.data?.attributes || []
-        if (active) {
-          if (Array.isArray(attrs) && attrs.length > 0) {
-            setAvailableAttributes(attrs)
-          } else {
-            const genRes = await catalogAPI.getAttributes()
-            const genAttrs = genRes?.data?.data?.attributes || genRes?.data?.attributes || []
-            if (active && Array.isArray(genAttrs)) setAvailableAttributes(genAttrs)
-          }
-        }
-      } catch (err) {
-        debugWarn("Failed to load category attributes:", err)
-      } finally {
-        if (active) setLoadingAttributes(false)
-      }
-    }
-    loadAttributes()
-    return () => { active = false }
-  }, [selectedCategoryId])
 
   // Keep focused form fields visible above mobile keyboard
   useEffect(() => {
@@ -684,7 +659,7 @@ export default function ItemDetailsPage() {
         }
       }
 
-      // Single-image mode: keep only one URL
+      // Every photo the seller added, up to the form's limit.
       const allImageUrls = [
         ...existingImageUrls,
         ...uploadedImageUrls
@@ -693,7 +668,7 @@ export default function ItemDetailsPage() {
         typeof url === 'string' &&
         url.trim() !== '' &&
         self.indexOf(url) === index
-      ).slice(0, 1)
+      ).slice(0, MAX_ITEM_IMAGES)
 
       if (isNewItem && allImageUrls.length === 0) {
         toast.error("Please add at least one image")
@@ -722,28 +697,9 @@ export default function ItemDetailsPage() {
         return
       }
 
-      const normalizedVariants = variants
-        .map((variant) => ({
-          persistedId: String(variant.persistedId || "").trim(),
-          name: String(variant.name || "").trim(),
-          price: Number(variant.price),
-          otherPrice: Number(variant.otherPrice) || 0,
-          sku: String(variant.sku || "").trim(),
-          attributes: variant.attributes,
-          channels: variant.channels || { quick: null, shop: null },
-          stock: channelDraftToPayload(variant.channelStock),
-          lowStockThreshold: channelDraftToPayload(variant.channelThreshold),
-        }))
-        .filter((variant) => variant.name || variant.persistedId || variant.price)
-
-      if (normalizedVariants.some((variant) => !variant.name)) {
-        toast.error("Each variant must have a name")
-        setUploadingImages(false)
-        return
-      }
-
-      if (normalizedVariants.some((variant) => !Number.isFinite(variant.price) || variant.price <= 0)) {
-        toast.error("Each variant price must be greater than 0")
+      const [variantError, variantPayload] = toVariantPayload(variants)
+      if (variantError) {
+        toast.error(variantError)
         setUploadingImages(false)
         return
       }
@@ -754,7 +710,7 @@ export default function ItemDetailsPage() {
         return
       }
 
-      const hasVariants = normalizedVariants.length > 0
+      const hasVariants = variantPayload.length > 0
       const parsedBasePrice = Number(basePrice)
       if (!hasVariants && (!Number.isFinite(parsedBasePrice) || parsedBasePrice < 0)) {
         toast.error("Please enter a valid base price")
@@ -773,18 +729,6 @@ export default function ItemDetailsPage() {
         setUploadingImages(false)
         return
       }
-
-      const variantPayload = normalizedVariants.map((variant) => ({
-        ...(variant.persistedId ? { _id: variant.persistedId } : {}),
-        name: variant.name,
-        price: variant.price,
-        otherPrice: variant.otherPrice > 0 ? variant.otherPrice : 0,
-        sku: variant.sku || undefined,
-        channels: variant.channels,
-        stock: variant.stock,
-        lowStockThreshold: variant.lowStockThreshold,
-        attributes: Array.isArray(variant.attributes) ? variant.attributes : [],
-      }))
 
       // Create/update Product in DB (single call per explicit Save; no autosave spam)
       let itemId
@@ -861,74 +805,6 @@ export default function ItemDetailsPage() {
     } finally {
       setUploadingImages(false)
     }
-  }
-
-  const handleVariantChange = (localId, field, value) => {
-    setVariants((prev) =>
-      prev.map((variant) =>
-        variant.localId === localId ? { ...variant, [field]: value } : variant,
-      ),
-    )
-  }
-
-  const handleAddVariant = () => {
-    setVariants((prev) => [...prev, createVariantDraft()])
-  }
-
-  const handleToggleAttributeValue = (attrName, val) => {
-    setSelectedAttributeValues((prev) => {
-      const current = prev[attrName] || []
-      const next = current.includes(val)
-        ? current.filter((v) => v !== val)
-        : [...current, val]
-      return { ...prev, [attrName]: next }
-    })
-  }
-
-  const handleGenerateVariantMatrix = () => {
-    const activeEntries = Object.entries(selectedAttributeValues)
-      .filter(([_, vals]) => Array.isArray(vals) && vals.length > 0)
-      .map(([name, values]) => ({ name, values }))
-
-    if (activeEntries.length === 0) {
-      toast.error("Please select at least one attribute value to generate variants")
-      return
-    }
-
-    const cartesian = (arrays) => {
-      return arrays.reduce((acc, curr) => {
-        return acc.flatMap((a) => curr.values.map((v) => [...a, { name: curr.name, value: v }]))
-      }, [[]])
-    }
-
-    const combinations = cartesian(activeEntries)
-    const baseSkuPrefix = (itemName || 'PRD').trim().slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '')
-
-    const newVariants = combinations.map((attrCombo, index) => {
-      const variantName = attrCombo.map((a) => a.value).join(' / ')
-      const skuSuffix = attrCombo.map((a) => String(a.value).slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '')).join('-')
-      const sku = `${baseSkuPrefix || 'SKU'}-${skuSuffix}-${index + 1}`
-
-      return {
-        localId: `matrix-var-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`,
-        persistedId: "",
-        name: variantName,
-        price: basePrice ? String(basePrice) : "",
-        otherPrice: otherPrice ? String(otherPrice) : "",
-        channels: { quick: null, shop: null },
-        channelStock: emptyChannelDraft(),
-        channelThreshold: emptyChannelDraft(),
-        sku,
-        attributes: attrCombo,
-      }
-    })
-
-    setVariants(newVariants)
-    toast.success(`Generated ${newVariants.length} variants!`)
-  }
-
-  const handleRemoveVariant = (localId) => {
-    setVariants((prev) => prev.filter((variant) => variant.localId !== localId))
   }
 
   const handleDelete = () => {
@@ -1297,195 +1173,6 @@ export default function ItemDetailsPage() {
                 </div>
               )}
 
-              {/* Modern Variant Matrix Editor */}
-              <div className="rounded-xl border border-gray-200 bg-white p-3.5 md:p-4 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-                      <Layers className="w-4 h-4 text-orange-500 shrink-0" />
-                      Product Variants & Matrix
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Configure multi-attribute combinations (Sizes, Colors) or add individual variant options.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {availableAttributes.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setShowMatrixGenerator(!showMatrixGenerator)}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
-                          showMatrixGenerator
-                            ? "bg-orange-600 text-white shadow-sm"
-                            : "border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
-                        }`}
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        {showMatrixGenerator ? "Close Matrix" : "Matrix Generator"}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleAddVariant}
-                      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Custom
-                    </button>
-                  </div>
-                </div>
-
-                {/* Attribute Matrix Generator Accordion */}
-                {showMatrixGenerator && availableAttributes.length > 0 && (
-                  <div className="rounded-xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <p className="text-xs font-bold text-orange-950 uppercase tracking-wider">
-                        Select Attributes to Cross-Combine:
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleGenerateVariantMatrix}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg text-xs font-bold shadow-sm hover:from-orange-600 hover:to-amber-600 self-start sm:self-auto"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Generate Combinations
-                      </button>
-                    </div>
-
-                    <div className="space-y-3 pt-1">
-                      {availableAttributes.map((attr) => {
-                        const selectedForAttr = selectedAttributeValues[attr.name] || []
-                        const values = Array.isArray(attr.values) ? attr.values : []
-                        return (
-                          <div key={attr._id || attr.name} className="space-y-1.5">
-                            <span className="text-xs font-semibold text-gray-800">{attr.name}:</span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {values.map((v) => {
-                                const valStr = typeof v === 'object' ? v.value : v
-                                const hexCode = typeof v === 'object' ? v.hex : null
-                                const isSelected = selectedForAttr.includes(valStr)
-                                return (
-                                  <button
-                                    key={valStr}
-                                    type="button"
-                                    onClick={() => handleToggleAttributeValue(attr.name, valStr)}
-                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                                      isSelected
-                                        ? "bg-orange-600 text-white shadow-sm font-semibold"
-                                        : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-                                    }`}
-                                  >
-                                    {hexCode && (
-                                      <span
-                                        className="w-3 h-3 rounded-full border border-black/20 shrink-0"
-                                        style={{ backgroundColor: hexCode }}
-                                      />
-                                    )}
-                                    {valStr}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Variants List / Matrix Table */}
-                {variants.length > 0 ? (
-                  <div className="space-y-3">
-                    {variants.map((variant, index) => (
-                      <div key={variant.localId} className="rounded-xl border border-gray-200 bg-gray-50/80 p-3 space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                            Variant #{index + 1}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveVariant(variant.localId)}
-                            className="rounded-full p-1 text-gray-400 hover:bg-white hover:text-red-500 transition-colors"
-                            aria-label="Remove variant"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
-                          <div className="col-span-2 md:col-span-1">
-                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">Variant Name</label>
-                            <input
-                              type="text"
-                              value={variant.name}
-                              onChange={(e) => handleVariantChange(variant.localId, "name", e.target.value)}
-                              placeholder={index === 0 ? "Full / Small" : "Option name"}
-                              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">SKU</label>
-                            <input
-                              type="text"
-                              value={variant.sku || ""}
-                              onChange={(e) => handleVariantChange(variant.localId, "sku", e.target.value)}
-                              placeholder="SKU-..."
-                              className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">Price</label>
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={variant.price}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[\u20B9\s,]/g, '').replace(/[^0-9.]/g, '')
-                                  const parts = value.split('.')
-                                  const cleanedValue = parts.length > 2
-                                    ? parts[0] + '.' + parts.slice(1).join('')
-                                    : value
-                                  handleVariantChange(variant.localId, "price", cleanedValue)
-                                }}
-                                placeholder="0.00"
-                                className="w-full pl-6 pr-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
-                              />
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">{"\u20B9"}</span>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">Other Price</label>
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={variant.otherPrice}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[\u20B9\s,]/g, '').replace(/[^0-9.]/g, '')
-                                  const parts = value.split('.')
-                                  const cleanedValue = parts.length > 2
-                                    ? parts[0] + '.' + parts.slice(1).join('')
-                                    : value
-                                  handleVariantChange(variant.localId, "otherPrice", cleanedValue)
-                                }}
-                                placeholder="MRP"
-                                className="w-full pl-6 pr-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
-                              />
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">{"\u20B9"}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <VariantChannelFields
-                          productChannels={effectiveProdChannels}
-                          variant={variant}
-                          onChange={(field, value) => handleVariantChange(variant.localId, field, value)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500">No variants added. This item will use the base price only.</p>
-                )}
-              </div>
-
               <ProductChannelFields
                 seller={sellerProfile}
                 channels={effectiveProdChannels}
@@ -1495,6 +1182,20 @@ export default function ItemDetailsPage() {
                 threshold={prodThreshold}
                 onThreshold={setProdThreshold}
               />
+
+              {/* Variants: options from the category's attribute set, one row per
+                  combination with its own price, stock per channel and photos. */}
+              <div className="rounded-xl border border-gray-200 bg-white p-3 md:p-4">
+                <VariantMatrixEditor
+                  categoryId={selectedCategoryId}
+                  variants={variants}
+                  onChange={setVariants}
+                  productChannels={effectiveProdChannels}
+                  approvedChannels={approvedChannels}
+                  uploadImage={uploadSellerImage}
+                  showOtherPrice
+                />
+              </div>
 
               {/* Preparation Time */}
               <div className="relative">

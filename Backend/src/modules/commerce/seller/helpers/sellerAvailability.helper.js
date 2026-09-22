@@ -138,6 +138,31 @@ const checkDayWindow = (seller, dayName, nowMinutes) => {
     }
   }
 
+  // With slots, the store is open only inside one of them (the gaps are
+  // closed); the reported window is the current slot, or the next one today.
+  const slots = Array.isArray(timing?.slots)
+    ? timing.slots
+        .map((s) => ({ ...s, startMin: parseTimeToMinutes(s?.start), endMin: parseTimeToMinutes(s?.end) }))
+        .filter((s) => s.startMin !== null && s.endMin !== null)
+    : [];
+  if (slots.length) {
+    const current = slots.find((s) => isWithinTimeWindow(nowMinutes, s.startMin, s.endMin));
+    const shown = current || slots.find((s) => s.startMin > nowMinutes) || slots[0];
+    const last = slots[slots.length - 1];
+    return {
+      isWithin: Boolean(current),
+      isDayClosed: false,
+      hasWindow: true,
+      dayName,
+      openingTime: shown.start,
+      closingTime: shown.end,
+      // For the "yesterday still open past midnight" check: the day's last slot.
+      openingMinutes: last.startMin,
+      closingMinutes: last.endMin,
+      timing,
+    };
+  }
+
   const isWithin = hasExplicitWindow
     ? openingMinutes !== null &&
       closingMinutes !== null &&

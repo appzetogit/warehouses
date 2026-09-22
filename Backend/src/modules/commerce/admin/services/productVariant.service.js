@@ -56,6 +56,31 @@ const normalizeAttributes = (value) => {
     return out;
 };
 
+/** Most photos one variant may carry (the admin and seller editors stop here too). */
+export const MAX_VARIANT_IMAGES = 10;
+
+/**
+ * A variant's own photos: URLs as strings, trimmed and de-duplicated the same
+ * way product images are. More than the limit is refused rather than cut, so a
+ * seller is never told a save worked while photos silently went missing.
+ */
+const normalizeVariantImages = (value, name) => {
+    if (value == null || value === '') return [];
+    if (!Array.isArray(value)) throw new ValidationError(`Images for ${name} must be a list of URLs`);
+    const images = [];
+    for (const raw of value) {
+        if (raw != null && typeof raw !== 'string') {
+            throw new ValidationError(`Images for ${name} must be a list of URLs`);
+        }
+        const url = toTrimmedString(raw);
+        if (url && !images.includes(url)) images.push(url);
+    }
+    if (images.length > MAX_VARIANT_IMAGES) {
+        throw new ValidationError(`${name} can have at most ${MAX_VARIANT_IMAGES} images`);
+    }
+    return images;
+};
+
 /** The same attributes in any order are the same variant. */
 const attributeKey = (attributes = []) =>
     attributes
@@ -117,9 +142,7 @@ export const normalizeProductVariantsInput = (value = [], options = {}) => {
                 barcode: toTrimmedString(entry?.barcode),
                 mrp,
                 ...variantChannelInput(entry, name),
-                images: Array.isArray(entry?.images)
-                    ? entry.images.map(toTrimmedString).filter(Boolean).slice(0, 10)
-                    : [],
+                images: normalizeVariantImages(entry?.images, name),
                 isActive: entry?.isActive !== false,
             };
 

@@ -107,7 +107,8 @@ export default function ProductDetail() {
 
   // Current pricing & stock resolution
   const displayPrice = currentVariant ? currentVariant.price : (product?.price ?? 0)
-  const displayMrp = currentVariant ? currentVariant.mrp : (product?.mrp ?? 0)
+  // A variant without its own MRP uses the product's.
+  const displayMrp = (currentVariant ? currentVariant.mrp ?? product?.mrp : product?.mrp) ?? 0
   const hasDiscount = displayMrp > displayPrice
   const discountPercent = hasDiscount ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100) : 0
   // Stock and availability for this store's channel (see CHANNELS_CONTRACT.md).
@@ -128,14 +129,23 @@ export default function ProductDetail() {
     return matches.length === 0 || matches.some((v) => variantInChannel(v, product, channel))
   }
 
-  // Images list: variant images first, then product images
+  // Images list: the selected variant's own photos first, then the product's
+  // (de-duplicated, so a variant reusing a product photo shows it once).
   const allImages = useMemo(() => {
-    const list = []
-    if (currentVariant?.images?.length) list.push(...currentVariant.images)
-    if (product?.images?.length) list.push(...product.images)
-    if (product?.image && !list.includes(product.image)) list.push(product.image)
-    return list.length > 0 ? list : [brandMarkUrl()]
+    const list = [
+      ...(Array.isArray(currentVariant?.images) ? currentVariant.images : []),
+      ...(Array.isArray(product?.images) ? product.images : []),
+      product?.image,
+    ].filter((u) => typeof u === "string" && u.trim())
+    const unique = [...new Set(list)]
+    return unique.length > 0 ? unique : [brandMarkUrl()]
   }, [product, currentVariant])
+
+  // Picking another variant (e.g. a different colour) starts its gallery at its first photo.
+  const currentVariantId = currentVariant?._id || currentVariant?.id || ""
+  useEffect(() => {
+    setActiveImageIndex(0)
+  }, [currentVariantId])
 
   const handleSelectAttribute = (optName, val) => {
     setSelectedAttrs((prev) => ({ ...prev, [optName]: val }))

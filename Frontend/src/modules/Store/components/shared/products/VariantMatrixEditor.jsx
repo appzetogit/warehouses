@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Loader2, Plus, Trash2, Wand2, Upload, X } from "lucide-react"
 import { toast } from "sonner"
-import { catalogAPI, uploadAPI } from "@store/api"
+import { catalogAPI } from "@store/api"
 
 /**
- * Variant matrix editor for the admin product form.
+ * Variant matrix editor shared by the admin and seller product forms.
  *
  * Options come from the category's attribute set (its own, else its parent's).
- * Without a set the admin can type options freely. "Generate" builds every
+ * Without a set the user can type options freely. "Generate" builds every
  * combination of the picked values; rows that already exist keep their data.
+ *
+ * Role-agnostic: the caller passes how to upload an image (`uploadImage`) and
+ * which channels its seller may sell in (`approvedChannels`).
  *
  * Draft shape (strings for inputs, converted by toVariantPayload):
  * { id, name, attributes: [{ name, value }], sku, barcode, price, otherPrice, mrp,
@@ -22,6 +25,8 @@ import { catalogAPI, uploadAPI } from "@store/api"
 
 export const CHANNELS = ["quick", "shop"]
 export const CHANNEL_LABEL = { quick: "Quick", shop: "Shop" }
+/** Most photos one variant can carry; the product endpoints refuse more. */
+export const MAX_VARIANT_IMAGES = 10
 const overrideToDraft = (v) => (v === true ? "on" : v === false ? "off" : "inherit")
 const overrideToPayload = (v) => (v === "on" ? true : v === "off" ? false : null)
 
@@ -111,7 +116,7 @@ export const toVariantPayload = (drafts = []) => {
       stock,
       lowStockThreshold,
       isActive: d.isActive !== false,
-      images: (d.images || []).map((u) => str(u).trim()).filter(Boolean).slice(0, 10),
+      images: [...new Set((d.images || []).map((u) => str(u).trim()).filter(Boolean))].slice(0, MAX_VARIANT_IMAGES),
     })
   }
   return [null, out]
@@ -121,14 +126,121 @@ const cartesian = (lists) =>
   lists.reduce((acc, list) => acc.flatMap((combo) => list.map((item) => [...combo, item])), [[]])
 
 const inputCls =
-  "w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs outline-none focus:border-slate-900 bg-white"
+  "w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm md:text-xs outline-none focus:border-slate-900 bg-white disabled:bg-slate-100 disabled:text-slate-400"
+
+/** Channel switch + stock + low-stock alert of one variant in one channel. */
+function ChannelCell({ variant, channel, onChannel, labelled = false }) {
+  const off = variant.channels?.[channel] === "off"
+  return (
+    <div className="space-y-1">
+      {labelled && <p className="text-[11px] font-semibold text-slate-700">{CHANNEL_LABEL[channel]}</p>}
+      <select
+        className={inputCls}
+        value={variant.channels?.[channel] || "inherit"}
+        title={`Sell this variant in ${CHANNEL_LABEL[channel]}`}
+        aria-label={`Sell ${variant.name || "this variant"} in ${CHANNEL_LABEL[channel]}`}
+        onChange={(e) => onChannel("channels", channel, e.target.value)}
+      >
+        <option value="inherit">Inherit product</option>
+        <option value="on">On</option>
+        <option value="off">Off</option>
+      </select>
+      <div className="grid grid-cols-2 gap-1">
+        <input
+          type="number"
+          inputMode="numeric"
+          min="0"
+          step="1"
+          className={inputCls}
+          placeholder={labelled ? "Stock (shared)" : "Shared"}
+          title={`${CHANNEL_LABEL[channel]} stock. Empty: draws on the product stock for this channel`}
+          aria-label={`${CHANNEL_LABEL[channel]} stock`}
+          disabled={off}
+          value={variant.stock?.[channel] ?? ""}
+          onChange={(e) => onChannel("stock", channel, e.target.value)}
+        />
+        <input
+          type="number"
+          inputMode="numeric"
+          min="0"
+          step="1"
+          className={inputCls}
+          placeholder={labelled ? "Low alert" : "Low"}
+          title={`${CHANNEL_LABEL[channel]} low-stock alert`}
+          aria-label={`${CHANNEL_LABEL[channel]} low-stock alert`}
+          disabled={off}
+          value={variant.lowStockThreshold?.[channel] ?? ""}
+          onChange={(e) => onChannel("lowStockThreshold", channel, e.target.value)}
+        />
+      </div>
+    </div>
+  )
+}
+
+/** Thumbnails of one variant's photos with remove buttons and an upload tile. */
+function ImagesCell({ variant, onRemove, onUpload, uploading, busy, canUpload, maxImages, large = false }) {
+  const box = large ? "h-14 w-14" : "h-8 w-8"
+  const count = (variant.images || []).length
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {(variant.images || []).map((url) => (
+        <span key={url} className="relative">
+          <img src={url} alt="" className={`${box} rounded border object-cover`} />
+          <button
+            type="button"
+            onClick={() => onRemove(url)}
+            className={`absolute -right-1.5 -top-1.5 rounded-full bg-white text-rose-600 shadow ${large ? "p-0.5" : ""}`}
+            aria-label="Remove image"
+          >
+            <X className={large ? "h-4 w-4" : "h-3 w-3"} />
+          </button>
+        </span>
+      ))}
+      {canUpload && count < maxImages && (
+        <label
+          className={`inline-flex ${box} cursor-pointer items-center justify-center rounded border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50 ${busy ? "cursor-not-allowed opacity-60" : ""}`}
+          title="Add photos of this variant"
+        >
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className={large ? "h-5 w-5" : "h-3.5 w-3.5"} />}
+          <span className="sr-only">Add photos of this variant</span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/webp"
+            multiple
+            className="hidden"
+            disabled={busy}
+            onChange={(e) => {
+              onUpload(e.target.files)
+              e.target.value = ""
+            }}
+          />
+        </label>
+      )}
+      {large && <span className="text-[11px] text-slate-500">{count}/{maxImages}</span>}
+    </div>
+  )
+}
 
 /**
- * `productChannels` = the product's channel toggles { quick, shop }; only enabled
- * channels get stock / override columns.
+ * Props:
+ * - `productChannels`: the product's channel toggles { quick, shop }.
+ * - `approvedChannels`: channels the product's seller may sell in (default both).
+ *   Only channels that are on for the product AND approved get stock / override fields.
+ * - `uploadImage(file) => Promise<url>`: how this panel uploads a photo. Without it,
+ *   existing variant photos are shown and can be removed, but not added.
+ * - `showOtherPrice`: adds the optional "other platform price" per variant.
  */
-export default function VariantMatrixEditor({ categoryId, variants = [], onChange, productChannels = { quick: true, shop: true } }) {
-  const activeChannels = CHANNELS.filter((c) => productChannels?.[c])
+export default function VariantMatrixEditor({
+  categoryId,
+  variants = [],
+  onChange,
+  productChannels = { quick: true, shop: true },
+  approvedChannels = CHANNELS,
+  uploadImage,
+  showOtherPrice = false,
+  maxImages = MAX_VARIANT_IMAGES,
+}) {
+  const activeChannels = CHANNELS.filter((c) => productChannels?.[c] && approvedChannels.includes(c))
   const [attrLoading, setAttrLoading] = useState(false)
   const [attributeSet, setAttributeSet] = useState(null)
   const [setAttributes, setSetAttributes] = useState([])
@@ -138,6 +250,9 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
   const [freeOptions, setFreeOptions] = useState([{ name: "", values: "" }])
   const [defaults, setDefaults] = useState({ price: "", mrp: "", stock_quick: "", stock_shop: "", low_quick: "", low_shop: "" })
   const [uploadingId, setUploadingId] = useState(null)
+  // Uploads finish after the user may have edited other rows; always merge into the latest list.
+  const variantsRef = useRef(variants)
+  variantsRef.current = variants
 
   useEffect(() => {
     let cancelled = false
@@ -164,7 +279,9 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
     }
   }, [categoryId])
 
-  // Pre-select the values the existing variants already use.
+  // Pre-select the values the existing variants already use (also when the
+  // variants arrive after the category's options, as on a loaded edit form).
+  const hasVariants = variants.length > 0
   useEffect(() => {
     const next = {}
     for (const v of variants) {
@@ -182,7 +299,7 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
       )
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setAttributes])
+  }, [setAttributes, hasVariants])
 
   const optionLists = useMemo(() => {
     if (setAttributes.length) {
@@ -266,29 +383,66 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
     )
 
   const uploadImages = async (id, files) => {
-    const list = Array.from(files || [])
+    if (typeof uploadImage !== "function") return
+    const current = variantsRef.current.find((v) => v.id === id)?.images || []
+    const room = maxImages - current.length
+    let list = Array.from(files || [])
     if (!list.length) return
+    if (room <= 0) {
+      toast.error(`A variant can have up to ${maxImages} photos`)
+      return
+    }
+    if (list.length > room) {
+      toast.error(`Only ${room} more photo${room === 1 ? "" : "s"} can be added to this variant`)
+      list = list.slice(0, room)
+    }
     setUploadingId(id)
     try {
-      const urls = await Promise.all(
-        list.map(async (file) => {
-          const res = await uploadAPI.uploadMedia(file, { folder: "products" })
-          return res?.data?.data?.url || res?.data?.url || ""
-        }),
+      const urls = (await Promise.all(list.map((file) => uploadImage(file)))).filter(Boolean)
+      if (!urls.length) throw new Error("Image upload failed")
+      const latest = variantsRef.current
+      onChange(
+        latest.map((v) =>
+          v.id === id ? { ...v, images: [...new Set([...(v.images || []), ...urls])].slice(0, maxImages) } : v,
+        ),
       )
-      const current = variants.find((v) => v.id === id)?.images || []
-      update(id, "images", [...current, ...urls.filter(Boolean)].slice(0, 10))
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Image upload failed")
+      toast.error(err?.response?.data?.message || err?.message || "Image upload failed")
     } finally {
       setUploadingId(null)
     }
   }
 
+  const imagesCell = (v, large) => (
+    <ImagesCell
+      variant={v}
+      large={large}
+      maxImages={maxImages}
+      canUpload={typeof uploadImage === "function"}
+      uploading={uploadingId === v.id}
+      busy={uploadingId !== null}
+      onRemove={(url) => update(v.id, "images", (v.images || []).filter((u) => u !== url))}
+      onUpload={(files) => uploadImages(v.id, files)}
+    />
+  )
+
+  const attributeChips = (v) =>
+    v.attributes?.length ? (
+      <div className="mb-1 flex flex-wrap gap-1">
+        {v.attributes.map((a) => (
+          <span key={a.name} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-700">
+            {a.name}: {a.value}
+          </span>
+        ))}
+      </div>
+    ) : null
+
+  const namePlaceholder = (v) => (v.attributes?.length ? v.attributes.map((a) => a.value).join(" / ") : "Name (e.g. 500 g)")
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-900">Variants</p>
           <p className="text-xs text-slate-500">
             {attrLoading
@@ -325,6 +479,7 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
                     <button
                       key={v.value}
                       type="button"
+                      aria-pressed={!!on}
                       onClick={() => togglePick(attr.name, v.value)}
                       className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs ${
                         on ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"
@@ -342,10 +497,11 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
         ) : (
           <div className="space-y-2">
             {freeOptions.map((opt, i) => (
-              <div key={i} className="grid grid-cols-[140px_1fr_auto] gap-2">
+              <div key={i} className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] gap-2 sm:grid-cols-[140px_1fr_auto]">
                 <input
                   className={inputCls}
                   placeholder="Option (e.g. Size)"
+                  aria-label="Option name"
                   value={opt.name}
                   onChange={(e) =>
                     setFreeOptions((prev) => prev.map((o, j) => (j === i ? { ...o, name: e.target.value } : o)))
@@ -354,6 +510,7 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
                 <input
                   className={inputCls}
                   placeholder="Values, comma separated (e.g. S, M, L)"
+                  aria-label="Option values, comma separated"
                   value={opt.values}
                   onChange={(e) =>
                     setFreeOptions((prev) => prev.map((o, j) => (j === i ? { ...o, values: e.target.value } : o)))
@@ -392,6 +549,7 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
               <label className="mb-1 block text-[11px] font-medium text-slate-600">{label}</label>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
                 className={inputCls}
                 value={defaults[key]}
@@ -425,141 +583,143 @@ export default function VariantMatrixEditor({ categoryId, variants = [], onChang
 
       {/* Matrix */}
       {variants.length ? (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full min-w-[900px] text-xs">
-            <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-600">
-              <tr>
-                <th className="px-2 py-2 text-left">Variant</th>
-                <th className="px-2 py-2 text-left">SKU</th>
-                <th className="px-2 py-2 text-left">Price *</th>
-                <th className="px-2 py-2 text-left">MRP</th>
-                {activeChannels.map((c) => (
-                  <th key={c} className="px-2 py-2 text-left">{CHANNEL_LABEL[c]}: sell / stock / low</th>
-                ))}
-                <th className="px-2 py-2 text-center">Active</th>
-                <th className="px-2 py-2 text-left">Images</th>
-                <th className="px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {variants.map((v) => (
-                <tr key={v.id} className={v.isActive ? "" : "bg-slate-50 text-slate-400"}>
-                  <td className="px-2 py-2 align-top min-w-[150px]">
-                    {v.attributes?.length ? (
-                      <div className="mb-1 flex flex-wrap gap-1">
-                        {v.attributes.map((a) => (
-                          <span key={a.name} className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-700">
-                            {a.name}: {a.value}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                    <input
-                      className={inputCls}
-                      placeholder={v.attributes?.length ? v.attributes.map((a) => a.value).join(" / ") : "Name (e.g. 500 g)"}
-                      value={v.name}
-                      onChange={(e) => update(v.id, "name", e.target.value)}
-                    />
-                  </td>
-                  <td className="px-2 py-2 align-top w-28">
-                    <input className={inputCls} value={v.sku} onChange={(e) => update(v.id, "sku", e.target.value)} />
-                  </td>
-                  <td className="px-2 py-2 align-top w-24">
-                    <input type="number" min="0" step="0.01" className={inputCls} value={v.price} onChange={(e) => update(v.id, "price", e.target.value)} />
-                  </td>
-                  <td className="px-2 py-2 align-top w-24">
-                    <input type="number" min="0" step="0.01" className={inputCls} value={v.mrp} onChange={(e) => update(v.id, "mrp", e.target.value)} />
-                  </td>
-                  {activeChannels.map((c) => (
-                    <td key={c} className="px-2 py-2 align-top w-40">
-                      <div className="space-y-1">
-                        <select
-                          className={inputCls}
-                          value={v.channels?.[c] || "inherit"}
-                          title={`Sell this variant in ${CHANNEL_LABEL[c]}`}
-                          onChange={(e) => updateChannel(v.id, "channels", c, e.target.value)}
-                        >
-                          <option value="inherit">Inherit product</option>
-                          <option value="on">On</option>
-                          <option value="off">Off</option>
-                        </select>
-                        <div className="grid grid-cols-2 gap-1">
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            className={inputCls}
-                            placeholder="Shared"
-                            title={`${CHANNEL_LABEL[c]} stock. Empty: draws on the product stock for this channel`}
-                            disabled={v.channels?.[c] === "off"}
-                            value={v.stock?.[c] ?? ""}
-                            onChange={(e) => updateChannel(v.id, "stock", c, e.target.value)}
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            className={inputCls}
-                            placeholder="Low"
-                            title={`${CHANNEL_LABEL[c]} low-stock alert`}
-                            disabled={v.channels?.[c] === "off"}
-                            value={v.lowStockThreshold?.[c] ?? ""}
-                            onChange={(e) => updateChannel(v.id, "lowStockThreshold", c, e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                  ))}
-                  <td className="px-2 py-2 align-top text-center">
-                    <input type="checkbox" checked={v.isActive} onChange={(e) => update(v.id, "isActive", e.target.checked)} />
-                  </td>
-                  <td className="px-2 py-2 align-top min-w-[140px]">
-                    <div className="flex flex-wrap items-center gap-1">
-                      {(v.images || []).map((url) => (
-                        <span key={url} className="relative">
-                          <img src={url} alt="" className="h-8 w-8 rounded border object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => update(v.id, "images", v.images.filter((u) => u !== url))}
-                            className="absolute -right-1 -top-1 rounded-full bg-white text-rose-600 shadow"
-                            aria-label="Remove image"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                      <label className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50">
-                        {uploadingId === v.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/webp"
-                          multiple
-                          className="hidden"
-                          disabled={uploadingId !== null}
-                          onChange={(e) => {
-                            uploadImages(v.id, e.target.files)
-                            e.target.value = ""
-                          }}
-                        />
-                      </label>
+        <div className="rounded-lg border border-slate-200 bg-white">
+          {/* Phones: one card per variant. */}
+          <ul className="divide-y divide-slate-200 md:hidden">
+            {variants.map((v) => (
+              <li key={v.id} className={`space-y-2.5 p-3 ${v.isActive ? "" : "bg-slate-50"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">{attributeChips(v)}</div>
+                  <button
+                    type="button"
+                    onClick={() => remove(v.id)}
+                    className="-mr-1 -mt-1 rounded-md p-2 text-rose-600 hover:bg-rose-50"
+                    aria-label="Remove variant"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium text-slate-600">Name</label>
+                  <input
+                    className={inputCls}
+                    placeholder={namePlaceholder(v)}
+                    value={v.name}
+                    onChange={(e) => update(v.id, "name", e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-slate-600">Price *</label>
+                    <input type="number" inputMode="decimal" min="0" step="0.01" className={inputCls} value={v.price} onChange={(e) => update(v.id, "price", e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-slate-600">MRP</label>
+                    <input type="number" inputMode="decimal" min="0" step="0.01" className={inputCls} value={v.mrp} onChange={(e) => update(v.id, "mrp", e.target.value)} />
+                  </div>
+                  {showOtherPrice && (
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-slate-600">Other platform price</label>
+                      <input type="number" inputMode="decimal" min="0" step="0.01" className={inputCls} value={v.otherPrice} onChange={(e) => update(v.id, "otherPrice", e.target.value)} />
                     </div>
-                  </td>
-                  <td className="px-2 py-2 align-top">
-                    <button
-                      type="button"
-                      onClick={() => remove(v.id)}
-                      className="rounded-md p-1.5 text-rose-600 hover:bg-rose-50"
-                      aria-label="Remove variant"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
+                  )}
+                  <div className={showOtherPrice ? "" : "col-span-2"}>
+                    <label className="mb-1 block text-[11px] font-medium text-slate-600">SKU</label>
+                    <input className={inputCls} value={v.sku} onChange={(e) => update(v.id, "sku", e.target.value)} />
+                  </div>
+                </div>
+                {activeChannels.length > 0 && (
+                  <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
+                    {activeChannels.map((c) => (
+                      <div key={c} className="rounded-md border border-slate-200 p-2">
+                        <ChannelCell variant={v} channel={c} labelled onChannel={(field, ch, value) => updateChannel(v.id, field, ch, value)} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div>
+                  <p className="mb-1 text-[11px] font-medium text-slate-600">Photos of this variant</p>
+                  {imagesCell(v, true)}
+                </div>
+                <label className="flex items-center gap-2 text-xs text-slate-700">
+                  <input type="checkbox" className="h-4 w-4" checked={v.isActive} onChange={(e) => update(v.id, "isActive", e.target.checked)} />
+                  Active (customers can buy it)
+                </label>
+              </li>
+            ))}
+          </ul>
+
+          {/* Wider screens: one row per variant. */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[900px] text-xs">
+              <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-600">
+                <tr>
+                  <th className="px-2 py-2 text-left">Variant</th>
+                  <th className="px-2 py-2 text-left">SKU</th>
+                  <th className="px-2 py-2 text-left">Price *</th>
+                  <th className="px-2 py-2 text-left">MRP</th>
+                  {showOtherPrice && <th className="px-2 py-2 text-left">Other price</th>}
+                  {activeChannels.map((c) => (
+                    <th key={c} className="px-2 py-2 text-left">{CHANNEL_LABEL[c]}: sell / stock / low</th>
+                  ))}
+                  <th className="px-2 py-2 text-center">Active</th>
+                  <th className="px-2 py-2 text-left">Images</th>
+                  <th className="px-2 py-2" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="px-3 py-2 text-[11px] text-slate-500">
-            Each channel has its own stock. Empty stock means the variant draws on the product&apos;s stock for that channel. Empty MRP falls back to the product&apos;s MRP.
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {variants.map((v) => (
+                  <tr key={v.id} className={v.isActive ? "" : "bg-slate-50 text-slate-400"}>
+                    <td className="px-2 py-2 align-top min-w-[150px]">
+                      {attributeChips(v)}
+                      <input
+                        className={inputCls}
+                        placeholder={namePlaceholder(v)}
+                        aria-label="Variant name"
+                        value={v.name}
+                        onChange={(e) => update(v.id, "name", e.target.value)}
+                      />
+                    </td>
+                    <td className="px-2 py-2 align-top w-28">
+                      <input className={inputCls} aria-label="SKU" value={v.sku} onChange={(e) => update(v.id, "sku", e.target.value)} />
+                    </td>
+                    <td className="px-2 py-2 align-top w-24">
+                      <input type="number" min="0" step="0.01" className={inputCls} aria-label="Price" value={v.price} onChange={(e) => update(v.id, "price", e.target.value)} />
+                    </td>
+                    <td className="px-2 py-2 align-top w-24">
+                      <input type="number" min="0" step="0.01" className={inputCls} aria-label="MRP" value={v.mrp} onChange={(e) => update(v.id, "mrp", e.target.value)} />
+                    </td>
+                    {showOtherPrice && (
+                      <td className="px-2 py-2 align-top w-24">
+                        <input type="number" min="0" step="0.01" className={inputCls} aria-label="Other platform price" value={v.otherPrice} onChange={(e) => update(v.id, "otherPrice", e.target.value)} />
+                      </td>
+                    )}
+                    {activeChannels.map((c) => (
+                      <td key={c} className="px-2 py-2 align-top w-40">
+                        <ChannelCell variant={v} channel={c} onChannel={(field, ch, value) => updateChannel(v.id, field, ch, value)} />
+                      </td>
+                    ))}
+                    <td className="px-2 py-2 align-top text-center">
+                      <input type="checkbox" aria-label="Active" checked={v.isActive} onChange={(e) => update(v.id, "isActive", e.target.checked)} />
+                    </td>
+                    <td className="px-2 py-2 align-top min-w-[140px]">{imagesCell(v, false)}</td>
+                    <td className="px-2 py-2 align-top">
+                      <button
+                        type="button"
+                        onClick={() => remove(v.id)}
+                        className="rounded-md p-1.5 text-rose-600 hover:bg-rose-50"
+                        aria-label="Remove variant"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="border-t border-slate-100 px-3 py-2 text-[11px] text-slate-500">
+            Each channel has its own stock. Empty stock means the variant draws on the product&apos;s stock for that channel. Empty MRP falls back to the product&apos;s MRP. Variant photos show first when a customer picks that variant.
           </p>
         </div>
       ) : (

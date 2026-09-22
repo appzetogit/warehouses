@@ -25,8 +25,27 @@ import {
   PopoverTrigger,
 } from "@store/components/ui/popover"
 import { useCompanyName } from "@store/hooks/useCompanyName"
-// Same key the rest of the seller app registers (and clears on logout).
-const STORAGE_KEY = "seller_outlet_timings"
+import { sellerAPI } from "@store/api"
+import { toast } from "sonner"
+
+// The server keeps slots as 24h "HH:mm"; this page edits 12h time + am/pm.
+const to12h = (hhmm) => {
+  const [h, m] = String(hhmm || "00:00").split(":").map(Number)
+  const period = h >= 12 ? "pm" : "am"
+  const hour = h % 12 === 0 ? 12 : h % 12
+  return { time: `${String(hour).padStart(2, "0")}:${String(m).padStart(2, "0")}`, period }
+}
+const to24h = (time, period) => {
+  let [h, m] = String(time || "12:00").split(":").map(Number)
+  if (period === "pm" && h !== 12) h += 12
+  if (period === "am" && h === 12) h = 0
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+}
+const toUiSlot = (slot, i) => {
+  const a = to12h(slot.start)
+  const b = to12h(slot.end)
+  return { id: Date.now() + i, start: a.time, startPeriod: a.period, end: b.time, endPeriod: b.period }
+}
 
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -35,7 +54,7 @@ const debugError = (...args) => {}
 
 const getDefaultDayData = () => ({
   isOpen: true,
-  slots: [{ id: Date.now(), start: "03:45", end: "02:15", startPeriod: "am", endPeriod: "pm" }]
+  slots: [{ id: Date.now(), start: "09:00", end: "10:00", startPeriod: "am", endPeriod: "pm" }]
 })
 
 // Time Picker Wheel Component
@@ -388,6 +407,23 @@ export default function DaySlots() {
   const dayName = day ? day.charAt(0).toUpperCase() + day.slice(1) : "Monday"
   
   const [dayData, setDayData] = useState(getDefaultDayData)
+  const [saving, setSaving] = useState(false)
+
+  // Load this day's saved slots (or its single window) from the server.
+  useEffect(() => {
+    let cancelled = false
+    sellerAPI.getOutletTimings()
+      .then((res) => {
+        const day = res?.data?.data?.outletTimings?.[dayName]
+        if (cancelled || !day || day.isOpen === false) return
+        const slots = Array.isArray(day.slots) && day.slots.length
+          ? day.slots
+          : day.openingTime && day.closingTime ? [{ start: day.openingTime, end: day.closingTime }] : []
+        if (slots.length) setDayData({ isOpen: true, slots: slots.map(toUiSlot) })
+      })
+      .catch((error) => debugError("Error loading day slots:", error))
+    return () => { cancelled = true }
+  }, [dayName])
 
   const [copyToAllDays, setCopyToAllDays] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -533,28 +569,29 @@ export default function DaySlots() {
     }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) return
+    setSaving(true)
     try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      let allDays = saved ? JSON.parse(saved) : {}
-
-      if (copyToAllDays) {
-        // Copy to all days
-        const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        dayNames.forEach(d => {
-          allDays[d] = { ...dayData }
-        })
-      } else {
-        // Update only current day
-        allDays[dayName] = dayData
-      }
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(allDays))
+      const slots = dayData.slots.map((slot) => ({
+        start: to24h(slot.start, slot.startPeriod),
+        end: to24h(slot.end, slot.endPeriod),
+      }))
+      const res = await sellerAPI.getOutletTimings()
+      const allDays = { ...(res?.data?.data?.outletTimings || {}) }
+      const sorted = [...slots].sort((x, y) => x.start.localeCompare(y.start))
+      const entry = { isOpen: true, slots, openingTime: sorted[0]?.start, closingTime: sorted[sorted.length - 1]?.end }
+      const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      for (const d of copyToAllDays ? dayNames : [dayName]) allDays[d] = { ...entry }
+      await sellerAPI.saveOutletTimings(allDays)
       window.dispatchEvent(new Event("outletTimingsUpdated"))
+      toast.success(copyToAllDays ? "Slots saved for every day" : `${dayName} slots saved`)
       navigate("/seller/outlet-timings")
     } catch (error) {
       debugError("Error saving day slots:", error)
-      alert("Error saving slots. Please try again.")
+      toast.error(error?.response?.data?.message || "Couldn't save the slots. Please try again.")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -728,9 +765,10 @@ export default function DaySlots() {
           {/* Save Button */}
           <Button
             onClick={handleSave}
-            className="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 rounded-lg"
+            disabled={saving}
+            className="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 rounded-lg disabled:opacity-60"
           >
-            Save
+            {saving ? "Saving…" : "Save"}
           </Button>
         </div>
       </div>

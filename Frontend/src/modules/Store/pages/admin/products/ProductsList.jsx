@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@store/compone
 import { Popover, PopoverContent, PopoverTrigger } from "@store/components/ui/popover"
 import { getProductDisplayOtherPrice, getProductDisplayPrice, getProductVariants } from "@store/utils/productVariants"
 import { canCurrentAdminAction } from "@store/utils/adminRbac"
-import VariantMatrixEditor, { CHANNELS, CHANNEL_LABEL, createVariantDraft, perChannelDraft, perChannelPayload, toVariantPayload } from "@store/components/admin/products/VariantMatrixEditor"
+import VariantMatrixEditor, { CHANNELS, CHANNEL_LABEL, createVariantDraft, perChannelDraft, perChannelPayload, toVariantPayload } from "@store/components/shared/products/VariantMatrixEditor"
 import { getApprovedChannels } from "@store/components/admin/sellers/SellerChannels"
 import { useAdminPanel } from "@store/components/admin/useAdminPanel"
 const debugLog = (...args) => {}
@@ -372,6 +372,12 @@ export default function ProductsList() {
   const clampChannels = (channels, sellerId) => {
     const allowed = allowedChannelsFor(sellerId)
     return { quick: !!channels?.quick && allowed.includes("quick"), shop: !!channels?.shop && allowed.includes("shop") }
+  }
+
+  /** Variant photos go to the same folder as product photos. */
+  const uploadAdminVariantImage = async (file) => {
+    const res = await uploadAPI.uploadMedia(file, { folder: "products" })
+    return res?.data?.data?.url || res?.data?.url || ""
   }
 
   const openAddProductModal = () => {
@@ -1468,6 +1474,8 @@ export default function ProductsList() {
                 variants={productForm.variants || []}
                 onChange={handleVariantsChange}
                 productChannels={clampChannels(productForm.channels, productForm.sellerId)}
+                approvedChannels={allowedChannelsFor(productForm.sellerId)}
+                uploadImage={uploadAdminVariantImage}
               />
             </div>
             <div className="flex justify-end">

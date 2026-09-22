@@ -89,6 +89,28 @@ function DayTimePicker({ value, onChange, placeholder }) {
   )
 }
 
+/** "Split into time slots" link, with the day's current slots when it has them. */
+function SlotsLink({ day, dayData, navigate, className = "" }) {
+  if (!dayData?.isOpen) return null
+  const slots = Array.isArray(dayData.slots) ? dayData.slots : []
+  return (
+    <div className={className}>
+      {slots.length > 0 && (
+        <p className="text-xs text-gray-600">
+          {slots.length} slots: {slots.map((sl) => `${formatTime12Hour(sl.start)}–${formatTime12Hour(sl.end)}`).join(", ")}
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={() => navigate(`/seller/outlet-timings/${day.toLowerCase()}`)}
+        className="text-xs font-semibold text-wh-brand-ink underline-offset-2 hover:underline"
+      >
+        {slots.length > 0 ? "Edit time slots" : "Split into time slots"}
+      </button>
+    </div>
+  )
+}
+
 export default function OutletTimings() {
   const companyName = useCompanyName()
   const navigate = useNavigate()
@@ -272,7 +294,10 @@ export default function OutletTimings() {
                   key={`desktop-${day}`}
                   className="grid grid-cols-[140px_100px_1fr_1fr] gap-4 px-6 py-5 border-b border-slate-100 items-start last:border-b-0"
                 >
-                  <span className="text-sm font-semibold text-gray-900 pt-2">{day}</span>
+                  <div className="pt-2">
+                    <span className="text-sm font-semibold text-gray-900">{day}</span>
+                    <SlotsLink day={day} dayData={dayData} navigate={navigate} className="mt-1 space-y-0.5" />
+                  </div>
                   <div className="flex flex-col gap-1.5 pt-1">
                     <span className="text-xs font-medium text-gray-600">
                       {dayData.isOpen ? "Open" : "Closed"}
@@ -401,6 +426,7 @@ export default function OutletTimings() {
                                   Current: {formatTime12Hour(dayData.closingTime)}
                                 </p>
                               </div>
+                              <SlotsLink day={day} dayData={dayData} navigate={navigate} className="pl-6 space-y-1" />
                             </>
                           ) : (
                             <p className="text-sm text-gray-500 pl-6">This day is closed</p>
