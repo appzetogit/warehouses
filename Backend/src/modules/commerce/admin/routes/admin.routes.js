@@ -4,6 +4,7 @@ import * as attributeController from '../controllers/attribute.controller.js';
 import { AuthError } from '../../../../core/auth/errors.js';
 import * as adminController from '../controllers/admin.controller.js';
 import * as productApprovalController from '../controllers/productApproval.controller.js';
+import * as adminInventoryController from '../controllers/adminInventory.controller.js';
 import * as businessSettingsController from '../controllers/businessSettings.controller.js';
 import * as feedbackExperienceController from '../controllers/feedbackExperience.controller.js';
 import * as notificationBroadcastController from '../controllers/notificationBroadcast.controller.js';
@@ -30,6 +31,7 @@ import shipmentReturnAdminRoutes from '../../orders/routes/shipmentReturn.admin.
 import { pushCampaignAdminRoutes, firstOrderGuardAdminRoutes } from '../../campaigns/routes/pushCampaign.admin.routes.js';
 import aiAdminRoutes from '../../ai/routes/aiAdmin.routes.js';
 import courierOpsAdminRoutes from '../../orders/routes/courierOps.admin.routes.js';
+import { adminReviewRoutes } from '../../reviews/routes/productReview.routes.js';
 
 const router = express.Router();
 
@@ -78,7 +80,9 @@ const resolveSectionFromRequest = (path = '', method = '') => {
         path.startsWith('/categories') ||
         path.startsWith('/products') ||
         path.startsWith('/attributes') ||
-        path.startsWith('/attribute-sets')
+        path.startsWith('/attribute-sets') ||
+        path.startsWith('/product-reviews') ||
+        path.startsWith('/inventory')
     ) return 'product_management';
     if (path.startsWith('/offers') || path.startsWith('/spin') || path.startsWith('/push-campaigns') || path.startsWith('/first-order-guard')) return 'promotions_management';
     if (path.startsWith('/orders') || path.startsWith('/order-detect-delivery')) return 'order_management';
@@ -308,11 +312,13 @@ const invalidatePublicMenus = async (_req, _res, next) => {
 router.post('/products', invalidatePublicMenus, adminController.createProduct);
 router.patch('/products/:id', invalidatePublicMenus, adminController.updateProduct);
 router.delete('/products/:id', invalidatePublicMenus, adminController.deleteProduct);
-// Food approval queue (pending items created by sellers)
+// Product approval queue (pending items created by sellers)
 router.get('/products/pending-approvals', productApprovalController.getPendingProductApprovals);
 router.patch('/products/:id/approve', productApprovalController.approveProductController);
 router.patch('/products/:id/reject', productApprovalController.rejectProductController);
 router.post('/products/bulk-approve', adminController.bulkApproveProducts);
+// Low stock per channel (admin panel). Same permission as the product pages.
+router.get('/inventory/low-stock', requireAdminPermission('product_management', 'view'), adminInventoryController.getLowStock);
 
 
 // ----- Offers & Coupons -----
@@ -517,7 +523,10 @@ router.get('/notifications/fssai-expired', adminController.getExpiredFssaiNotifi
 // ----- Platform Coins (Promotional liability ledger & settings) -----
 // ----- Spin wheel -----
 router.use('/push-campaigns', pushCampaignAdminRoutes);
+router.post('/first-order-guard/claims/:id/release', adminInventoryController.releaseFirstOrderClaim);
 router.use('/first-order-guard', firstOrderGuardAdminRoutes);
+// Product review moderation (section product_management: GET view, PATCH edit, DELETE delete).
+router.use('/product-reviews', adminReviewRoutes);
 router.get('/spin/campaigns', spinController.listSpinCampaignsController);
 router.post('/spin/campaigns', spinController.createSpinCampaignController);
 router.patch('/spin/campaigns/:id', spinController.updateSpinCampaignController);

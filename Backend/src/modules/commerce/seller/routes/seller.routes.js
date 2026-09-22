@@ -66,6 +66,7 @@ import {
 import * as orderController from '../../orders/controllers/order.controller.js';
 import { listReturnsSellerController } from '../../orders/controllers/shipmentReturn.controller.js';
 import { authMiddleware } from '../../../../core/auth/auth.middleware.js';
+import { sellerReviewRoutes } from '../../reviews/routes/productReview.routes.js';
 import { sendError } from '../../../../utils/response.js';
 import { getSellerFinanceController } from '../controllers/sellerFinance.controller.js';
 import {
@@ -278,5 +279,8 @@ router.get('/my-offers', authMiddleware, requireSeller, listSellerOffersControll
 router.post('/my-offers', authMiddleware, requireSeller, createSellerOfferController);
 router.patch('/my-offers/:id/status', authMiddleware, requireSeller, updateSellerOfferStatusController);
 router.delete('/my-offers/:id', authMiddleware, requireSeller, deleteSellerOfferController);
+
+// Product reviews of this store's products: list, reply once, report.
+router.use('/reviews', authMiddleware, requireSeller, sellerReviewRoutes);
 
 export default router;

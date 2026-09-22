@@ -159,7 +159,8 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
 
   const topGroup = productGroups[0]
   const recommendedList = recommended.filter((p) => p?._id)
-  const mode = isQuick ? "quick" : undefined
+  // Every tile says when it arrives: minutes (zone ETA) on Quick, a date on Shop.
+  const mode = isQuick ? "quick" : "shop"
 
   return (
     <div className="min-h-screen bg-wh-page pb-8">

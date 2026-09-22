@@ -1,12 +1,15 @@
-export const FEATURE_SETTINGS_OWNER_EMAIL = "badeadmin@gmail.com"
+/**
+ * Super-admin-only areas: Feature Settings and the "Super Powers" pages
+ * (Power Scanning). The backend requires system_settings for these, which only
+ * a super admin holds, so the UI gates on the same thing: the account type,
+ * never a particular email.
+ */
+const isSuperAdmin = (adminUser) => String(adminUser?.adminType || "") === "super_admin"
 
 export function canAccessFeatureSettings(adminUser) {
-  if ((adminUser?.adminType || "") === "super_admin") return true
-  const email = String(adminUser?.email || "").trim().toLowerCase()
-  return email === FEATURE_SETTINGS_OWNER_EMAIL
+  return isSuperAdmin(adminUser)
 }
 
 export function canAccessSuperPowers(adminUser) {
-  const email = String(adminUser?.email || "").trim().toLowerCase()
-  return email === FEATURE_SETTINGS_OWNER_EMAIL
+  return isSuperAdmin(adminUser)
 }

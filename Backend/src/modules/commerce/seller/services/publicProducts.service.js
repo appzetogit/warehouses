@@ -10,6 +10,7 @@ import {
     parseFulfilmentMode
 } from '../../search/validators/storefront.validator.js';
 import { productChannelFields, serializeSellerChannels } from '../../shared/channels.js';
+import { productRatingFields } from '../../reviews/services/productReview.service.js';
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -121,6 +122,7 @@ export async function listPublicProducts(query = {}) {
                 : (product.image ? [product.image] : []),
             foodType: product.foodType || null,
             tags: Array.isArray(product.tags) ? product.tags : [],
+            ...productRatingFields(product),
             isAvailable: product.isAvailable !== false,
             preparationTime: product.preparationTime || '',
             approvalStatus: product.approvalStatus || 'approved'
@@ -197,8 +199,8 @@ export async function getPublicProduct(productId, query = {}) {
             isAvailable: product.isAvailable !== false,
             ...productChannelFields(product, channel, seller),
             maxQtyPerOrder: product.maxQtyPerOrder ?? null,
-            rating: product.rating || 0,
-            totalRatings: product.totalRatings || 0,
+            // rating/averageRating, totalRatings/reviewCount and ratingHistogram {1..5}, from reviews.
+            ...productRatingFields(product),
             tags: product.tags || [],
             variants,
             options,

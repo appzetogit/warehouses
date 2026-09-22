@@ -17,7 +17,7 @@ import { adminAPI } from "@store/api"
 import { searchAPI } from "@/services/api"
 import { API_BASE_URL } from "@store/api/config"
 import { isModuleAuthenticated } from "@store/utils/auth"
-import { channelAvailability, stockLabel, CHANNEL_COPY } from "@store/utils/channelStock"
+import { channelAvailability, stockLabel } from "@store/utils/channelStock"
 import { ImagePlaceholder, isRealImage, CtaButton, DealBadge, DeliveryPromise, PriceTag, percentOff } from "./ui"
 
 const cx = (...a) => a.filter(Boolean).join(" ")
@@ -98,7 +98,7 @@ export function StockDeliveryLine({ product, channel, etaMinutes }) {
       {channel === "quick" ? (
         <DeliveryPromise mode="quick" etaMinutes={etaMinutes} />
       ) : (
-        <p className="text-[13px] font-medium text-wh-success">Delivered in {CHANNEL_COPY.shop.eta.replace(/^delivered in /i, "")}</p>
+        <DeliveryPromise mode="shop" />
       )}
       {availability.low ? <p className="text-[12px] text-wh-deal">{stockLabel(availability)}</p> : null}
     </div>
@@ -139,7 +139,7 @@ export function ListingTile({ product, channel, etaMinutes, onAddToCart }) {
           <PriceTag price={price} mrp={mrp} />
           {off ? <DealBadge percent={off} /> : null}
         </div>
-        <StockDeliveryLine product={product} channel={channel} etaMinutes={etaMinutes ?? product.seller?.estimatedDeliveryTimeMinutes} />
+        <StockDeliveryLine product={product} channel={channel} etaMinutes={etaMinutes} />
         {onAddToCart ? (
           <div className="mt-auto pt-2">
             <CtaButton disabled={!inStock} onClick={() => onAddToCart(product)}>
@@ -176,13 +176,17 @@ function Check({ checked, onChange, children }) {
 
 /** Category tree built from the public categories (parentId groups subcategories). */
 export function buildCategoryTree(list = []) {
-  const rows = (Array.isArray(list) ? list : []).map((c) => ({
+  const rows = (Array.isArray(list) ? list : []).map((c, i) => ({
     id: String(c._id || c.id || ""),
     slug: c.slug || String(c.name || "").toLowerCase().replace(/\s+/g, "-"),
     name: c.name || "",
     image: c.image || c.imageUrl || "",
     parentId: c.parentId ? String(c.parentId?._id || c.parentId) : null,
+    sortOrder: Number(c.sortOrder) || 0,
+    order: i,
   })).filter((c) => c.id && c.name)
+    // The API appends product-less parents after the listed categories; restore sortOrder.
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.order - b.order)
   const ids = new Set(rows.map((r) => r.id))
   const top = rows.filter((r) => !r.parentId || !ids.has(r.parentId))
   return top.map((t) => ({ ...t, children: rows.filter((r) => r.parentId === t.id) }))
@@ -294,7 +298,8 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
   // A new query or category starts clean.
   useEffect(() => {
     setFilters(EMPTY_FILTERS)
-    setRemovedChips([])
+    // Keep the same array when nothing was removed, or the search re-runs for nothing.
+    setRemovedChips((c) => (c.length ? [] : c))
     setPage(1)
   }, [q, effectiveCategoryId])
 

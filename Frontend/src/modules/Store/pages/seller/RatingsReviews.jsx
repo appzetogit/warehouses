@@ -152,6 +152,13 @@ export default function RatingsReviews() {
           <span>View order ratings</span>
           <ChevronRight className="w-4 h-4" />
         </button>
+        <button
+          onClick={() => navigate("/seller/dish-ratings")}
+          className="mt-2 flex items-center gap-1 text-blue-600 text-sm font-normal hover:text-blue-700 transition-colors"
+        >
+          <span>Product reviews &amp; replies</span>
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Select Your Concern Section */}

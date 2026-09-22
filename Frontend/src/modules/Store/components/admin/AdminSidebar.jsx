@@ -55,6 +55,7 @@ import {
   Banknote,
   Layers,
   BellRing,
+  Star,
 } from "lucide-react"
 import { cn } from "@store/utils/utils"
 import { Input } from "@store/components/ui/input"
@@ -72,6 +73,7 @@ const debugError = (...args) => {}
 
 // Icon mapping
 const iconMap = {
+  Star,
   BellRing,
   RotateCcw,
   Banknote,

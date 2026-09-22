@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { useSearchParams } from "react-router-dom"
 import { Search, Trash2, Loader2, Eye, Pencil, Plus, Save, ChevronDown, ChevronLeft, ChevronRight, FileUp, Download, X, Upload } from "lucide-react"
 import { adminAPI, uploadAPI } from "@store/api"
@@ -64,8 +64,10 @@ export default function ProductsList() {
   const { channel } = useAdminPanel()
   // sellerId -> seller.channels, used to limit the product channel toggles.
   const [sellerChannelsById, setSellerChannelsById] = useState({})
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedSeller, setSelectedSeller] = useState("all")
+  // Deep links (e.g. from Low Stock): ?sellerId=&search=&productId=&edit=1
+  const [initialParams] = useState(() => new URLSearchParams(window.location.search))
+  const [searchQuery, setSearchQuery] = useState(() => initialParams.get("search") || "")
+  const [selectedSeller, setSelectedSeller] = useState(() => initialParams.get("sellerId") || "all")
   const [products, setProducts] = useState([])
   const [sellersForFilter, setSellersForFilter] = useState([])
   const [loading, setLoading] = useState(true)
@@ -124,7 +126,7 @@ export default function ProductsList() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [totalProducts, setTotalProducts] = useState(0)
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(() => initialParams.get("search") || "")
   const [imageVersion, setImageVersion] = useState(Date.now())
   const [sellerFilterSearch, setSellerFilterSearch] = useState("")
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false)
@@ -266,15 +268,19 @@ export default function ProductsList() {
 
   const [searchParams] = useSearchParams()
   const productIdFromUrl = searchParams.get("productId")
+  const editFromUrl = searchParams.get("edit") === "1"
+  const openedFromUrlRef = useRef("")
 
   useEffect(() => {
-    if (productIdFromUrl && products.length > 0) {
+    if (productIdFromUrl && products.length > 0 && openedFromUrlRef.current !== productIdFromUrl) {
       const food = products.find(f => f.id === productIdFromUrl || f._id === productIdFromUrl)
       if (food) {
-        handleViewDetails(food)
+        openedFromUrlRef.current = productIdFromUrl
+        if (editFromUrl) openEditProductModal(food)
+        else handleViewDetails(food)
       }
     }
-  }, [productIdFromUrl, products])
+  }, [productIdFromUrl, editFromUrl, products])
 
   // Format ID to FOOD format (e.g., FOOD519399)
   const formatProductId = (id) => {
@@ -306,7 +312,7 @@ export default function ProductsList() {
       lastDigits = Math.abs(hash).toString().slice(-6).padStart(6, "0")
     }
     
-    return `FOOD${lastDigits}`
+    return `PRD${lastDigits}`
   }
 
   const totalPages = useMemo(() => {
@@ -1509,7 +1515,10 @@ export default function ProductsList() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-slate-900">Step 1: Download Template</p>
-                    <p className="text-xs text-slate-600 mt-1">Use the Excel template to add menu items in bulk.</p>
+                    <p className="text-xs text-slate-600 mt-1">Use the Excel template to add products in bulk.</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Optional columns: Sell in Quick / Sell in Shop (Yes/No) and Quick / Shop stock. Blank keeps the current value; Yes only works for channels the seller is approved for.
+                    </p>
                     <button
                       type="button"
                       onClick={handleDownloadBulkTemplate}

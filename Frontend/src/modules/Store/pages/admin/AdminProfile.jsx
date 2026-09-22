@@ -1,3 +1,4 @@
+import { adminPasswordError } from "@store/utils/adminPasswordRule";
 import { useState, useEffect, useRef } from "react";
 import { adminAPI, uploadAPI } from "@store/api";
 import { Button } from "@store/components/ui/button";
@@ -204,8 +205,8 @@ export default function AdminProfile() {
           toast.error("Please fill Old, New, and Confirm password fields.");
           return;
         }
-        if (newPassword.length < 6) {
-          toast.error("New password must be at least 6 characters.");
+        if (adminPasswordError(newPassword)) {
+          toast.error(adminPasswordError(newPassword));
           return;
         }
         if (newPassword !== confirmPassword) {

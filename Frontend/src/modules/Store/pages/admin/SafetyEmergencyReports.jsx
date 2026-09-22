@@ -111,6 +111,8 @@ export default function SafetyEmergencyReports() {
   }
 
   const handleDelete = async (id) => {
+    if (!id) return
+    if (!window.confirm("Delete this safety emergency report? This cannot be undone.")) return
     try {
       const response = await adminAPI.deleteSafetyEmergencyReport(id)
       

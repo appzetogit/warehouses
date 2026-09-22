@@ -180,6 +180,11 @@ export const serializeCategoryForResponse = (category = {}, options = {}) => {
         sortOrder: category.sortOrder || 0,
         /** Admin views only: the category's own commission (null = inherit / none). */
         ...(options.currentSellerId ? {} : { commissionPercent: category.commissionPercent ?? null }),
+        /** Admin views only: the category's own attribute set (null = inherit / none) and FSSAI flag. */
+        ...(options.currentSellerId ? {} : {
+            attributeSetId: category.attributeSetId || null,
+            requiresFssai: category.requiresFssai === true,
+        }),
         itemCount: options.includeCounts ? Number(stats?.totalProducts || 0) : undefined,
         approvedProductCount: options.includeCounts ? Number(stats?.approvedProducts || 0) : undefined,
         createdAt: category.createdAt,

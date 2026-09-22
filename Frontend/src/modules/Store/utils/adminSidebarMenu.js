@@ -31,6 +31,8 @@ const adminSidebarMenuTemplate = [
         path: "/product-approval",
         icon: "CheckCircle2",
       },
+      { type: "link", label: "Product Reviews", path: "/product-reviews", icon: "Star", panels: BOTH },
+      { type: "link", label: "Low Stock", path: "/low-stock", icon: "AlertTriangle", panels: BOTH },
       {
         type: "expandable",
         label: "Products",
@@ -138,6 +140,7 @@ const adminSidebarMenuTemplate = [
       { type: "link", label: "Platform Coins", path: "/coins", icon: "Award" },
       { type: "link", label: "Spin Wheel", path: "/spin-campaigns", icon: "Disc3" },
       { type: "link", label: "Push Campaigns", path: "/push-campaigns", icon: "BellRing" },
+      { type: "link", label: "First-order Claims", path: "/first-order-claims", icon: "Gift", panels: BOTH },
       { type: "link", label: "Referral Settings", path: "/referral-settings", icon: "Gift" },
     ],
   },

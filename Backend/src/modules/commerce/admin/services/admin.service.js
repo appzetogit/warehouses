@@ -15,7 +15,7 @@ import { Notification } from '../../../../core/notifications/models/notification
 import { sendNotificationToOwner } from '../../../../core/notifications/firebase.service.js';
 import { SellerSubscriptionSettings } from '../models/sellerSubscriptionSettings.model.js';
 import { Zone } from '../models/zone.model.js';
-import { invalidateActiveZonesCache } from '../../shared/zoneServiceability.js';
+import { invalidateActiveZonesCache, parseZoneEtaMinutes, DEFAULT_ZONE_ETA_MINUTES } from '../../shared/zoneServiceability.js';
 import {
     CHANNELS,
     CHANNEL_STATUSES,
@@ -25,6 +25,7 @@ import {
     productChannelFields,
     serializeSellerChannels
 } from '../../shared/channels.js';
+import { channelRequirementsMissing } from '../../seller/services/sellerChannels.service.js';
 import { Category } from '../models/category.model.js';
 import { Product } from '../models/product.model.js';
 import { Offer } from '../models/offer.model.js';
@@ -54,6 +55,7 @@ import { DeliveryWallet } from '../../delivery/models/deliveryWallet.model.js';
 import { DeliveryCashDeposit } from '../../delivery/models/deliveryCashDeposit.model.js';
 import { UnregisteredSeller } from '../../seller/models/unregisteredSeller.model.js';
 import { Admin } from '../../../../core/admin/admin.model.js';
+import { assertStrongAdminPassword } from '../../../../core/admin/adminPassword.js';
 import { getAdminSellerSubscriptionHistory as getAdminSellerSubscriptionHistoryFromSeller } from '../../seller/services/subscriptionHistory.service.js';
 import { SellerSubscriptionHistory } from '../../seller/models/subscriptionHistory.model.js';
 import { ADMIN_FULL_PERMISSIONS, isValidPermissionPayload, sanitizeAdminPermissions } from '../../../../constants/permissions.js';
@@ -4059,8 +4061,45 @@ export async function createSellerByAdmin(body) {
         }
     }
 
+    // Admin-created stores are approved for the channels the admin picks, once
+    // they meet the same requirements the channel-approve action checks.
+    const sellIn = parseAdminSellIn(body);
+    const missingByChannel = {};
+    for (const channel of sellIn) {
+        const missing = await channelRequirementsMissing(doc, channel);
+        if (missing.length) missingByChannel[channel] = missing;
+    }
+    const failed = Object.keys(missingByChannel);
+    if (failed.length) {
+        const LABEL = { quick: 'Quick', shop: 'Shop' };
+        const message = failed
+            .map((c) => `${LABEL[c]} needs ${missingByChannel[c].join(' and ')}`)
+            .join('; ');
+        throw new ValidationError(message, { missing: missingByChannel });
+    }
+    const now = new Date();
+    doc.channels = {};
+    for (const channel of sellIn) {
+        doc.channels[channel] = { status: 'approved', appliedAt: now, decidedAt: now, rejectionReason: null };
+    }
+
     const seller = await Seller.create(doc);
-    return seller.toObject();
+    const out = seller.toObject();
+    return { ...out, channels: serializeSellerChannels(out) };
+}
+
+/** `sellIn` on the admin create-store body: 'quick' | 'shop' | both. At least one. */
+function parseAdminSellIn(body) {
+    const raw = body?.sellIn ?? body?.channels;
+    let list = [];
+    if (Array.isArray(raw)) list = raw;
+    else if (typeof raw === 'string') list = raw.split(',');
+    else if (raw && typeof raw === 'object') list = CHANNELS.filter((c) => raw[c] === true || raw[c] === 'true');
+    const picked = [...new Set(list.map((c) => String(c || '').trim().toLowerCase()).filter(Boolean))];
+    const unknown = picked.filter((c) => !CHANNELS.includes(c));
+    if (unknown.length) throw new ValidationError(`Unknown channel: ${unknown.join(', ')}`);
+    if (!picked.length) throw new ValidationError('Choose where the store sells: Quick, Shop or both');
+    return picked;
 }
 
 export async function approveSeller(id) {
@@ -5589,8 +5628,11 @@ export async function createZone(body) {
         latitude: Number(c.latitude) || 0,
         longitude: Number(c.longitude) || 0
     }));
+    const eta = parseZoneEtaMinutes(body.etaMinutes);
+    if (eta.error) return { error: eta.error };
 
     const zone = new Zone({
+        etaMinutes: eta.value ?? DEFAULT_ZONE_ETA_MINUTES,
         name,
         zoneName: body.zoneName && body.zoneName.trim() ? body.zoneName.trim() : name,
         country: (body.country && body.country.trim()) || 'India',
@@ -5605,8 +5647,11 @@ export async function createZone(body) {
 }
 
 export async function updateZone(id, body) {
+    const eta = parseZoneEtaMinutes(body.etaMinutes);
+    if (eta.error) return { error: eta.error };
     const zone = await Zone.findById(id);
     if (!zone) return null;
+    if (eta.value !== undefined) zone.etaMinutes = eta.value;
 
     if (body.name !== undefined) zone.name = String(body.name).trim();
     if (body.zoneName !== undefined) zone.zoneName = String(body.zoneName).trim();
@@ -6063,39 +6108,58 @@ export async function getSidebarBadges({ fulfilmentMode } = {}) {
         return {};
     }
 }
-export async function bulkApproveProducts(sellerId) {
+/**
+ * Approves pending products in bulk. Scoped by an explicit id list (max 500)
+ * and/or a channel (products enabled for quick/shop), optionally one seller.
+ * Refuses when neither ids nor channel is given: it never approves the whole
+ * platform's queue.
+ */
+export const BULK_APPROVE_MAX_IDS = 500;
+export async function bulkApproveProducts({ sellerId, productIds, channel } = {}) {
     const filter = { approvalStatus: 'pending', isDeleted: { $ne: true } };
-    
-    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
-        filter.sellerId = new mongoose.Types.ObjectId(sellerId);
+
+    const hasIds = Array.isArray(productIds) && productIds.length > 0;
+    const hasChannel = channel !== undefined && channel !== null && String(channel).trim() !== '';
+    if (!hasIds && !hasChannel) {
+        throw new ValidationError('Pick the products to approve (productIds) or a channel');
+    }
+    if (hasIds) {
+        if (productIds.length > BULK_APPROVE_MAX_IDS) {
+            throw new ValidationError(`At most ${BULK_APPROVE_MAX_IDS} products can be approved at once`);
+        }
+        const bad = productIds.filter((id) => !mongoose.Types.ObjectId.isValid(String(id)));
+        if (bad.length) throw new ValidationError('Invalid product id in productIds');
+        filter._id = { $in: productIds.map((id) => new mongoose.Types.ObjectId(String(id))) };
+    }
+    if (hasChannel) {
+        const ch = assertChannel(String(channel).trim().toLowerCase());
+        filter[`channels.${ch}`] = { $ne: false };
+    }
+    if (sellerId) {
+        if (!mongoose.Types.ObjectId.isValid(String(sellerId))) throw new ValidationError('Invalid sellerId');
+        filter.sellerId = new mongoose.Types.ObjectId(String(sellerId));
     }
 
-    const now = new Date();
-
-    // 1. Bulk Approve Food Items
-    const productResult = await Product.updateMany(
-        filter,
-        {
-            $set: {
-                approvalStatus: 'approved',
-                approvedAt: now,
-                rejectionReason: ''
-            }
+    const affectedSellerIds = await Product.distinct('sellerId', filter);
+    const productResult = await Product.updateMany(filter, {
+        $set: {
+            approvalStatus: 'approved',
+            approvedAt: new Date(),
+            rejectedAt: null,
+            rejectionReason: ''
         }
-    );
+    });
 
-    // 2. Invalidate Cache if sellerId is provided
-    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
+    if (productResult.modifiedCount) {
         try {
             const { invalidateCache } = await import('../../../../middleware/cache.js');
-            await invalidateCache(`seller_menu:${sellerId}`);
+            await Promise.all(affectedSellerIds.map((id) => invalidateCache(`seller_menu:${id}`)));
         } catch (cacheErr) {
             console.error('Failed to invalidate cache after bulk approval:', cacheErr);
         }
     }
 
     return {
-        products: productResult,
         modifiedCount: productResult.modifiedCount || 0
     };
 }
@@ -6138,6 +6202,7 @@ export async function createSubAdmin(payload = {}, actorId) {
     if (!email || !password) {
         throw new ValidationError('Email and password are required');
     }
+    assertStrongAdminPassword(password);
 
     const existing = await Admin.findOne({ email }).lean();
     if (existing) {

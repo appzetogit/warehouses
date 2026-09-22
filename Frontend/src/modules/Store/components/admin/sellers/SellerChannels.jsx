@@ -105,7 +105,7 @@ export function SellerChannelsPanel({ seller, onUpdated, only }) {
     <div className="space-y-3">
       {keys.map((channel) => {
         const info = getChannelInfo(seller, channel)
-        const canApprove = info.status === "pending" || info.status === "rejected"
+        const canApprove = info.status !== "approved"
         const canReject = info.status === "pending" || info.status === "approved"
         return (
           <div key={channel} className="rounded-lg border border-slate-200 p-3">

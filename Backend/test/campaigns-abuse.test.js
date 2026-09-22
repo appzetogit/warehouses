@@ -214,7 +214,7 @@ test('opt-out, daily frequency cap and quiet hours are respected', async () => {
     assert.deepEqual([by(optedOut).status, by(optedOut).reason], ['skipped', 'opted_out']);
     assert.deepEqual([by(capped).status, by(capped).reason], ['skipped', 'frequency_cap']);
     const stats = (await m.PushCampaign.findById(campaign._id).lean()).stats;
-    assert.deepEqual({ ...stats }, { targeted: 3, sent: 1, failed: 0, skipped: 2 });
+    assert.deepEqual({ ...stats }, { targeted: 3, sent: 1, failed: 0, skipped: 2, opened: 0 });
     assert.equal((await m.PushCampaign.findById(campaign._id).lean()).status, 'completed');
 });
 

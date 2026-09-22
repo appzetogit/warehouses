@@ -1518,6 +1518,9 @@ export async function updateZone(req, res, next) {
                 message: 'Zone not found'
             });
         }
+        if (result.error) {
+            return res.status(400).json({ success: false, message: result.error });
+        }
         res.status(200).json({
             success: true,
             message: 'Zone updated successfully',
@@ -1662,11 +1665,11 @@ export async function getExpiredFssaiNotifications(req, res, next) {
 }
 export async function bulkApproveProducts(req, res, next) {
     try {
-        const { sellerId } = req.body;
-        const result = await adminService.bulkApproveProducts(sellerId);
+        const { sellerId, productIds, channel } = req.body || {};
+        const result = await adminService.bulkApproveProducts({ sellerId, productIds, channel });
         res.status(200).json({
             success: true,
-            message: `Successfully approved ${result.modifiedCount} items`,
+            message: `Approved ${result.modifiedCount} product${result.modifiedCount === 1 ? '' : 's'}`,
             data: result
         });
     } catch (error) {

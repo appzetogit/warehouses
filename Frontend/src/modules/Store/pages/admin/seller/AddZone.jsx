@@ -34,6 +34,7 @@ export default function AddZone() {
     country: "India",
     zoneName: "",
     unit: "kilometer",
+    etaMinutes: 10,
   })
   
   const [coordinates, setCoordinates] = useState([])
@@ -134,6 +135,7 @@ export default function AddZone() {
           country: zoneData.country || "India",
           zoneName: zoneData.name || zoneData.zoneName || "",
           unit: zoneData.unit || "kilometer",
+          etaMinutes: Number(zoneData.etaMinutes) || 10,
         })
         
         if (zoneData.coordinates && zoneData.coordinates.length > 0) {
@@ -646,7 +648,15 @@ export default function AddZone() {
         return coord
       })
 
+      const eta = Number(formData.etaMinutes)
+      if (!Number.isInteger(eta) || eta < 5 || eta > 120) {
+        alert("Quick delivery time must be a whole number of minutes between 5 and 120")
+        setLoading(false)
+        return
+      }
+
       const zoneData = {
+        etaMinutes: eta,
         name: formData.zoneName,
         zoneName: formData.zoneName,
         country: formData.country,
@@ -776,6 +786,24 @@ export default function AddZone() {
                     <option value="kilometer">Kilometers (km)</option>
                     <option value="miles">Miles (mi)</option>
                   </select>
+                </div>
+
+                <div>
+                  <label htmlFor="zone-eta-minutes" className="block text-sm font-semibold text-slate-700 mb-2">
+                    Quick delivery time (minutes) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="zone-eta-minutes"
+                    type="number"
+                    min={5}
+                    max={120}
+                    step={1}
+                    value={formData.etaMinutes}
+                    onChange={(e) => handleInputChange("etaMinutes", e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                  <p className="mt-1 text-xs text-slate-500">Shown to customers as &quot;Get it in N min&quot; in this zone (5–120).</p>
                 </div>
               </div>
             </div>

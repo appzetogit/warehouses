@@ -47,6 +47,16 @@ const zoneSchema = new mongoose.Schema(
                 message: 'Zone must have at least 3 coordinates (polygon).'
             }
         },
+        /**
+         * Quick delivery time the storefront advertises in this zone
+         * ("Get it in N min"). Zones created before this field read as 10.
+         */
+        etaMinutes: {
+            type: Number,
+            min: 5,
+            max: 120,
+            default: 10
+        },
         isActive: {
             type: Boolean,
             default: true,

@@ -154,6 +154,47 @@ export async function trackShipmentAdmin(orderId, adminId) {
     };
 }
 
+// Courier states after which there is nothing more to learn from tracking.
+const TRACKING_DONE = ['delivered', 'cancelled', 'canceled', 'rto_delivered', 'rto_received', 'returned'];
+
+/**
+ * Refreshes tracking for active courier shipments not checked recently, so
+ * delivery, NDR and RTO updates arrive without anyone opening the order.
+ * Oldest-checked first, a bounded batch per run; one failing shipment never
+ * stops the rest.
+ */
+export async function syncActiveShipmentTracking({ limit = 100, staleMinutes = 25, now = new Date() } = {}) {
+    const staleBefore = new Date(now.getTime() - staleMinutes * 60_000);
+    const due = await Order.find({
+        fulfilmentMode: 'standard',
+        'shipment.awb': { $exists: true, $nin: [null, ''] },
+        'shipment.status': { $nin: TRACKING_DONE },
+        orderStatus: { $nin: ['cancelled_by_user', 'cancelled_by_seller', 'cancelled_by_admin'] },
+        $or: [{ 'shipment.lastTrackedAt': null }, { 'shipment.lastTrackedAt': { $lt: staleBefore } }],
+    })
+        .sort({ 'shipment.lastTrackedAt': 1, createdAt: 1 })
+        .limit(Math.max(1, Math.min(Number(limit) || 100, 500)))
+        .select('_id')
+        .lean();
+
+    let tracked = 0;
+    let delivered = 0;
+    let failed = 0;
+    for (const { _id } of due) {
+        try {
+            const res = await trackShipmentAdmin(String(_id), null);
+            tracked++;
+            if (res.orderDelivered) delivered++;
+        } catch (err) {
+            failed++;
+            logger.warn(`Tracking sync for order ${_id} failed: ${err?.message || err}`);
+            // Don't retry a broken shipment every run: back off until the next window.
+            await Order.updateOne({ _id }, { $set: { 'shipment.lastTrackedAt': now } }).catch(() => {});
+        }
+    }
+    return { due: due.length, tracked, delivered, failed };
+}
+
 /** Books the courier on the seller's behalf (same path the seller uses). */
 export async function bookShipmentAdmin(orderId, adminId) {
     const order = await loadStandardOrder(orderId);

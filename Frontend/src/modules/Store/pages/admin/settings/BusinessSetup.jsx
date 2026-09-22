@@ -19,6 +19,16 @@ const hasSuspiciousEmailTld = (emailValue) => {
   return false
 }
 
+/** Social profiles shown in the storefront footer (https URLs; empty hides one). */
+const SOCIAL_LINK_FIELDS = [
+  { key: "facebook", label: "Facebook", placeholder: "https://facebook.com/yourpage" },
+  { key: "instagram", label: "Instagram", placeholder: "https://instagram.com/yourhandle" },
+  { key: "x", label: "X (Twitter)", placeholder: "https://x.com/yourhandle" },
+  { key: "youtube", label: "YouTube", placeholder: "https://youtube.com/@yourchannel" },
+  { key: "linkedin", label: "LinkedIn", placeholder: "https://linkedin.com/company/yourcompany" },
+  { key: "whatsapp", label: "WhatsApp", placeholder: "https://wa.me/919876543210" },
+]
+const EMPTY_SOCIAL_LINKS = Object.fromEntries(SOCIAL_LINK_FIELDS.map(({ key }) => [key, ""]))
 
 export default function BusinessSetup() {
   const [loading, setLoading] = useState(true);
@@ -52,6 +62,8 @@ export default function BusinessSetup() {
     pincode: "",
     region: "",
     googleMapsApiKey: "",
+    standardDeliveryDays: { min: 2, max: 4 },
+    socialLinks: { ...EMPTY_SOCIAL_LINKS },
     firebase: {
       apiKey: "",
       authDomain: "",
@@ -93,6 +105,13 @@ export default function BusinessSetup() {
           pincode: settings.pincode || "",
           region: settings.region || "India",
           googleMapsApiKey: settings.googleMapsApiKey || "",
+          standardDeliveryDays: {
+            min: Number(settings.standardDeliveryDays?.min) || 2,
+            max: Number(settings.standardDeliveryDays?.max) || 4,
+          },
+          socialLinks: Object.fromEntries(
+            SOCIAL_LINK_FIELDS.map(({ key }) => [key, settings.socialLinks?.[key] || ""])
+          ),
           firebase: {
             apiKey: settings.firebase?.apiKey || "",
             authDomain: settings.firebase?.authDomain || "",
@@ -143,6 +162,20 @@ export default function BusinessSetup() {
     }));
   };
 
+  const handleSocialChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      socialLinks: { ...prev.socialLinks, [field]: value },
+    }));
+  };
+
+  const handleDeliveryDaysChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      standardDeliveryDays: { ...prev.standardDeliveryDays, [field]: value },
+    }));
+  };
+
   const handleFirebaseChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -187,6 +220,20 @@ export default function BusinessSetup() {
         return;
       }
 
+      for (const { key, label } of SOCIAL_LINK_FIELDS) {
+        const link = String(formData.socialLinks[key] || "").trim();
+        if (link && !/^https:\/\/[^\s/]+\.[^\s]+$/i.test(link)) {
+          toast.error(`${label} link must start with https://`);
+          return;
+        }
+      }
+      const minDays = Number(formData.standardDeliveryDays.min);
+      const maxDays = Number(formData.standardDeliveryDays.max);
+      if (!Number.isInteger(minDays) || !Number.isInteger(maxDays) || minDays < 1 || maxDays > 30 || minDays > maxDays) {
+        toast.error("Standard delivery days must be 1–30, with min no more than max");
+        return;
+      }
+
       setSaving(true);
 
       // Prepare form data
@@ -201,6 +248,10 @@ export default function BusinessSetup() {
         region: formData.region,
         // Trimmed, and sent even when empty so clearing the field revokes it.
         googleMapsApiKey: formData.googleMapsApiKey.trim(),
+        standardDeliveryDays: { min: minDays, max: maxDays },
+        socialLinks: Object.fromEntries(
+          SOCIAL_LINK_FIELDS.map(({ key }) => [key, String(formData.socialLinks[key] || "").trim()])
+        ),
         firebase: Object.fromEntries(
           Object.entries(formData.firebase).map(([k, v]) => [k, String(v || "").trim()])
         ),
@@ -474,6 +525,61 @@ export default function BusinessSetup() {
                   }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+              </div>
+            </div>
+
+            {/* Shop (courier) delivery window, used when the courier has no
+                estimate for the customer's pincode. */}
+            <div className="mb-4 border border-slate-200 rounded-lg p-4">
+              <h3 className="text-xs font-bold text-slate-800 mb-1">Shop delivery time</h3>
+              <p className="mb-3 text-[11px] text-slate-500">
+                Customers see &quot;Delivery {"{date}"}–{"{date}"}&quot; from these days when the courier has no estimate for their pincode.
+              </p>
+              <div className="grid grid-cols-2 gap-4 max-w-sm">
+                {[["min", "Minimum days"], ["max", "Maximum days"]].map(([field, label]) => (
+                  <div key={field}>
+                    <label htmlFor={`delivery-days-${field}`} className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      {label}
+                    </label>
+                    <input
+                      id={`delivery-days-${field}`}
+                      type="number"
+                      min={1}
+                      max={30}
+                      step={1}
+                      value={formData.standardDeliveryDays[field]}
+                      onChange={(e) => handleDeliveryDaysChange(field, e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Social links, shown in the storefront footer. */}
+            <div className="mb-4 border border-slate-200 rounded-lg p-4">
+              <h3 className="text-xs font-bold text-slate-800 mb-1">Social links</h3>
+              <p className="mb-3 text-[11px] text-slate-500">
+                Shown under &quot;Connect with Us&quot; in the storefront footer. Full https:// links; leave empty to hide.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {SOCIAL_LINK_FIELDS.map(({ key, label, placeholder }) => (
+                  <div key={key}>
+                    <label htmlFor={`social-${key}`} className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      {label}
+                    </label>
+                    <input
+                      id={`social-${key}`}
+                      type="url"
+                      inputMode="url"
+                      placeholder={placeholder}
+                      value={formData.socialLinks[key]}
+                      maxLength={300}
+                      onChange={(e) => handleSocialChange(key, e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 

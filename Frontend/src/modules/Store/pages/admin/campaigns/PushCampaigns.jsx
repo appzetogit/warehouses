@@ -131,13 +131,20 @@ const scheduleLabel = (c) => {
   return `${s.frequency === "weekly" ? "Weekly" : "Daily"} at ${s.timeOfDay}${days} until ${fmtWhen(s.endsAt)}`
 }
 
-function Stat({ label, value, tone = "text-slate-900" }) {
+function Stat({ label, value, tone = "text-slate-900", display }) {
   return (
     <div className="rounded-xl border border-slate-200 p-3">
       <p className="text-xs text-slate-500">{label}</p>
-      <p className={`text-xl font-bold ${tone}`}>{Number(value || 0).toLocaleString()}</p>
+      <p className={`text-xl font-bold ${tone}`}>{display ?? Number(value || 0).toLocaleString()}</p>
     </div>
   )
+}
+
+/** Opens as a share of pushes sent, e.g. "12.5%" ("—" before anything is sent). */
+function openRate(stats = {}) {
+  const sent = Number(stats?.sent) || 0
+  if (!sent) return "—"
+  return `${(Math.round(((Number(stats?.opened) || 0) / sent) * 1000) / 10).toLocaleString()}%`
 }
 
 function Builder({ open, onClose, editing, zones, onSaved }) {
@@ -380,29 +387,31 @@ function StatsDialog({ campaign, onClose }) {
         </DialogHeader>
         {campaign && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <Stat label="Targeted" value={campaign.stats?.targeted} />
               <Stat label="Sent" value={campaign.stats?.sent} tone="text-emerald-700" />
               <Stat label="Failed" value={campaign.stats?.failed} tone="text-rose-700" />
               <Stat label="Skipped" value={campaign.stats?.skipped} tone="text-slate-500" />
+              <Stat label="Opened" value={campaign.stats?.opened} tone="text-blue-700" />
+              <Stat label="Open rate" display={openRate(campaign.stats)} tone="text-blue-700" />
             </div>
-            <p className="text-xs text-slate-500">Skipped: opted out of offers, or already at today's push cap. Failed: no registered device or push rejected.</p>
+            <p className="text-xs text-slate-500">Skipped: opted out of offers, or already at today's push cap. Failed: no registered device or push rejected. Opened: sent pushes tapped (each counted once); open rate is opened ÷ sent.</p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-slate-500 border-b">
-                    <th className="py-2 pr-3">Run</th><th className="pr-3">Targeted</th><th className="pr-3">Sent</th><th className="pr-3">Failed</th><th>Skipped</th>
+                    <th className="py-2 pr-3">Run</th><th className="pr-3">Targeted</th><th className="pr-3">Sent</th><th className="pr-3">Failed</th><th className="pr-3">Skipped</th><th>Opened</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(campaign.runs || []).slice().reverse().map((r) => (
                     <tr key={r.runKey} className="border-b last:border-0">
                       <td className="py-2 pr-3">{fmtWhen(r.startedAt)}</td>
-                      <td className="pr-3">{r.targeted}</td><td className="pr-3">{r.sent}</td><td className="pr-3">{r.failed}</td><td>{r.skipped}</td>
+                      <td className="pr-3">{r.targeted}</td><td className="pr-3">{r.sent}</td><td className="pr-3">{r.failed}</td><td className="pr-3">{r.skipped}</td><td>{r.opened || 0}</td>
                     </tr>
                   ))}
                   {!campaign.runs?.length && (
-                    <tr><td colSpan={5} className="py-4 text-center text-slate-500">Not sent yet</td></tr>
+                    <tr><td colSpan={6} className="py-4 text-center text-slate-500">Not sent yet</td></tr>
                   )}
                 </tbody>
               </table>
@@ -617,6 +626,7 @@ export default function PushCampaigns() {
                   <th className="pr-3">Schedule</th>
                   <th className="pr-3">Next send</th>
                   <th className="pr-3">Targeted / Sent / Failed</th>
+                  <th className="pr-3">Opens</th>
                   <th className="pr-3">Status</th>
                   <th className="text-right">Actions</th>
                 </tr>
@@ -634,6 +644,9 @@ export default function PushCampaigns() {
                     <td className="pr-3 py-3">{["scheduled", "paused"].includes(c.status) ? fmtWhen(c.nextRunAt) : "—"}</td>
                     <td className="pr-3 py-3">
                       {c.stats?.targeted || 0} / <span className="text-emerald-700">{c.stats?.sent || 0}</span> / <span className="text-rose-700">{c.stats?.failed || 0}</span>
+                    </td>
+                    <td className="pr-3 py-3">
+                      <span className="text-blue-700">{c.stats?.opened || 0}</span> <span className="text-slate-500">({openRate(c.stats)})</span>
                     </td>
                     <td className="pr-3 py-3">
                       <span className={`inline-block rounded-full border px-2 py-0.5 text-xs capitalize ${STATUS_BADGE[c.status] || ""}`}>{c.status}</span>

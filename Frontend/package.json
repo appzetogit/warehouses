@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint src",
     "preview": "vite preview",
-    "start": "node server.js",
+    "start": "vite preview --host 127.0.0.1",
     "check:api-paths": "node scripts/check-api-paths.mjs . ../Backend/test/fixtures/routes.txt",
     "check:api-methods": "node scripts/check-api-methods.mjs .",
     "check:unreachable": "node scripts/check-unreachable.mjs .",
@@ -82,6 +82,6 @@
     "vite-plugin-pwa": "^1.2.0"
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=22"
   }
 }

@@ -1,0 +1,24 @@
+# BullMQ worker, one unit per queue: warehouses-worker@order, @tracking, @maintenance.
+# Needs REDIS_ENABLED=true and BULLMQ_ENABLED=true in Backend/.env.
+[Unit]
+Description=The Warehouses BullMQ worker (%i)
+After=network-online.target mongod.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=warehouses
+Group=warehouses
+WorkingDirectory=/srv/warehouses/current/Backend
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node src/queues/workers/%i.worker.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

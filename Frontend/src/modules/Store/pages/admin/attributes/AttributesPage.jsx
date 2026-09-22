@@ -15,6 +15,20 @@ import { attributeAdminAPI } from "@/services/api"
 import { Button } from "@store/components/ui/button"
 import { Input } from "@store/components/ui/input"
 
+const HEX_RE = /^#[0-9a-f]{6}$/i
+
+/** "Red:#ff0000, Navy" -> [{ value: "Red", hex: "#ff0000" }, { value: "Navy", hex: "" }] */
+const parseValueList = (text) =>
+  String(text || "")
+    .split(",")
+    .map((raw) => raw.trim())
+    .filter(Boolean)
+    .map((raw) => {
+      const m = raw.match(/^(.*?)\s*:\s*(#[0-9a-f]{6})$/i)
+      return m ? { value: m[1].trim(), hex: m[2].toLowerCase() } : { value: raw, hex: "" }
+    })
+    .filter((v) => v.value)
+
 export default function AttributesPage() {
   const [activeTab, setActiveTab] = useState("attributes")
   const [loading, setLoading] = useState(false)
@@ -27,6 +41,10 @@ export default function AttributesPage() {
   const [newAttrName, setNewAttrName] = useState("")
   const [newAttrType, setNewAttrType] = useState("select")
   const [attrValuesText, setAttrValuesText] = useState("")
+  // Colour picked per value name (colour attributes); overrides a "Name:#hex" in the text.
+  const [pickedHex, setPickedHex] = useState({})
+  const parsedValues = parseValueList(attrValuesText)
+  const hexFor = (v) => pickedHex[v.value.toLowerCase()] || v.hex
   const [creatingAttr, setCreatingAttr] = useState(false)
 
   // Create Attribute Set Form Modal State
@@ -57,13 +75,16 @@ export default function AttributesPage() {
   const handleCreateAttribute = async (e) => {
     e.preventDefault()
     if (!newAttrName.trim()) return toast.error("Attribute name is required")
-    const values = attrValuesText
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean)
+    const values = parsedValues
 
     if (values.length === 0) {
       return toast.error("Please provide at least one comma-separated value")
+    }
+    if (newAttrType === "color") {
+      const missing = values.filter((v) => !HEX_RE.test(hexFor(v) || ""))
+      if (missing.length) {
+        return toast.error(`Pick a colour for ${missing.map((v) => v.value).join(", ")}`)
+      }
     }
 
     try {
@@ -71,14 +92,15 @@ export default function AttributesPage() {
       const payload = {
         name: newAttrName.trim(),
         type: newAttrType,
-        values: newAttrType === "color" 
-          ? values.map((v) => ({ value: v, hex: "#000000" })) 
-          : values,
+        values: newAttrType === "color"
+          ? values.map((v) => ({ value: v.value, hex: hexFor(v).toLowerCase() }))
+          : values.map((v) => v.value),
       }
       await attributeAdminAPI.createAttribute(payload)
       toast.success(`Attribute "${newAttrName}" created successfully!`)
       setNewAttrName("")
       setAttrValuesText("")
+      setPickedHex({})
       fetchAll()
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to create attribute")
@@ -229,13 +251,42 @@ export default function AttributesPage() {
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="e.g. Small, Medium, Large, Extra Large"
+                  placeholder={newAttrType === "color" ? "e.g. Red:#e53935, Navy:#1a237e, White" : "e.g. Small, Medium, Large, Extra Large"}
                   value={attrValuesText}
                   onChange={(e) => setAttrValuesText(e.target.value)}
                   className="mt-1 w-full p-3 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
                   required
                 />
+                {newAttrType === "color" && (
+                  <p className="mt-1 text-[11px] text-gray-500">
+                    Type a hex after a colon (Red:#e53935) or pick the colour below.
+                  </p>
+                )}
               </div>
+
+              {newAttrType === "color" && parsedValues.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Swatch colours</label>
+                  {parsedValues.map((v) => {
+                    const hex = hexFor(v)
+                    return (
+                      <div key={v.value.toLowerCase()} className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={HEX_RE.test(hex || "") ? hex : "#ffffff"}
+                          onChange={(e) =>
+                            setPickedHex((prev) => ({ ...prev, [v.value.toLowerCase()]: e.target.value.toLowerCase() }))
+                          }
+                          className="h-8 w-10 cursor-pointer rounded border border-gray-200 bg-white p-0.5"
+                          aria-label={`Colour for ${v.value}`}
+                        />
+                        <span className="text-sm text-gray-800 dark:text-gray-200">{v.value}</span>
+                        <span className={`text-xs ${hex ? "text-gray-500" : "text-rose-600"}`}>{hex || "Pick a colour"}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
 
               <Button
                 type="submit"
@@ -272,11 +323,19 @@ export default function AttributesPage() {
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {attr.values?.map((val, idx) => {
                           const label = typeof val === "object" ? val.value : val
+                          const swatch = attr.type === "color" && typeof val === "object" ? val.hex : ""
                           return (
                             <span
                               key={idx}
-                              className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-medium"
+                              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-medium"
                             >
+                              {swatch && (
+                                <span
+                                  className="inline-block h-3 w-3 rounded-full border border-gray-300"
+                                  style={{ backgroundColor: swatch }}
+                                  title={swatch}
+                                />
+                              )}
                               {label}
                             </span>
                           )

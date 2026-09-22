@@ -23,6 +23,29 @@ export const toFiniteNumber = (value) => {
   return Number.isFinite(num) ? num : null;
 };
 
+export const DEFAULT_ZONE_ETA_MINUTES = 10;
+export const ZONE_ETA_MIN = 5;
+export const ZONE_ETA_MAX = 120;
+
+/** A zone's advertised Quick delivery time; legacy zones without one read as 10. */
+export const zoneEtaMinutes = (zone) => {
+  const n = Number(zone?.etaMinutes);
+  return Number.isFinite(n) && n >= ZONE_ETA_MIN && n <= ZONE_ETA_MAX ? Math.round(n) : DEFAULT_ZONE_ETA_MINUTES;
+};
+
+/**
+ * Validates an admin-entered ETA. Returns { value } or { error }; undefined
+ * input is { value: undefined } (leave as is).
+ */
+export const parseZoneEtaMinutes = (raw) => {
+  if (raw === undefined || raw === null || raw === '') return { value: undefined };
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < ZONE_ETA_MIN || n > ZONE_ETA_MAX) {
+    return { error: `Delivery time must be a whole number of minutes between ${ZONE_ETA_MIN} and ${ZONE_ETA_MAX}` };
+  }
+  return { value: n };
+};
+
 export const invalidateActiveZonesCache = async () => {
   const redis = getRedisClient();
   if (!redis || !redis.isReady) return;

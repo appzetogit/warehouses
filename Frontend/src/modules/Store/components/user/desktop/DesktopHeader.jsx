@@ -9,6 +9,7 @@ import { clearHomeScrollState } from "@store/utils/homeScrollRestore"
 import { BRAND_LOGO_ON_DARK } from "@/config/brandMark"
 import { useLocationSelector } from "../UserLayout"
 import { useBusinessSettings, usePublicCategories } from "./useDesktopShell"
+import { locationPincode, useQuickEta } from "./useDeliveryEstimates"
 
 // The orange category bar carries dark text (white on orange is unreadable).
 const catItem =
@@ -197,6 +198,7 @@ export default function DesktopHeader({ onOpenSpin }) {
   const { openLocationSelector } = useLocationSelector()
   const { brandName, logoOnDark } = useBusinessSettings()
   const { roots, tree } = usePublicCategories(zoneId)
+  const quickEta = useQuickEta()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [q, setQ] = useState("")
   const [cat, setCat] = useState("")
@@ -216,7 +218,7 @@ export default function DesktopHeader({ onOpenSpin }) {
   const firstName = String(userProfile?.name || userProfile?.fullName || "").trim().split(/\s+/)[0]
   const cartCount = getCartCount()
   const area = effectiveLocation?.area?.trim() || effectiveLocation?.city || ""
-  const pin = effectiveLocation?.pincode || effectiveLocation?.postalCode || ""
+  const pin = locationPincode(effectiveLocation)
   const deliverLine2 = [area || displayAddressText || "Select location", pin].filter(Boolean).join(" ")
 
   const submitSearch = (e) => {
@@ -308,7 +310,7 @@ export default function DesktopHeader({ onOpenSpin }) {
                 onClick={() => setCommerceMode("quick")}
                 className={`rounded-full px-3 py-1 text-[13px] font-bold ${isQuick ? "bg-wh-brand text-wh-text" : "text-white hover:bg-wh-nav-3"}`}
               >
-                Quick · 10 min
+                Quick · {quickEta} min
               </button>
             </div>
           </div>

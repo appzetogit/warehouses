@@ -4,6 +4,7 @@
  */
 import { Link } from 'react-router-dom'
 import { useStoreMode } from '@store/context/StoreModeContext'
+import { formatDeliveryWindow, useQuickEta, useShopDeliveryEstimate } from './useDeliveryEstimates'
 
 const cx = (...a) => a.filter(Boolean).join(' ')
 
@@ -103,19 +104,25 @@ export function PriceTag({ price, mrp, size = 'sm', className }) {
   )
 }
 
-/** Delivery line in --wh-success: "Get it in N min" (Quick) or "Delivery by {date}" (Shop). */
+/**
+ * Delivery line in --wh-success: "Get it in N min" (Quick; N from the
+ * customer's zone unless etaMinutes is passed) or "Delivery by {date}" (Shop;
+ * from the delivery-estimate endpoint for their pincode unless date is passed).
+ */
 export function DeliveryPromise({ mode = 'shop', etaMinutes, date, className }) {
+  const zoneEta = useQuickEta()
+  const estimate = useShopDeliveryEstimate({ enabled: mode !== 'quick' && !date })
   let text
   if (mode === 'quick') {
     const n = num(etaMinutes)
-    text = `Get it in ${n ? Math.round(n) : 10} min`
+    text = `Get it in ${n ? Math.round(n) : zoneEta} min`
   } else {
     const d = date ? new Date(date) : null
     const label =
       d && !Number.isNaN(d.getTime())
         ? d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
         : typeof date === 'string' ? date : null
-    text = label ? `Delivery by ${label}` : 'Fast delivery'
+    text = label ? `Delivery by ${label}` : formatDeliveryWindow(estimate)
   }
   return <p className={cx('text-[13px] font-medium text-wh-success', className)}>{text}</p>
 }

@@ -11,12 +11,14 @@ import {
 } from "@store/components/ui/dialog"
 import { adminAPI } from "@store/api"
 import { toast } from "sonner"
+import { useAdminPanel } from "@store/components/admin/useAdminPanel"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
 export default function ProductApproval() {
+  const { channel, label: panelLabel } = useAdminPanel()
   const [productRequests, setProductRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -27,13 +29,13 @@ export default function ProductApproval() {
   const [processing, setProcessing] = useState(false)
   const isMountedRef = useRef(true)
 
-  // Fetch pending food approval requests
+  // Fetch pending product approval requests for this panel's channel
   const fetchProductRequests = useCallback(async ({ silent = false } = {}) => {
     try {
       if (!silent) {
         setLoading(true)
       }
-      const response = await adminAPI.getPendingProductApprovals()
+      const response = await adminAPI.getPendingProductApprovals({ channel })
       const data = response?.data?.data?.requests || response?.data?.requests || []
       if (!isMountedRef.current) return
       setProductRequests(data)
@@ -49,7 +51,7 @@ export default function ProductApproval() {
         setLoading(false)
       }
     }
-  }, [])
+  }, [channel])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -99,7 +101,34 @@ export default function ProductApproval() {
 
   const totalRequests = filteredRequests.length
 
-  // Handle approve food item
+  // Approves exactly the rows on screen (this panel's channel, current search).
+  const handleBulkApprove = async () => {
+    const ids = filteredRequests
+      .filter((r) => r.isActionable)
+      .map((r) => String(r._id || r.id))
+      .filter(Boolean)
+    if (ids.length === 0) return
+    if (ids.length > 500) {
+      toast.error("At most 500 products can be approved at once. Narrow the list with search.")
+      return
+    }
+    const what = `${ids.length} pending ${panelLabel} product${ids.length === 1 ? "" : "s"}`
+    if (!window.confirm(`Approve ${what}${searchQuery.trim() ? " matching your search" : ""}?`)) return
+    try {
+      setProcessing(true)
+      const res = await adminAPI.bulkApproveProducts({ productIds: ids, channel })
+      const count = res?.data?.data?.modifiedCount ?? ids.length
+      toast.success(`Approved ${count} product${count === 1 ? "" : "s"}`)
+      await fetchProductRequests()
+    } catch (error) {
+      debugError('Bulk approval error:', error)
+      toast.error(error?.response?.data?.message || 'Failed to perform bulk approval')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // Handle approve product
   const handleApprove = async (request) => {
     if (!request?.isActionable) return
     try {
@@ -120,7 +149,7 @@ export default function ProductApproval() {
     }
   }
 
-  // Handle reject food item
+  // Handle reject product
   const handleReject = async () => {
     if (!selectedRequest?.isActionable) {
       setShowRejectModal(false)
@@ -151,7 +180,7 @@ export default function ProductApproval() {
     }
   }
 
-  // View food item details
+  // View product details
   const handleViewDetails = (request) => {
     setSelectedRequest(request)
     setShowDetailModal(true)
@@ -171,12 +200,12 @@ export default function ProductApproval() {
         <div className="flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5 text-green-500" />
           <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
-            Food Approval
+            Product Approval
           </h1>
         </div>
       </div>
 
-      {/* Food Approval List Section */}
+      {/* Product Approval List Section */}
       <Card className="border border-gray-200 shadow-sm">
         <div className="p-4">
           {/* Section Header */}
@@ -189,26 +218,12 @@ export default function ProductApproval() {
             </div>
             {totalRequests > 0 && (
               <button
-                onClick={async () => {
-                  if (window.confirm(`Are you sure you want to approve all ${totalRequests} pending items?`)) {
-                    try {
-                      setProcessing(true)
-                      await adminAPI.bulkApproveProducts()
-                      toast.success(`Successfully approved ${totalRequests} items`)
-                      await fetchProductRequests()
-                    } catch (error) {
-                      debugError('Bulk approval error:', error)
-                      toast.error('Failed to perform bulk approval')
-                    } finally {
-                      setProcessing(false)
-                    }
-                  }
-                }}
+                onClick={handleBulkApprove}
                 disabled={processing}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-100 disabled:opacity-50"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Bulk Approve All
+                {searchQuery.trim() ? `Approve ${totalRequests} shown` : `Approve all ${totalRequests}`}
               </button>
             )}
           </div>
@@ -352,7 +367,7 @@ export default function ProductApproval() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0 bg-white shadow-2xl rounded-2xl border-none">
           <DialogHeader className="p-6 pb-4 border-b border-gray-100 bg-slate-50/50">
             <DialogTitle className="text-xl font-bold text-gray-900">
-              Food Item Details
+              Product Details
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-500 mt-1">
               Review the submitted details before approval.

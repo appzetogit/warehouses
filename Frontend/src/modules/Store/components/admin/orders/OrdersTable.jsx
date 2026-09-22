@@ -647,13 +647,11 @@ export default function OrdersTable({
                           )}
                         </button>
                       )}
-                      {/* Show Refund button or Refunded status for cancelled orders with Online/Wallet payment (seller or user cancelled) */}
+                      {/* Show Refund button or Refunded status for cancelled orders with Online/Wallet payment */}
                       {(() => {
-                        // Check if order is cancelled by seller or user
-                        const isCancelled = order.orderStatus === "Cancelled by Seller" ||
-                          order.orderStatus === "Cancelled" ||
-                          order.orderStatus === "Cancelled by User" ||
-                          (order.status === "cancelled" && (order.cancelledBy === "user" || order.cancelledBy === "seller"));
+                        // Cancelled by user, seller or admin: go by the backend status code, not the display label.
+                        const statusCode = String(order.statusCode || order.status || "").toLowerCase();
+                        const isCancelled = statusCode.startsWith("cancelled");
 
                         // Check if payment type is Online or Wallet (not Cash on Delivery)
                         const paymentMethod = order.payment?.method || order.paymentMethod;

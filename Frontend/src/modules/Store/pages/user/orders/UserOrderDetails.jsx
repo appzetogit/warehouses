@@ -21,6 +21,7 @@ import { getCompanyNameAsync } from "@store/utils/businessSettings"
 import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@store/utils/productVariants"
 import { DualMoney } from "@store/components/user/ProductPriceDisplay"
 import OrderReturnsSection from "./OrderReturnsSection"
+import OrderItemsReviewPanel from "@store/components/user/reviews/OrderItemsReviewPanel"
 import CompletePaymentCard from "@store/components/user/CompletePaymentCard"
 import { imagePlaceholder } from "@store/constants/images"
 const debugLog = (...args) => {}
@@ -491,6 +492,9 @@ export default function UserOrderDetails() {
             )
           })}
         </div>
+
+        {/* Delivered: write or edit a review per product */}
+        <OrderItemsReviewPanel order={order} />
 
         {/* Bill Summary Card */}
         <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-zinc-800">

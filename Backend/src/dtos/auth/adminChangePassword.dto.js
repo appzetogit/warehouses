@@ -3,7 +3,7 @@ import { ValidationError } from '../../core/auth/errors.js';
 
 const schema = z.object({
     currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z.string().min(6, 'New password must be at least 6 characters')
+    newPassword: z.string().min(1, 'New password is required')
 });
 
 export const validateAdminChangePasswordDto = (body) => {

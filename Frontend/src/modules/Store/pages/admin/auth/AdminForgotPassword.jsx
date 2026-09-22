@@ -1,3 +1,4 @@
+import { adminPasswordError } from "@store/utils/adminPasswordRule"
 import { useState, useRef, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion, useReducedMotion } from "framer-motion"
@@ -221,8 +222,8 @@ export default function AdminForgotPassword() {
       return
     }
 
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters long")
+    if (adminPasswordError(newPassword)) {
+      setError(adminPasswordError(newPassword))
       return
     }
 

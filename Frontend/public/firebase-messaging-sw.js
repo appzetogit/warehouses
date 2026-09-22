@@ -271,10 +271,66 @@ function initializeFirebaseInServiceWorker(config = {}) {
   });
 }
 
+// Campaign open tracking. The page hands over the API base with the Firebase
+// config; it is kept in Cache Storage because the worker may be restarted
+// before the notification is tapped.
+const SW_SETTINGS_CACHE = "push-sw-settings";
+const API_BASE_KEY = "/__push-sw/api-base";
+let apiBaseUrl = "";
+
+async function saveApiBaseUrl(value) {
+  const clean = String(value || "").trim().replace(/\/$/, "");
+  if (!/^https?:\/\//i.test(clean)) return;
+  apiBaseUrl = clean;
+  try {
+    const cache = await caches.open(SW_SETTINGS_CACHE);
+    await cache.put(API_BASE_KEY, new Response(clean));
+  } catch {
+    // Cache Storage unavailable: the in-memory value still serves this worker.
+  }
+}
+
+async function loadApiBaseUrl() {
+  if (apiBaseUrl) return apiBaseUrl;
+  try {
+    const cache = await caches.open(SW_SETTINGS_CACHE);
+    const hit = await cache.match(API_BASE_KEY);
+    if (hit) apiBaseUrl = (await hit.text()) || "";
+  } catch {
+    // ignore
+  }
+  return apiBaseUrl || `${self.location.origin}/api/v1`;
+}
+
+/** The push data, whether we showed the notification or the Firebase SDK did. */
+function notificationDataOf(notification) {
+  const data = notification?.data || {};
+  const fcm = data?.FCM_MSG?.data;
+  return fcm && typeof fcm === "object" ? { ...fcm, ...data } : data;
+}
+
+async function reportCampaignOpen(data = {}) {
+  const deliveryId = String(data?.deliveryId || "").trim();
+  const openToken = String(data?.openToken || "").trim();
+  if (!deliveryId || !openToken) return;
+  try {
+    const base = await loadApiBaseUrl();
+    await fetch(`${base}/notifications/opened`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deliveryId, openToken }),
+      credentials: "omit",
+    });
+  } catch {
+    // Best effort: a missed open never blocks opening the app.
+  }
+}
+
 self.addEventListener("message", (event) => {
   const data = event?.data || {};
   if (data?.type !== "INIT_FIREBASE_CONFIG") return;
   initializeFirebaseInServiceWorker(data?.config || {});
+  if (data?.apiBaseUrl) event.waitUntil?.(saveApiBaseUrl(data.apiBaseUrl));
 });
 
 self.addEventListener("push", (event) => {
@@ -318,10 +374,13 @@ self.addEventListener("notificationclick", (event) => {
     data: event?.notification?.data || {},
   });
   event.notification.close();
+  const clickData = notificationDataOf(event?.notification);
+  event.waitUntil(reportCampaignOpen(clickData));
   const rawLink =
-    event?.notification?.data?.link ||
-    event?.notification?.data?.click_action ||
-    event?.notification?.data?.targetUrl ||
+    clickData?.deepLink ||
+    clickData?.link ||
+    clickData?.click_action ||
+    clickData?.targetUrl ||
     "/";
   const targetUrl = String(rawLink || "/").startsWith("/") ? String(rawLink || "/") : "/";
   event.waitUntil(

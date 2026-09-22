@@ -52,7 +52,6 @@ const AdRequests = lazy(() => import("@store/pages/admin/advertisement/AdRequest
 const AdsList = lazy(() => import("@store/pages/admin/advertisement/AdsList"));
 
 // Help & Support
-const Chattings = lazy(() => import("@store/pages/admin/Chattings"));
 const ContactMessages = lazy(() => import("@store/pages/admin/ContactMessages"));
 const SafetyEmergencyReports = lazy(() => import("@store/pages/admin/SafetyEmergencyReports"));
 // Customer Management
@@ -62,6 +61,9 @@ const AddFund = lazy(() => import("@store/pages/admin/wallet/AddFund"));
 const Bonus = lazy(() => import("@store/pages/admin/wallet/Bonus"));
 const CoinsManagement = lazy(() => import("@store/pages/admin/coins/CoinsManagement"));
 const AttributesPage = lazy(() => import("@store/pages/admin/attributes/AttributesPage"));
+const ProductReviewModeration = lazy(() => import("@store/pages/admin/products/ProductReviewModeration"));
+const LowStock = lazy(() => import("@store/pages/admin/products/LowStock"));
+const FirstOrderClaims = lazy(() => import("@store/pages/admin/campaigns/FirstOrderClaims"));
 const PushCampaigns = lazy(() => import("@store/pages/admin/campaigns/PushCampaigns"));
 const AiSettings = lazy(() => import("@store/pages/admin/ai/AiSettings"));
 const AiConversations = lazy(() => import("@store/pages/admin/ai/AiConversations"));
@@ -115,7 +117,6 @@ const SellerWithdraws = lazy(() => import("@store/pages/admin/transactions/Selle
 const WithdrawMethod = lazy(() => import("@store/pages/admin/transactions/WithdrawMethod"));
 // Employee Management
 const EmployeeRole = lazy(() => import("@store/pages/admin/employees/EmployeeRole"));
-const AddEmployee = lazy(() => import("@store/pages/admin/employees/AddEmployee"));
 const EmployeeList = lazy(() => import("@store/pages/admin/employees/EmployeeList"));
 // Business Settings
 const BusinessSetup = lazy(() => import("@store/pages/admin/settings/BusinessSetup"));
@@ -346,6 +347,9 @@ export default function AdminRouter() {
             <Route path="attributes" element={<AttributesPage />} />
             <Route path="coins" element={<CoinsManagement />} />
             <Route path="spin-campaigns" element={<SpinCampaigns />} />
+            <Route path="product-reviews" element={<ProductReviewModeration />} />
+            <Route path="low-stock" element={<LowStock />} />
+            <Route path="first-order-claims" element={<FirstOrderClaims />} />
             <Route path="push-campaigns" element={<PushCampaigns />} />
             <Route path="shipments" element={<Shipments />} />
             <Route path="shipments/ndr" element={<NdrQueue />} />
@@ -379,7 +383,6 @@ export default function AdminRouter() {
             <Route path="advertisement/new" element={<NewAdvertisement />} />
             <Route path="advertisement/requests" element={<AdRequests />} />
             
-            <Route path="chattings" element={<Chattings />} />
             <Route path="contact-messages" element={<ContactMessages />} />
             <Route path="safety-emergency-reports" element={<SafetyEmergencyReports />} />
             
@@ -424,7 +427,6 @@ export default function AdminRouter() {
             
             <Route path="employee-role" element={<EmployeeRole />} />
             <Route path="employees" element={<EmployeeList />} />
-            <Route path="employees/add" element={<AddEmployee />} />
 
             {/* SYSTEM & BUSINESS SETTINGS */}
             <Route path="business-setup" element={<BusinessSetup />} />

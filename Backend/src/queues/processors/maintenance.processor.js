@@ -55,6 +55,17 @@ export const processMaintenanceJob = async (job) => {
         }
     }
 
+    if (type === 'SHIPMENT_TRACKING_SYNC') {
+        try {
+            const { syncActiveShipmentTracking } = await import('../../modules/commerce/orders/services/shipmentAdmin.service.js');
+            const results = await syncActiveShipmentTracking();
+            logger.info(`[BullMQ:maintenance] SHIPMENT_TRACKING_SYNC complete: ${JSON.stringify(results)}`);
+        } catch (err) {
+            logger.error(`[BullMQ:maintenance] SHIPMENT_TRACKING_SYNC failed: ${err.message}`);
+            throw err;
+        }
+    }
+
     if (type === 'PRODUCT_RECOMMENDATIONS_BUILD') {
         try {
             const { buildCoPurchaseRecommendations } = await import('../../modules/commerce/recommendations/services/recommendation.service.js');

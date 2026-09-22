@@ -69,6 +69,8 @@ const ADMIN_PERMISSION_PATH_MAP = [
   { prefix: "/admin/coins", section: "transaction_management" },
   { prefix: "/admin/attributes", section: "product_management" },
   { prefix: "/admin/attribute-sets", section: "product_management" },
+  { prefix: "/admin/product-reviews", section: "product_management" },
+  { prefix: "/admin/inventory", section: "product_management" },
   { prefix: "/admin/ai", section: "system_settings" },
   { prefix: "/admin/order-detect-delivery", section: "order_management" },
   { prefix: "/admin/sidebar-badges", section: "dashboard" },

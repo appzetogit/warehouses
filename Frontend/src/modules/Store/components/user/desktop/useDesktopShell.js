@@ -32,7 +32,8 @@ const categoriesCache = new Map()
 
 /**
  * Public categories (zone-aware), normalised to {id, name, slug, image, parentId}.
- * `tree` groups subcategories under their parent when the API returns parentId.
+ * `tree` groups subcategories under their parent (the API returns parentId and
+ * includes parents that hold no products themselves).
  */
 export function usePublicCategories(zoneId) {
   const key = String(zoneId || "global")
@@ -54,7 +55,12 @@ export function usePublicCategories(zoneId) {
           slug: c?.slug || String(c?.name || "").toLowerCase().replace(/\s+/g, "-"),
           image: c?.image || c?.imageUrl || "",
           parentId: c?.parentId ? String(c.parentId?._id || c.parentId) : null,
+          sortOrder: Number(c?.sortOrder) || 0,
+          order: i,
         })).filter((c) => c.name)
+          // Parents the API adds for grouping come after the listed ones; put
+          // everything back in the admin's sortOrder.
+          .sort((a, b) => a.sortOrder - b.sortOrder || a.order - b.order)
         categoriesCache.set(key, items)
         if (alive) setList(items)
       })

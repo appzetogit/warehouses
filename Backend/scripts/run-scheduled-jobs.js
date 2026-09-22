@@ -14,6 +14,7 @@ let autoDeliverInterval = null;
 let stuckOrderInterval = null;
 let pushCampaignInterval = null;
 let recommendationsInterval = null;
+let trackingSyncInterval = null;
 
 const shutdown = async (signal) => {
     logger.info(`${signal} received, stopping scheduled jobs`);
@@ -24,6 +25,7 @@ const shutdown = async (signal) => {
     if (stuckOrderInterval) clearInterval(stuckOrderInterval);
     if (pushCampaignInterval) clearInterval(pushCampaignInterval);
     if (recommendationsInterval) clearInterval(recommendationsInterval);
+    if (trackingSyncInterval) clearInterval(trackingSyncInterval);
 
     try {
         await disconnectDB();
@@ -102,6 +104,17 @@ const start = async () => {
             }
         };
 
+        // Courier tracking refresh (the BullMQ worker runs it every 30 minutes).
+        const runTrackingSync = async () => {
+            try {
+                const { syncActiveShipmentTracking } = await import('../src/modules/commerce/orders/services/shipmentAdmin.service.js');
+                const results = await syncActiveShipmentTracking();
+                if (results.due) logger.info(`Courier tracking synced: ${JSON.stringify(results)}`);
+            } catch (err) {
+                logger.error(`Courier tracking sync error: ${err.message}`);
+            }
+        };
+
         // Co-purchase pairs for "Frequently bought together" (the BullMQ worker runs it at 02:30).
         const runRecommendations = async () => {
             try {
@@ -140,6 +153,7 @@ const start = async () => {
         void runPushCampaigns();
         await runRecommendations();
         recommendationsInterval = setInterval(runRecommendations, 24 * 60 * 60 * 1000);
+        trackingSyncInterval = setInterval(runTrackingSync, 30 * 60 * 1000);
 
         logger.info('Scheduled jobs runner started');
     } catch (err) {

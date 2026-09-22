@@ -35,3 +35,9 @@ export const listGuardClaims = handle((req) => guard.listFirstOrderClaims(req.qu
 // ----- Customer: notification preferences -----
 export const getMyPreferences = handle((req) => svc.getNotificationPreferences('USER', userOf(req)), 'Preferences');
 export const setMyPreferences = handle((req) => svc.setNotificationPreferences('USER', userOf(req), req.body || {}), 'Preferences saved');
+
+// ----- Anyone: a campaign push was tapped (the signed open token is the proof; no sign-in needed) -----
+export const recordOpen = handle((req) => svc.recordCampaignOpen({
+    deliveryId: req.body?.deliveryId,
+    openToken: req.body?.openToken,
+}), 'Recorded');

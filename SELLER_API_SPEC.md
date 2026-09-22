@@ -33,6 +33,8 @@ Login outcomes:
 | GET | `/seller/current` | The logged-in store |
 | PATCH | `/seller/profile` | Store details |
 | PATCH | `/seller/availability` | Open / close for orders |
+| POST | `/seller/reverify` | Resubmit a rejected application for approval |
+| POST | `/seller/channels/:channel/apply` | Ask to sell in Quick or Shop |
 | GET | `/seller/outlet-timings` | Opening hours |
 | PUT | `/seller/outlet-timings` | Replace opening hours |
 | DELETE | `/seller/current` | Delete the store account |
@@ -131,6 +133,9 @@ low-stock list includes variants counted on their own (with `variantId`).
 | GET | `/seller/orders/:orderId` | One order |
 | PATCH | `/seller/orders/:orderId/status` | `{ orderStatus, note? }` |
 | POST | `/seller/orders/:orderId/resend-notification` | Re-alert riders for an order nobody has accepted |
+| POST | `/seller/orders/:orderId/shipment` | Create a shipment for the order |
+| GET | `/seller/orders/:orderId/shipment/track` | Track the shipment |
+| GET | `/seller/returns` | Return requests on the store's orders |
 
 `orderStatus` a seller can set: `confirmed` (accept), `preparing`,
 `ready_for_pickup`, or `cancelled_by_seller` (reject). The rider moves the

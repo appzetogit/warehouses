@@ -54,6 +54,13 @@ import {
 } from '../../spin/controllers/spin.controller.js';
 
 import { getMyPreferences, setMyPreferences } from '../../campaigns/controllers/pushCampaign.controller.js';
+import { userReviewRoutes } from '../../reviews/routes/productReview.routes.js';
+import {
+    listSavedForLaterController,
+    saveForLaterController,
+    moveSavedToCartController,
+    removeSavedForLaterController
+} from '../controllers/savedForLater.controller.js';
 
 const router = express.Router();
 
@@ -110,5 +117,14 @@ router.delete('/favorites/products/:productId', removeFavoriteProductController)
 
 router.get('/cart', getUserCartController);
 router.put('/cart', syncUserCartController);
+
+// Save for later, per storefront (mode shop|quick).
+router.get('/saved-for-later', listSavedForLaterController);
+router.post('/saved-for-later', saveForLaterController);
+router.post('/saved-for-later/:id/move-to-cart', moveSavedToCartController);
+router.delete('/saved-for-later/:id', removeSavedForLaterController);
+
+// Product reviews (write/edit own, helpful votes, reports).
+router.use('/reviews', userReviewRoutes);
 
 export default router;

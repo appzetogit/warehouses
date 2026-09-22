@@ -45,7 +45,7 @@ import {
   loadSellerForOrdering,
   assertSellerOpenForOrdering,
 } from './order-pricing.service.js';
-import { claimFirstOrder, releaseFirstOrderClaim, releaseFirstOrderClaimIfVoid } from './firstOrderGuard.service.js';
+import { claimFirstOrder, releaseFirstOrderClaim, releaseFirstOrderClaimIfVoid, recordPaymentFingerprint } from './firstOrderGuard.service.js';
 import { normalizeDeliveryAddress } from '../../shared/geo.utils.js';
 import * as dispatchService from './order-dispatch.service.js';
 import * as deliveryService from './order-delivery.service.js';
@@ -1097,6 +1097,11 @@ export async function verifyPayment(userId, dto) {
     throw new ValidationError("Payment verification failed");
   }
 
+  // The paying card/UPI joins the order's first-order claim (if any). Never
+  // fails a paid order: a clash only flags the claim for review.
+  await recordPaymentFingerprint({ orderId: order._id, payment: rzPayment }).catch((err) =>
+    logger.warn(`First-order payment fingerprint for order ${order._id} failed: ${err?.message || err}`));
+
   await releasePaidOrder(order, {
     byRole: "USER",
     byId: userId,
@@ -1709,10 +1714,10 @@ export async function submitOrderRatings(orderId, userId, dto) {
     const itemId = String(entry.itemId || "").trim();
     const ordered = orderedItems.get(itemId);
     if (!ordered) {
-      throw new ValidationError("You can only rate dishes from this order");
+      throw new ValidationError("You can only rate items from this order");
     }
     if (seenItemIds.has(itemId)) {
-      throw new ValidationError("Each dish can be rated only once");
+      throw new ValidationError("Each item can be rated only once");
     }
     seenItemIds.add(itemId);
     order.ratings.items.push({
@@ -1737,9 +1742,8 @@ export async function submitOrderRatings(orderId, userId, dto) {
           dto.deliveryPartnerRating,
         )
       : Promise.resolve(),
-    ...itemRatings.map((entry) =>
-      applyAggregateRating(Product, entry.itemId, entry.rating),
-    ),
+    // Product ratings come only from product reviews (reviews module), which
+    // recompute them from source; a running average here would drift from it.
   ]);
 
     await order.save();

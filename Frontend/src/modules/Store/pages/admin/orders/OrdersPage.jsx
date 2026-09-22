@@ -736,6 +736,8 @@ export default function OrdersPage({ statusKey = "all" }) {
         paymentType,
         paymentStatus,
         orderStatus: displayStatus,
+        // The backend status code (e.g. "cancelled_by_admin"); orderStatus above is a display label.
+        statusCode: backendStatus,
         deliveryPartnerName,
         deliveryPartnerPhone,
         deliveryType: order.deliveryType || "Home Delivery",

@@ -41,7 +41,7 @@ export const handleRazorpayWebhook = async (req, res) => {
 
             // A split checkout's payment releases all of its stores' orders.
             const { handleCheckoutPaymentCaptured } = await import('../../../modules/commerce/orders/services/orderSplit.service.js');
-            if (await handleCheckoutPaymentCaptured({ rzOrderId, rzPaymentId, amountPaise: paymentObj.amount })) {
+            if (await handleCheckoutPaymentCaptured({ rzOrderId, rzPaymentId, amountPaise: paymentObj.amount, payment: paymentObj })) {
                 return res.status(200).json({ status: 'ok' });
             }
 
@@ -106,6 +106,17 @@ export const handleRazorpayWebhook = async (req, res) => {
             } else {
                 // ✅ ADDED: Log warn if order not found but payment was captured
                 logger.warn(`Webhook [payment.captured]: Order not found or already paid for RZ-Order: ${rzOrderId}`);
+            }
+
+            // The paying card/UPI joins the order's first-order claim, whether
+            // this webhook or the app's verify released it (recording is idempotent).
+            if (existingOrder) {
+                try {
+                    const { recordPaymentFingerprint } = await import('../../../modules/commerce/orders/services/firstOrderGuard.service.js');
+                    await recordPaymentFingerprint({ orderId: existingOrder._id, payment: paymentObj });
+                } catch (fpErr) {
+                    logger.warn(`Webhook: first-order payment fingerprint for order ${existingOrder._id} failed: ${fpErr?.message || fpErr}`);
+                }
             }
         }
 

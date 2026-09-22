@@ -152,6 +152,12 @@ const productSchema = new mongoose.Schema(
         /** Running average of per-dish ratings left by customers. */
         rating: { type: Number, default: 0, min: 0, max: 5 },
         totalRatings: { type: Number, default: 0, min: 0 },
+        /**
+         * Visible review counts by star, [1★, 2★, 3★, 4★, 5★]. `rating`,
+         * `totalRatings` and this are recomputed server-side from product_reviews
+         * on every review write (reviews/services/productReview.service.js).
+         */
+        ratingHistogram: { type: [Number], default: () => [0, 0, 0, 0, 0] },
         /** When set, item auto-restores to available after this time (server-side). */
         stockResumeAt: { type: Date, index: true },
         stockOffMode: {

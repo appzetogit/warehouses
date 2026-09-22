@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 import { User } from '../../../../core/users/user.model.js';
@@ -422,7 +423,11 @@ export async function kickCampaignSender() {
     return 'inline';
 }
 
-const withLabels = (c) => ({ ...c, audienceLabel: audienceLabel(c.audience) });
+const openRateOf = (stats = {}) => {
+    const sent = Number(stats?.sent) || 0;
+    return sent > 0 ? Math.round(((Number(stats?.opened) || 0) / sent) * 1000) / 10 : 0;
+};
+const withLabels = (c) => ({ ...c, audienceLabel: audienceLabel(c.audience), openRate: openRateOf(c.stats) });
 
 function audienceLabel(a = {}) {
     switch (a.type) {
@@ -556,13 +561,20 @@ export async function selectDueCampaigns(now = new Date()) {
 async function refreshStats(campaignId, runKey, startedAt) {
     const rows = await PushCampaignDelivery.aggregate([
         { $match: { campaignId } },
-        { $group: { _id: { runKey: '$runKey', status: '$status' }, n: { $sum: 1 } } },
+        {
+            $group: {
+                _id: { runKey: '$runKey', status: '$status' },
+                n: { $sum: 1 },
+                opened: { $sum: { $cond: [{ $gt: [{ $ifNull: ['$openedAt', null] }, null] }, 1, 0] } },
+            },
+        },
     ]);
-    const total = { targeted: 0, sent: 0, failed: 0, skipped: 0 };
-    const run = { targeted: 0, sent: 0, failed: 0, skipped: 0 };
+    const total = { targeted: 0, sent: 0, failed: 0, skipped: 0, opened: 0 };
+    const run = { targeted: 0, sent: 0, failed: 0, skipped: 0, opened: 0 };
     for (const r of rows) {
         for (const bucket of r._id.runKey === runKey ? [total, run] : [total]) {
             bucket.targeted += r.n;
+            bucket.opened += r.opened || 0;
             if (bucket[r._id.status] !== undefined) bucket[r._id.status] += r.n;
         }
     }
@@ -601,6 +613,10 @@ async function sendOne(campaign, delivery, { optedOut, settings, now }) {
             data: {
                 type: 'marketing_campaign',
                 campaignId: String(campaign._id),
+                // Generic open-tracking fields, read the same way by every client.
+                deliveryId: String(delivery._id),
+                openToken: openTokenFor(delivery._id),
+                deepLink: campaign.link || '',
                 link: campaign.link || '',
                 deepLinkType: campaign.deepLink?.type || 'none',
                 deepLinkValue: campaign.deepLink?.value || '',
@@ -610,6 +626,46 @@ async function sendOne(campaign, delivery, { optedOut, settings, now }) {
     if (Number(result?.successCount) > 0) return finish('sent', '', { localDay, sentAt: new Date() });
     const reason = result?.error ? String(result.error).slice(0, 200) : result?.results?.length === 0 ? 'no_device' : 'push_failed';
     return finish('failed', reason);
+}
+
+// ---------------------------------------------------------------------------
+// Opens
+// ---------------------------------------------------------------------------
+
+const openSecret = () => `push-open:${process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'dev'}`;
+
+/** The opaque proof, sent in the push, that a delivery id came from us. */
+export function openTokenFor(deliveryId) {
+    return crypto.createHmac('sha256', openSecret()).update(String(deliveryId)).digest('base64url');
+}
+
+const validOpenToken = (deliveryId, token) => {
+    const expected = Buffer.from(openTokenFor(deliveryId));
+    const given = Buffer.from(String(token || ''));
+    return given.length === expected.length && crypto.timingSafeEqual(given, expected);
+};
+
+/**
+ * The person tapped a campaign push. Counted once per delivery; a forged or
+ * replayed token counts nothing. `{ counted }` says whether this call counted it.
+ */
+export async function recordCampaignOpen({ deliveryId, openToken } = {}, now = new Date()) {
+    const id = String(deliveryId || '');
+    if (!mongoose.Types.ObjectId.isValid(id) || !validOpenToken(id, openToken)) {
+        throw new ValidationError('Invalid notification');
+    }
+    const row = await PushCampaignDelivery.findOneAndUpdate(
+        { _id: new mongoose.Types.ObjectId(id), status: { $in: ['processing', 'sent'] }, openedAt: null },
+        { $set: { openedAt: now } },
+        { new: true },
+    ).lean();
+    if (!row) return { counted: false };
+    await PushCampaign.updateOne(
+        { _id: row.campaignId },
+        { $inc: { 'stats.opened': 1, 'runs.$[r].opened': 1 } },
+        { arrayFilters: [{ 'r.runKey': row.runKey }] },
+    );
+    return { counted: true };
 }
 
 /**

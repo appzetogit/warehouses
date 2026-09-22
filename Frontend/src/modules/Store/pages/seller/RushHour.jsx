@@ -99,7 +99,7 @@ export default function RushHour() {
         {/* Time Selection Section */}
         <div className="mb-6">
           <h2 className="text-base font-bold text-gray-900 mb-4">
-            Increase food preparation time for the next
+            Increase preparation time for the next
           </h2>
           <RadioGroup value={selectedTime} onValueChange={setSelectedTime} className="space-y-4">
             {timeOptions.map((option) => (

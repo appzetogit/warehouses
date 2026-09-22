@@ -93,6 +93,16 @@ const startMaintenanceWorker = async () => {
         }
     );
 
+    // Courier tracking refresh (every 30 minutes): delivery, NDR and RTO updates.
+    await maintenanceQueue.add(
+        'SHIPMENT_TRACKING_SYNC',
+        { type: 'SHIPMENT_TRACKING_SYNC' },
+        {
+            repeat: { pattern: '*/30 * * * *' },
+            jobId: 'shipment_tracking_sync_job'
+        }
+    );
+
     // 5. Push campaign sweep (every minute): sends due campaigns in throttled batches.
     await maintenanceQueue.add(
         'PUSH_CAMPAIGN_TICK',

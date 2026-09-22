@@ -11,6 +11,8 @@ const statsSchema = new mongoose.Schema(
         failed: { type: Number, default: 0 },
         /** Not sent on purpose: opted out, over the daily cap. */
         skipped: { type: Number, default: 0 },
+        /** Sent pushes the person tapped (counted once per delivery). */
+        opened: { type: Number, default: 0 },
     },
     { _id: false }
 );
@@ -65,6 +67,7 @@ const pushCampaignSchema = new mongoose.Schema(
                         sent: Number,
                         failed: Number,
                         skipped: Number,
+                        opened: Number,
                     },
                     { _id: false }
                 ),
@@ -90,6 +93,8 @@ const pushCampaignDeliverySchema = new mongoose.Schema(
         /** Store-local YYYY-MM-DD it was sent on: the daily frequency cap counts these. */
         localDay: { type: String, default: '' },
         sentAt: { type: Date, default: null },
+        /** When the person first tapped the push; set once. */
+        openedAt: { type: Date, default: null },
     },
     { collection: 'push_campaign_deliveries', timestamps: true }
 );

@@ -20,7 +20,7 @@ const databaseTables = [
   { name: "Delivery_men", count: 9 },
   { name: "Disbursements", count: 2 },
   { name: "Employee_roles", count: 1 },
-  { name: "Food", count: 73 },
+  { name: "Products", count: 73 },
   { name: "Product_tag", count: 13 },
   { name: "Incentives", count: 4 },
   { name: "Logs", count: 0 },

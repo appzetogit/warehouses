@@ -1,0 +1,23 @@
+[Unit]
+Description=The Warehouses Socket.IO server
+After=network-online.target mongod.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=warehouses
+Group=warehouses
+WorkingDirectory=/srv/warehouses/current/Backend
+Environment=NODE_ENV=production
+Environment=SOCKET_PORT=5001
+ExecStart=/usr/bin/node socket-server.js
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

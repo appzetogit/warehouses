@@ -24,6 +24,7 @@ import {
   replaceFirebaseDeviceToken,
   upsertFirebaseDeviceToken,
 } from "../notifications/firebase.service.js";
+import { assertStrongAdminPassword } from "../admin/adminPassword.js";
 
 const ROLES = {
   USER: "USER",
@@ -795,9 +796,7 @@ export const changeAdminPassword = async (
   if (!isMatch) {
     throw new AuthError("Current password is incorrect");
   }
-  if (!newPassword || String(newPassword).length < 6) {
-    throw new ValidationError("New password must be at least 6 characters");
-  }
+  assertStrongAdminPassword(String(newPassword || ""));
   admin.password = newPassword;
   await admin.save();
 
@@ -871,9 +870,7 @@ export const resetAdminPasswordWithOtp = async (email, otp, newPassword) => {
   if (!normalizedEmail || !otpStr) {
     throw new ValidationError("Email and OTP are required");
   }
-  if (!newPassword || String(newPassword).length < 6) {
-    throw new ValidationError("New password must be at least 6 characters");
-  }
+  assertStrongAdminPassword(String(newPassword || ""));
 
   const record = await AdminResetOtp.findOne({ email: normalizedEmail });
   if (!record) {

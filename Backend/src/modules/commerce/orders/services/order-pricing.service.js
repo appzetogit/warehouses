@@ -17,6 +17,7 @@ import { attachOutletTimingsToSellers } from '../../seller/services/outletTiming
 import { getSellerAvailabilityStatus } from '../../seller/helpers/sellerAvailability.helper.js';
 import { resolveOrderCartItems } from '../helpers/order-cart-items.helper.js';
 import { channelForMode } from '../../shared/channels.js';
+import { getActiveZones, zoneEtaMinutes } from '../../shared/zoneServiceability.js';
 import { AVG_SPEED_KMPH, PACKING_MINUTES } from './order.helpers.js';
 import { checkFirstOrderEligibility } from './firstOrderGuard.service.js';
 
@@ -193,6 +194,19 @@ export function estimateDeliveryPromiseMinutes(distanceKm) {
   const km = Number(distanceKm);
   if (!Number.isFinite(km) || km < 0) return null;
   return Math.ceil(PACKING_MINUTES + (km / AVG_SPEED_KMPH) * 60);
+}
+
+/** max(distance estimate, zone ETA); the zone ETA alone when the distance is unknown. */
+async function flooredQuickPromise(estimate, zoneId) {
+  if (!zoneId) return estimate;
+  try {
+    const zone = (await getActiveZones()).find((z) => String(z._id) === String(zoneId));
+    if (!zone) return estimate;
+    const floor = zoneEtaMinutes(zone);
+    return estimate == null ? floor : Math.max(estimate, floor);
+  } catch {
+    return estimate;
+  }
 }
 
 /**
@@ -626,7 +640,14 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
     // quick-commerce promise: it is a reason to order, not a status to check
     // afterwards. Packing plus the ride, from the same numbers the live
     // countdown uses, so the quote and the tracking screen agree.
-    deliveryPromiseMinutes: estimateDeliveryPromiseMinutes(distanceKm),
+    //
+    // For Quick the promise never goes below the zone's advertised time: the
+    // storefront said "Get it in N min" for this zone, and the quote should
+    // not undercut the number the customer ordered on. It can still be longer
+    // for a far address. Shop orders are promised a date, not minutes.
+    deliveryPromiseMinutes: channel === 'quick'
+      ? await flooredQuickPromise(estimateDeliveryPromiseMinutes(distanceKm), seller?.zoneId || dto.zoneId)
+      : estimateDeliveryPromiseMinutes(distanceKm),
   };
 
   const pricing = applyDeliveryModePricing(

@@ -438,7 +438,7 @@ export default function PromotionalBanner() {
                         type="text" 
                         value={formData.ctaLink}
                         onChange={e => setFormData(p => ({...p, ctaLink: e.target.value, sellerId: ""}))}
-                        placeholder="e.g. burgers-king or /food/offers"
+                        placeholder="e.g. summer-sale or /offers"
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                       />
                     </div>

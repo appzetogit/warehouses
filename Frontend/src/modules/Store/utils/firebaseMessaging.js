@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { userAPI, sellerAPI, deliveryAPI, adminAPI } from "@store/api";
+import { userAPI, sellerAPI, deliveryAPI, adminAPI, notificationAPI } from "@store/api";
 import { initializeApp, getApp, getApps } from "firebase/app";
 import fallbackNotificationSound from "@store/assets/audio/alert.mp3";
 
@@ -568,6 +568,15 @@ async function getFirebasePublicEnv() {
   return publicEnvPromise;
 }
 
+function resolveAbsoluteApiBase() {
+  try {
+    const base = String(import.meta.env?.VITE_API_BASE_URL || "/api/v1").replace(/\/$/, "");
+    return new URL(base, window.location.origin).href.replace(/\/$/, "");
+  } catch {
+    return "";
+  }
+}
+
 function passFirebaseConfigToServiceWorker(registration, config) {
   if (!registration || !config) return;
   const payload = {
@@ -581,6 +590,8 @@ function passFirebaseConfigToServiceWorker(registration, config) {
       storageBucket: sanitize(config.storageBucket),
       measurementId: sanitize(config.measurementId),
     },
+    // Absolute API base, so a tapped campaign push can be reported from the worker.
+    apiBaseUrl: resolveAbsoluteApiBase(),
   };
 
   const postConfig = (worker) => {
@@ -808,6 +819,25 @@ export async function resolveDeviceFcmToken(moduleName = "user", options = {}) {
   };
 }
 
+/**
+ * Campaign pushes carry { deliveryId, openToken, deepLink }. Tapping one is
+ * reported once (the server ignores repeats and forged tokens).
+ */
+const reportedPushOpens = new Set();
+export function reportPushOpen(data = {}) {
+  const deliveryId = String(data?.deliveryId || "").trim();
+  const openToken = String(data?.openToken || "").trim();
+  if (!deliveryId || !openToken || reportedPushOpens.has(deliveryId)) return;
+  reportedPushOpens.add(deliveryId);
+  notificationAPI.recordPushOpen({ deliveryId, openToken }).catch(() => {});
+}
+
+function openTrackedPush(data = {}) {
+  reportPushOpen(data);
+  const link = String(data?.deepLink || data?.link || "");
+  if (link.startsWith("/") && !link.startsWith("//")) window.location.assign(link);
+}
+
 function showForegroundNotification(payload = {}) {
   if (!isRecord(payload)) {
     pushDebugWarn(PUSH_DEBUG_PREFIX, "Ignoring malformed foreground notification payload", { payload });
@@ -849,10 +879,14 @@ function showForegroundNotification(payload = {}) {
       pushDebugLog(PUSH_DEBUG_PREFIX, "Skipping blank foreground notification after sanitize");
       return;
     }
+    const tracked = isRecord(payload?.data) && payload.data.deliveryId && payload.data.openToken;
+    const toastOptions = tracked
+      ? { action: { label: "View", onClick: () => openTrackedPush(payload.data) } }
+      : undefined;
     if (body) {
-      toast.success(`${title}: ${body}`);
+      toast.success(`${title}: ${body}`, toastOptions);
     } else {
-      toast.success(title);
+      toast.success(title, toastOptions);
     }
     pushDebugLog(PUSH_DEBUG_PREFIX, "Foreground notification shown as toast", { title, body });
   }

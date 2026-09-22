@@ -6,7 +6,7 @@ import { logger } from '../../../../utils/logger.js';
 import { restoreOrderStock } from './inventory.service.js';
 import { applyCheckoutShare, calculateOrderPricing, loadActiveFeeSettings, resolveCoupon } from './order-pricing.service.js';
 import { normalizeDeliveryAddress } from '../../shared/geo.utils.js';
-import { readAddressPoint } from '../../shared/zoneServiceability.js';
+import { readAddressPoint, findZoneForPoint } from '../../shared/zoneServiceability.js';
 import {
     getCoinSettings,
     getRedeemableForOrder,
@@ -102,6 +102,14 @@ export async function calculateCheckoutPricing(userId, dto = {}) {
     const fulfilmentMode = dto.fulfilmentMode === 'standard' ? 'standard' : 'quick';
     const deliveryAddress = normalizeDeliveryAddress(dto.deliveryAddress || dto.address || {});
     const deliveryMode = fulfilmentMode === 'quick' ? 'quick' : 'basic';
+    // Quote what can be ordered: Quick is bounded by delivery zones (the same
+    // rule order creation applies); Shop ships anywhere.
+    if (fulfilmentMode === 'quick') {
+        const point = readAddressPoint(deliveryAddress);
+        if (point && !(await findZoneForPoint(point.lat, point.lng))) {
+            throw new ValidationError("We don't deliver to this address yet");
+        }
+    }
 
     const itemsBySeller = new Map();
     for (const item of items) {
@@ -465,7 +473,7 @@ export async function verifyCheckoutPayment(userId, dto = {}) {
  * The gateway's word that an online payment went through, for when the app
  * never came back to verify. Returns false if the Razorpay order is not a checkout's.
  */
-export async function handleCheckoutPaymentCaptured({ rzOrderId, rzPaymentId, amountPaise }) {
+export async function handleCheckoutPaymentCaptured({ rzOrderId, rzPaymentId, amountPaise, payment }) {
     const checkout = await Checkout.findOne({ 'payment.gatewayOrderId': String(rzOrderId) });
     if (!checkout) return false;
     const expectedPaise = Math.round((Number(checkout.pricing.grandTotal) || 0) * 100);
@@ -474,6 +482,11 @@ export async function handleCheckoutPaymentCaptured({ rzOrderId, rzPaymentId, am
         return true;
     }
     await finalizeCheckoutPaid(checkout._id, { byRole: 'SYSTEM', razorpayPaymentId: String(rzPaymentId || '') });
+    // Same first-order card/UPI record as the verify path; never fails a paid checkout.
+    if (payment) {
+        await recordPaymentFingerprint({ checkoutId: checkout._id, payment })
+            .catch((err) => logger.warn(`first-order fingerprint for ${checkout.checkoutId}: ${err.message}`));
+    }
     return true;
 }
 

@@ -132,6 +132,8 @@ const paymentSchema = new mongoose.Schema(
             },
             amount: { type: Number, default: 0 },
             refundId: { type: String, default: '' },
+            /** Where it went: 'original' (gateway/wallet) or 'coins'. */
+            method: { type: String, default: '' },
             processedAt: { type: Date }
         }
     },

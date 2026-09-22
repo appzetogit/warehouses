@@ -60,6 +60,40 @@ const isLegacyTemplateSampleRow = (data = {}) => {
 };
 
 /**
+ * Optional per-channel columns (CHANNELS_CONTRACT.md). Blank keeps the
+ * product's current value (or the default for a new product); "Yes" needs the
+ * seller to be approved for that channel.
+ */
+const CHANNEL_COLUMNS = Object.freeze([
+    { header: 'Sell in Quick (Yes/No)', key: 'sellQuick', channel: 'quick', kind: 'sell' },
+    { header: 'Sell in Shop (Yes/No)', key: 'sellShop', channel: 'shop', kind: 'sell' },
+    { header: 'Quick stock', key: 'stockQuick', channel: 'quick', kind: 'stock' },
+    { header: 'Shop stock', key: 'stockShop', channel: 'shop', kind: 'stock' },
+]);
+const CHANNEL_LABEL = { quick: 'Quick', shop: 'Shop' };
+
+/** A problem with one row, reported as is (no "Parsing error" prefix). */
+const rowError = (message) => Object.assign(new Error(message), { rowError: true });
+
+/** "Yes"/"No"/blank -> true/false/undefined; anything else throws. */
+function parseYesNo(raw, header) {
+    const v = String(raw ?? '').trim().toLowerCase();
+    if (!v) return undefined;
+    if (['yes', 'y', 'true', '1'].includes(v)) return true;
+    if (['no', 'n', 'false', '0'].includes(v)) return false;
+    throw rowError(`${header} must be Yes or No`);
+}
+
+/** Whole number >= 0, or blank (undefined). */
+function parseStockCount(raw, header) {
+    const v = String(raw ?? '').trim();
+    if (!v) return undefined;
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 0) throw rowError(`${header} must be a whole number of 0 or more`);
+    return n;
+}
+
+/**
  * Generates an Excel template for bulk menu upload.
  */
 export async function generateBulkMenuTemplate() {
@@ -82,6 +116,7 @@ export async function generateBulkMenuTemplate() {
         { header: 'Variant 2 Price', key: 'v2Price', width: 15 },
         { header: 'Variant 3 Name', key: 'v3Name', width: 20 },
         { header: 'Variant 3 Price', key: 'v3Price', width: 15 },
+        ...CHANNEL_COLUMNS.map((c) => ({ header: c.header, key: c.key, width: c.kind === 'sell' ? 22 : 14 })),
     ];
 
     // Style headers
@@ -126,6 +161,26 @@ export async function generateBulkMenuTemplate() {
                 formulae: [0],
                 errorTitle: 'Invalid Price',
                 error: 'Price must be a number greater than or equal to 0'
+            };
+        });
+
+        // Channel columns (O-R): Yes/No, then whole-number stock.
+        ['O', 'P'].forEach((col) => {
+            sheet.getCell(`${col}${i}`).dataValidation = {
+                type: 'list',
+                allowBlank: true,
+                formulae: ['"Yes,No"']
+            };
+        });
+        ['Q', 'R'].forEach((col) => {
+            sheet.getCell(`${col}${i}`).dataValidation = {
+                type: 'whole',
+                operator: 'greaterThanOrEqual',
+                showErrorMessage: true,
+                allowBlank: true,
+                formulae: [0],
+                errorTitle: 'Invalid Stock',
+                error: 'Stock must be a whole number of 0 or more (blank keeps the current stock)'
             };
         });
     }
@@ -180,6 +235,13 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
             `Uploaded Excel is missing required column(s): ${missingHeaders.join(', ')}`,
         );
     }
+
+    // Optional channel columns, found by header wherever they are.
+    const channelColumnIndex = {};
+    (headerRow.values || []).forEach((value, index) => {
+        const match = CHANNEL_COLUMNS.find((c) => normalizeHeader(c.header) === normalizeHeader(value));
+        if (match) channelColumnIndex[match.key] = index;
+    });
 
     const seller = await Seller.findById(sellerId).lean();
     const approvedChannels = approvedChannelsOf(seller);
@@ -238,8 +300,22 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
                 isRecommended: String(row.getCell(6).value || '').toLowerCase() === 'yes',
                 prepTime: getTextValue(row.getCell(7)),
                 imageUrl: getTextValue(row.getCell(8)),
-                variants: []
+                variants: [],
+                channels: {},
+                stock: {}
             };
+            for (const col of CHANNEL_COLUMNS) {
+                const index = channelColumnIndex[col.key];
+                if (!index) continue;
+                const raw = getTextValue(row.getCell(index));
+                if (col.kind === 'sell') {
+                    const on = parseYesNo(raw, col.header);
+                    if (on !== undefined) data.channels[col.channel] = on;
+                } else {
+                    const count = parseStockCount(raw, col.header);
+                    if (count !== undefined) data.stock[col.channel] = count;
+                }
+            }
 
             // Mandatory Field Check
             if (!data.category || !data.name) {
@@ -256,6 +332,19 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
             }
 
             rowCount++;
+
+            // Channel columns against the seller's approved channels.
+            for (const c of CHANNELS) {
+                if (data.channels[c] === true && !approvedChannels.includes(c)) {
+                    throw rowError(`Your store is not approved to sell in ${CHANNEL_LABEL[c]}`);
+                }
+                if (data.stock[c] !== undefined && !approvedChannels.includes(c)) {
+                    throw rowError(`${CHANNEL_LABEL[c]} stock given, but your store is not approved to sell in ${CHANNEL_LABEL[c]}`);
+                }
+            }
+            if (CHANNELS.every((c) => data.channels[c] === false)) {
+                throw rowError('A product must sell in at least one of Quick or Shop');
+            }
 
             // Parse Variants (Columns 9 to 14)
             for (let j = 0; j < 3; j++) {
@@ -277,7 +366,7 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
             parsingErrors.push({
                 row: rowNumber,
                 item: getTextValue(row.getCell(2)) || 'Unknown Entry',
-                error: `Parsing error: ${err.message}`
+                error: err.rowError ? err.message : `Parsing error: ${err.message}`
             });
         }
     });
@@ -359,6 +448,18 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
                 // 3. Prepare Bulk Operation
                 const normalizedFoodType = normalizeFoodType(data.foodType);
 
+                // Channel switches and stock the row gives; blank keeps what is stored.
+                const channelSet = {};
+                const channelInsert = {};
+                for (const c of CHANNELS) {
+                    if (data.channels[c] !== undefined) channelSet[`channels.${c}`] = data.channels[c];
+                    else channelInsert[`channels.${c}`] = insertChannels[c];
+                    if (data.stock[c] !== undefined) {
+                        channelSet[`stock.${c}`] = data.stock[c];
+                        channelSet[`lowStockNotifiedAt.${c}`] = null;
+                    }
+                }
+
                 bulkOps.push({
                     updateOne: {
                         filter: { name: data.name, sellerId: seller._id },
@@ -378,10 +479,11 @@ export async function processBulkMenuUpload(sellerId, fileBuffer, options = {}) 
                                     ? { requestedAt: new Date(), approvedAt: null }
                                     : { approvedAt: new Date(), requestedAt: null }),
                                 rejectionReason: '',
-                                rejectedAt: null
+                                rejectedAt: null,
+                                ...channelSet
                             },
-                            // New rows are listed where the seller may sell.
-                            $setOnInsert: { channels: insertChannels }
+                            // New rows are listed where the seller may sell, unless the row says.
+                            $setOnInsert: channelInsert
                         },
                         upsert: true
                     }

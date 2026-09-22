@@ -1,14 +1,16 @@
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { useLocationSelector } from "../UserLayout"
+import { useQuickEta } from "./useDeliveryEstimates"
 
 /** Thin green strip under the desktop header on /quick: delivery area + ETA, or out of zone. */
 export default function QuickZoneStrip() {
   const { effectiveLocation, zone, zoneLoading, isOutOfService } = useDeliveryLocation()
   const { openLocationSelector } = useLocationSelector()
+  const quickEta = useQuickEta()
   if (zoneLoading) return null
   const area =
     effectiveLocation?.area?.trim() || effectiveLocation?.city || zone?.zoneName || zone?.name || "your location"
-  const eta = Number(zone?.etaMinutes || zone?.quickEtaMinutes || zone?.deliveryTimeMinutes) || 10
+  const eta = quickEta
 
   if (isOutOfService) {
     return (

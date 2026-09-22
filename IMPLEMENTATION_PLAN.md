@@ -5,6 +5,30 @@ Baseline: this repo (`Backend/` Node/Express/Mongo, `Frontend/` React/Vite admin
 
 > **Scope change (2026-09-22):** the native Flutter apps (customer, seller, delivery) are **out of scope** for this project. The deliverable is the backend, the admin and seller panels, and the customer website (desktop and mobile web). The API docs stay client-neutral so any future app can use them.
 
+## Status (2026-09-22)
+
+**Done** (checked against code, `test/fixtures/routes.txt` and the `node --test` suite):
+- Phase 0 and 1: security fixes, test harness and smoke suite, the full food → commerce rename with tested migrations.
+- Catalogue: attributes and sets, variants with their own SKU, MRP, stock and photos, variant-level stock, search with a text index, facets, sorting and nearby stores, the variant-matrix editor and bulk stock import.
+- Two storefronts (quick and shop) with separate carts, multi-seller split checkout with one payment, and per-order cancel and refund.
+- Courier: `ShippingProvider` with Shiprocket and mock adapters, NDR and RTO queues, returns, COD remittance matching, and a checkout view for admin.
+- Coins (ledger, 80% rule, 50% per order, FIFO expiry), spin wheel, first-order guard, push campaigns, Gemini assistant with hand-off, recommendation rails, and reports (SLA, commission, coin liability, reconciliation) with XLSX export.
+
+**Remaining — needs the client:**
+- Keys: Razorpay, Shiprocket, Gemini, Firebase (with the APNs key), SMS DLT templates, Google Maps.
+- Hosting, domain and a staging environment; a production backup for the migration rehearsal.
+- Content: brand assets, banners, categories, CMS pages.
+
+**Remaining — not built:**
+- Courier cost in the seller settlement.
+- Customer order detail: sibling orders of a checkout and the courier tracking timeline.
+- Phone-width filter sheet (price, brand, attributes); desktop has it.
+- Admin category form: pick an attribute set and set `requiresFssai` (the API takes both).
+- Courier tracking webhook or scheduled poll (tracking is read only on demand).
+- Referral rewards in coins; a cart-abandoner push segment.
+- Order and wallet code still call the Razorpay helper, not `PaymentGateway`; no combined COD ledger by rider and courier.
+- Load test and full E2E scripts.
+
 The code today does quick commerce from one seller per order. It started as a food-delivery product and still reads like one. The SOW asks for three things on top of that:
 
 1. **A real multi-vendor marketplace.** One cart can hold items from several sellers, products get true variants, and orders that aren't quick go through a courier.
@@ -151,12 +175,12 @@ The wallet is real money: top-ups and cashback. Coins are a promotional liabilit
 Tags: **[BE]** backend · **[AD]** admin web · **[SW]** seller web · **[CW]** customer website · **[CA]** customer app · **[SA]** seller app · **[DA]** delivery app
 
 ### 3.1 Phase 0 — Foundations (week 1)
-- [ ] Get sign-off on the business decisions in §5. Coins, courier and gateway choices block Phase 2.
+- [x] Get sign-off on the business decisions in §5. Coins, courier and gateway choices block Phase 2. (All settled in §5; the client can override by config.)
 - [x] Close remediation items H1, C4 and C5. Re-verify C2, C3 and C7. (C3 was still open and is now fixed; C7: no `.env` files are tracked.)
-- [ ] Set up a staging environment: a copy of production Mongo, Redis and BullMQ on, and separate Firebase and gateway test keys.
+- [ ] Set up a staging environment: a copy of production Mongo, Redis and BullMQ on, and separate Firebase and gateway test keys. (Needs the client: hosting and keys.)
 - [x] Run the four `*.selfcheck.mjs` files, and exercise the atomic stock decrement and restock against a real Mongo (still marked untested in `QUICK_COMMERCE_CHANGES.md`).
 - [x] Add a minimal test harness (`node --test` + in-memory Mongo replica set, `npm test` in `Backend/`).
-- [ ] Extend it into an API smoke suite covering checkout, cancel, refund and dispatch. All the refactors below depend on it.
+- [x] Extend it into an API smoke suite covering checkout, cancel, refund and dispatch. All the refactors below depend on it. (`test/smoke.test.js`.)
 - [x] Agree on the brand name (decided: "The Warehouses", from config).
 
 ### 3.2 Phase 1 — De-food and rename (weeks 1–2)
@@ -169,58 +193,58 @@ Nothing is live, so the rename is a clean break: there is no `/api/v1/food` alia
 - [x] **[BE]** Remove dining, table booking, add-ons, cutlery, cuisines, pure-veg stores, veg-scoped categories, gourmet/under-250/coffee/hyperpure and the saved menu layout. Veg/non-veg stays as an optional mark (`foodType`: `'Veg' | 'Non-Veg' | null`). FSSAI is optional everywhere; making it required per category moves to Phase 2a.
 - [x] **[BE]** Role `RESTAURANT` → `SELLER`, socket rooms `seller:<id>`, notification sources and stored values renamed. The last bare "food" values (`module`, favourites, approvals, upload folders) are migrated by `2026-09-rename-food-values.mjs`. New orders are numbered `ORD-…`.
 - [x] **[AD][SW][CW]** `modules/Food` → `modules/Store` (`@store`). Dining, gourmet, Under250, Coffee and Hyperpure pages deleted. On-screen copy says product/order, the brand name comes from business settings (`VITE_BRAND_NAME` until they load), and `/` opens the store. **Moving the customer site to `/` and the rider app off `/food/delivery` happens with the Phase 2 storefront**, as decided.
-- **Done when:** a `grep -ri "food\|restaurant\|dining\|veg"` over `src/` returns only the optional veg mark, the `/food/*` web URLs that move in Phase 2, comments, and internal identifiers users never see (the `food` Redux slice, local variables). *Status: met.* The smoke suite (§3.1) still has to be written.
+- **Done when:** a `grep -ri "food\|restaurant\|dining\|veg"` over `src/` returns only the optional veg mark, the `/food/*` web URLs that move in Phase 2, comments, and internal identifiers users never see (the `food` Redux slice, local variables). *Status: met.* The smoke suite (§3.1) is in `test/smoke.test.js`.
 
 ### 3.3 Phase 2a — Catalogue: attributes and variants (weeks 2–3)
-- [ ] **[BE]** `Attribute` / `AttributeSet` models and admin CRUD. Link attribute sets to categories.
-- [ ] **[BE]** Product variant schema (§2.4). Migrate the existing `{name, price}` variants to single-attribute variants.
-- [ ] **[BE]** Move stock reserve and release, low-stock checks and auto-hide to the variant level. Extend `PATCH /products/stock` to take `variantId`.
-- [ ] **[BE]** Search: a text index (name, brand, tags) plus the existing prefix regex fallback. Add filters for price range, brand and attributes, facet counts, sorting (relevance, price, rating, newest), and a nearby-stores endpoint.
-- [ ] **[BE]** Add `quickEligible` to products and variants.
-- [ ] **[AD][SW][SA]** Variant-matrix editor: pick attributes, generate combinations, then edit price, MRP, stock, SKU and image for each. Bulk stock import by CSV/XLSX (`exceljs` is already installed).
-- [ ] **[CW][CA]** Variant picker on the product page (swatches and sizes, with out-of-stock combinations greyed out), a filter sheet, and store listing and store pages.
-- [ ] **[BE][AD][SW]** `requiresFssai` on categories: a seller selling in a flagged (grocery/food) category must give an FSSAI licence.
-- [ ] **[CW]** Replace the customer product page (`pages/user/ProductDetail.jsx`): it is a static mock with a hardcoded catalogue and generated sample reviews, and nothing links to it. The real page carries the variant picker.
+- [x] **[BE]** `Attribute` / `AttributeSet` models and admin CRUD. Link attribute sets to categories.
+- [x] **[BE]** Product variant schema (§2.4). Migrate the existing `{name, price}` variants to single-attribute variants. (No migration needed: the old `{name, price}` variants are valid under the new schema.)
+- [x] **[BE]** Move stock reserve and release, low-stock checks and auto-hide to the variant level. Extend `PATCH /products/stock` to take `variantId`.
+- [x] **[BE]** Search: a text index (name, brand, tags) plus the existing prefix regex fallback. Add filters for price range, brand and attributes, facet counts, sorting (relevance, price, rating, newest), and a nearby-stores endpoint.
+- [x] **[BE]** Add `quickEligible` to products and variants. (Built as `channels.quick` / `channels.shop` on products and variants.)
+- [x] **[AD][SW][SA]** Variant-matrix editor: pick attributes, generate combinations, then edit price, MRP, stock, SKU and image for each. Bulk stock import by CSV/XLSX (`exceljs` is already installed). ([SA] out of scope.)
+- [ ] **[CW][CA]** Variant picker on the product page (swatches and sizes, with out-of-stock combinations greyed out), a filter sheet, and store listing and store pages. (Partial: picker, store pages and desktop filters done; no price/brand/attribute filter sheet at phone width. [CA] out of scope.)
+- [ ] **[BE][AD][SW]** `requiresFssai` on categories: a seller selling in a flagged (grocery/food) category must give an FSSAI licence. (Partial: enforced by the API; the admin category form has no toggle for it or for the attribute set.)
+- [x] **[CW]** Replace the customer product page (`pages/user/ProductDetail.jsx`): it is a static mock with a hardcoded catalogue and generated sample reviews, and nothing links to it. The real page carries the variant picker.
 
 ### 3.4 Phase 2b — Multi-seller cart, split checkout, standard delivery (weeks 3–5)
-- [ ] **[BE]** Cart model v2: lines keyed by `(sellerId, productId, variantId)`, no single-seller restriction, and server-side revalidation of price and stock on read.
-- [ ] **[BE]** `Checkout` (order group) model. `createCheckout` prices each seller's portion with the existing `calculateOrderPricing`, splits discounts and coins, reserves stock for all lines atomically (releasing everything if any line fails), then creates the child orders. One gateway order per checkout.
-- [ ] **[BE]** Route each portion to quick or standard (§2.2), with the delivery promise returned per portion.
-- [ ] **[BE]** A `ShippingProvider` interface with a Shiprocket adapter (or the client's courier): serviceability by pincode, rate, create shipment, label, pickup request, tracking webhook, cancel, and RTO. Add a `shipment` subdocument and the standard status flow.
-- [ ] **[BE]** Per-child cancel and refund with a partial gateway refund, and refund-to-coins as policy dictates.
-- [ ] **[BE]** Commission and settlement per child order (the existing `sellerCommission` becomes `sellerCommission`). Add a commission rule per category or per seller, and courier cost in the settlement.
-- [ ] **[SW][SA]** Standard-order flow: accept, pack, "ready to ship" (books the courier and prints the label), then the tracking timeline.
-- [ ] **[AD]** Order-group view with its child orders. A shipments page: NDR (failed delivery attempts) and RTO queue, COD remittance reconciliation.
-- [ ] **[CW][CA]** Cart grouped by seller with a promise and fee for each group, checkout summary, order detail showing child orders and their tracking (live map for quick, courier timeline for standard).
+- [x] **[BE]** Cart model v2: lines keyed by `(sellerId, productId, variantId)`, no single-seller restriction, and server-side revalidation of price and stock on read.
+- [x] **[BE]** `Checkout` (order group) model. `createCheckout` prices each seller's portion with the existing `calculateOrderPricing`, splits discounts and coins, reserves stock for all lines atomically (releasing everything if any line fails), then creates the child orders. One gateway order per checkout.
+- [x] **[BE]** Route each portion to quick or standard (§2.2), with the delivery promise returned per portion. (Per B6 the storefront sets the mode for the whole checkout.)
+- [ ] **[BE]** A `ShippingProvider` interface with a Shiprocket adapter (or the client's courier): serviceability by pincode, rate, create shipment, label, pickup request, tracking webhook, cancel, and RTO. Add a `shipment` subdocument and the standard status flow. (Partial: interface, Shiprocket and mock adapters, shipment subdocument and status flow done; no tracking webhook or scheduled poll — courier status, NDR and RTO refresh only when someone opens tracking.)
+- [x] **[BE]** Per-child cancel and refund with a partial gateway refund, and refund-to-coins as policy dictates.
+- [ ] **[BE]** Commission and settlement per child order (the existing `sellerCommission` becomes `sellerCommission`). Add a commission rule per category or per seller, and courier cost in the settlement. (Partial: category and seller rules done; courier cost is not in the settlement.)
+- [x] **[SW][SA]** Standard-order flow: accept, pack, "ready to ship" (books the courier and prints the label), then the tracking timeline. ([SA] out of scope.)
+- [x] **[AD]** Order-group view with its child orders. A shipments page: NDR (failed delivery attempts) and RTO queue, COD remittance reconciliation.
+- [ ] **[CW][CA]** Cart grouped by seller with a promise and fee for each group, checkout summary, order detail showing child orders and their tracking (live map for quick, courier timeline for standard). (Partial: cart grouped by store and checkout summary done; order detail shows neither the sibling orders nor the courier timeline. [CA] out of scope.)
 
 ### 3.5 Phase 3a — Refunds and coins (week 5)
-- [ ] **[BE]** Coin models, service and admin settings (§2.5). Atomic credit and debit. Daily expiry job.
-- [ ] **[BE]** Hook refunds in: eligible refunds credit coins (100% credited, redemption capped per rule B2). Other refunds go back to the original payment method as today.
-- [ ] **[BE]** Checkout: `coinsToApply` validated against the cap, the per-order limit and expiry, then spread across child orders (§2.3). Reversal when an order is cancelled.
-- [ ] **[AD]** Coin settings, a manual credit/debit with a required reason (audit-logged), a user coin ledger, and a coin liability report (issued, redeemed, expired, outstanding). This replaces the `loyalty-point` stub.
-- [ ] **[CW][CA]** Coin balance, ledger and expiry notices. A "use coins" toggle at checkout showing the maximum usable.
+- [x] **[BE]** Coin models, service and admin settings (§2.5). Atomic credit and debit. Daily expiry job.
+- [x] **[BE]** Hook refunds in: eligible refunds credit coins (100% credited, redemption capped per rule B2). Other refunds go back to the original payment method as today.
+- [x] **[BE]** Checkout: `coinsToApply` validated against the cap, the per-order limit and expiry, then spread across child orders (§2.3). Reversal when an order is cancelled.
+- [x] **[AD]** Coin settings, a manual credit/debit with a required reason (audit-logged), a user coin ledger, and a coin liability report (issued, redeemed, expired, outstanding). This replaces the `loyalty-point` stub.
+- [x] **[CW][CA]** Coin balance, ledger and expiry notices. A "use coins" toggle at checkout showing the maximum usable. ([CA] out of scope.)
 
 ### 3.6 Phase 3b — Promotions and engagement (weeks 5–6)
-- [ ] **[BE]** First-order offer: the auto-applied, best-eligible first-order coupon (the `isFirstOrderOnly` flag already exists). Block abuse by one phone per device and by address.
-- [ ] **[BE]** Spin wheel:
+- [x] **[BE]** First-order offer: the auto-applied, best-eligible first-order coupon (the `isFirstOrderOnly` flag already exists). Block abuse by one phone per device and by address. (The guard keys on account, phone, device and payment instrument rather than address.)
+- [x] **[BE]** Spin wheel: (the budget is a monthly coin cap per wheel, per B8)
   - `SpinCampaign` with segments: label, reward (coupon, coins, free delivery, or nothing), weight, stock/budget.
   - Eligibility rules: per day, after an order, first N users.
   - `SpinResult`
   - The outcome is chosen **on the server** with a crypto RNG. The client only animates to the returned segment.
   - Budget caps stop a segment from paying out once it runs out.
-- [ ] **[BE]** Referral: confirm the existing referral flow and allow coins as a reward type.
-- [ ] **[AD]** Spin campaign builder showing the probability of each segment, a spin report, and a campaign scheduler for pushes by segment (all users, zone, inactive for N days, cart abandoners).
-- [ ] **[CW][CA]** Spin screen, offers page, and coupon picker at checkout.
+- [ ] **[BE]** Referral: confirm the existing referral flow and allow coins as a reward type. (Partial: referral rewards still go to the wallet only.)
+- [ ] **[AD]** Spin campaign builder showing the probability of each segment, a spin report, and a campaign scheduler for pushes by segment (all users, zone, inactive for N days, cart abandoners). (Partial: builder, report and scheduler done; no cart-abandoner segment.)
+- [x] **[CW][CA]** Spin screen, offers page, and coupon picker at checkout. ([CA] out of scope.)
 
 ### 3.7 Phase 3c — Payments (runs in parallel, weeks 4–6)
-- [ ] **[BE]** Refactor to the `PaymentGateway` interface. Checkout-level payment, with idempotent webhooks keyed on the gateway payment id.
-- [ ] **[BE]** Reconciliation report: gateway settlements vs checkouts vs refunds. COD ledger split by rider (quick) and courier (standard).
+- [ ] **[BE]** Refactor to the `PaymentGateway` interface. Checkout-level payment, with idempotent webhooks keyed on the gateway payment id. (Partial: interface, checkout-level payment and webhook done; order, wallet and refund code still call the Razorpay helper directly.)
+- [ ] **[BE]** Reconciliation report: gateway settlements vs checkouts vs refunds. COD ledger split by rider (quick) and courier (standard). (Partial: gateway vs checkouts/orders report and courier COD remittances done; no combined COD ledger by rider and courier.)
 
 ### 3.8 Phase 4a — AI assistant (week 6)
-- [ ] **[BE]** `ai` module: a Gemini client, the tool definitions (§2.7), conversation storage, rate limits and cost caps. An admin setting for the key, model, system prompt and each use case.
-- [ ] **[BE]** Query rewriting for search ("red tshirt under 500 size M" → filters), plus co-purchase recommendations built by a nightly job.
-- [ ] **[CW][CA]** Chat widget, with a "talk to support" hand-off into the existing chat or ticket flow. "You may also like" and "frequently bought together" rails.
-- [ ] **[AD]** AI settings, a conversation log viewer, and a usage and cost panel.
+- [x] **[BE]** `ai` module: a Gemini client, the tool definitions (§2.7), conversation storage, rate limits and cost caps. An admin setting for the key, model, system prompt and each use case.
+- [x] **[BE]** Query rewriting for search ("red tshirt under 500 size M" → filters), plus co-purchase recommendations built by a nightly job.
+- [x] **[CW][CA]** Chat widget, with a "talk to support" hand-off into the existing chat or ticket flow. "You may also like" and "frequently bought together" rails. ([CA] out of scope.)
+- [x] **[AD]** AI settings, a conversation log viewer, and a usage and cost panel.
 
 ### 3.9 Phase 4b — Notifications matrix (week 6)
 Wire and test every event through the existing BullMQ notification queue:
@@ -266,16 +290,16 @@ All reports export to XLSX. Heavy aggregations are pre-computed nightly into a `
 
 
 ### 3.12 Phase 6 — QA, UAT, launch (weeks 8–9)
-- [ ] End-to-end scripts for:
+- [ ] End-to-end scripts for: (partial: `test/smoke.test.js` covers quick orders by cash, Razorpay and wallet; the rest need the courier sandbox or are not written. A mixed cart is ruled out by B6.)
   - Quick order, for each payment method
   - Standard order through courier sandbox to delivery
   - A mixed cart (one quick seller + one standard seller)
   - Partial cancel → coin refund → redemption at the 80% cap
   - Spin → coupon → order
   - AI order-status lookup
-- [ ] Load test checkout and dispatch (the `REMEDIATION_PLAN` targets 10k orders/day).
-- [ ] Production migration rehearsal on a restored backup, then the live migration in a maintenance window.
-- [ ] Handover: updated API specs, an admin user guide, a runbook, and the start of the 1-year maintenance period.
+- [ ] Load test checkout and dispatch (the `REMEDIATION_PLAN` targets 10k orders/day). (Not written.)
+- [ ] Production migration rehearsal on a restored backup, then the live migration in a maintenance window. (Needs the client: a production backup and a window.)
+- [ ] Handover: updated API specs, an admin user guide, a runbook, and the start of the 1-year maintenance period. (Partial: API specs updated; admin guide in docs/ADMIN_GUIDE.md, runbook in docs/RUNBOOK.md, deploy guide and CI in deploy/ and .github/workflows/ci.yml; the maintenance period starts at go-live.)
 
 ---
 

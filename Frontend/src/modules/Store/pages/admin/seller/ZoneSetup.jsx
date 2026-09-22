@@ -172,6 +172,10 @@ export default function ZoneSetup() {
                     <span className="font-medium text-slate-900">{zone.unit || "km"}</span>
                   </div>
                   <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Quick ETA:</span>
+                    <span className="font-medium text-slate-900">{Number(zone.etaMinutes) || 10} min</span>
+                  </div>
+                  <div className="flex items-center justify-between">
                     <span className="text-slate-600">Status:</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       zone.isActive ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-800"

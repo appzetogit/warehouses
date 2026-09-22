@@ -1,3 +1,4 @@
+import { ADMIN_PASSWORD_HINT, adminPasswordError } from "@store/utils/adminPasswordRule";
 import { useState, useEffect } from "react";
 import { adminAPI } from "@store/api";
 import { Button } from "@store/components/ui/button";
@@ -85,8 +86,8 @@ export default function AdminSettings() {
 
     if (!passwordForm.newPassword) {
       newErrors.newPassword = "New password is required";
-    } else if (passwordForm.newPassword.length < 6) {
-      newErrors.newPassword = "Password must be at least 6 characters long";
+    } else if (adminPasswordError(passwordForm.newPassword)) {
+      newErrors.newPassword = adminPasswordError(passwordForm.newPassword);
     }
 
     if (!passwordForm.confirmPassword) {
@@ -272,7 +273,7 @@ export default function AdminSettings() {
                 <p className="text-sm text-red-600">{errors.newPassword}</p>
               )}
               <p className="text-xs text-neutral-500">
-                Password must be at least 6 characters long
+                {ADMIN_PASSWORD_HINT}
               </p>
             </div>
 

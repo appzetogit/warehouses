@@ -25,8 +25,8 @@ Login outcomes:
 - `pendingApproval: true` → registered but not approved. When `isRejected` is
   true, show `rejectionReason`; otherwise show `message` and wait for approval
 
-`POST /delivery/reverify` is a placeholder that returns success and does
-nothing yet.
+`POST /delivery/reverify` (rider token) puts a rejected application back in
+the admin's queue.
 
 ## Profile
 

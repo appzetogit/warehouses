@@ -1,4 +1,4 @@
-import { productChannelFields } from '../../shared/channels.js';
+import { CHANNELS, productChannelFields } from '../../shared/channels.js';
 import mongoose from 'mongoose';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { Product } from '../models/product.model.js';
@@ -19,6 +19,12 @@ export async function listPendingProductApprovals(query = {}) {
     const filter = { approvalStatus: 'pending' };
     if (query.sellerId && mongoose.Types.ObjectId.isValid(String(query.sellerId))) {
         filter.sellerId = query.sellerId;
+    }
+    // Admin panel scope: products enabled for this channel.
+    if (query.channel && String(query.channel).trim()) {
+        const channel = String(query.channel).trim().toLowerCase();
+        if (!CHANNELS.includes(channel)) throw new ValidationError(`channel must be one of: ${CHANNELS.join(', ')}`);
+        filter[`channels.${channel}`] = { $ne: false };
     }
     if (query.search && String(query.search).trim()) {
         const term = String(query.search).trim().slice(0, 80);
@@ -94,8 +100,8 @@ export async function approveProduct(id) {
             await notifyOwnersSafely(
                 [{ ownerType: 'SELLER', ownerId: updated.sellerId }],
                 {
-                    title: 'Dish Approved! 🍲',
-                    body: `Your dish "${updated.name}" has been approved and is now visible to customers.`,
+                    title: 'Product approved',
+                    body: `Your product "${updated.name}" has been approved and is now visible to customers.`,
                     image: updated.image || config.brand.notificationImage,
                     data: {
                         type: 'product_approved',
@@ -137,8 +143,8 @@ export async function rejectProduct(id, reason) {
             await notifyOwnersSafely(
                 [{ ownerType: 'SELLER', ownerId: updated.sellerId }],
                 {
-                    title: 'Dish Rejected ❌',
-                    body: `Your dish "${updated.name}" was rejected. Reason: ${r}`,
+                    title: 'Product not approved',
+                    body: `Your product "${updated.name}" was not approved. Reason: ${r}`,
                     image: updated.image || config.brand.notificationImage,
                     data: {
                         type: 'product_rejected',

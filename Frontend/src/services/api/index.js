@@ -52,6 +52,16 @@ export const catalogAPI = {
   /** `{ type: "frequently_bought" | "similar", fulfilmentMode, limit }` */
   getProductRecommendations: (id, params = {}) =>
     apiClient.get(`/catalog/products/${id}/recommendations`, { params }),
+  /**
+   * Visible reviews + `summary { averageRating, totalRatings, histogram }`.
+   * `{ sort: "newest" | "helpful", rating, withPhotos, page, limit }`. Signed in:
+   * adds `votedHelpful`/`isMine` per review and `myReview`.
+   */
+  getProductReviews: (id, params = {}) =>
+    apiClient.get(`/catalog/products/${id}/reviews`, { params }),
+  /** Shop delivery window `{ minDays, maxDays, fromDate, toDate }`; `{ pincode, fulfilmentMode: "standard" }`. */
+  getDeliveryEstimate: (params = {}) =>
+    apiClient.get("/catalog/delivery-estimate", { params }),
 };
 
 /** Admin management of attributes and the sets that attach them to categories. */
@@ -261,10 +271,23 @@ export const notificationAPI = {
     apiClient.delete(`/notifications/${String(id)}`, config),
   dismissAll: (config = {}) =>
     apiClient.delete("/notifications/inbox/all", config),
+  /** A campaign push was tapped. No sign-in needed: the push's signed openToken is the proof. */
+  recordPushOpen: ({ deliveryId, openToken } = {}) =>
+    apiClient.post("/notifications/opened", { deliveryId, openToken }),
 };
 
 /** Admin API - new backend only (GET /auth/me, PATCH /auth/admin/profile, POST /auth/admin/change-password) */
 export const adminAPI = {
+  /** GET /admin/product-reviews { status: all|visible|hidden|reported|removed, fulfilmentMode, rating, search, page, limit } */
+  getProductReviews: (params = {}) =>
+    apiClient.get("/admin/product-reviews", { params, contextModule: "admin" }),
+  hideProductReview: (id, reason) =>
+    apiClient.patch(`/admin/product-reviews/${id}/hide`, { reason }, { contextModule: "admin" }),
+  unhideProductReview: (id, reason = "") =>
+    apiClient.patch(`/admin/product-reviews/${id}/unhide`, { reason }, { contextModule: "admin" }),
+  /** Soft delete with a reason; the review can't be reposted. */
+  deleteProductReview: (id, reason) =>
+    apiClient.delete(`/admin/product-reviews/${id}`, { data: { reason }, contextModule: "admin" }),
   // Push campaigns (scheduled, segmented marketing pushes)
   getPushCampaigns: (params = {}) =>
     apiClient.get("/admin/push-campaigns", { params, contextModule: "admin" }),
@@ -291,6 +314,12 @@ export const adminAPI = {
     apiClient.put("/admin/first-order-guard/settings", body, { contextModule: "admin" }),
   getFirstOrderClaims: (params = {}) =>
     apiClient.get("/admin/first-order-guard/claims", { params, contextModule: "admin" }),
+  /** Gives the offer back; the server allows it only when the claim's order was cancelled or is gone. */
+  releaseFirstOrderClaim: (id) =>
+    apiClient.post(`/admin/first-order-guard/claims/${id}/release`, {}, { contextModule: "admin" }),
+  /** Products/variants at or below their low-stock alert. params: { channel, sellerId?, page?, limit? } */
+  getLowStock: (params = {}) =>
+    apiClient.get("/admin/inventory/low-stock", { params, contextModule: "admin" }),
   getSidebarBadges: (params = {}) =>
     apiClient.get("/admin/sidebar-badges", { params, contextModule: "admin" }),
   login: (email, password) => authService.adminLogin(email, password),
@@ -758,10 +787,11 @@ export const adminAPI = {
       { reason: String(reason || "").trim() },
       { contextModule: "admin" },
     ),
-  bulkApproveProducts: (sellerId) =>
+  /** { productIds?: string[] (max 500), channel?: "quick"|"shop", sellerId? } — ids or channel required. */
+  bulkApproveProducts: ({ productIds, channel, sellerId } = {}) =>
     apiClient.post(
       "/admin/products/bulk-approve",
-      { sellerId },
+      { productIds, channel, sellerId },
       { contextModule: "admin" },
     ),
   bulkUploadTemplate: () =>
@@ -1317,6 +1347,14 @@ export const sellerAPI = {
   createUnregisteredSeller: (data) =>
     apiClient.post("/seller/unregistered", data),
   deleteAccount: () => apiClient.delete('/seller/current', { contextModule: 'seller' }),
+  /** GET /seller/reviews { productId, rating, replied: "true"|"false", status, page, limit } */
+  getProductReviews: (params = {}) =>
+    apiClient.get('/seller/reviews', { params, contextModule: 'seller' }),
+  /** POST /seller/reviews/:id/reply { text } - once per review (409 after) */
+  replyToProductReview: (reviewId, text) =>
+    apiClient.post(`/seller/reviews/${reviewId}/reply`, { text }, { contextModule: 'seller' }),
+  reportProductReview: (reviewId, reason) =>
+    apiClient.post(`/seller/reviews/${reviewId}/report`, { reason }, { contextModule: 'seller' }),
   getWallet: () => apiClient.get('/seller/finance', { contextModule: 'seller' }),
   sendOTP: (phone, _purpose = "login") => {
     if (!phone) return Promise.reject(new Error("Phone is required"));
@@ -2670,6 +2708,34 @@ export const userAPI = {
   /** GET /user/cart?mode=shop|quick (Bearer USER) - saved cart, rechecked for price/stock in that channel */
   getCart: (mode = "shop") =>
     apiClient.get("/user/cart", { params: { mode: mode === "quick" ? "quick" : "shop" }, contextModule: "user" }),
+  /** GET /user/saved-for-later?mode=shop|quick - parked cart lines, each with `available`/`reason` for the channel */
+  getSavedForLater: (mode = "shop") =>
+    apiClient.get("/user/saved-for-later", { params: { mode: mode === "quick" ? "quick" : "shop" }, contextModule: "user" }),
+  /** POST /user/saved-for-later { mode, productId, variantId?, qty } - also drops the line from the stored cart */
+  saveForLater: (body) =>
+    apiClient.post("/user/saved-for-later", body ?? {}, { contextModule: "user" }),
+  /** POST /user/saved-for-later/:id/move-to-cart - re-validated; returns `{ line, cart }` (400/409 with data.reason) */
+  moveSavedToCart: (id) =>
+    apiClient.post(`/user/saved-for-later/${id}/move-to-cart`, {}, { contextModule: "user" }),
+  removeSavedForLater: (id) =>
+    apiClient.delete(`/user/saved-for-later/${id}`, { contextModule: "user" }),
+  /** GET /user/reviews/eligibility/:productId - `{ eligible, reason, variants, review }` */
+  getReviewEligibility: (productId) =>
+    apiClient.get(`/user/reviews/eligibility/${productId}`, { contextModule: "user" }),
+  /** PUT /user/reviews/products/:productId { rating 1-5, title?, text?, images?[<=5 upload URLs], variantId? } - create or edit */
+  saveProductReview: (productId, body) =>
+    apiClient.put(`/user/reviews/products/${productId}`, body ?? {}, { contextModule: "user" }),
+  deleteProductReview: (productId) =>
+    apiClient.delete(`/user/reviews/products/${productId}`, { contextModule: "user" }),
+  /** GET /user/reviews?productIds=a,b - the caller's own reviews */
+  getMyProductReviews: (params = {}) =>
+    apiClient.get("/user/reviews", { params, contextModule: "user" }),
+  markReviewHelpful: (reviewId) =>
+    apiClient.post(`/user/reviews/${reviewId}/helpful`, {}, { contextModule: "user" }),
+  unmarkReviewHelpful: (reviewId) =>
+    apiClient.delete(`/user/reviews/${reviewId}/helpful`, { contextModule: "user" }),
+  reportProductReview: (reviewId, reason) =>
+    apiClient.post(`/user/reviews/${reviewId}/report`, { reason }, { contextModule: "user" }),
   /**
    * Legacy UI compatibility: update "current user location".
    * We already persist the user's selected location in localStorage in the UI.

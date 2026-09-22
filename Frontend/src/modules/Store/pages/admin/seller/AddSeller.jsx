@@ -8,7 +8,7 @@ import { Label } from "@store/components/ui/label"
 import { Button } from "@store/components/ui/button"
 import { adminAPI, uploadAPI, zoneAPI } from "@store/api"
 import { toast } from "sonner"
-import { useAdminBase } from "@store/components/admin/useAdminPanel"
+import { useAdminBase, useAdminPanel } from "@store/components/admin/useAdminPanel"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => { console.warn(...args) }
 const debugError = (...args) => { console.error(...args) }
@@ -147,7 +147,10 @@ const clearAllFilesFromDB = async () => {
 
 export default function AddSeller() {
   const adminBase = useAdminBase()
+  const { channel: panelChannel } = useAdminPanel()
   const navigate = useNavigate()
+  // Channels the new store sells in; admin-created stores are approved for them.
+  const [sellIn, setSellIn] = useState(() => [panelChannel])
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
@@ -423,6 +426,10 @@ export default function AddSeller() {
     if (!step1.primaryContactNumber?.trim()) errors.push("Primary contact number is required")
     if (step1.primaryContactNumber?.trim() && !PHONE_REGEX.test(step1.primaryContactNumber.trim())) errors.push("Primary contact number must be 10 digits")
     if (!step1.zoneId?.trim()) errors.push("Service zone is required")
+    if (!sellIn.length) errors.push("Choose where the store sells: Quick, Shop or both")
+    if (sellIn.includes("shop") && !/^\d{6}$/.test(String(step1.location?.pincode || "").trim())) {
+      errors.push("Shop needs a 6-digit pincode on the pickup address")
+    }
     if (!step1.location?.area?.trim()) errors.push("Area/Sector/Locality is required")
     if (!step1.location?.city?.trim()) errors.push("City is required")
     return errors
@@ -598,6 +605,7 @@ export default function AddSeller() {
         primaryContactNumber: step1.primaryContactNumber,
         zoneId: step1.zoneId,
         location: step1.location,
+        sellIn,
         // Step 2
         menuImages: menuImagesData,
         profileImage: profileImageData,
@@ -903,6 +911,38 @@ export default function AddSeller() {
               placeholder="Customers will see this name"
             />
           </div>
+        </div>
+      </section>
+
+      <section className="bg-white p-4 sm:p-6 rounded-md">
+        <h2 className="text-lg font-semibold text-black mb-1">Sell in*</h2>
+        <p className="text-xs text-gray-500 mb-3">
+          The store is approved for the channels you pick. Quick needs a service zone and a map location inside it; Shop needs a 6-digit pickup pincode.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {[
+            { key: "quick", label: "Quick" },
+            { key: "shop", label: "Shop" },
+          ].map((opt) => {
+            const checked = sellIn.includes(opt.key)
+            return (
+              <label
+                key={opt.key}
+                className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer ${checked ? "border-wh-brand bg-wh-brand/10 text-wh-brand-ink" : "border-gray-300 text-gray-700"}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) =>
+                    setSellIn((prev) =>
+                      e.target.checked ? [...new Set([...prev, opt.key])] : prev.filter((c) => c !== opt.key)
+                    )
+                  }
+                />
+                {opt.label}
+              </label>
+            )
+          })}
         </div>
       </section>
 

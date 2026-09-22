@@ -39,7 +39,7 @@ export async function removeFavoriteSellerController(req, res, next) {
 export async function addFavoriteProductController(req, res, next) {
     try {
         const data = await favoriteService.addFavoriteProduct(me(req), req.params.productId);
-        return sendResponse(res, 200, 'Dish added to favorites', data);
+        return sendResponse(res, 200, 'Added to favorites', data);
     } catch (err) {
         next(err);
     }
@@ -48,7 +48,7 @@ export async function addFavoriteProductController(req, res, next) {
 export async function removeFavoriteProductController(req, res, next) {
     try {
         const data = await favoriteService.removeFavoriteProduct(me(req), req.params.productId);
-        return sendResponse(res, 200, 'Dish removed from favorites', data);
+        return sendResponse(res, 200, 'Removed from favorites', data);
     } catch (err) {
         next(err);
     }

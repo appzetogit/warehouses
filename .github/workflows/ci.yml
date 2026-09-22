@@ -1,0 +1,143 @@
+# Continuous integration for the backend (Node/Express) and the frontend (React/Vite).
+#
+# Hardening rules for this file (the repo once shipped malware in a build config):
+#   - actions only from the `actions/` org, pinned to a major version;
+#   - read-only token, no secrets used anywhere in CI;
+#   - dependencies only from the committed lockfiles (`npm ci`), with install
+#     scripts disabled; never `curl | sh`.
+
+name: CI
+
+on:
+  push:
+    branches: [main, 'phase-*']
+  pull_request:
+    branches: [main, 'phase-*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  # Cheap tripwire that runs before anything installs or builds.
+  tripwire:
+    name: Config tripwire and committed secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Lockfiles are committed
+        run: |
+          set -eu
+          for f in Backend/package-lock.json Frontend/package-lock.json; do
+            if ! git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+              echo "::error file=$f::$f is not committed; npm ci needs it"
+              exit 1
+            fi
+          done
+
+      - name: Build and tool configs contain no code-execution primitives
+        run: |
+          set -eu
+          status=0
+          files=$(git ls-files | grep -E '(^|/)[^/]*\.config\.(js|cjs|mjs|ts|mts|cts)$' || true)
+          for f in $files; do
+            if grep -nE 'child_process|createRequire|eval\(' "$f"; then
+              echo "::error file=$f::$f uses child_process, createRequire or eval("
+              status=1
+            fi
+            long=$(awk 'length($0) > 500 { print NR }' "$f")
+            if [ -n "$long" ]; then
+              for n in $long; do
+                echo "::error file=$f,line=$n::line longer than 500 characters (possible hidden payload)"
+              done
+              status=1
+            fi
+          done
+          echo "Checked: $files"
+          exit $status
+
+      - name: No .env files are committed
+        run: |
+          set -eu
+          found=$(git ls-files | grep -E '(^|/)\.env(\.[^/]*)?$' | grep -vE '\.example$' || true)
+          if [ -n "$found" ]; then
+            echo "::error::Committed environment files (remove them and rotate every secret they held):"
+            echo "$found"
+            exit 1
+          fi
+
+  backend:
+    name: Backend tests
+    needs: tripwire
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: Backend
+    env:
+      # mongodb-memory-server downloads a mongod binary on first use; keep it cached.
+      MONGOMS_DOWNLOAD_DIR: ${{ github.workspace }}/.cache/mongodb-binaries
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Backend/package-lock.json
+
+      - name: Cache MongoDB test binaries
+        uses: actions/cache@v4
+        with:
+          path: .cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('Backend/package-lock.json') }}
+
+      - name: Install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Test
+        timeout-minutes: 15
+        run: npm test
+
+  frontend:
+    name: Frontend checks and build
+    needs: tripwire
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Frontend
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Static checks (API paths and methods, unreachable files, lint)
+        run: npm run check
+
+      - name: Build
+        env:
+          VITE_API_BASE_URL: https://example.invalid/api/v1
+          VITE_UPLOAD_BASE_URL: https://example.invalid/uploads
+        run: npm run build

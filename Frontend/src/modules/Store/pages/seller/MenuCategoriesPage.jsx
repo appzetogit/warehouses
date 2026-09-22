@@ -375,7 +375,7 @@ export default function MenuCategoriesPage() {
           <p className="text-sm font-semibold text-slate-900">How this works</p>
           <p className="mt-2 text-sm text-slate-600">
             New categories stay pending until admin approval. Editing an approved category sends it back for review.
-            Only approved categories can be used for food uploads.
+            Only approved categories can be used for product uploads.
           </p>
         </div>
 

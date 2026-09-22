@@ -1535,7 +1535,7 @@ export default function LandingPageSettings({ type = "admin" }) {
               Categories Section
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mb-4">
-              Configure food categories display settings.
+              Configure category display settings.
             </p>
             <div className="space-y-3">
               <div>

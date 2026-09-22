@@ -13,7 +13,7 @@ import {
   Upload,
   X,
 } from "lucide-react"
-import { adminAPI, uploadAPI } from "@store/api"
+import { adminAPI, attributeAdminAPI, uploadAPI } from "@store/api"
 import { API_BASE_URL } from "@store/api/config"
 import { toast } from "sonner"
 import { canCurrentAdminAction } from "@store/utils/adminRbac"
@@ -25,7 +25,12 @@ const defaultFormData = {
   type: "",
   zoneId: "global",
   commissionPercent: "",
+  parentId: "",
+  attributeSetId: "",
+  requiresFssai: false,
 }
+
+const refId = (value) => String(value?._id || value?.id || value || "").trim()
 
 const commissionText = (value) =>
   value === null || value === undefined || value === "" ? "Inherit" : `${Number(value)}%`
@@ -63,6 +68,9 @@ export default function Category() {
   const [imagePreview, setImagePreview] = useState(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const fileInputRef = useRef(null)
+  // Every category (unfiltered) for the parent picker and parent names in the list.
+  const [allCategories, setAllCategories] = useState([])
+  const [attributeSets, setAttributeSets] = useState([])
   const ensureActionAccess = (action) => {
     if (canCurrentAdminAction(action)) return true
     toast.error("Insufficient permissions for this action")
@@ -103,6 +111,47 @@ export default function Category() {
       cancelled = true
     }
   }, [])
+
+  const fetchAllCategories = () =>
+    adminAPI
+      .getCategories({ limit: 1000 })
+      .then((res) => {
+        const list = res?.data?.data?.categories || res?.data?.categories || []
+        setAllCategories(Array.isArray(list) ? list : [])
+      })
+      .catch(() => setAllCategories([]))
+
+  useEffect(() => {
+    fetchAllCategories()
+    attributeAdminAPI
+      .listSets()
+      .then((res) => {
+        const body = res?.data?.data
+        const list = Array.isArray(body) ? body : body?.attributeSets || body?.sets || []
+        setAttributeSets(Array.isArray(list) ? list : [])
+      })
+      .catch(() => setAttributeSets([]))
+  }, [])
+
+  const categoryNameById = useMemo(
+    () => new Map(allCategories.map((c) => [resolveCategoryId(c), c?.name || ""])),
+    [allCategories]
+  )
+  const attributeSetNameById = useMemo(
+    () => new Map(attributeSets.map((set) => [refId(set), set?.name || ""])),
+    [attributeSets]
+  )
+
+  // Two levels only: a parent must be top level, and a category that already
+  // has subcategories cannot get a parent itself.
+  const editingId = resolveCategoryId(editingCategory)
+  const parentOptions = useMemo(
+    () => allCategories.filter((c) => !c?.parentId && resolveCategoryId(c) !== editingId),
+    [allCategories, editingId]
+  )
+  const editingHasChildren = Boolean(
+    editingId && allCategories.some((c) => refId(c?.parentId) === editingId)
+  )
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -188,6 +237,9 @@ export default function Category() {
         category?.commissionPercent === null || category?.commissionPercent === undefined
           ? ""
           : String(category.commissionPercent),
+      parentId: refId(category?.parentId),
+      attributeSetId: refId(category?.attributeSetId),
+      requiresFssai: category?.requiresFssai === true,
     })
     setSelectedImageFile(null)
     setImagePreview(category?.image || null)
@@ -375,6 +427,11 @@ export default function Category() {
         zoneId: formData.zoneId || "global",
         // Empty clears it: the category then inherits from its parent (or has none).
         commissionPercent: commissionValue === "" ? null : Number(commissionValue),
+        // Empty = top level.
+        parentId: formData.parentId || "",
+        // Empty = inherit from the parent (or none).
+        attributeSetId: formData.attributeSetId || null,
+        requiresFssai: Boolean(formData.requiresFssai),
       }
 
       if (editingCategory) {
@@ -387,6 +444,7 @@ export default function Category() {
 
       resetModal()
       fetchCategories()
+      fetchAllCategories()
     } catch (error) {
       if (error?.code === "ERR_NETWORK" || error?.message === "Network Error") {
         toast.error("Cannot connect to server. Please check if backend is running on " + API_BASE_URL.replace("/api", ""))
@@ -515,6 +573,27 @@ export default function Category() {
                               <span>{category?.type || "No type"}</span>
                               <span className="text-slate-300">•</span>
                               <span>Items linked: {category?.itemCount || 0}</span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                              <span>
+                                {category?.parentId
+                                  ? `Under: ${categoryNameById.get(refId(category.parentId)) || "Unknown parent"}`
+                                  : "Top level"}
+                              </span>
+                              <span className="text-slate-300">•</span>
+                              <span>
+                                Attributes:{" "}
+                                {category?.attributeSetId
+                                  ? attributeSetNameById.get(refId(category.attributeSetId)) || "Unknown set"
+                                  : category?.parentId
+                                    ? "Inherit"
+                                    : "None"}
+                              </span>
+                              {category?.requiresFssai && (
+                                <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                                  FSSAI
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -690,6 +769,57 @@ export default function Category() {
                             placeholder="Enter category name"
                           />
                         </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-slate-700">Parent category</label>
+                          <select
+                            value={formData.parentId}
+                            disabled={editingHasChildren}
+                            onChange={(event) => setFormData((prev) => ({ ...prev, parentId: event.target.value }))}
+                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900 disabled:bg-slate-50"
+                          >
+                            <option value="">None (top level)</option>
+                            {parentOptions.map((c) => (
+                              <option key={resolveCategoryId(c)} value={resolveCategoryId(c)}>
+                                {c?.name || resolveCategoryId(c)}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {editingHasChildren
+                              ? "This category has subcategories, so it stays top level."
+                              : "Categories go two levels deep: only top-level categories can be parents."}
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-slate-700">Attribute set</label>
+                          <select
+                            value={formData.attributeSetId}
+                            onChange={(event) => setFormData((prev) => ({ ...prev, attributeSetId: event.target.value }))}
+                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
+                          >
+                            <option value="">{formData.parentId ? "Inherit from parent" : "None"}</option>
+                            {attributeSets.map((set) => (
+                              <option key={refId(set)} value={refId(set)}>
+                                {set?.name || refId(set)}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="mt-1 text-xs text-slate-500">
+                            The attributes (size, colour and so on) that products in this category vary by.
+                          </p>
+                        </div>
+
+                        <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={formData.requiresFssai}
+                            onChange={(event) => setFormData((prev) => ({ ...prev, requiresFssai: event.target.checked }))}
+                            className="h-4 w-4 rounded border-slate-300"
+                          />
+                          Requires FSSAI licence
+                        </label>
 
                         <div>
                           <label className="mb-2 block text-sm font-medium text-slate-700">Commission %</label>

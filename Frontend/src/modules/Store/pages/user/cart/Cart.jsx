@@ -47,6 +47,7 @@ import {
 import CartAutoCouponBanner from "@store/components/user/CartAutoCouponBanner"
 import RecommendationRail from "@store/components/user/RecommendationRail"
 import CartSubtotalCard from "@store/components/user/desktop/CartSubtotalCard"
+import SavedForLater, { saveCartLineForLater } from "@store/components/user/cart/SavedForLater"
 import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
 import zoopSound from "@store/assets/audio/order-placed.mp3"
 const debugLog = (...args) => { }
@@ -2573,6 +2574,9 @@ export default function Cart() {
             </Button>
           </Link>
         </div>
+        <div className="mx-auto max-w-3xl px-4 pb-10">
+          <SavedForLater variant={isDesktop ? "desktop" : "mobile"} />
+        </div>
       </AnimatedPage>
     )
   }
@@ -2732,6 +2736,13 @@ export default function Cart() {
                             {item.variantName ? (
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.variantName}</p>
                             ) : null}
+                            <button
+                              type="button"
+                              onClick={() => saveCartLineForLater({ item, storeMode: cartContext.storeMode, removeFromCart })}
+                              className="lg:hidden mt-1 text-[12px] font-semibold text-wh-link hover:underline"
+                            >
+                              Save for later
+                            </button>
                             <p className="hidden lg:block mt-1 text-[12px] text-wh-success">In stock</p>
                             {item.sellerName ? (
                               <p className="hidden lg:block text-[12px] text-wh-muted">Sold by {item.sellerName}</p>
@@ -2763,6 +2774,14 @@ export default function Cart() {
                                 className="text-wh-link hover:text-wh-link-hover hover:underline focus-visible:outline-2 focus-visible:outline-wh-brand"
                               >
                                 Delete
+                              </button>
+                              <span className="h-4 w-px bg-wh-border" aria-hidden="true" />
+                              <button
+                                type="button"
+                                onClick={() => saveCartLineForLater({ item, storeMode: cartContext.storeMode, removeFromCart })}
+                                className="text-wh-link hover:text-wh-link-hover hover:underline focus-visible:outline-2 focus-visible:outline-wh-brand"
+                              >
+                                Save for later
                               </button>
                             </div>
                           </div>
@@ -2848,6 +2867,9 @@ export default function Cart() {
                   </p>
                 ) : null}
               </div>
+
+              {/* Saved for later (server-side, this storefront) */}
+              <SavedForLater variant={isDesktop ? "desktop" : "mobile"} className="order-1" />
 
               {/* Delivery modes & instructions */}
               <div className="order-3 bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden">

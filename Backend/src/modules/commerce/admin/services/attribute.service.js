@@ -16,7 +16,12 @@ function normalizeValues(raw, type) {
     if (!Array.isArray(raw)) throw new ValidationError('Attribute values must be a list');
     const seen = new Set();
     return raw.map((entry, index) => {
-        const item = typeof entry === 'string' ? { value: entry } : entry || {};
+        let item = typeof entry === 'string' ? { value: entry } : entry || {};
+        // Colour values may come as "Name:#hex" (the admin form's text shorthand).
+        if (type === 'color' && !str(item.hex)) {
+            const m = str(item.value).match(/^(.*?)\s*:\s*(#[0-9a-f]{6})$/i);
+            if (m) item = { ...item, value: m[1], hex: m[2] };
+        }
         const value = str(item.value);
         if (!value) throw new ValidationError('Attribute values cannot be empty');
         const key = value.toLowerCase();

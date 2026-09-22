@@ -78,7 +78,8 @@ export default function ProfessionalSearch() {
   }, [])
 
   useEffect(() => {
-    if (zoneStatus === "loading") return
+    // The desktop listing loads its own categories.
+    if (isDesktop || zoneStatus === "loading") return
 
     let cancelled = false
 
@@ -102,7 +103,7 @@ export default function ProfessionalSearch() {
     return () => {
       cancelled = true
     }
-  }, [zoneId, zoneStatus])
+  }, [zoneId, zoneStatus, isDesktop])
 
   const addToHistory = (term) => {
     const newHistory = [term, ...history.filter(h => h !== term)].slice(0, 5)
@@ -172,11 +173,14 @@ export default function ProfessionalSearch() {
   useEffect(() => { setRemovedChips([]) }, [debouncedQuery])
 
   useEffect(() => {
+    // On desktop DesktopProductListing runs the search (and owns ?q=); running
+    // the mobile search too would double every request.
+    if (isDesktop) return
     performSearch(debouncedQuery, selectedCategoryId, removedChips)
     if (debouncedQuery) {
         setSearchParams({ q: debouncedQuery, ...(selectedCategoryId ? { cat: selectedCategoryId } : {}) }, { replace: true })
     }
-  }, [debouncedQuery, selectedCategoryId, removedChips, performSearch, setSearchParams])
+  }, [debouncedQuery, selectedCategoryId, removedChips, performSearch, setSearchParams, isDesktop])
 
   // Speech Recognition Implementation
   const handleVoiceSearch = () => {

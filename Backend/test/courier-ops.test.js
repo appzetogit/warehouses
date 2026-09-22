@@ -310,3 +310,29 @@ test('admin checkout list and detail show the payment, split and each child orde
     assert.equal(byId.checkoutId, 'CHK-OPS-1');
     assert.equal((await call('GET', '/admin/checkouts/CHK-NOPE', { as: adminToken })).status, 404);
 });
+
+test('scheduled tracking sync delivers, captures NDR, and leaves fresh or finished shipments alone', async () => {
+    const { syncActiveShipmentTracking } = await import('../src/modules/commerce/orders/services/shipmentAdmin.service.js');
+    const deliveredOne = await bookedOrder({ method: 'cash' });
+    const failedOne = await bookedOrder({ method: 'cash' });
+    courier.setStatus(deliveredOne.awb, 'delivered', 'Delivered to customer');
+    courier.setStatus(failedOne.awb, 'undelivered', 'Door locked', { reason: 'Door locked', attempts: 1 });
+
+    const first = await syncActiveShipmentTracking({ limit: 500 });
+    assert.ok(first.tracked >= 2, 'both shipments were tracked');
+
+    const d = await Order.findById(deliveredOne.order._id).lean();
+    assert.equal(d.orderStatus, 'delivered', 'courier delivery completes the order');
+    const f = await Order.findById(failedOne.order._id).lean();
+    assert.equal(f.shipment.ndr.attempts, 1, 'failed attempt captured without anyone opening the order');
+    assert.ok(f.shipment.lastTrackedAt);
+
+    // Just checked: not due again for 25 minutes. Delivered: never due again.
+    const second = await syncActiveShipmentTracking({ limit: 500 });
+    const dueIds = second.due;
+    assert.equal(dueIds, 0, 'nothing is due right after a sync');
+    const later = await syncActiveShipmentTracking({ limit: 500, now: new Date(Date.now() + 26 * 60_000) });
+    const stillDelivered = await Order.findById(deliveredOne.order._id).lean();
+    assert.equal(stillDelivered.orderStatus, 'delivered');
+    assert.ok(later.due >= 1, 'the undelivered shipment is due again later');
+});

@@ -2,7 +2,8 @@ import { getRedisClient } from '../../../../config/redis.js';
 import {
     findZoneForPoint,
     getActiveZones,
-    toFiniteNumber as toFinite
+    toFiniteNumber as toFinite,
+    zoneEtaMinutes
 } from '../../shared/zoneServiceability.js';
 
 // The polygon test and the active-zone cache moved to shared/zoneServiceability
@@ -64,7 +65,13 @@ export const detectZonePublicController = async (req, res, next) => {
             const response = {
                 success: true,
                 message: 'Zone detected',
-                data: { status: 'IN_SERVICE', zoneId: zone._id, zone }
+                // etaMinutes: the Quick delivery time the storefront shows here.
+                data: {
+                    status: 'IN_SERVICE',
+                    zoneId: zone._id,
+                    etaMinutes: zoneEtaMinutes(zone),
+                    zone: { ...zone, etaMinutes: zoneEtaMinutes(zone) }
+                }
             };
             await setCachedJson(cacheKey, response, ZONE_DETECT_CACHE_TTL_SECONDS);
             return res.status(200).json(response);

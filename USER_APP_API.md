@@ -49,6 +49,7 @@ show the out-of-zone screen.
 | GET | `/settings/fees` | — | Delivery / platform fee rules (display only; the server prices orders) |
 | GET | `/settings/features` | — | Feature flags |
 | GET | `/settings/cashback` | — | Cashback rules |
+| GET | `/settings/power-scanning` | — | Power-scanning settings |
 
 ## Catalog
 
@@ -60,6 +61,7 @@ offers personalised (first-order offers, for example).
 | GET | `/catalog/categories` | Category tree |
 | GET | `/catalog/products` | Product listing |
 | GET | `/catalog/products/:id` | One approved product for its page: all `variants` (inactive and sold-out ones included, so the picker can grey them out), `options` (the attributes its variants use, in category order, with swatch `hex`), and the `seller`. 404 for unapproved products or stores |
+| GET | `/catalog/products/:id/recommendations` | Recommended products for a product page |
 | GET | `/catalog/stores` | Approved stores |
 | GET | `/catalog/stores/:id` | One store |
 | GET | `/catalog/stores/:id/products` | A store's products, grouped by category |
@@ -98,6 +100,8 @@ Each product carries `displayPrice` (the cheapest active variant's price, for "f
 | PATCH | `/user/profile` | USER | name, email, etc. |
 | POST | `/user/profile/profile-image` | USER | multipart `file` |
 | DELETE | `/user/profile` | USER | Delete the account |
+| GET | `/user/notification-preferences` | USER | Marketing push opt-out |
+| PATCH | `/user/notification-preferences` | USER | Change it |
 
 ## Addresses
 
@@ -117,10 +121,11 @@ one.
 
 | Method | Path | Auth | |
 |---|---|---|---|
+| GET | `/user/cart` | USER | The saved server copy of the cart |
 | PUT | `/user/cart` | USER | Save the whole cart: `{ items: [...], pricing? }` → `{ synced, itemCount }` |
 
-The cart lives on the device; this call keeps a server copy in step so it
-survives reinstalls and powers abandoned-cart reminders. There is no GET.
+The cart lives on the device; `PUT` keeps a server copy in step so it
+survives reinstalls and powers abandoned-cart reminders.
 Each item carries its `sellerId`. Today one cart holds one seller's items;
 the multi-seller cart arrives in Phase 2b.
 
@@ -172,6 +177,19 @@ the multi-seller cart arrives in Phase 2b.
    Until then the order is `pending_payment`. If the customer backs out, call
    `DELETE /orders/:orderId/pending-payment` to release the stock.
 
+## Split checkout
+
+One cart, one payment, one order per store.
+
+| Method | Path | Auth | |
+|---|---|---|---|
+| POST | `/orders/checkout/calculate` | USER | Price a cart across its stores |
+| POST | `/orders/checkout` | USER | Place the checkout; returns `razorpay` for an online payment |
+| GET | `/orders/checkout/:checkoutId` | USER | One checkout |
+| POST | `/orders/checkout/:checkoutId/verify-payment` | USER | Confirm the online payment |
+| POST | `/orders/checkout/:checkoutId/retry-payment` | USER | Retry the payment |
+| POST | `/orders/checkout/:checkoutId/abandon` | USER | Drop a checkout that wasn't completed |
+
 ## Orders
 
 | Method | Path | Auth | |
@@ -183,6 +201,11 @@ the multi-seller cart arrives in Phase 2b.
 | GET | `/orders/:orderId/payments` | USER | Payment attempts for the order |
 | PATCH | `/orders/:orderId/cancel` | USER | `{ reason? }` |
 | PATCH | `/orders/:orderId/instructions` | USER | `{ instructions }` for the rider |
+| GET | `/orders/:orderId/returns` | USER | Returns on the order |
+| POST | `/orders/:orderId/returns` | USER | Request a return |
+| GET | `/payments/orders/:orderId/payments` | any | Payment history (order parties only) |
+| GET | `/payments/orders/:orderId/transactions` | any | Transactions (order parties only) |
+| GET | `/payments/orders/:orderId/refunds` | any | Refunds (order parties only) |
 | PATCH | `/orders/:orderId/ratings` | USER | `{ sellerRating, sellerComment?, deliveryPartnerRating?, deliveryPartnerComment?, itemRatings?: [{ itemId, rating, comment? }] }`, ratings 1–5 |
 
 For live tracking, also join the order's socket room (`join-tracking`) and
@@ -199,6 +222,16 @@ listen for `order_status_update`, `location-update` and `delivery_drop_otp`.
 | GET | `/payments/wallet/transactions` | any | Transactions |
 | GET | `/user/refunds` | USER | Refunds on my orders |
 | GET | `/user/cashback` | USER | Cashback earned |
+
+## Coins and spin wheel
+
+| Method | Path | Auth | |
+|---|---|---|---|
+| GET | `/user/coins/balance` | USER | Promotional coin balance |
+| GET | `/user/coins/ledger` | USER | Coin history |
+| GET | `/user/coins/expiring` | USER | Coins about to expire |
+| GET | `/user/spin/status` | USER | Spin wheel status |
+| POST | `/user/spin/play` | USER | Spin the wheel |
 
 ## Favourites
 
@@ -228,6 +261,9 @@ listen for `order_status_update`, `location-update` and `delivery_drop_otp`.
 | GET | `/chat/messages` | any | |
 | POST | `/chat/messages` | any | |
 | PATCH | `/chat/conversations/:conversationId/read` | any | |
+| PATCH | `/chat/conversations/:conversationId/status` | any | Change a conversation's status |
+| POST | `/ai/chat` | — | Shopping assistant; token optional |
+| POST | `/ai/handoff` | — | Record a hand-off from the assistant to support (signed-in customer) |
 
 ## Push and inbox
 

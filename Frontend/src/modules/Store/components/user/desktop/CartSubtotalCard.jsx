@@ -4,7 +4,8 @@
  * payment sheet, place order) so checkout behaves exactly as on mobile.
  */
 import { MapPin } from "lucide-react"
-import { CtaButton } from "./ui"
+import { useStoreMode } from "@store/context/StoreModeContext"
+import { CtaButton, DeliveryPromise } from "./ui"
 
 const money = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
@@ -22,12 +23,14 @@ export default function CartSubtotalCard({
   proceedDisabled,
   proceedLabel,
 }) {
+  const { isQuick } = useStoreMode()
   return (
     <section aria-label="Order subtotal" className="rounded-[8px] bg-wh-surface p-5 text-[14px] leading-5 text-wh-text">
       <p className="text-[18px]">
         Subtotal ({itemCount} item{itemCount === 1 ? "" : "s"}): <span className="font-bold">{money(subtotal)}</span>
       </p>
       {savings > 0 && <p className="mt-1 text-[13px] text-wh-success">You save {money(savings)} on this order</p>}
+      <DeliveryPromise mode={isQuick ? "quick" : "shop"} className="mt-1" />
 
       <button
         type="button"

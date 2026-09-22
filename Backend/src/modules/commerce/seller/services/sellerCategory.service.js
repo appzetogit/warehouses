@@ -187,15 +187,53 @@ export async function listPublicCategories(query = {}) {
             .sort({ sortOrder: 1, createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .select('name image type zoneId sortOrder createdAt updatedAt')
+            .select('name image type zoneId parentId sortOrder createdAt updatedAt')
             .lean(),
         Category.countDocuments(filter)
     ]);
 
+    // A parent ("Dairy") usually holds no products itself -- its subcategories
+    // do -- so the product filter above drops it. Bring back the parents of
+    // what is listed (same visibility rules, minus the product check) so the
+    // storefront can group subcategories under them.
+    const listedIds = new Set(list.map((c) => String(c._id)));
+    const missingParentIds = [...new Set(
+        list.map((c) => (c.parentId ? String(c.parentId) : '')).filter((id) => id && !listedIds.has(id))
+    )];
+    if (missingParentIds.length && !search) {
+        const parentFilter = {
+            _id: { $in: missingParentIds.map((id) => new mongoose.Types.ObjectId(id)) },
+            isActive: true,
+            $and: [{ $or: GLOBAL_CATEGORY_FILTER }, { $or: APPROVED_CATEGORY_FILTER }]
+        };
+        applyZoneVisibilityFilter(parentFilter.$and, zoneIdRaw);
+        const parents = await Category.find(parentFilter)
+            .select('name image type zoneId parentId sortOrder createdAt updatedAt')
+            .lean();
+        list.push(...parents);
+    }
+
     await backfillLegacyCategoryWorkflow(list);
     const categories = list.map((category) => serializeCategoryForResponse(category));
 
-    return { categories, total, page, limit };
+    return { categories, tree: buildCategoryTree(categories), total, page, limit };
+}
+
+/**
+ * Top-level categories with their subcategories under `children`, both in
+ * sortOrder. A subcategory whose parent is not visible here is shown at the
+ * top level rather than dropped.
+ */
+export function buildCategoryTree(categories = []) {
+    const byId = new Map(categories.map((c) => [String(c.id || c._id), c]));
+    const bySort = (a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0);
+    const roots = categories.filter((c) => !c.parentId || !byId.has(String(c.parentId)));
+    return roots.sort(bySort).map((root) => ({
+        ...root,
+        children: categories
+            .filter((c) => c.parentId && String(c.parentId) === String(root.id || root._id))
+            .sort(bySort)
+    }));
 }
 
 export async function createSellerCategory(sellerId, body = {}) {

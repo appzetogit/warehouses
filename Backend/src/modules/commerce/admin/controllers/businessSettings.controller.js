@@ -36,6 +36,50 @@ const describeServiceAccount = (raw) => {
     }
 };
 
+export const SOCIAL_LINK_KEYS = ['facebook', 'instagram', 'x', 'youtube', 'linkedin', 'whatsapp'];
+
+/**
+ * Checks the posted social links: each is empty (remove) or an https URL.
+ * Returns { links } with only the keys sent, or { error }.
+ */
+export const parseSocialLinks = (input) => {
+    if (input === undefined) return { links: undefined };
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+        return { error: 'Social links must be an object' };
+    }
+    const links = {};
+    for (const key of SOCIAL_LINK_KEYS) {
+        if (input[key] === undefined) continue;
+        const raw = String(input[key] ?? '').trim();
+        if (!raw) {
+            links[key] = '';
+            continue;
+        }
+        let url;
+        try {
+            url = new URL(raw);
+        } catch {
+            url = null;
+        }
+        if (!url || url.protocol !== 'https:' || !url.hostname.includes('.') || raw.length > 300) {
+            return { error: `${key} link must be a valid https:// URL` };
+        }
+        links[key] = url.toString();
+    }
+    return { links };
+};
+
+/** Validates { min, max } standard delivery days (1-30, min <= max). */
+export const parseStandardDeliveryDays = (input) => {
+    if (input === undefined) return { days: undefined };
+    const min = Number(input?.min);
+    const max = Number(input?.max);
+    if (!Number.isInteger(min) || !Number.isInteger(max) || min < 1 || max > 30 || min > max) {
+        return { error: 'Standard delivery days must be whole numbers from 1 to 30, with min no more than max' };
+    }
+    return { days: { min, max } };
+};
+
 const POWER_SCANNING_DEFAULT = {
     user: { themeColor: '#FA0272', fontFamily: 'Poppins' },
     seller: { themeColor: '#2563EB', fontFamily: 'Poppins' },
@@ -231,8 +275,17 @@ export async function updateBusinessSettings(req, res, next) {
         const data = req.body.data ? JSON.parse(req.body.data) : {};
         const {
             companyName, email, phoneCountryCode, phoneNumber, address, state, pincode, region,
-            googleMapsApiKey, firebase, firebaseServiceAccount
+            googleMapsApiKey, firebase, firebaseServiceAccount, socialLinks, standardDeliveryDays
         } = data;
+
+        const social = parseSocialLinks(socialLinks);
+        if (social.error) {
+            return res.status(400).json({ success: false, message: social.error });
+        }
+        const deliveryDays = parseStandardDeliveryDays(standardDeliveryDays);
+        if (deliveryDays.error) {
+            return res.status(400).json({ success: false, message: deliveryDays.error });
+        }
 
         // Validation
         if (!companyName || companyName.trim().length < 2 || companyName.trim().length > 50) {
@@ -271,6 +324,12 @@ export async function updateBusinessSettings(req, res, next) {
         if (state !== undefined) settings.state = state;
         if (pincode !== undefined) settings.pincode = pincode;
         if (region) settings.region = region;
+        if (social.links) {
+            for (const [key, value] of Object.entries(social.links)) {
+                settings.set(`socialLinks.${key}`, value);
+            }
+        }
+        if (deliveryDays.days) settings.standardDeliveryDays = deliveryDays.days;
         // Sent empty on purpose means "remove the key", which has to be
         // possible: a leaked key needs revoking here as well as in Google.
         if (googleMapsApiKey !== undefined) {

@@ -2590,7 +2590,7 @@ export default function SellersList() {
                         )}
                         {r.onboarding.step4.featuredDish && (
                           <div>
-                            <p className="text-xs text-slate-500 mb-1">Featured Dish (at registration)</p>
+                            <p className="text-xs text-slate-500 mb-1">Featured Product (at registration)</p>
                             <p className="font-medium text-slate-900">{r.onboarding.step4.featuredDish}</p>
                           </div>
                         )}
@@ -2734,7 +2734,7 @@ export default function SellersList() {
               </div>
 
               <p className="text-sm text-slate-700 mb-6">
-                Are you sure you want to delete this seller? This action cannot be undone and will permanently remove all seller data, including orders, menu items, and settings.
+                Are you sure you want to delete this seller? This action cannot be undone and will permanently remove all seller data, including orders, products, and settings.
               </p>
 
               <div className="flex items-center gap-3">

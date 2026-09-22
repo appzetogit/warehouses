@@ -9,6 +9,8 @@ import RecommendationRail from "@store/components/user/RecommendationRail"
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { CHANNEL_COPY, productInChannel } from "@store/utils/channelStock"
 import { ImagePlaceholder, isRealImage, CtaButton, DealBadge, DeliveryPromise, PriceTag } from "./ui"
+import ProductReviews from "@store/components/user/reviews/ProductReviews"
+import { formatDeliveryWindow, locationPincode, useQuickEta, useShopDeliveryEstimate } from "./useDeliveryEstimates"
 
 const QTY_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1)
 
@@ -54,7 +56,9 @@ export default function ProductDetailDesktop({
   onBuyNow,
 }) {
   const { displayAddressText, effectiveLocation } = useDeliveryLocation()
-  const deliverTo = [effectiveLocation?.area || effectiveLocation?.city, effectiveLocation?.zipCode || effectiveLocation?.pincode]
+  const quickEta = useQuickEta()
+  const shopEstimate = useShopDeliveryEstimate()
+  const deliverTo = [effectiveLocation?.area || effectiveLocation?.city, locationPincode(effectiveLocation)]
     .filter(Boolean)
     .join(" ") || displayAddressText
   const storeLabel = CHANNEL_COPY[channel].label
@@ -158,7 +162,14 @@ export default function ProductDetailDesktop({
                 Visit the {seller.sellerName} store
               </Link>
             )}
-            {rating > 0 && <div className="mt-1"><Stars rating={rating} /></div>}
+            {rating > 0 && (
+              <a href="#pd-reviews" className="mt-1 inline-flex items-center gap-2 hover:underline focus-visible:outline-2 focus-visible:outline-wh-brand">
+                <Stars rating={rating} />
+                {Number(product.totalRatings) > 0 && (
+                  <span className="text-[14px] text-wh-link">{Number(product.totalRatings).toLocaleString("en-IN")} ratings</span>
+                )}
+              </a>
+            )}
 
             <hr className="my-3 border-wh-border" />
 
@@ -260,7 +271,7 @@ export default function ProductDetailDesktop({
               {isQuick ? (
                 <DeliveryPromise mode="quick" />
               ) : (
-                <p className="text-[13px] font-medium text-wh-success">Delivered in 2–4 days</p>
+                <DeliveryPromise mode="shop" />
               )}
             </div>
             {deliverTo && (
@@ -273,7 +284,7 @@ export default function ProductDetailDesktop({
             <div className="mt-3">{stockLine}</div>
             {notInThisStore && altAvail.inStock && (
               <Link to={altPath} className="mt-1 inline-flex items-center gap-1 text-wh-link hover:text-wh-link-hover hover:underline">
-                Available in {CHANNEL_COPY[altChannel].label} — {CHANNEL_COPY[altChannel].eta} <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                Available in {CHANNEL_COPY[altChannel].label} — {altChannel === "quick" ? `${quickEta} min` : formatDeliveryWindow(shopEstimate).replace(/^Delivery/, "delivery")} <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             )}
 
@@ -337,13 +348,9 @@ export default function ProductDetailDesktop({
           </section>
         )}
 
-        {rating > 0 && (
-          <section className="border-t border-wh-border py-6" aria-labelledby="pd-reviews">
-            <h2 id="pd-reviews" className="mb-2 text-[21px] font-bold">Customer ratings</h2>
-            <Stars rating={rating} />
-            <p className="mt-1 text-wh-muted">{rating.toFixed(1)} out of 5</p>
-          </section>
-        )}
+        <div id="pd-reviews">
+          <ProductReviews productId={product._id} productName={product.name} variant="desktop" />
+        </div>
       </div>
     </div>
   )

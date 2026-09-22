@@ -31,9 +31,11 @@ All endpoints are under `/api/v1`, grouped by who calls them:
 | `/delivery` | rider account and trips | `DELIVERY_PARTNER`, except registration |
 | `/notifications` | in-app inbox | `USER`, `SELLER`, `DELIVERY_PARTNER` |
 | `/chat` | order chat | any logged-in role |
+| `/ai` | shopping assistant chat | none (token optional) |
 | `/fcm-tokens` | push token registration | any logged-in role |
 | `/uploads` | image upload | see [Uploads](#uploads) |
 | `/admin` | admin panel only; not documented for the apps | `ADMIN` |
+| `/health` | uptime checks (`/health/rate-limit` outside production only) | none |
 
 Outside `/api/v1`: `GET /health`, `GET /ready`, the share-link pages
 `GET /product-detail?id=…` and `GET /seller-detail/:id`, and
@@ -119,6 +121,8 @@ After login, register the device's FCM token:
 
 `DELETE /fcm-tokens/remove` (or `/remove/:token`) unregisters it. Passing
 `fcmToken` to verify-otp and logout does the same thing in one call.
+`GET /fcm-tokens/check` is a public service check, and `POST /fcm-tokens/test`
+sends a test push to the logged-in account.
 
 Push `data` always carries a `type`, and usually `orderId` or `id`, so the app
 can deep-link. The same notifications also appear in the inbox:

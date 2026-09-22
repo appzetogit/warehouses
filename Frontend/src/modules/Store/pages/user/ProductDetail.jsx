@@ -26,6 +26,7 @@ import { catalogAPI } from "@/services/api"
 import { brandMarkUrl } from "@/config/brandMark"
 import SEOHead from "@store/components/SEOHead"
 import RecommendationRail from "@store/components/user/RecommendationRail"
+import ProductReviews from "@store/components/user/reviews/ProductReviews"
 import { useCart } from "@store/context/CartContext"
 import { Button } from "@store/components/ui/button"
 import ProductDetailDesktop from "@store/components/user/desktop/ProductDetailDesktop"
@@ -367,6 +368,13 @@ export default function ProductDetail() {
               <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mt-1 leading-tight">
                 {product.name}
               </h1>
+              {Number(product.totalRatings) > 0 && (
+                <p className="mt-1 flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300" aria-label={`Rated ${Number(product.rating).toFixed(1)} out of 5 from ${product.totalRatings} ratings`}>
+                  <Star className="h-4 w-4 fill-wh-brand text-wh-brand" aria-hidden="true" />
+                  <span className="font-bold text-gray-900 dark:text-white">{Number(product.rating).toFixed(1)}</span>
+                  <span>({product.totalRatings})</span>
+                </p>
+              )}
 
               {/* Price Row */}
               <div className="flex items-baseline gap-3 mt-3">
@@ -556,6 +564,9 @@ export default function ProductDetail() {
                 </p>
               </div>
             )}
+
+            {/* Ratings, reviews and "Write a review" (when the customer received it) */}
+            <ProductReviews productId={product._id} productName={product.name} variant="mobile" />
 
             {/* Recommendations: co-purchases, then similar products */}
             <RecommendationRail productId={product._id} type="frequently_bought" title="Frequently bought together" limit={8} />

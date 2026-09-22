@@ -22,6 +22,7 @@ import aiRoutes from '../modules/commerce/ai/routes/ai.routes.js';
 import { getCashbackSettingsPublicController } from '../modules/commerce/user/controllers/cashback.controller.js';
 import { config } from '../config/env.js';
 import { getRateLimitSummary } from '../middleware/rateLimit.js';
+import { recordOpen as recordCampaignPushOpen } from '../modules/commerce/campaigns/controllers/pushCampaign.controller.js';
 
 const router = express.Router();
 
@@ -64,6 +65,10 @@ router.use('/v1/payments', authMiddleware, paymentRoutes);
 // Sellers and riders; each router guards its own routes.
 router.use('/v1/seller', sellerRoutes);
 router.use('/v1/delivery', deliveryRoutes);
+
+// A campaign push was tapped. Unauthenticated (the push carries a signed open
+// token), so it is registered before the signed-in notifications router.
+router.post('/v1/notifications/opened', recordCampaignPushOpen);
 
 // Shared by every signed-in role.
 router.use('/v1/notifications', authMiddleware, requireRoles('USER', 'SELLER', 'DELIVERY_PARTNER'), notificationRoutes);

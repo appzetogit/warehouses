@@ -1,0 +1,23 @@
+# Exactly one instance: runs the interval jobs (see docs/RUNBOOK.md).
+[Unit]
+Description=The Warehouses scheduled jobs
+After=network-online.target mongod.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=warehouses
+Group=warehouses
+WorkingDirectory=/srv/warehouses/current/Backend
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node scripts/run-scheduled-jobs.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

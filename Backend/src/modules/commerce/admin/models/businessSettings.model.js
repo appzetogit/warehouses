@@ -53,6 +53,23 @@ const businessSettingsSchema = new mongoose.Schema(
             }
         },
         orderAcceptanceTimeMinutes: { type: Number, default: 4, min: 1, max: 20 },
+        /**
+         * Shop (courier) delivery window shown to customers, in calendar days,
+         * when the courier has no estimate for their pincode.
+         */
+        standardDeliveryDays: {
+            min: { type: Number, default: 2, min: 1, max: 30 },
+            max: { type: Number, default: 4, min: 1, max: 30 }
+        },
+        /** Public social profile links shown in the storefront footer (https only). */
+        socialLinks: {
+            facebook: { type: String, default: '', trim: true },
+            instagram: { type: String, default: '', trim: true },
+            x: { type: String, default: '', trim: true },
+            youtube: { type: String, default: '', trim: true },
+            linkedin: { type: String, default: '', trim: true },
+            whatsapp: { type: String, default: '', trim: true }
+        },
         /** Days after delivery a customer may ask to return a courier-shipped order. */
         returnWindowDays: { type: Number, default: 7, min: 0, max: 90 },
         /**

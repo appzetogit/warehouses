@@ -834,7 +834,7 @@ export default function ItemDetailsPage() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-gray-900 md:text-2xl">
-              {isNewItem ? "Add menu item" : "Edit menu item"}
+              {isNewItem ? "Add product" : "Edit product"}
             </h1>
             <p className="hidden md:block text-sm text-slate-500 mt-0.5">
               Photos, pricing, and availability in one place
@@ -854,7 +854,7 @@ export default function ItemDetailsPage() {
               <p className="text-sm font-semibold text-red-700">Approval rejected</p>
               <p className="mt-1 text-sm leading-5 text-red-600">Reason: {currentRejectionReason}</p>
               <p className="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-red-500">
-                Update the dish and save to send it for approval again
+                Update the product and save to send it for approval again
               </p>
             </div>
           </div>

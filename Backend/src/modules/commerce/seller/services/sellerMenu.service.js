@@ -7,6 +7,7 @@ import { getProductDisplayOtherPrice, getProductDisplayPrice, serializeProductVa
 import { restoreExpiredProductAvailability } from './productAvailability.service.js';
 import { channelForFulfilmentMode, parseFulfilmentMode, fulfilmentModeProductFilter } from '../../search/validators/storefront.validator.js';
 import { isSellerApprovedFor, productChannelFields } from '../../shared/channels.js';
+import { productRatingFields } from '../../reviews/services/productReview.service.js';
 
 /** Variants for a menu; on a storefront, those not listed in the channel are dropped. */
 const menuVariants = (product, channel) =>
@@ -81,6 +82,7 @@ const buildMenuFromProducts = async (products = [], { channel = null, seller = u
             expiryDate: product.expiryDate ?? null,
             mrp: product.mrp ?? null,
             tags: Array.isArray(product.tags) ? product.tags : [],
+            ...productRatingFields(product),
             approvalStatus: product.approvalStatus || 'approved',
             rejectionReason: product.rejectionReason || '',
             requestedAt: product.requestedAt,

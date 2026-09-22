@@ -1556,7 +1556,7 @@ export default function Inventory() {
         <div className="px-6 py-5 flex items-start justify-between gap-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Menu inventory</h1>
-            <p className="text-sm text-slate-500 mt-1">Manage dishes and stock</p>
+            <p className="text-sm text-slate-500 mt-1">Manage products and stock</p>
           </div>
           <div className="flex items-center gap-6 text-sm">
             <div className="text-right">
@@ -1589,7 +1589,7 @@ export default function Inventory() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search categories or dishes..."
+              placeholder="Search categories or products..."
               className="w-full h-11 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:bg-white transition-colors"
             />
           </div>
@@ -1658,7 +1658,7 @@ export default function Inventory() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search categories or menu items"
+                  placeholder="Search categories or products"
                   className="h-12 w-full rounded-[20px] border border-slate-200 bg-slate-50 pl-11 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:bg-white focus:outline-none"
                 />
                 {searchQuery ? (
@@ -2170,7 +2170,7 @@ export default function Inventory() {
                   <div>
                     <h2 className="text-lg font-bold text-gray-900">Filters</h2>
                     <p className="text-sm text-gray-500 mt-1">
-                      Refine your inventory by stock state, recommendation, or food type.
+                      Refine your inventory by stock state, recommendation, or type.
                     </p>
                   </div>
                   {selectedFilter !== "all" ? (
@@ -2467,7 +2467,7 @@ export default function Inventory() {
                   </div>
                   <div className="text-left">
                     <span className="block text-base font-bold text-gray-900">Add Item</span>
-                    <span className="block text-sm text-gray-500 font-medium">Create a single menu item manually</span>
+                    <span className="block text-sm text-gray-500 font-medium">Create a single product manually</span>
                   </div>
                 </button>
 
@@ -2647,7 +2647,8 @@ export default function Inventory() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-base font-black text-slate-900 mb-1">Step 1: Get Template</h3>
-                          <p className="text-sm text-slate-500 font-medium mb-4 leading-relaxed">Download our pre-formatted Excel template to ensure data compatibility.</p>
+                          <p className="text-sm text-slate-500 font-medium mb-2 leading-relaxed">Download our pre-formatted Excel template to ensure data compatibility.</p>
+                          <p className="text-xs text-slate-500 mb-4 leading-relaxed">Optional columns: Sell in Quick / Sell in Shop (Yes/No) and Quick / Shop stock. Leave blank to keep the current value. You can only choose channels your store is approved for.</p>
                           <button
                             onClick={handleDownloadTemplate}
                             className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm"
