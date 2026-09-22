@@ -18,6 +18,7 @@ import { getSellerAvailabilityStatus } from '../../seller/helpers/sellerAvailabi
 import { resolveOrderCartItems } from '../helpers/order-cart-items.helper.js';
 import { channelForMode } from '../../shared/channels.js';
 import { AVG_SPEED_KMPH, PACKING_MINUTES } from './order.helpers.js';
+import { checkFirstOrderEligibility } from './firstOrderGuard.service.js';
 
 const round2 = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
@@ -401,7 +402,9 @@ const offerDiscount = (offer, base) => {
   return Math.max(0, Math.min(base, Math.floor(Number(offer.discountValue) || 0)));
 };
 
-async function isOfferApplicable(offer, { userId, base, isFirstOrder, now }) {
+const isFirstOrderOffer = (offer) => offer?.customerScope === 'first-time' || offer?.isFirstOrderOnly === true;
+
+async function isOfferApplicable(offer, { userId, base, isFirstOrder, firstOrderGuard, why, now }) {
   const offerEnd = offer.endDate ? new Date(offer.endDate) : null;
   if (offerEnd && offerEnd.getHours() === 0 && offerEnd.getMinutes() === 0) {
     offerEnd.setHours(23, 59, 59, 999);
@@ -419,8 +422,17 @@ async function isOfferApplicable(offer, { userId, base, isFirstOrder, now }) {
     }).lean();
     if (usage && Number(usage.count) >= Number(offer.perUserLimit)) return false;
   }
-  if (offer.customerScope === 'first-time' || offer.isFirstOrderOnly === true) {
-    if (!(await isFirstOrder())) return false;
+  if (isFirstOrderOffer(offer)) {
+    if (!(await isFirstOrder())) {
+      if (why) why.reason = 'This offer is only for your first order.';
+      return false;
+    }
+    // Once per person: account, phone, device or payment already used it.
+    const guard = firstOrderGuard ? await firstOrderGuard() : { ok: true };
+    if (!guard.ok) {
+      if (why) Object.assign(why, { reason: guard.reason, signal: guard.signal });
+      return false;
+    }
   }
   return true;
 }
@@ -434,11 +446,16 @@ async function isOfferApplicable(offer, { userId, base, isFirstOrder, now }) {
  * to some stores discounts only their share; `appliedCoupon.sellerIds` says
  * which stores it covers (null: all).
  */
-export async function resolveCoupon({ userId, codeRaw = '', subtotalsBySeller, phones = [], now = new Date() }) {
+export async function resolveCoupon({ userId, codeRaw = '', subtotalsBySeller, phones = [], deviceId = '', now = new Date() }) {
   let firstOrder;
   const isFirstOrder = async () => {
     if (firstOrder === undefined) firstOrder = await isFirstOrderCustomer(userId, phones);
     return firstOrder;
+  };
+  let guardResult;
+  const firstOrderGuard = async () => {
+    if (guardResult === undefined) guardResult = await checkFirstOrderEligibility({ userId, deviceId });
+    return guardResult;
   };
   const pick = (offer, isAutoApplied) => {
     const discount = offerDiscount(offer, offerBase(offer, subtotalsBySeller));
@@ -449,16 +466,23 @@ export async function resolveCoupon({ userId, codeRaw = '', subtotalsBySeller, p
         discount,
         isAutoApplied,
         sellerIds: offer.sellerScope === 'selected' ? offerSellerIds(offer) : null,
+        firstOrder: isFirstOrderOffer(offer),
       },
     };
   };
 
   if (codeRaw) {
     const offer = await Offer.findOne({ couponCode: codeRaw }).lean();
-    if (offer && (await isOfferApplicable(offer, { userId, base: offerBase(offer, subtotalsBySeller), isFirstOrder, now }))) {
+    const why = {};
+    if (offer && (await isOfferApplicable(offer, { userId, base: offerBase(offer, subtotalsBySeller), isFirstOrder, firstOrderGuard, why, now }))) {
       return pick(offer, false);
     }
-    return { discount: 0, appliedCoupon: null };
+    // A refused first-order coupon says why, so checkout can show it.
+    return {
+      discount: 0,
+      appliedCoupon: null,
+      couponRefusal: why.reason ? { code: codeRaw, reason: why.reason, signal: why.signal || null } : null,
+    };
   }
 
   if (!userId || !mongoose.Types.ObjectId.isValid(userId) || !(await isFirstOrder())) {
@@ -470,13 +494,18 @@ export async function resolveCoupon({ userId, codeRaw = '', subtotalsBySeller, p
     $or: [{ isFirstOrderOnly: true }, { customerScope: 'first-time' }],
   }).lean();
   let best = null;
+  let refused = null;
   for (const candidate of candidates) {
     const base = offerBase(candidate, subtotalsBySeller);
-    if (!(await isOfferApplicable(candidate, { userId, base, isFirstOrder, now }))) continue;
+    const why = {};
+    if (!(await isOfferApplicable(candidate, { userId, base, isFirstOrder, firstOrderGuard, why, now }))) {
+      if (why.signal && !refused) refused = { code: candidate.couponCode, reason: why.reason, signal: why.signal };
+      continue;
+    }
     const d = offerDiscount(candidate, base);
     if (d > 0 && (!best || d > best.d)) best = { offer: candidate, d };
   }
-  return best ? pick(best.offer, true) : { discount: 0, appliedCoupon: null };
+  return best ? pick(best.offer, true) : { discount: 0, appliedCoupon: null, couponRefusal: refused };
 }
 
 /**
@@ -548,13 +577,14 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
     : "";
   // A split checkout prices each store with coupons off and applies one
   // coupon across the whole cart itself, so a coupon is used once, not per store.
-  const { discount, appliedCoupon } = options.skipCoupons
+  const { discount, appliedCoupon, couponRefusal = null } = options.skipCoupons
     ? { discount: 0, appliedCoupon: null }
     : await resolveCoupon({
       userId,
       codeRaw,
       subtotalsBySeller: new Map([[String(dto.sellerId || ''), subtotal]]),
       phones: [deliveryAddress?.phone, dto?.deliveryAddress?.phone],
+      deviceId: dto.deviceId,
     });
 
   // GST is charged on the post-discount item value (discount is already clamped to <= subtotal).
@@ -585,6 +615,7 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
     currency: "INR",
     couponCode: appliedCoupon?.code || (options.skipCoupons ? null : codeRaw) || null,
     appliedCoupon,
+    couponRefusal,
     distanceKm: Number.isFinite(distanceKm) ? Number(distanceKm.toFixed(2)) : null,
     roadDistanceKm: Number.isFinite(distanceKm) ? Number(distanceKm.toFixed(2)) : null,
     straightLineDistanceKm: Number.isFinite(straightLineKm)

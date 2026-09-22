@@ -391,7 +391,31 @@ export async function listCoinLedger(userId, { page = 1, limit = 20 } = {}) {
             .select('-allocations').lean(),
         CoinLedger.countDocuments({ userId: user }),
     ]);
-    return { entries, total, page: p, limit: l };
+    // Coins in are positive, coins out negative, whatever sign was stored.
+    const SIGN = { credit: 1, reversal: 1, debit: -1, expire: -1, adjust: -1 };
+    const withSign = entries.map((e) => ({ ...e, signedAmount: (SIGN[e.type] || 1) * Math.abs(Number(e.amount) || 0) }));
+    return { entries: withSign, total, page: p, limit: l, totalPages: Math.max(1, Math.ceil(total / l)) };
+}
+
+/**
+ * Lots with coins left that expire within `days` (1-365, default 30). Each
+ * row says how many of its coins can still be spent and how many are locked
+ * (the part of a lot above its spendable share).
+ */
+export async function listExpiringLots(userId, { days = 30, now = new Date() } = {}) {
+    const user = toOid(userId, 'user id');
+    const d = Math.min(Math.max(parseInt(days, 10) || 30, 1), 365);
+    const until = new Date(now.getTime() + d * DAY_MS);
+    const lots = await CoinLot.find({ ...activeLotFilter(user, now), expiresAt: { $gt: now, $lte: until } })
+        .sort({ expiresAt: 1 }).select('amount spendable used expiresAt source').lean();
+    const rows = lots
+        .map((lot) => {
+            const left = Math.max(0, lot.amount - lot.used);
+            const usable = Math.max(0, lot.spendable - lot.used);
+            return { lotId: String(lot._id), expiresAt: lot.expiresAt, source: lot.source || '', coins: left, usable, locked: Math.max(0, left - usable) };
+        })
+        .filter((r) => r.coins > 0);
+    return { days: d, until, total: rows.reduce((s, r) => s + r.coins, 0), lots: rows };
 }
 
 /** What the platform owes in coins, and where issued coins went. */

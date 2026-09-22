@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, IndianRupee, Plus, ArrowDownCircle, ArrowUpCircle, RefreshCw, Loader2 } from "lucide-react"
 import { Button } from "@store/components/ui/button"
 import { Card, CardContent } from "@store/components/ui/card"
@@ -156,6 +156,9 @@ export default function Wallet() {
               <ArrowLeft className="h-5 w-5 md:h-6 md:w-6 text-gray-700 dark:text-white" />
             </button>
             <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Wallet</h1>
+            <Link to="/coins" className="ml-auto text-sm font-semibold text-amber-600 dark:text-amber-400 hover:underline">
+              My coins
+            </Link>
           </div>
         </div>
       </div>

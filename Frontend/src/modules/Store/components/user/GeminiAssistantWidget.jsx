@@ -15,8 +15,9 @@ import {
   RotateCcw,
   MessageSquare,
   HelpCircle,
+  LifeBuoy,
 } from "lucide-react"
-import { aiAPI } from "@store/api"
+import { aiAPI, supportAPI } from "@store/api"
 import { useCart } from "@store/context/CartContext"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
@@ -41,6 +42,9 @@ export default function GeminiAssistantWidget() {
   ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [conversationId, setConversationId] = useState(null)
+  const [handingOff, setHandingOff] = useState(false)
+  const [ticketId, setTicketId] = useState(null)
   const messagesEndRef = useRef(null)
   const { addToCart } = useCart()
   const navigate = useNavigate()
@@ -64,15 +68,19 @@ export default function GeminiAssistantWidget() {
       const res = await aiAPI.chat({
         message: textToSend,
         history: messages.slice(-6).map((m) => ({ role: m.role, text: m.text })),
+        conversationId,
       })
 
-      const data = res?.data || res
+      // sendResponse wraps the payload: { success, message, data }.
+      const data = res?.data?.data || res?.data || {}
+      if (data.conversationId) setConversationId(data.conversationId)
       const assistantMsg = {
         role: "assistant",
         text: data.reply || "Here is what I found for you:",
         products: data.products || [],
         orders: data.orders || [],
         suggestions: data.suggestions || [],
+        unavailable: Boolean(data.unavailable),
       }
 
       setMessages((prev) => [...prev, assistantMsg])
@@ -87,6 +95,42 @@ export default function GeminiAssistantWidget() {
       ])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  /** Hands the chat to a person: a support ticket with the transcript attached. */
+  const handleTalkToSupport = async () => {
+    if (handingOff) return
+    const transcript = messages
+      .filter((m) => m.text)
+      .map((m) => `${m.role === "user" ? "Customer" : "Assistant"}: ${m.text}`)
+      .join("\n\n")
+    const header = conversationId ? `Assistant conversation ${conversationId}\n\n` : ""
+    setHandingOff(true)
+    try {
+      const res = await supportAPI.createTicket({
+        type: "other",
+        issueType: "Assistant hand-off",
+        description: `${header}${transcript}`.slice(-8000),
+      })
+      const ticket = res?.data?.data?.ticket
+      setTicketId(ticket?._id || "created")
+      if (ticket?._id && conversationId) {
+        aiAPI.linkHandoff({ conversationId, ticketId: ticket._id }).catch(() => {})
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: "I've passed this conversation to our support team with the full chat attached. They'll get back to you soon. You can follow it under Help & Support.",
+        },
+      ])
+      toast.success("Support ticket created")
+    } catch (err) {
+      const status = err?.response?.status
+      toast.error(status === 401 ? "Please log in to contact support" : "Could not reach support. Please try again.")
+    } finally {
+      setHandingOff(false)
     }
   }
 
@@ -155,12 +199,23 @@ export default function GeminiAssistantWidget() {
                 </div>
               </div>
 
+              <div className="flex items-center gap-1">
+              <button
+                onClick={handleTalkToSupport}
+                disabled={handingOff || Boolean(ticketId) || messages.length < 2}
+                title={ticketId ? "Sent to support" : "Talk to support"}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/10 hover:bg-white/20 text-slate-200 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <LifeBuoy className="w-3.5 h-3.5" />
+                {ticketId ? "Sent" : handingOff ? "Sending…" : "Talk to support"}
+              </button>
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
+              </div>
             </div>
 
             {/* Messages Area */}
@@ -254,6 +309,16 @@ export default function GeminiAssistantWidget() {
                           </div>
                         ))}
                       </div>
+                    )}
+
+                    {m.unavailable && !ticketId && (
+                      <button
+                        onClick={handleTalkToSupport}
+                        disabled={handingOff}
+                        className="mt-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-200 text-[10px] font-semibold transition cursor-pointer disabled:opacity-50"
+                      >
+                        <LifeBuoy className="w-3 h-3" /> Talk to support
+                      </button>
                     )}
 
                     {/* Action Suggestion Chips */}

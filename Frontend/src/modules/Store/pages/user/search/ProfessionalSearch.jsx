@@ -55,6 +55,9 @@ export default function ProfessionalSearch() {
   const [categories, setCategories] = useState([])
   const [selectedCategoryId, setSelectedCategoryId] = useState(searchParams.get("cat") || null)
   const [history, setHistory] = useState([])
+  // Smart search: products for the typed text, with the filters it was read as ("Under ₹500", "5 kg").
+  const [smart, setSmart] = useState({ products: [], chips: [] })
+  const [removedChips, setRemovedChips] = useState([])
 
   // Load search history
   useEffect(() => {
@@ -104,13 +107,32 @@ export default function ProfessionalSearch() {
     localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory))
   }
 
-  const performSearch = useCallback(async (searchTerm, catId) => {
+  const performSearch = useCallback(async (searchTerm, catId, excluded = []) => {
     if (!searchTerm && !catId) {
       setResults({ sellers: [], dishes: [] })
+      setSmart({ products: [], chips: [] })
       return
     }
     
     setLoading(true)
+    if (searchTerm) {
+      searchAPI.searchProducts({
+        q: searchTerm,
+        smart: 1,
+        ...(excluded.length ? { smartExclude: excluded.join(",") } : {}),
+        ...(catId ? { categoryId: catId } : {}),
+        zoneId,
+        fulfilmentMode,
+        limit: 12,
+      })
+        .then((res) => {
+          const data = res?.data?.data || {}
+          setSmart({ products: data.products || [], chips: data.smart?.appliedFilters || [] })
+        })
+        .catch(() => setSmart({ products: [], chips: [] }))
+    } else {
+      setSmart({ products: [], chips: [] })
+    }
     try {
       const res = await searchAPI.unifiedSearch({
         q: searchTerm,
@@ -143,12 +165,15 @@ export default function ProfessionalSearch() {
     }
   }, [userCoords, zoneId, isQuick, fulfilmentMode])
 
+  // A new query starts with every chip back on.
+  useEffect(() => { setRemovedChips([]) }, [debouncedQuery])
+
   useEffect(() => {
-    performSearch(debouncedQuery, selectedCategoryId)
+    performSearch(debouncedQuery, selectedCategoryId, removedChips)
     if (debouncedQuery) {
         setSearchParams({ q: debouncedQuery, ...(selectedCategoryId ? { cat: selectedCategoryId } : {}) }, { replace: true })
     }
-  }, [debouncedQuery, selectedCategoryId, performSearch, setSearchParams])
+  }, [debouncedQuery, selectedCategoryId, removedChips, performSearch, setSearchParams])
 
   // Speech Recognition Implementation
   const handleVoiceSearch = () => {
@@ -175,6 +200,8 @@ export default function ProfessionalSearch() {
     setSelectedCategoryId(null)
     setSearchParams({}, { replace: true })
     setResults({ sellers: [], dishes: [] })
+    setSmart({ products: [], chips: [] })
+    setRemovedChips([])
   }
 
   const handleCategoryClick = (id) => {
@@ -290,6 +317,48 @@ export default function ProfessionalSearch() {
         {!loading && (query || selectedCategoryId) && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
             
+            {/* Smart search: the filters the query was read as, removable, and matching products */}
+            {smart.chips.length > 0 && (
+              <div className="flex flex-wrap gap-2" aria-label="Applied filters">
+                {smart.chips.map((chip) => (
+                  <button
+                    key={chip.id}
+                    onClick={() => setRemovedChips((prev) => [...prev, chip.id])}
+                    className="flex items-center gap-1 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs font-medium hover:bg-rose-100 transition-colors"
+                    title="Remove filter"
+                  >
+                    {chip.label}
+                    <X className="w-3 h-3" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {smart.products.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                   <div className="w-1 h-5 bg-emerald-500 rounded-full" />
+                   <h2 className="text-lg font-bold dark:text-white">Products</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {smart.products.map((p) => (
+                    <Link key={p._id} to={storePath(`/product/${p._id}`)} className="p-2 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 hover:shadow-md transition-shadow">
+                      <div className="w-full aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800 mb-2">
+                        {(p.image || p.images?.[0]) && (
+                          <img src={getMediaUrl(p.image || p.images?.[0])} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-2">{p.name}</div>
+                      {p.packSize && <div className="text-[11px] text-slate-500">{p.packSize}</div>}
+                      <div className="text-sm font-bold text-slate-900 dark:text-white mt-1">
+                        {p.variants?.length ? "From " : ""}₹{p.displayPrice ?? p.price}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Dish Results Section */}
             {results.dishes.length > 0 && (
               <section>
@@ -380,7 +449,7 @@ export default function ProfessionalSearch() {
             )}
 
             {/* Empty State */}
-            {!loading && results.sellers.length === 0 && results.dishes.length === 0 && (
+            {!loading && results.sellers.length === 0 && results.dishes.length === 0 && smart.products.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                  <div className="w-20 h-20 bg-slate-100 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-4">
                     <Search className="w-8 h-8 text-slate-300" />

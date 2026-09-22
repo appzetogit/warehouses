@@ -73,4 +73,14 @@ export class ShippingProvider {
     get supportsReturns() {
         return false;
     }
+
+    /**
+     * Act on a failed delivery (NDR): `reattempt` (optional address1/address2/
+     * phone/deferredDate) or `rto` (return to origin).
+     * trackShipment may also return `ndr: { attempts, reason, at }`.
+     * @returns {Promise<{ success: boolean, message?: string }>}
+     */
+    async ndrAction(params) {
+        throw new Error('ndrAction must be implemented');
+    }
 }

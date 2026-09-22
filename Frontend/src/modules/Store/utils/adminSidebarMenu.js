@@ -113,6 +113,10 @@ const adminSidebarMenuTemplate = [
       },
       { type: "link", label: "Courier Shipments", panels: SHOP, path: "/shipments", icon: "Truck" },
       { type: "link", label: "Returns", panels: SHOP, path: "/returns", icon: "Package" },
+      { type: "link", label: "NDR Queue", panels: SHOP, path: "/shipments/ndr", icon: "AlertTriangle" },
+      { type: "link", label: "RTO Queue", panels: SHOP, path: "/shipments/rto", icon: "RotateCcw" },
+      { type: "link", label: "COD Remittances", panels: SHOP, path: "/cod-remittances", icon: "Banknote" },
+      { type: "link", label: "Checkouts", path: "/checkouts", icon: "Layers" },
     ],
   },
   {
@@ -133,6 +137,7 @@ const adminSidebarMenuTemplate = [
     items: [
       { type: "link", label: "Platform Coins", path: "/coins", icon: "Award" },
       { type: "link", label: "Spin Wheel", path: "/spin-campaigns", icon: "Disc3" },
+      { type: "link", label: "Push Campaigns", path: "/push-campaigns", icon: "BellRing" },
       { type: "link", label: "Referral Settings", path: "/referral-settings", icon: "Gift" },
     ],
   },
@@ -188,6 +193,15 @@ const adminSidebarMenuTemplate = [
     items: [
       { type: "link", label: "User Feedback", path: "/contact-messages", icon: "Mail" },
       { type: "link", label: "Safety Emergency Reports", panels: QUICK, path: "/safety-emergency-reports", icon: "AlertTriangle" },
+    ],
+  },
+  {
+    type: "section",
+    label: "AI ASSISTANT",
+    items: [
+      { type: "link", label: "AI Settings", path: "/ai/settings", icon: "Zap" },
+      { type: "link", label: "Conversations", path: "/ai/conversations", icon: "MessageSquare" },
+      { type: "link", label: "AI Usage", path: "/ai/usage", icon: "Receipt" },
     ],
   },
   {

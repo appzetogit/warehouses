@@ -1,5 +1,6 @@
 import { searchUnified, searchProducts, searchNearbyStores, getAdminCategories } from '../services/search.service.js';
 import { sendResponse, sendError } from '../../../../utils/response.js';
+import { smartSearchProducts } from '../services/smartSearch.service.js';
 
 /**
  * Unified Search for Sellers and Food Items
@@ -35,7 +36,9 @@ export const searchController = async (req, res, next) => {
  */
 export const searchProductsController = async (req, res, next) => {
     try {
-        const results = await searchProducts(req.query);
+        const { categoryIds, ...query } = req.query; // server-set only
+        const smart = ['1', 'true'].includes(String(query.smart || ''));
+        const results = smart ? await smartSearchProducts(query) : await searchProducts(query);
 
         return sendResponse(res, 200, 'Products fetched successfully', results);
     } catch (error) {

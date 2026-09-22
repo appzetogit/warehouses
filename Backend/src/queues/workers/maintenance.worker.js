@@ -83,6 +83,26 @@ const startMaintenanceWorker = async () => {
         }
     );
 
+    // 5. Nightly co-purchase recommendations (Every day at 02:30)
+    await maintenanceQueue.add(
+        'PRODUCT_RECOMMENDATIONS_BUILD',
+        { type: 'PRODUCT_RECOMMENDATIONS_BUILD' },
+        {
+            repeat: { pattern: '30 2 * * *' }, // 02:30 daily
+            jobId: 'product_recommendations_job'
+        }
+    );
+
+    // 5. Push campaign sweep (every minute): sends due campaigns in throttled batches.
+    await maintenanceQueue.add(
+        'PUSH_CAMPAIGN_TICK',
+        { type: 'PUSH_CAMPAIGN_TICK' },
+        {
+            repeat: { pattern: '* * * * *' },
+            jobId: 'push_campaign_tick_job'
+        }
+    );
+
     worker.on('completed', (job) => logger.info(`Maintenance job ${job.id} completed`));
     worker.on('failed', (job, err) => logger.error(`Maintenance job ${job?.id} failed: ${err.message}`));
     worker.on('error', (err) => logger.error(`Maintenance worker error: ${err.message}`));

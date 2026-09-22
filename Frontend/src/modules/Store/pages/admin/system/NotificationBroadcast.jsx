@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { BellRing, Loader2, Search, Send, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { adminAPI } from "@store/api";
 
 const TARGET_OPTIONS = [
@@ -204,6 +205,12 @@ export default function NotificationBroadcast() {
             <h1 className="text-2xl font-bold text-slate-900">Broadcast Notification</h1>
             <p className="text-sm text-slate-500 mt-1">
               Send one notification to all, role-based, or selected recipients without touching other admin flows.
+            </p>
+            <p className="text-sm text-slate-600 mt-2">
+              Need a segment, a schedule, a deep link or delivery stats?{" "}
+              <Link to="/admin/push-campaigns" className="font-semibold text-blue-600 hover:underline">
+                Use Push Campaigns
+              </Link>
             </p>
           </div>
         </div>

@@ -13,6 +13,7 @@ import { getOutletTimingsBySellerIdController } from '../../seller/controllers/o
 import { listPublicAttributesController, getCategoryAttributesController } from '../../admin/controllers/attribute.controller.js';
 import { nearbyStoresController } from '../../search/controllers/search.controller.js';
 import searchRoutes from '../../search/routes/search.routes.js';
+import { getProductRecommendationsController } from '../../recommendations/controllers/recommendation.controller.js';
 
 /**
  * What a shopper browses, signed in or not: stores, their products, categories,
@@ -31,6 +32,7 @@ router.get('/stores/:id/products', cacheResponse(600, 'seller_menu'), getPublicS
 router.get('/stores/:id/timings', cacheResponse(600, 'seller_timings'), getOutletTimingsBySellerIdController);
 router.get('/products', cacheResponse(300, 'public_products'), listPublicProductsController);
 router.get('/products/:id', cacheResponse(120, 'public_product'), getPublicProductController);
+router.get('/products/:id/recommendations', cacheResponse(300, 'product_recommendations', { browserTtlSeconds: 60 }), getProductRecommendationsController);
 router.get('/categories', cacheResponse(600, 'categories'), listCategoriesController);
 router.get('/categories/:id/attributes', getCategoryAttributesController);
 router.get('/attributes', listPublicAttributesController);

@@ -45,6 +45,7 @@ import {
   loadSellerForOrdering,
   assertSellerOpenForOrdering,
 } from './order-pricing.service.js';
+import { claimFirstOrder, releaseFirstOrderClaim, releaseFirstOrderClaimIfVoid } from './firstOrderGuard.service.js';
 import { normalizeDeliveryAddress } from '../../shared/geo.utils.js';
 import * as dispatchService from './order-dispatch.service.js';
 import * as deliveryService from './order-delivery.service.js';
@@ -603,6 +604,7 @@ export async function createOrder(userId, dto, options = {}) {
         couponCode: dto.pricing?.couponCode || undefined,
         deliveryMode: dto.deliveryMode || "basic",
         fulfilmentMode: checkout?.fulfilmentMode || dto.fulfilmentMode || "quick",
+        deviceId: dto.deviceId,
       },
       { at: orderAt, seller, skipAvailabilityCheck: true, skipCoupons: Boolean(checkout) },
     );
@@ -823,10 +825,22 @@ export async function createOrder(userId, dto, options = {}) {
       order.stockReservations = reservation;
     }
 
+    // A single order's first-order offer: claimed once per person, atomically.
+    const firstOrderClaimed = !checkout && Boolean(pricingResult.pricing?.appliedCoupon?.firstOrder);
+    if (firstOrderClaimed) {
+      try {
+        await claimFirstOrder({ userId, deviceId: dto.deviceId, orderId: order._id, offerCode: pricingResult.pricing.appliedCoupon.code });
+      } catch (err) {
+        await releaseReservations(reservation);
+        throw err;
+      }
+    }
+
     try {
       await order.save();
     } catch (err) {
       await releaseReservations(reservation);
+      if (firstOrderClaimed) await releaseFirstOrderClaim({ orderId: order._id }).catch(() => {});
       throw err;
     }
 
@@ -1143,10 +1157,9 @@ export async function listOrdersUser(userId, query) {
   await expireStalePendingPaymentOrders();
   await expireUnacceptedOrders();
   const { page, limit, skip } = buildPaginationOptions(query);
-  const filter = { 
-    userId: new mongoose.Types.ObjectId(userId),
-    orderStatus: { $ne: 'pending_payment' }
-  };
+  // Unpaid orders still inside their hold are listed so the customer can
+  // finish paying; the sweep above has already released the expired ones.
+  const filter = { userId: new mongoose.Types.ObjectId(userId) };
   const [docs, total] = await Promise.all([
     Order.find(filter)
       .populate(
@@ -1564,6 +1577,9 @@ export async function cancelOrder(orderId, userId, reason) {
   }
 
   await order.save();
+
+  // Cancelled before dispatch: the first-order offer can be used again.
+  void releaseFirstOrderClaimIfVoid(order.checkoutId ? { checkoutId: order.checkoutId } : { orderId: order._id }).catch(() => {});
 
   enqueueOrderEvent("order_cancelled_by_user", {
     orderMongoId: order._id?.toString?.(),

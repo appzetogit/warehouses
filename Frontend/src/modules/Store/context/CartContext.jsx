@@ -3,6 +3,7 @@ import { cartStorageKeyFor } from "@store/context/StoreModeContext"
 import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { buildCartLineId } from "@store/utils/productVariants"
 import { userAPI } from "@/services/api"
+import { toast } from "sonner"
 import CartReplaceDialog from "@store/components/user/CartReplaceDialog"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -240,6 +241,50 @@ export function CartProvider({ children, mode = "shop" }) {
       }
     }
   }, [scheduleCartSync])
+
+  // Restore the saved server cart for this storefront on app start and on login,
+  // but only when this device's cart for the mode is empty. If both have items,
+  // the local cart wins and the sync above pushes it up (PUT replaces, so
+  // nothing is doubled).
+  const cartRef = useRef(cart)
+  cartRef.current = cart
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined
+    let alive = true
+    const restore = async () => {
+      const isAuthenticated =
+        localStorage.getItem("user_authenticated") === "true" ||
+        !!localStorage.getItem("user_accessToken")
+      if (!isAuthenticated || normalizeCartData(cartRef.current).length > 0) return
+      try {
+        const res = await userAPI.getCart(mode === "quick" ? "quick" : "shop")
+        const saved = res?.data?.data
+        if (!alive || !Array.isArray(saved?.items) || saved.items.length === 0) return
+        // The user may have added something while the request was in flight.
+        if (normalizeCartData(cartRef.current).length > 0) return
+        setCart(
+          normalizeCartData(
+            saved.items.map((item) => ({ ...item, seller: item.sellerName || item.seller || "" })),
+          ),
+        )
+        const removed = Array.isArray(saved.removed) ? saved.removed : []
+        const changed = Array.isArray(saved.changed) ? saved.changed : []
+        window.dispatchEvent(new CustomEvent("store_cart_restored", { detail: { mode, removed, changed } }))
+        if (removed.length || changed.length) {
+          if (removed.length) toast.info(`${removed.length} item(s) from your saved cart are no longer available`)
+          if (changed.length) toast.info("Some prices or quantities in your cart were updated")
+        }
+      } catch {
+        // offline or not signed in: keep the local cart as it is
+      }
+    }
+    restore()
+    window.addEventListener("userAuthChanged", restore)
+    return () => {
+      alive = false
+      window.removeEventListener("userAuthChanged", restore)
+    }
+  }, [mode])
 
   const addToCart = (item, sourcePosition = null, options = {}) => {
     const { forceReplace = false, quantity: requestedQuantity = 1 } = options

@@ -25,6 +25,7 @@ import { toast } from "sonner"
 import { catalogAPI } from "@/services/api"
 import { brandMarkUrl } from "@/config/brandMark"
 import SEOHead from "@store/components/SEOHead"
+import RecommendationRail from "@store/components/user/RecommendationRail"
 import { useCart } from "@store/context/CartContext"
 import { Button } from "@store/components/ui/button"
 import { CHANNEL_COPY, channelAvailability, otherChannel, productInChannel, stockLabel, variantInChannel } from "@store/utils/channelStock"
@@ -495,6 +496,10 @@ export default function ProductDetail() {
                 </p>
               </div>
             )}
+
+            {/* Recommendations: co-purchases, then similar products */}
+            <RecommendationRail productId={product._id} type="frequently_bought" title="Frequently bought together" limit={8} />
+            <RecommendationRail productId={product._id} type="similar" title="You may also like" limit={10} />
           </div>
         </div>
       </div>

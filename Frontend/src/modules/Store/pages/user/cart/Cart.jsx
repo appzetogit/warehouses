@@ -45,6 +45,7 @@ import {
   markUserSelectedCoupon,
 } from "@store/utils/autoCoupon"
 import CartAutoCouponBanner from "@store/components/user/CartAutoCouponBanner"
+import RecommendationRail from "@store/components/user/RecommendationRail"
 import zoopSound from "@store/assets/audio/order-placed.mp3"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -2059,13 +2060,21 @@ export default function Cart() {
               setIsPlacingOrder(false);
             }
           },
-          onClose: async () => {
-            try {
-              await orderAPI.abandonCheckout(checkoutId);
-            } catch (abandonError) {
-              debugError("Failed to release abandoned checkout:", abandonError);
-            }
+          // Closing the sheet keeps the order held for 30 minutes; the order
+          // page offers "Complete payment" until then, after which the server
+          // releases the stock and coins.
+          onClose: () => {
+            const heldOrderId = checkoutRes?.data?.data?.childOrders?.[0]?._id;
             setIsPlacingOrder(false);
+            if (!heldOrderId) {
+              orderAPI.abandonCheckout(checkoutId).catch((abandonError) => {
+                debugError("Failed to release abandoned checkout:", abandonError);
+              });
+              return;
+            }
+            clearCart();
+            toast.info("Payment not completed. You can finish it from the order page within 30 minutes.");
+            navigate(`/orders/${heldOrderId}`);
           },
         });
         return;
@@ -2644,6 +2653,19 @@ export default function Cart() {
           savings={itemDiscountAmount}
         />
 
+        {/* "You may also like": co-purchases of the first item, minus what is already in the cart */}
+        {cart.length > 0 && (
+          <div className="px-4 md:px-6 max-w-7xl mx-auto">
+            <RecommendationRail
+              productId={cart[0].productId || cart[0].itemId || cart[0].id}
+              type="frequently_bought"
+              title="You may also like"
+              excludeIds={cart.map((item) => item.productId || item.itemId || item.id)}
+              limit={10}
+            />
+          </div>
+        )}
+
         {/* Savings Banner */}
         {otherSavings > 0 && (
           <div className="bg-blue-100 dark:bg-blue-900/20 px-4 md:px-6 py-2 md:py-3 flex-shrink-0">
@@ -3080,6 +3102,9 @@ export default function Cart() {
                           Balance: <strong className="text-amber-600 dark:text-amber-400">{coinBalance.usable || 0} usable</strong> ({coinBalance.coins || 0} total)
                           {maxCoinsRedeemable > 0 ? ` • Save up to ${RUPEE_SYMBOL}${maxCoinsRedeemable}` : ''}
                         </p>
+                        <Link to="/coins" className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 hover:underline">
+                          View coins &amp; expiry
+                        </Link>
                         {maxCoinsRedeemable > 0 ? (
                           <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                             Redeem up to 50% on this order

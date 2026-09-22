@@ -12,11 +12,12 @@ import {
     normalizeOrderForClient,
 } from './order.helpers.js';
 import { bookOrderShipment, markOrderDeliveredAdmin } from './order.service.js';
+import { captureTrackingEvents } from './courierOps.service.js';
 
 /** Order statuses a courier shipment can be booked from. */
 const BOOKABLE_STATUSES = ['created', 'confirmed', 'preparing', 'ready_for_pickup'];
 /** Courier statuses after which a shipment can no longer be cancelled. */
-const UNCANCELLABLE = ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'returned'];
+const UNCANCELLABLE = ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'returned', 'undelivered', 'rto_initiated', 'rto_in_transit', 'rto_delivered', 'rto_received'];
 
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -119,10 +120,17 @@ export async function trackShipmentAdmin(orderId, adminId) {
     const currentStatus = String(tracking?.currentStatus || '').toLowerCase();
     const now = new Date();
     if (currentStatus) {
+        // An RTO the seller already received stays received whatever the courier says.
         await Order.updateOne(
-            { _id: order._id, 'shipment.awb': awb },
+            { _id: order._id, 'shipment.awb': awb, 'shipment.status': { $ne: 'rto_received' } },
             { $set: { 'shipment.status': currentStatus, 'shipment.lastTrackedAt': now } }
         );
+    }
+    // NDR (failed attempt) details and the start of an RTO leg.
+    try {
+        await captureTrackingEvents(order._id, awb, tracking);
+    } catch (err) {
+        logger.warn(`NDR/RTO capture for ${order._id} failed: ${err?.message || err}`);
     }
 
     let orderDelivered = false;

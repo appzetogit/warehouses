@@ -15,6 +15,9 @@ const userCartItemSchema = new mongoose.Schema(
         image: { type: String, default: '' },
         foodType: { type: String, default: '' },
         isVeg: { type: Boolean, default: null },
+        /** The line's store; a shop cart can span several stores. */
+        sellerId: { type: String, trim: true, default: '' },
+        sellerName: { type: String, trim: true, default: '' },
     },
     { _id: false },
 );

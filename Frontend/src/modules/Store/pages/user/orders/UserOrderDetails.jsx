@@ -21,6 +21,7 @@ import { getCompanyNameAsync } from "@store/utils/businessSettings"
 import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@store/utils/productVariants"
 import { DualMoney } from "@store/components/user/ProductPriceDisplay"
 import OrderReturnsSection from "./OrderReturnsSection"
+import CompletePaymentCard from "@store/components/user/CompletePaymentCard"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -398,6 +399,7 @@ export default function UserOrderDetails() {
 
       {/* Scrollable Content */}
       <div className="p-4 space-y-4">
+        <CompletePaymentCard order={order} onPaid={() => window.location.reload()} />
         {/* Status Card */}
         <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl flex items-center gap-3 shadow-sm border border-gray-100 dark:border-zinc-800">
           <div className="bg-gray-100 dark:bg-zinc-800 p-2 rounded-lg">

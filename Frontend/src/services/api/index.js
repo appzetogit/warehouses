@@ -49,6 +49,9 @@ export const catalogAPI = {
   /** The attributes a category's products vary by, for the variant editor. */
   getCategoryAttributes: (categoryId) =>
     apiClient.get(`/catalog/categories/${categoryId}/attributes`),
+  /** `{ type: "frequently_bought" | "similar", fulfilmentMode, limit }` */
+  getProductRecommendations: (id, params = {}) =>
+    apiClient.get(`/catalog/products/${id}/recommendations`, { params }),
 };
 
 /** Admin management of attributes and the sets that attach them to categories. */
@@ -262,6 +265,32 @@ export const notificationAPI = {
 
 /** Admin API - new backend only (GET /auth/me, PATCH /auth/admin/profile, POST /auth/admin/change-password) */
 export const adminAPI = {
+  // Push campaigns (scheduled, segmented marketing pushes)
+  getPushCampaigns: (params = {}) =>
+    apiClient.get("/admin/push-campaigns", { params, contextModule: "admin" }),
+  getPushCampaign: (id) =>
+    apiClient.get(`/admin/push-campaigns/${String(id)}`, { contextModule: "admin" }),
+  createPushCampaign: (body = {}) =>
+    apiClient.post("/admin/push-campaigns", body, { contextModule: "admin" }),
+  updatePushCampaign: (id, body = {}) =>
+    apiClient.patch(`/admin/push-campaigns/${String(id)}`, body, { contextModule: "admin" }),
+  setPushCampaignState: (id, action) =>
+    apiClient.post(`/admin/push-campaigns/${String(id)}/${action}`, {}, { contextModule: "admin" }),
+  deletePushCampaign: (id) =>
+    apiClient.delete(`/admin/push-campaigns/${String(id)}`, { contextModule: "admin" }),
+  previewPushAudience: (audience = {}) =>
+    apiClient.post("/admin/push-campaigns/audience-preview", { audience }, { contextModule: "admin" }),
+  getPushCampaignSettings: () =>
+    apiClient.get("/admin/push-campaigns/settings", { contextModule: "admin" }),
+  updatePushCampaignSettings: (body = {}) =>
+    apiClient.put("/admin/push-campaigns/settings", body, { contextModule: "admin" }),
+  // First-order abuse guard
+  getFirstOrderGuardSettings: () =>
+    apiClient.get("/admin/first-order-guard/settings", { contextModule: "admin" }),
+  updateFirstOrderGuardSettings: (body = {}) =>
+    apiClient.put("/admin/first-order-guard/settings", body, { contextModule: "admin" }),
+  getFirstOrderClaims: (params = {}) =>
+    apiClient.get("/admin/first-order-guard/claims", { params, contextModule: "admin" }),
   getSidebarBadges: (params = {}) =>
     apiClient.get("/admin/sidebar-badges", { params, contextModule: "admin" }),
   login: (email, password) => authService.adminLogin(email, password),
@@ -912,6 +941,36 @@ export const adminAPI = {
     apiClient.post(`/admin/shipments/${String(orderId)}/book`, {}, { contextModule: "admin" }),
   cancelShipmentAdmin: (orderId, reason = "") =>
     apiClient.post(`/admin/shipments/${String(orderId)}/cancel`, { reason }, { contextModule: "admin" }),
+  /** NDR queue (failed delivery attempts); params.state: pending | actioned | all. */
+  getNdrQueue: (params = {}) =>
+    apiClient.get("/admin/shipments/ndr", { params, contextModule: "admin" }),
+  /** body: { action: "reattempt" | "rto" | "contact", address1?, address2?, phone?, deferredDate?, comments?, message? } */
+  ndrActionAdmin: (orderId, body = {}) =>
+    apiClient.post(`/admin/shipments/ndr/${String(orderId)}/action`, body, { contextModule: "admin" }),
+  /** RTO queue; params.state: open | received | all. */
+  getRtoQueue: (params = {}) =>
+    apiClient.get("/admin/shipments/rto", { params, contextModule: "admin" }),
+  /** Marks an RTO received at the seller: restocks once, refunds a prepaid order once. */
+  receiveRtoAdmin: (orderId, body = {}) =>
+    apiClient.post(`/admin/shipments/rto/${String(orderId)}/receive`, body, { contextModule: "admin" }),
+  getCodRemittances: (params = {}) =>
+    apiClient.get("/admin/cod-remittances", { params, contextModule: "admin" }),
+  getCodRemittanceById: (id) =>
+    apiClient.get(`/admin/cod-remittances/${String(id)}`, { contextModule: "admin" }),
+  getCodSummary: () =>
+    apiClient.get("/admin/cod-remittances/summary", { contextModule: "admin" }),
+  getCodOutstanding: (params = {}) =>
+    apiClient.get("/admin/cod-remittances/outstanding", { params, contextModule: "admin" }),
+  /** body: { lines: [{ awb, amount }] } or { csv } -> matched lines, nothing saved. */
+  previewCodRemittance: (body = {}) =>
+    apiClient.post("/admin/cod-remittances/preview", body, { contextModule: "admin" }),
+  /** body: { courier, reference, date, note?, lines | csv } */
+  createCodRemittance: (body = {}) =>
+    apiClient.post("/admin/cod-remittances", body, { contextModule: "admin" }),
+  getCheckoutsAdmin: (params = {}) =>
+    apiClient.get("/admin/checkouts", { params, contextModule: "admin" }),
+  getCheckoutAdmin: (checkoutId) =>
+    apiClient.get(`/admin/checkouts/${encodeURIComponent(String(checkoutId))}`, { contextModule: "admin" }),
   getReturns: (params = {}) =>
     apiClient.get("/admin/returns", { params, contextModule: "admin" }),
   getReturnById: (id) =>
@@ -2461,6 +2520,11 @@ export const deliveryAPI = {
 };
 
 export const userAPI = {
+  /** `{ marketingPush }` — offers & promotions pushes (default on). */
+  getNotificationPreferences: () =>
+    apiClient.get("/user/notification-preferences", { contextModule: "user" }),
+  updateNotificationPreferences: (body = {}) =>
+    apiClient.patch("/user/notification-preferences", body, { contextModule: "user" }),
   /** Return eligibility, returnable lines and past returns for an order. */
   getOrderReturns: (orderId) =>
     apiClient.get(`/orders/${String(orderId)}/returns`, { contextModule: "user" }),
@@ -2603,6 +2667,9 @@ export const userAPI = {
   /** body.mode: 'shop' | 'quick' - one server cart per storefront */
   syncCart: (body) =>
     apiClient.put("/user/cart", body ?? {}, { contextModule: "user" }),
+  /** GET /user/cart?mode=shop|quick (Bearer USER) - saved cart, rechecked for price/stock in that channel */
+  getCart: (mode = "shop") =>
+    apiClient.get("/user/cart", { params: { mode: mode === "quick" ? "quick" : "shop" }, contextModule: "user" }),
   /**
    * Legacy UI compatibility: update "current user location".
    * We already persist the user's selected location in localStorage in the UI.
@@ -2704,6 +2771,11 @@ export const orderAPI = {
   /** The customer closed the payment sheet: releases the held stock and coins. */
   abandonCheckout: (checkoutId) =>
     apiClient.post(`/orders/checkout/${String(checkoutId)}/abandon`, {}, {
+      contextModule: "user",
+    }),
+  /** A fresh (or the still-open) Razorpay order for an unpaid online checkout; 409 once the hold has run out. */
+  retryCheckoutPayment: (checkoutId) =>
+    apiClient.post(`/orders/checkout/${String(checkoutId)}/retry-payment`, {}, {
       contextModule: "user",
     }),
   calculateOrder: (payload) =>
@@ -2868,6 +2940,8 @@ export const coinsAPI = {
   getBalance: () => apiClient.get("/user/coins/balance", { contextModule: "user" }),
   /** GET /user/coins/ledger (Bearer USER) */
   getLedger: (params = {}) => apiClient.get("/user/coins/ledger", { params, contextModule: "user" }),
+  /** GET /user/coins/expiring?days=30 (Bearer USER) */
+  getExpiring: (days = 30) => apiClient.get("/user/coins/expiring", { params: { days }, contextModule: "user" }),
   /** GET /admin/coins/settings (Bearer ADMIN) */
   getSettings: () => apiClient.get("/admin/coins/settings", { contextModule: "admin" }),
   /** PATCH /admin/coins/settings (Bearer ADMIN) */
@@ -2907,9 +2981,23 @@ export const paymentReconciliationAPI = {
 };
 
 export const aiAPI = {
-  /** POST /ai/chat */
-  chat: ({ message, history = [] }) =>
-    apiClient.post("/ai/chat", { message, history }, { contextModule: "user" }),
+  /** POST /ai/chat; pass back the conversationId it returns to keep one conversation. */
+  chat: ({ message, history = [], conversationId = null }) =>
+    apiClient.post("/ai/chat", { message, history, conversationId }, { contextModule: "user" }),
+  /** POST /ai/handoff: link a conversation to the support ticket made from it. */
+  linkHandoff: ({ conversationId, ticketId }) =>
+    apiClient.post("/ai/handoff", { conversationId, ticketId }, { contextModule: "user" }),
+};
+
+/** Admin: assistant settings, stored conversations and token usage. */
+export const adminAIAPI = {
+  getSettings: () => apiClient.get("/admin/ai/settings", { contextModule: "admin" }),
+  updateSettings: (body = {}) => apiClient.put("/admin/ai/settings", body, { contextModule: "admin" }),
+  getConversations: (params = {}) =>
+    apiClient.get("/admin/ai/conversations", { params, contextModule: "admin" }),
+  getConversation: (id) =>
+    apiClient.get(`/admin/ai/conversations/${id}`, { contextModule: "admin" }),
+  getUsage: (params = {}) => apiClient.get("/admin/ai/usage", { params, contextModule: "admin" }),
 };
 
 export const heroBannerAPI = createStubAPI();

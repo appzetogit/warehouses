@@ -18,7 +18,8 @@ import {
     createCheckoutController,
     getCheckoutByIdController,
     verifyCheckoutPaymentController,
-    abandonCheckoutController
+    abandonCheckoutController,
+    retryCheckoutPaymentController
 } from '../controllers/checkout.controller.js';
 import { getOrderReturnsUserController, createReturnUserController } from '../controllers/shipmentReturn.controller.js';
 
@@ -29,6 +30,7 @@ router.post('/checkout', createCheckoutController);
 router.get('/checkout/:checkoutId', getCheckoutByIdController);
 router.post('/checkout/:checkoutId/verify-payment', verifyCheckoutPaymentController);
 router.post('/checkout/:checkoutId/abandon', abandonCheckoutController);
+router.post('/checkout/:checkoutId/retry-payment', retryCheckoutPaymentController);
 
 router.post('/calculate', calculateOrderController);
 router.post('/', createOrderController);

@@ -9,6 +9,7 @@ import {
 } from '../validators/storefront.validator.js';
 import { productChannelFields } from '../../shared/channels.js';
 import { serializeProductVariants } from '../../admin/services/productVariant.service.js';
+import { packSizeRegex } from './queryParser.service.js';
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const isTrue = (v) => v === true || v === 'true' || v === '1';
@@ -171,7 +172,7 @@ async function facetsFor(match) {
  *
  * Query: q, categoryId, zoneId, fulfilmentMode (quick|standard), isVeg,
  * inStockOnly, quickOnly, minPrice,
- * maxPrice, brand (comma list), attr[Name]=v1,v2, sort, page, limit, facets.
+ * maxPrice, brand (comma list), attr[Name]=v1,v2, packSize ("5 kg"), sort, page, limit, facets.
  *
  * Matching is by word: each word must appear in the name, brand, tags or
  * category, as a prefix or mid-word, which is what someone typing "mil" or
@@ -203,9 +204,14 @@ export async function searchProducts(query = {}) {
     const sellerById = new Map(sellers.map((s) => [String(s._id), s]));
 
     const filters = [{ sellerId: { $in: sellers.map((s) => s._id) }, approvalStatus: 'approved' }];
-    if (query.categoryId && mongoose.Types.ObjectId.isValid(query.categoryId)) {
+    if (Array.isArray(query.categoryIds) && query.categoryIds.length) {
+        // Smart search: a category and its subcategories (set by the server, never from the URL).
+        filters.push({ categoryId: { $in: query.categoryIds.filter((id) => mongoose.Types.ObjectId.isValid(String(id))).map((id) => new mongoose.Types.ObjectId(String(id))) } });
+    } else if (query.categoryId && mongoose.Types.ObjectId.isValid(query.categoryId)) {
         filters.push({ categoryId: new mongoose.Types.ObjectId(query.categoryId) });
     }
+    const pack = query.packSize ? packSizeRegex(query.packSize) : null;
+    if (pack) filters.push({ $or: [{ packSize: pack }, { variants: { $elemMatch: { ...ACTIVE, name: pack } } }] });
     if (isTrue(query.isVeg)) filters.push({ foodType: 'Veg' });
     if (isTrue(query.inStockOnly)) filters.push({ isAvailable: { $ne: false } });
     if (isTrue(query.quickOnly)) filters.push({ 'channels.quick': { $ne: false } });

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+import { useAdminBase } from "@store/components/admin/useAdminPanel"
 import { Eye, MapPin, Package, User, Phone, Mail, Calendar, Clock, Truck, CreditCard, X, Receipt, CheckCircle2, History, Banknote } from "lucide-react"
 import {
   Dialog,
@@ -192,6 +194,7 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
                   Order ID
                 </p>
                 <p className="text-sm font-medium text-slate-900">{order.orderId || order.id || order.subscriptionId}</p>
+                <CheckoutLink order={order} />
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
@@ -735,4 +738,15 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
   )
 }
 
-
+/** "Part of checkout CK..." when the order came from a split checkout. */
+function CheckoutLink({ order }) {
+  const base = useAdminBase()
+  const key = order?.orderGroupId || (typeof order?.checkoutId === "object" ? order?.checkoutId?._id : order?.checkoutId)
+  if (!key) return null
+  return (
+    <p className="text-xs text-slate-500">
+      Part of checkout{" "}
+      <Link className="text-blue-600 hover:underline" to={`${base}/checkouts/${encodeURIComponent(String(key))}`}>{String(order.orderGroupId || key)}</Link>
+    </p>
+  )
+}

@@ -4,6 +4,15 @@ import { UserCart } from '../models/userCart.model.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 import { calculateOrderPricing } from '../../orders/services/order-pricing.service.js';
 import { normalizeFoodType } from '../../shared/foodType.js';
+import { Product } from '../../admin/models/product.model.js';
+import { Seller } from '../../seller/models/seller.model.js';
+import {
+    effectiveStockFor,
+    isManuallyOff,
+    isSellerApprovedFor,
+    productChannelEnabled,
+    variantChannelEnabled,
+} from '../../shared/channels.js';
 
 const toPositiveInt = (value, fallback = 1) => {
     const parsed = Number(value);
@@ -53,6 +62,8 @@ const normalizeCartItems = (items = []) => {
                 isVeg: typeof item.isVeg === 'boolean'
                     ? item.isVeg
                     : (normalizeFoodType(item.foodType) ? normalizeFoodType(item.foodType) === 'Veg' : null),
+                sellerId: String(item.sellerId || ''),
+                sellerName: String(item.sellerName || item.seller || ''),
             };
         })
         .filter((item) => item.name && item.quantity > 0);
@@ -227,6 +238,100 @@ export async function syncUserCart(userId, rawItems = [], rawPricing = null, mod
         },
         { upsert: true, new: true, setDefaultsOnInsert: true },
     ).lean();
+}
+
+/**
+ * The saved cart for one storefront, checked against the catalogue as it is
+ * now: prices are refreshed, quantities are cut to the channel's stock, and
+ * lines that can no longer be bought in this channel are dropped and listed
+ * in `removed` with a reason. The stored cart is not changed by a read; the
+ * app syncs the cleaned cart back with PUT /user/cart.
+ */
+export async function getRevalidatedUserCart(userId, mode = 'shop') {
+    const m = normalizeCartMode(mode);
+    const channel = m; // cart mode 'shop' | 'quick' is the channel name
+    const cart = await getUserCart(userId, m);
+    const empty = { mode: m, items: [], removed: [], changed: [], itemCount: 0, subtotal: 0, updatedAt: cart?.updatedAt || null };
+    if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) return empty;
+
+    const ids = [...new Set(cart.items.map((i) => i.itemId).filter((id) => mongoose.Types.ObjectId.isValid(id)))];
+    const products = await Product.find({ _id: { $in: ids }, approvalStatus: 'approved' }).lean();
+    const productById = new Map(products.map((p) => [String(p._id), p]));
+    const sellerIds = [...new Set(products.map((p) => String(p.sellerId)))];
+    const sellers = await Seller.find({ _id: { $in: sellerIds } })
+        .select('sellerName status channels isAcceptingOrders').lean();
+    const sellerById = new Map(sellers.map((s) => [String(s._id), s]));
+
+    const items = [];
+    const removed = [];
+    const changed = [];
+    const drop = (line, reason, message) => removed.push({
+        lineItemId: line.lineItemId, itemId: line.itemId, variantId: line.variantId || null, name: line.name, reason, message,
+    });
+
+    for (const line of cart.items) {
+        const product = productById.get(String(line.itemId));
+        if (!product) { drop(line, 'unavailable', `${line.name} is no longer sold`); continue; }
+        const seller = sellerById.get(String(product.sellerId));
+        if (!seller || seller.status !== 'approved' || !isSellerApprovedFor(seller, channel)) {
+            drop(line, 'seller_not_approved', `${seller?.sellerName || 'The store'} does not sell here any more`); continue;
+        }
+        if (!productChannelEnabled(product, channel)) { drop(line, 'not_in_channel', `${product.name} is not available here`); continue; }
+        if (isManuallyOff(product) || product.isAvailable === false) { drop(line, 'unavailable', `${product.name} is currently unavailable`); continue; }
+
+        const variants = Array.isArray(product.variants) ? product.variants : [];
+        let variant = null;
+        if (line.variantId) {
+            variant = variants.find((v) => String(v._id) === String(line.variantId));
+            if (!variant || variant.isActive === false) { drop(line, 'variant_unavailable', `${product.name} is no longer sold in that option`); continue; }
+            if (!variantChannelEnabled(product, variant, channel)) { drop(line, 'variant_not_in_channel', `${product.name} (${variant.name}) is not available here`); continue; }
+        } else if (variants.length) {
+            drop(line, 'variant_required', `${product.name} now needs an option chosen`); continue;
+        }
+
+        const label = variant ? `${product.name} (${variant.name})` : product.name;
+        const onHand = effectiveStockFor(product, variant, channel);
+        if (onHand !== null && onHand <= 0) { drop(line, 'out_of_stock', `${label} is out of stock`); continue; }
+
+        let quantity = Math.max(1, Number(line.quantity) || 1);
+        const cap = Number(product.maxQtyPerOrder);
+        const limit = Math.min(onHand === null ? Infinity : onHand, Number.isFinite(cap) && cap > 0 ? cap : Infinity);
+        const flags = [];
+        if (quantity > limit) { quantity = limit; flags.push('quantity_reduced'); }
+
+        const price = Number(variant ? variant.price : product.price) || 0;
+        const other = Number(variant ? variant.otherPrice : product.otherPrice) || 0;
+        if (Math.round(price * 100) !== Math.round((Number(line.price) || 0) * 100)) flags.push('price_changed');
+
+        const item = {
+            ...line,
+            itemId: String(product._id),
+            name: product.name,
+            price,
+            variantPrice: price,
+            variantName: variant ? String(variant.name || line.variantName || '') : '',
+            otherPrice: other > price ? other : 0,
+            quantity,
+            sellerId: String(product.sellerId),
+            sellerName: seller.sellerName || line.sellerName || '',
+            stockForChannel: onHand,
+        };
+        items.push(item);
+        if (flags.length) {
+            changed.push({ lineItemId: line.lineItemId, itemId: item.itemId, variantId: line.variantId || null, name: label, flags,
+                previousPrice: Number(line.price) || 0, price, previousQuantity: Number(line.quantity) || 0, quantity });
+        }
+    }
+
+    return {
+        mode: m,
+        items,
+        removed,
+        changed,
+        itemCount: items.reduce((s, i) => s + i.quantity, 0),
+        subtotal: Math.round(items.reduce((s, i) => s + i.price * i.quantity, 0) * 100) / 100,
+        updatedAt: cart.updatedAt || null,
+    };
 }
 
 const buildSearchUserIds = async (search = '') => {

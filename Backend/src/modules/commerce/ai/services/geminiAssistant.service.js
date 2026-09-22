@@ -1,4 +1,3 @@
-import axios from 'axios';
 import mongoose from 'mongoose';
 import { Product } from '../../admin/models/product.model.js';
 import { Order } from '../../orders/models/order.model.js';
@@ -6,6 +5,8 @@ import { Offer } from '../../admin/models/offer.model.js';
 import { getCoinBalance } from '../../coins/services/coin.service.js';
 import { logger } from '../../../../utils/logger.js';
 import { config } from '../../../../config/env.js';
+import { callGemini, hasGeminiKey } from './geminiClient.js';
+import { effectiveModel } from './aiSettings.service.js';
 
 /** The assistant's persona and scope, named after the configured brand. */
 const systemInstruction = () => `You are the shopping assistant for ${config.brand.name}, a marketplace with quick delivery and standard courier shipping.
@@ -112,7 +113,7 @@ async function toolGetActiveOffers() {
  * Process a user chat message with intelligent local intent resolution
  * and optional Google Gemini API augmentation.
  */
-export async function handleAssistantChat({ message, userId = null, history = [] }) {
+export async function handleAssistantChat({ message, userId = null, history = [], settings = null }) {
     const text = String(message || '').trim();
     if (!text) {
         return {
@@ -138,6 +139,7 @@ export async function handleAssistantChat({ message, userId = null, history = []
             reply: `${balanceText}\n\n💡 **How it works:**\n- 1 Coin = ₹1 discount on checkouts.\n- You can pay up to **50%** of any order total using coins.\n- Refund coins give you 80% usable balance with instant credit.`,
             suggestions: ['Play Daily Lucky Wheel', 'Explore trending items', 'Track my order'],
             action: { type: 'coins', data: coinData },
+            toolCalls: [{ name: 'getCoinBalance', args: null }],
         };
     }
 
@@ -162,6 +164,7 @@ export async function handleAssistantChat({ message, userId = null, history = []
         return {
             reply: `Here is your latest order **#${latest.orderId}**:\n- **Status:** ${readablePhase}\n- **Mode:** ${latest.mode === 'quick' ? '⚡ Quick Delivery (15-30m)' : '📦 Standard Courier'}\n- **Amount:** ₹${latest.total}\n- **Items:** ${latest.items.join(', ')}`,
             orders,
+            toolCalls: [{ name: 'getUserOrders', args: null }],
             suggestions: ['Need help with this order?', 'Browse more products', 'Check coins balance'],
         };
     }
@@ -174,6 +177,7 @@ export async function handleAssistantChat({ message, userId = null, history = []
             : 'Check out our daily discounts on popular category pages!';
 
         return {
+            toolCalls: [{ name: 'getActiveOffers', args: null }],
             reply: `Here are the top promotions available today:\n\n${offerList}\n\nApply these codes at checkout or redeem your coins for up to 50% off!`,
             suggestions: ['Search clothing', 'Find electronics', 'How to use coins'],
         };
@@ -198,39 +202,53 @@ export async function handleAssistantChat({ message, userId = null, history = []
         return {
             reply: `I found ${foundProducts.length} great option${foundProducts.length > 1 ? 's' : ''} for "${searchQuery || text}"${maxPrice ? ` under ₹${maxPrice}` : ''}:`,
             products: foundProducts,
+            toolCalls: [{ name: 'searchProducts', args: { query: searchQuery, maxPrice } }],
             suggestions: ['Filter by low price', 'Check active coupons', 'View delivery modes'],
         };
     }
 
-    // 5. Try calling Gemini API if GEMINI_API_KEY is configured
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (apiKey) {
+    // 5. Ask Gemini when a key is configured (the caller has already checked
+    //    the enabled switch, the daily cap and the monthly budget).
+    if (hasGeminiKey()) {
         try {
-            // The model is configurable because Google retires model names; the key
-            // goes in a header so it never lands in a URL log.
-            const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-            const body = {
-                systemInstruction: { parts: [{ text: systemInstruction() }] },
-                contents: [{ role: 'user', parts: [{ text }] }],
+            const addendum = String(settings?.systemPromptAddendum || '').trim();
+            const priorTurns = (Array.isArray(history) ? history : []).slice(-6)
+                .filter((h) => h && typeof h.text === 'string' && h.text.trim())
+                .map((h) => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text.slice(0, 1000) }] }));
+            // Gemini wants the conversation to open with a user turn.
+            while (priorTurns.length && priorTurns[0].role !== 'user') priorTurns.shift();
+            const result = await callGemini({
+                model: effectiveModel(settings),
+                systemText: addendum ? `${systemInstruction()}
+
+Additional guidance from the store:
+${addendum}` : systemInstruction(),
+                contents: [...priorTurns, { role: 'user', parts: [{ text }] }],
                 generationConfig: { maxOutputTokens: 400 },
-            };
-            const resp = await axios.post(url, body, { timeout: 8000, headers: { 'x-goog-api-key': apiKey } });
-            const aiText = resp.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (aiText) {
+            });
+            if (result.text) {
                 return {
-                    reply: aiText,
+                    reply: result.text,
+                    usage: result.usage,
+                    model: result.model,
                     suggestions: ['Search popular products', 'My coins', 'Track latest order'],
                 };
             }
+            return fallbackReply({ usage: result.usage, model: result.model });
         } catch (geminiErr) {
+            // The message only; the request config (with its headers) is never logged.
             logger.warn(`Gemini API call skipped/failed: ${geminiErr.message}`);
         }
     }
 
+    return fallbackReply();
+}
+
+function fallbackReply(extra = {}) {
     // Fallback general response
     return {
         reply: `I can help you explore products, check available deals, track your courier shipments, or manage coins. What would you like to discover?`,
         suggestions: ['Search summer collection', 'What is Quick Delivery?', 'Check today’s coupons', 'My coins'],
+        ...extra,
     };
 }

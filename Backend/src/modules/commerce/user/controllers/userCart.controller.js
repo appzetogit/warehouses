@@ -1,5 +1,5 @@
 import { sendResponse } from '../../../../utils/response.js';
-import { syncUserCart } from '../services/userCart.service.js';
+import { getRevalidatedUserCart, syncUserCart } from '../services/userCart.service.js';
 
 export const syncUserCartController = async (req, res, next) => {
     try {
@@ -26,3 +26,13 @@ export const syncUserCartController = async (req, res, next) => {
     }
 };
 
+
+/** GET /user/cart?mode=shop|quick: the saved cart for that storefront, rechecked against the catalogue. */
+export const getUserCartController = async (req, res, next) => {
+    try {
+        const cart = await getRevalidatedUserCart(req.user?.userId, req.query?.mode);
+        return sendResponse(res, 200, 'Cart fetched successfully', cart);
+    } catch (error) {
+        next(error);
+    }
+};

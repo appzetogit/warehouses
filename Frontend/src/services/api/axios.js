@@ -15,6 +15,31 @@ const baseURL =
     ? String(import.meta.env.VITE_API_BASE_URL).replace(/\/$/, "")
     : "/api/v1"; // same origin: the dev server and the production host proxy it
 
+/**
+ * A stable id for this browser, sent as X-Device-Id (first-order offers are
+ * limited to one per device). Random, generated once, kept in localStorage.
+ */
+const DEVICE_ID_KEY = "app_device_id";
+let cachedDeviceId = "";
+const getDeviceId = () => {
+  if (cachedDeviceId) return cachedDeviceId;
+  try {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id || !/^[A-Za-z0-9._:-]{8,128}$/.test(id)) {
+      id =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? `web-${crypto.randomUUID()}`
+          : `web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    cachedDeviceId = id;
+  } catch {
+    // Storage blocked: a per-session id still identifies this tab.
+    cachedDeviceId = cachedDeviceId || `web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  }
+  return cachedDeviceId;
+};
+
 const apiClient = axios.create({
   baseURL: baseURL || undefined,
   timeout: 30000,
@@ -33,7 +58,18 @@ const ADMIN_PERMISSION_PATH_MAP = [
   { prefix: "/admin/categories", section: "product_management" },
   { prefix: "/admin/products", section: "product_management" },
   { prefix: "/admin/offers", section: "promotions_management" },
+  { prefix: "/admin/push-campaigns", section: "promotions_management" },
+  { prefix: "/admin/first-order-guard", section: "promotions_management" },
   { prefix: "/admin/orders", section: "order_management" },
+  { prefix: "/admin/shipments", section: "order_management" },
+  { prefix: "/admin/returns", section: "order_management" },
+  { prefix: "/admin/checkouts", section: "order_management" },
+  { prefix: "/admin/cod-remittances", section: "report_management" },
+  { prefix: "/admin/spin", section: "promotions_management" },
+  { prefix: "/admin/coins", section: "transaction_management" },
+  { prefix: "/admin/attributes", section: "product_management" },
+  { prefix: "/admin/attribute-sets", section: "product_management" },
+  { prefix: "/admin/ai", section: "system_settings" },
   { prefix: "/admin/order-detect-delivery", section: "order_management" },
   { prefix: "/admin/sidebar-badges", section: "dashboard" },
   { prefix: "/admin/dashboard-stats", section: "dashboard" },
@@ -329,6 +365,7 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    if (config.headers) config.headers["X-Device-Id"] = getDeviceId();
     return config;
   },
   (err) => Promise.reject(err)

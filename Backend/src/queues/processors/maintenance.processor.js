@@ -55,5 +55,23 @@ export const processMaintenanceJob = async (job) => {
         }
     }
 
+    if (type === 'PRODUCT_RECOMMENDATIONS_BUILD') {
+        try {
+            const { buildCoPurchaseRecommendations } = await import('../../modules/commerce/recommendations/services/recommendation.service.js');
+            const results = await buildCoPurchaseRecommendations({ days: 90 });
+            logger.info(`[BullMQ:maintenance] PRODUCT_RECOMMENDATIONS_BUILD complete: ${JSON.stringify(results)}`);
+        } catch (err) {
+            logger.error(`[BullMQ:maintenance] PRODUCT_RECOMMENDATIONS_BUILD failed: ${err.message}`);
+            throw err;
+        }
+    }
+
+    if (type === 'PUSH_CAMPAIGN_TICK') {
+        // Due marketing push campaigns: idempotent per run, so an overlapping tick is harmless.
+        const { processDueCampaigns } = await import('../../modules/commerce/campaigns/services/pushCampaign.service.js');
+        const results = await processDueCampaigns();
+        if (results?.processed) logger.info(`[BullMQ:maintenance] PUSH_CAMPAIGN_TICK processed ${results.processed} campaign(s)`);
+    }
+
     return { processed: true, type, jobId: job.id };
 };

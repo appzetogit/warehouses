@@ -20,9 +20,22 @@ const STATUS_MAP = {
     DELIVERED: 'delivered',
     CANCELED: 'cancelled',
     CANCELLED: 'cancelled',
-    RTO: 'returned',
-    'RTO DELIVERED': 'returned',
+    // Failed delivery attempts (NDR) and return-to-origin legs.
+    UNDELIVERED: 'undelivered',
+    NDR: 'undelivered',
+    'DELIVERY FAILED': 'undelivered',
+    RTO: 'rto_initiated',
+    'RTO INITIATED': 'rto_initiated',
+    'RTO IN TRANSIT': 'rto_in_transit',
+    'RTO IN-TRANSIT': 'rto_in_transit',
+    'RTO OFD': 'rto_in_transit',
+    'RTO NDR': 'rto_in_transit',
+    'RTO DELIVERED': 'rto_delivered',
+    'RTO ACKNOWLEDGED': 'rto_delivered',
 };
+
+/** Our NDR actions -> Shiprocket's /ndr/{awb}/action `action` values. */
+const NDR_ACTIONS = { reattempt: 're-attempt', rto: 'return' };
 
 const kg = (grams) => Math.max(0.1, (Number(grams) || 500) / 1000);
 
@@ -218,15 +231,46 @@ export class ShiprocketProvider extends ShippingProvider {
     async trackShipment(awb) {
         const body = await this.call('GET', `/courier/track/awb/${encodeURIComponent(awb)}`);
         const data = body?.tracking_data || {};
-        const raw = String(data.shipment_track?.[0]?.current_status || '').toUpperCase();
+        const track = data.shipment_track?.[0] || {};
+        const raw = String(track.current_status || '').toUpperCase();
+        const activities = data.shipment_track_activities || [];
+        const currentStatus = STATUS_MAP[raw] || (raw ? raw.toLowerCase().replace(/\s+/g, '_') : 'in_transit');
+        // NDR details: Shiprocket reports attempts on the track and the reason in the activity.
+        const ndrActs = activities.filter((a) => /undelivered|ndr|attempt/i.test(`${a['sr-status-label'] || ''} ${a.status || ''} ${a.activity || ''}`));
+        const ndr = currentStatus === 'undelivered' || ndrActs.length
+            ? {
+                attempts: Number(track.delivery_attempts ?? track.attempts) || Math.max(1, ndrActs.length),
+                reason: String(track.ndr_reason || ndrActs[0]?.activity || '').slice(0, 300),
+                at: ndrActs[0]?.date ? new Date(ndrActs[0].date) : new Date(),
+            }
+            : null;
         return {
-            currentStatus: STATUS_MAP[raw] || (raw ? raw.toLowerCase().replace(/\s+/g, '_') : 'in_transit'),
-            trackingEvents: (data.shipment_track_activities || []).map((a) => ({
+            currentStatus,
+            ndr,
+            trackingEvents: activities.map((a) => ({
                 status: String(a['sr-status-label'] || a.status || '').toLowerCase(),
                 activity: a.activity,
                 location: a.location,
                 timestamp: a.date ? new Date(a.date) : null,
             })),
         };
+    }
+
+    /**
+     * Acts on an NDR: `reattempt` (optionally with a new address / phone / date)
+     * or `rto`. Shiprocket: POST /ndr/{awb}/action.
+     */
+    async ndrAction({ awb, action, address1, address2, phone, deferredDate, comments } = {}) {
+        const srAction = NDR_ACTIONS[action];
+        if (!srAction) throw new Error(`Unsupported NDR action '${action}'`);
+        const payload = { action: srAction, comments: String(comments || (action === 'rto' ? 'Return to origin' : 'Re-attempt delivery')) };
+        if (action === 'reattempt') {
+            if (address1) payload.address1 = String(address1);
+            if (address2) payload.address2 = String(address2);
+            if (phone) payload.phone = String(phone).replace(/\D/g, '').slice(-10);
+            if (deferredDate) payload.deferred_date = String(deferredDate).slice(0, 10);
+        }
+        const body = await this.call('POST', `/ndr/${encodeURIComponent(awb)}/action`, payload);
+        return { success: true, message: body?.message || '' };
     }
 }

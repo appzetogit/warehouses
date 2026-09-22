@@ -29,7 +29,7 @@ const SellerRouter = lazy(() => import('../modules/Store/components/seller/Selle
 const RedirectFromLegacyUser = () => {
   const location = useLocation()
   // Strip /food/user prefix and redirect to root-relative path
-  const newPath = location.pathname.replace(/^\/food\/user\/?/, '/') || '/'
+  const newPath = location.pathname.replace(/^(\/food)?\/user\/?/, '/') || '/'
   return <Navigate to={`${newPath}${location.search}${location.hash}`} replace />
 }
 
@@ -87,6 +87,8 @@ const AppRoutes = () => {
 
       {/* Old customer paths: /food/user/* → / */}
       <Route path="/food/user/*" element={<RedirectFromLegacyUser />} />
+      {/* Customer pages moved to the root; many links still say /user/... */}
+      <Route path="/user/*" element={<RedirectFromLegacyUser />} />
 
       {/* The rider web app still lives at /food/delivery/*. The store module
           is mounted at /food so its own delivery/* route sees "delivery/…";

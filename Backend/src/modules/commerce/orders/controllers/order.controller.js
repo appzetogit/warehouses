@@ -18,7 +18,7 @@ export async function calculateOrderController(req, res, next) {
     try {
         const userId = req.user?.userId;
         const dto = validateCalculateOrderDto(req.body);
-        const result = await orderService.calculateOrder(userId, dto);
+        const result = await orderService.calculateOrder(userId, { ...dto, deviceId: String(req.get('x-device-id') || '') });
         return sendResponse(res, 200, 'Pricing calculated', result);
     } catch (err) {
         next(err);
@@ -29,7 +29,7 @@ export async function createOrderController(req, res, next) {
     try {
         const userId = req.user?.userId;
         const dto = validateCreateOrderDto(req.body);
-        const result = await orderService.createOrder(userId, dto);
+        const result = await orderService.createOrder(userId, { ...dto, deviceId: String(req.get('x-device-id') || '') });
         return sendResponse(res, 201, 'Order placed successfully', result);
     } catch (err) {
         next(err);

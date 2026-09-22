@@ -3,6 +3,7 @@ import { toast } from "sonner"
 import { ExternalLink, Loader2, RefreshCw, Search, Truck, X } from "lucide-react"
 import { adminAPI } from "@store/api"
 import { formatCurrency, formatDateTime, errorMessage } from "../reports/reportShared"
+import ShipmentTabs from "./ShipmentTabs"
 
 const STATUSES = [
   ["", "All"],
@@ -13,7 +14,12 @@ const STATUSES = [
   ["in_transit", "In transit"],
   ["out_for_delivery", "Out for delivery"],
   ["delivered", "Delivered"],
-  ["returned", "Returned (RTO)"],
+  ["undelivered", "Undelivered (NDR)"],
+  ["rto_initiated", "RTO initiated"],
+  ["rto_in_transit", "RTO in transit"],
+  ["rto_delivered", "RTO delivered"],
+  ["rto_received", "RTO received"],
+  ["returned", "Returned (RTO, older)"],
   ["cancelled", "Cancelled"],
 ]
 
@@ -100,6 +106,7 @@ export default function Shipments() {
         <h1 className="text-xl font-semibold text-slate-900">Courier Shipments</h1>
         <span className="text-sm text-slate-500">({meta.total || 0})</span>
       </div>
+      <ShipmentTabs />
 
       <form onSubmit={apply} className="bg-white rounded-xl border border-slate-200 p-3 grid grid-cols-2 md:grid-cols-6 gap-2 text-sm">
         <div className="col-span-2 relative">

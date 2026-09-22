@@ -12,6 +12,8 @@ let fssaiExpiryInterval = null;
 let subscriptionBillingInterval = null;
 let autoDeliverInterval = null;
 let stuckOrderInterval = null;
+let pushCampaignInterval = null;
+let recommendationsInterval = null;
 
 const shutdown = async (signal) => {
     logger.info(`${signal} received, stopping scheduled jobs`);
@@ -20,6 +22,8 @@ const shutdown = async (signal) => {
     if (subscriptionBillingInterval) clearInterval(subscriptionBillingInterval);
     if (autoDeliverInterval) clearInterval(autoDeliverInterval);
     if (stuckOrderInterval) clearInterval(stuckOrderInterval);
+    if (pushCampaignInterval) clearInterval(pushCampaignInterval);
+    if (recommendationsInterval) clearInterval(recommendationsInterval);
 
     try {
         await disconnectDB();
@@ -98,6 +102,27 @@ const start = async () => {
             }
         };
 
+        // Co-purchase pairs for "Frequently bought together" (the BullMQ worker runs it at 02:30).
+        const runRecommendations = async () => {
+            try {
+                const { buildCoPurchaseRecommendations } = await import('../src/modules/commerce/recommendations/services/recommendation.service.js');
+                const results = await buildCoPurchaseRecommendations({ days: 90 });
+                logger.info(`Product recommendations rebuilt: ${JSON.stringify(results)}`);
+            } catch (err) {
+                logger.error(`Product recommendations build error: ${err.message}`);
+            }
+        };
+
+        // Marketing push campaigns, for deployments without the BullMQ maintenance worker.
+        const { processDueCampaigns } = await import('../src/modules/commerce/campaigns/services/pushCampaign.service.js');
+        const runPushCampaigns = async () => {
+            try {
+                await processDueCampaigns();
+            } catch (err) {
+                logger.error(`Push campaign sweep error: ${err.message}`);
+            }
+        };
+
         await runStuckOrderWatchdog();
         await runExpire();
         await runFssaiExpirySync();
@@ -111,6 +136,10 @@ const start = async () => {
         // Ran once at startup only, so a dispatch that wedged an hour later
         // stayed wedged until someone restarted the process.
         stuckOrderInterval = setInterval(runStuckOrderWatchdog, 2 * 60 * 1000);
+        pushCampaignInterval = setInterval(runPushCampaigns, 60 * 1000);
+        void runPushCampaigns();
+        await runRecommendations();
+        recommendationsInterval = setInterval(runRecommendations, 24 * 60 * 60 * 1000);
 
         logger.info('Scheduled jobs runner started');
     } catch (err) {

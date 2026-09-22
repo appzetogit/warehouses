@@ -22,12 +22,14 @@ import {
 import { deductWalletBalance } from '../../user/services/userWallet.service.js';
 import {
     createRazorpayOrder,
+    fetchRazorpayOrder,
     fetchRazorpayPayment,
     getRazorpayKeyId,
     isRazorpayConfigured,
     verifyPaymentSignature,
 } from '../helpers/razorpay.helper.js';
 import { UserCart } from '../../user/models/userCart.model.js';
+import { claimFirstOrder, releaseFirstOrderClaim, recordPaymentFingerprint } from './firstOrderGuard.service.js';
 
 /**
  * A split checkout: one cart, one payment, one order per store.
@@ -124,11 +126,12 @@ export async function calculateCheckoutPricing(userId, dto = {}) {
 
     // One coupon for the cart, shared across the stores it covers.
     const codeRaw = dto.couponCode ? String(dto.couponCode).trim().toUpperCase() : '';
-    const { discount: couponTotal, appliedCoupon } = await resolveCoupon({
+    const { discount: couponTotal, appliedCoupon, couponRefusal = null } = await resolveCoupon({
         userId,
         codeRaw,
         subtotalsBySeller: new Map(stores.map((s) => [s.sellerId, s.base.subtotal])),
         phones: [deliveryAddress?.phone],
+        deviceId: dto.deviceId,
     });
     const covered = appliedCoupon?.sellerIds ? new Set(appliedCoupon.sellerIds) : null;
     const couponShares = shareByWeight(
@@ -186,6 +189,7 @@ export async function calculateCheckoutPricing(userId, dto = {}) {
         discount: sum('discount'),
         couponCode: couponTotal > 0 ? couponCode : null,
         appliedCoupon: couponTotal > 0 ? appliedCoupon : null,
+        couponRefusal,
         coinsUsed,
         coinsDiscount,
         grandTotal: sum('total'),
@@ -207,6 +211,7 @@ async function unwindCheckout(checkout, orders) {
             logger.error(`[CRITICAL] Could not unwind order ${order._id} of checkout ${checkout.checkoutId}: ${err?.message || err}`);
         }
     }
+    await releaseFirstOrderClaim({ checkoutId: checkout._id }).catch(() => {});
     try {
         await reverseRedemption(checkout._id, { note: 'Checkout not completed' });
     } catch (err) {
@@ -258,11 +263,23 @@ export async function createSplitCheckout(userId, dto = {}) {
         appliedCoupon: quote.appliedCoupon,
     });
 
+    // A first-order offer is taken once per person (account, phone, device,
+    // payment): the claim decides a race between two checkouts atomically.
+    if (quote.appliedCoupon?.firstOrder) {
+        try {
+            await claimFirstOrder({ userId, deviceId: dto.deviceId, checkoutId: checkout._id, offerCode: quote.appliedCoupon.code });
+        } catch (err) {
+            await Checkout.deleteOne({ _id: checkout._id });
+            throw err;
+        }
+    }
+
     // Coins first: if they are no longer there, nothing else has happened yet.
     if (quote.coinsUsed > 0) {
         try {
             await redeemCoins({ userId, orderId: checkout._id, coins: quote.coinsUsed });
         } catch (err) {
+            await releaseFirstOrderClaim({ checkoutId: checkout._id }).catch(() => {});
             await Checkout.deleteOne({ _id: checkout._id });
             throw err;
         }
@@ -340,7 +357,11 @@ export async function createSplitCheckout(userId, dto = {}) {
         throw err;
     }
 
-    await UserCart.deleteOne({ userId: userOid });
+    // Only the storefront that was checked out; the other mode's cart stays.
+    await UserCart.deleteOne({
+        userId: userOid,
+        mode: quote.fulfilmentMode === 'quick' ? 'quick' : { $in: ['shop', null] },
+    });
     const fresh = await Checkout.findById(checkout._id).lean();
     return {
         checkout: fresh,
@@ -429,6 +450,8 @@ export async function verifyCheckoutPayment(userId, dto = {}) {
         throw new ValidationError('Payment verification failed');
     }
 
+    await recordPaymentFingerprint({ checkoutId: checkout._id, payment }).catch((err) =>
+        logger.warn(`First-order payment fingerprint for ${checkout.checkoutId} failed: ${err?.message || err}`));
     await finalizeCheckoutPaid(checkout._id, {
         byRole: 'USER',
         byId: userId,
@@ -465,7 +488,72 @@ export async function abandonCheckout(userId, checkoutId) {
     }
     await Checkout.updateOne({ _id: checkout._id }, { $set: { status: 'cancelled', 'payment.status': 'failed' } });
     await reverseRedemption(checkout._id, { note: 'Payment not completed' });
+    await releaseFirstOrderClaim({ checkoutId: checkout._id });
     return { abandoned: true };
+}
+
+/** How long an online checkout holds its stock and coins while unpaid (matches the stale-order sweep). */
+export const CHECKOUT_PAYMENT_HOLD_MS = 30 * 60 * 1000;
+
+const conflict = (message, data) => Object.assign(new Error(message), { name: 'ConflictError', statusCode: 409, data });
+
+/**
+ * Lets the owner pay again for an online checkout whose payment failed or was
+ * closed, while its orders are still held. The same Razorpay order is handed
+ * back when it is still open for the same amount, so repeated calls are safe;
+ * otherwise a new one is made for the same grand total. Verify is unchanged.
+ */
+export async function retryCheckoutPayment(userId, checkoutId, now = new Date()) {
+    const checkout = await Checkout.findOne({ checkoutId: String(checkoutId || ''), userId: toOid(userId, 'user id') });
+    if (!checkout) throw new NotFoundError('Checkout not found');
+    if (checkout.payment.method !== 'razorpay') throw new ValidationError('Only online payments can be retried');
+    if (checkout.payment.status === 'paid') throw conflict('This checkout is already paid', { reason: 'already_paid' });
+
+    const holdEndsAt = new Date(new Date(checkout.createdAt).getTime() + CHECKOUT_PAYMENT_HOLD_MS);
+    const held = await Order.countDocuments({ checkoutId: checkout._id, orderStatus: 'pending_payment' });
+    if (checkout.status === 'cancelled' || now >= holdEndsAt || held === 0) {
+        throw conflict('The time to pay for this order has run out and the items were released. Please place the order again.', {
+            reason: 'hold_expired', holdEndsAt,
+        });
+    }
+    if (!isRazorpayConfigured()) throw new ValidationError('Online payment is not available right now');
+
+    const amountPaise = Math.round((Number(checkout.pricing.grandTotal) || 0) * 100);
+    let rzOrder = null;
+    if (checkout.payment.gatewayOrderId) {
+        try {
+            const existing = await fetchRazorpayOrder(checkout.payment.gatewayOrderId);
+            if (existing && Number(existing.amount) === amountPaise) {
+                if (String(existing.status) === 'paid') {
+                    throw conflict('We have received this payment and are confirming it. Please refresh in a moment.', { reason: 'payment_received' });
+                }
+                rzOrder = existing;
+            }
+        } catch (err) {
+            if (err?.statusCode === 409) throw err;
+            logger.warn(`Razorpay order fetch failed for checkout ${checkout.checkoutId}: ${err?.message || err}`);
+        }
+    }
+    if (!rzOrder) {
+        rzOrder = await createRazorpayOrder(amountPaise, 'INR', checkout.checkoutId, { purpose: 'checkout', checkoutId: checkout.checkoutId });
+        await Order.updateMany({ checkoutId: checkout._id }, { $set: { 'payment.razorpay.orderId': String(rzOrder.id) } });
+    }
+    await Checkout.updateOne(
+        { _id: checkout._id, 'payment.status': { $ne: 'paid' } },
+        { $set: { 'payment.gatewayOrderId': String(rzOrder.id), 'payment.status': 'pending' } },
+    );
+
+    return {
+        checkoutId: checkout.checkoutId,
+        holdEndsAt,
+        grandTotal: checkout.pricing.grandTotal,
+        razorpay: {
+            key: getRazorpayKeyId(),
+            orderId: String(rzOrder.id),
+            amount: amountPaise,
+            currency: rzOrder.currency || 'INR',
+        },
+    };
 }
 
 /** A checkout with its orders, for its owner. */

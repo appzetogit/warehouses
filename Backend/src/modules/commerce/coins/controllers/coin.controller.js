@@ -24,6 +24,16 @@ export const getUserCoinLedgerController = async (req, res, next) => {
     }
 };
 
+/** GET /user/coins/expiring?days=30: coin lots that run out within the window, soonest first. */
+export const getUserCoinExpiringController = async (req, res, next) => {
+    try {
+        const result = await coinService.listExpiringLots(req.user?.userId, { days: req.query?.days });
+        return sendResponse(res, 200, 'Expiring coins fetched successfully', result);
+    } catch (error) {
+        next(error);
+    }
+};
+
 // ---- Admin Endpoints --------------------------------------------------------
 
 export const getCoinSettingsController = async (req, res, next) => {

@@ -30,7 +30,7 @@ import {
     createSupportTicketController,
     listMySupportTicketsController
 } from '../controllers/supportTicket.controller.js';
-import { syncUserCartController } from '../controllers/userCart.controller.js';
+import { getUserCartController, syncUserCartController } from '../controllers/userCart.controller.js';
 import {
     getFavoritesController,
     addFavoriteSellerController,
@@ -46,11 +46,14 @@ import {
 import {
     getUserCoinBalanceController,
     getUserCoinLedgerController,
+    getUserCoinExpiringController,
 } from '../../coins/controllers/coin.controller.js';
 import {
     getSpinStatusController,
     playSpinController,
 } from '../../spin/controllers/spin.controller.js';
+
+import { getMyPreferences, setMyPreferences } from '../../campaigns/controllers/pushCampaign.controller.js';
 
 const router = express.Router();
 
@@ -58,6 +61,9 @@ router.get('/profile', getCurrentUserProfileController);
 router.patch('/profile', updateCurrentUserProfileController);
 router.post('/profile/profile-image', upload.single('file'), uploadCurrentUserProfileImageController);
 router.delete('/profile', deleteCurrentUserAccountController);
+// Marketing push opt-out (default on).
+router.get('/notification-preferences', getMyPreferences);
+router.patch('/notification-preferences', setMyPreferences);
 
 // Wallet (Bearer USER)
 router.get('/wallet', getUserWalletController);
@@ -71,6 +77,7 @@ router.get('/refunds', getRefundHistoryController);
 // Promotional platform coins
 router.get('/coins/balance', getUserCoinBalanceController);
 router.get('/coins/ledger', getUserCoinLedgerController);
+router.get('/coins/expiring', getUserCoinExpiringController);
 
 // Spin wheel engagement
 router.get('/spin/status', getSpinStatusController);
@@ -101,6 +108,7 @@ router.delete('/favorites/sellers/:sellerId', removeFavoriteSellerController);
 router.post('/favorites/products/:productId', addFavoriteProductController);
 router.delete('/favorites/products/:productId', removeFavoriteProductController);
 
+router.get('/cart', getUserCartController);
 router.put('/cart', syncUserCartController);
 
 export default router;

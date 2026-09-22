@@ -27,6 +27,9 @@ import * as spinController from '../../spin/controllers/spin.controller.js';
 import * as dailyMetricsController from '../controllers/dailyMetrics.controller.js';
 import * as reportsController from '../controllers/reports.controller.js';
 import shipmentReturnAdminRoutes from '../../orders/routes/shipmentReturn.admin.routes.js';
+import { pushCampaignAdminRoutes, firstOrderGuardAdminRoutes } from '../../campaigns/routes/pushCampaign.admin.routes.js';
+import aiAdminRoutes from '../../ai/routes/aiAdmin.routes.js';
+import courierOpsAdminRoutes from '../../orders/routes/courierOps.admin.routes.js';
 
 const router = express.Router();
 
@@ -77,13 +80,15 @@ const resolveSectionFromRequest = (path = '', method = '') => {
         path.startsWith('/attributes') ||
         path.startsWith('/attribute-sets')
     ) return 'product_management';
-    if (path.startsWith('/offers') || path.startsWith('/spin')) return 'promotions_management';
+    if (path.startsWith('/offers') || path.startsWith('/spin') || path.startsWith('/push-campaigns') || path.startsWith('/first-order-guard')) return 'promotions_management';
     if (path.startsWith('/orders') || path.startsWith('/order-detect-delivery')) return 'order_management';
-    if (path.startsWith('/shipments') || path.startsWith('/returns')) return 'order_management';
+    if (path.startsWith('/shipments') || path.startsWith('/returns') || path.startsWith('/checkouts')) return 'order_management';
+    if (path.startsWith('/cod-remittances')) return 'report_management';
     if (path.startsWith('/delivery')) return 'delivery_management';
     if (path.startsWith('/withdrawals') || path.startsWith('/coins')) return 'transaction_management';
     if (path.startsWith('/feedback-experiences')) return 'report_management';
     if (path.startsWith('/reports')) return 'report_management';
+    if (path.startsWith('/ai/')) return 'system_settings';
     if (path.startsWith('/feature-settings') || path.startsWith('/business-settings') || path.startsWith('/power-scanning') || path.startsWith('/notifications')) return 'system_settings';
     if (path.startsWith('/pages-social-media')) return 'pages_social_media';
     if (path.startsWith('/sidebar-badges') || path.startsWith('/dashboard-stats')) return 'dashboard';
@@ -128,6 +133,7 @@ router.use('/feature-settings', requireAdminPermission('system_settings', 'view'
 router.use('/business-settings', requireAdminPermission('system_settings', 'view'));
 router.use('/power-scanning', requireAdminPermission('system_settings', 'view'));
 router.use('/notifications', requireAdminPermission('system_settings', 'view'));
+router.use('/ai', requireAdminPermission('system_settings', 'view'), aiAdminRoutes);
 router.use('/pages-social-media', requireAdminPermission('pages_social_media', 'view'));
 router.use('/sidebar-badges', requireAdminPermission('dashboard', 'view'));
 
@@ -498,6 +504,7 @@ router.post('/orders/:orderId/refund', orderController.processRefundAdminControl
 router.delete('/orders/:orderId', orderController.deleteOrderAdminController);
 
 // ----- Courier shipments and returns (Shop panel) -----
+router.use(courierOpsAdminRoutes);
 router.use(shipmentReturnAdminRoutes);
 
 // ----- CMS Pages (About + legal) -----
@@ -509,6 +516,8 @@ router.get('/notifications/fssai-expired', adminController.getExpiredFssaiNotifi
 
 // ----- Platform Coins (Promotional liability ledger & settings) -----
 // ----- Spin wheel -----
+router.use('/push-campaigns', pushCampaignAdminRoutes);
+router.use('/first-order-guard', firstOrderGuardAdminRoutes);
 router.get('/spin/campaigns', spinController.listSpinCampaignsController);
 router.post('/spin/campaigns', spinController.createSpinCampaignController);
 router.patch('/spin/campaigns/:id', spinController.updateSpinCampaignController);

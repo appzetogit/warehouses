@@ -62,6 +62,16 @@ const AddFund = lazy(() => import("@store/pages/admin/wallet/AddFund"));
 const Bonus = lazy(() => import("@store/pages/admin/wallet/Bonus"));
 const CoinsManagement = lazy(() => import("@store/pages/admin/coins/CoinsManagement"));
 const AttributesPage = lazy(() => import("@store/pages/admin/attributes/AttributesPage"));
+const PushCampaigns = lazy(() => import("@store/pages/admin/campaigns/PushCampaigns"));
+const AiSettings = lazy(() => import("@store/pages/admin/ai/AiSettings"));
+const AiConversations = lazy(() => import("@store/pages/admin/ai/AiConversations"));
+const AiUsage = lazy(() => import("@store/pages/admin/ai/AiUsage"));
+const NdrQueue = lazy(() => import("@store/pages/admin/shipments/NdrQueue"));
+const RtoQueue = lazy(() => import("@store/pages/admin/shipments/RtoQueue"));
+const CodRemittances = lazy(() => import("@store/pages/admin/cod/CodRemittances"));
+const CodRemittanceDetail = lazy(() => import("@store/pages/admin/cod/CodRemittanceDetail"));
+const Checkouts = lazy(() => import("@store/pages/admin/checkouts/Checkouts"));
+const CheckoutDetail = lazy(() => import("@store/pages/admin/checkouts/CheckoutDetail"));
 const Shipments = lazy(() => import("@store/pages/admin/shipments/Shipments"));
 const Returns = lazy(() => import("@store/pages/admin/returns/Returns"));
 const SpinCampaigns = lazy(() => import("@store/pages/admin/spin/SpinCampaigns"));
@@ -336,7 +346,17 @@ export default function AdminRouter() {
             <Route path="attributes" element={<AttributesPage />} />
             <Route path="coins" element={<CoinsManagement />} />
             <Route path="spin-campaigns" element={<SpinCampaigns />} />
+            <Route path="push-campaigns" element={<PushCampaigns />} />
             <Route path="shipments" element={<Shipments />} />
+            <Route path="shipments/ndr" element={<NdrQueue />} />
+            <Route path="shipments/rto" element={<RtoQueue />} />
+            <Route path="cod-remittances" element={<CodRemittances />} />
+            <Route path="cod-remittances/:id" element={<CodRemittanceDetail />} />
+            <Route path="checkouts" element={<Checkouts />} />
+            <Route path="ai/settings" element={<AiSettings />} />
+            <Route path="ai/conversations" element={<AiConversations />} />
+            <Route path="ai/usage" element={<AiUsage />} />
+            <Route path="checkouts/:checkoutId" element={<CheckoutDetail />} />
             <Route path="returns" element={<Returns />} />
             <Route path="payments/reconciliation" element={<PaymentReconciliation />} />
             <Route path="reports/delivery-sla" element={<DeliverySlaReport />} />

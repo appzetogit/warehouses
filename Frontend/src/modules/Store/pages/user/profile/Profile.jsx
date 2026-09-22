@@ -24,6 +24,7 @@ import {
   MapPin,
   Share2,
   Trash2,
+  Coins,
 } from "lucide-react";
 
 import AnimatedPage from "@store/components/user/AnimatedPage";
@@ -56,6 +57,7 @@ const USER_SESSION_PREFERENCE_KEYS = ["userVegMode"];
 
 import { registerWebPushForCurrentModule } from "@store/utils/firebaseMessaging";
 import DeleteAccountModal from "@store/components/DeleteAccountModal";
+import MarketingPushToggle from "@store/components/user/MarketingPushToggle";
 
 export default function Profile() {
   const { userProfile, vegMode, setVegMode, getDefaultAddress, addresses } =
@@ -443,6 +445,19 @@ export default function Profile() {
               </Card>
             </motion.div>
           </Link>
+          <Link to="/coins" className="block">
+            <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-amber-100 dark:bg-amber-900/30 rounded-full p-2">
+                    <Coins className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <span className="text-base font-medium text-gray-900 dark:text-white">Coins</span>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+              </CardContent>
+            </Card>
+          </Link>
 
           <Link to="/user/profile/coupons" className="block">
             <motion.div
@@ -619,6 +634,8 @@ export default function Profile() {
               </Card>
             </motion.div>
           </Link>
+
+          <MarketingPushToggle />
 
           <motion.div
             whileHover={{ x: 4, scale: 1.01 }}

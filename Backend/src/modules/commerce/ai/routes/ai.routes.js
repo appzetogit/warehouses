@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyAccessToken } from '../../../../core/auth/token.util.js';
-import { chatAssistantController } from '../controllers/ai.controller.js';
+import { chatAssistantController, linkHandoffController } from '../controllers/ai.controller.js';
 import { aiChatRateLimiter } from '../../../../middleware/rateLimit.js';
 
 const router = express.Router();
@@ -22,5 +22,7 @@ const optionalAuth = (req, res, next) => {
 };
 
 router.post('/chat', optionalAuth, aiChatRateLimiter, chatAssistantController);
+// Records that a signed-in customer handed this conversation to support (ticket already created).
+router.post('/handoff', optionalAuth, aiChatRateLimiter, linkHandoffController);
 
 export default router;

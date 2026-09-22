@@ -1076,7 +1076,7 @@ Order again from this seller in the ${companyName} app.`
                     </div>
                   ) : (
                     <div>
-                      <p className="text-xs text-gray-500">{order.status === 'preparing' ? 'Preparing' : order.status === 'outForDelivery' ? 'Out for delivery' : order.status === 'confirmed' ? 'Order confirmed' : ''}</p>
+                      <p className="text-xs text-gray-500">{order.status === 'pending_payment' ? 'Payment pending — tap to complete' : order.status === 'preparing' ? 'Preparing' : order.status === 'outForDelivery' ? 'Out for delivery' : order.status === 'confirmed' ? 'Order confirmed' : ''}</p>
                       {/* Countdown Timer */}
                       {countdowns[order.id] && countdowns[order.id] > 0 && (
                         <div className="flex items-center gap-1 mt-1 text-xs text-[#EB590E] font-medium">

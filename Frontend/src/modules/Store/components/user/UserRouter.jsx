@@ -71,6 +71,7 @@ const Notifications = lazy(() => import("@store/pages/user/Notifications"))
 
 // Wallet
 const Wallet = lazy(() => import("@store/pages/user/Wallet"))
+const Coins = lazy(() => import("@store/pages/user/Coins"))
 
 // Complaints
 const SubmitComplaint = lazy(() => import("@store/pages/user/complaints/SubmitComplaint"))
@@ -282,6 +283,16 @@ export default function UserRouter() {
             element={
               <ProtectedRoute requiredRole="user" loginPath="/auth/login">
                 <Wallet />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Coins - balance, expiring lots and history (user auth) */}
+          <Route
+            path="coins"
+            element={
+              <ProtectedRoute requiredRole="user" loginPath="/auth/login">
+                <Coins />
               </ProtectedRoute>
             }
           />

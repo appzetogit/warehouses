@@ -21,6 +21,7 @@ import {
   FileText
 } from "lucide-react"
 import AnimatedPage from "@store/components/user/AnimatedPage"
+import CompletePaymentCard from "@store/components/user/CompletePaymentCard"
 import { Card, CardContent } from "@store/components/ui/card"
 import { Button } from "@store/components/ui/button"
 import {
@@ -337,6 +338,7 @@ const transformOrderForTracking = (apiOrder, previousOrder = null, explicitSelle
     tracking: apiOrder?.tracking || previousOrder?.tracking || {},
     deliveryState: apiOrder?.deliveryState || previousOrder?.deliveryState || null,
     createdAt: apiOrder?.createdAt || previousOrder?.createdAt || null,
+    orderGroupId: apiOrder?.orderGroupId || previousOrder?.orderGroupId || null,
     totalAmount: apiOrder?.pricing?.total || apiOrder?.totalAmount || previousOrder?.totalAmount || 0,
     deliveryFee: apiOrder?.pricing?.deliveryFee || apiOrder?.deliveryFee || previousOrder?.deliveryFee || 0,
     gst: apiOrder?.pricing?.tax || apiOrder?.pricing?.gst || apiOrder?.gst || apiOrder?.tax || previousOrder?.gst || 0,
@@ -1308,6 +1310,11 @@ export default function OrderTracking() {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-[#0a0a0a]">
+      {order?.status === "pending_payment" && (
+        <div className="px-4 pt-4 max-w-3xl mx-auto">
+          <CompletePaymentCard order={order} onPaid={() => window.location.reload()} />
+        </div>
+      )}
       {/* Order Confirmed Modal */}
       <AnimatePresence>
         {showConfirmation && (
