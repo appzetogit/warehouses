@@ -375,3 +375,23 @@ test('a first-order offer applies itself, and a cancelled or unpaid order does n
     }), 'calculate returning');
     assert.equal(returning.pricing.discount, 0);
 });
+
+test('zones limit Quick only: a Shop order ships outside every zone, a Quick one is refused', async () => {
+    const as = tokenFor('USER', ids.user);
+    // Indore: nowhere near the test zone.
+    const farAway = { ...address, city: 'Indore', state: 'MP', zipCode: '452010', latitude: 22.7196, longitude: 75.8577,
+        location: { type: 'Point', coordinates: [75.8577, 22.7196] } };
+    await ids.db.collection('sellers').updateOne({ _id: ids.seller }, { $set: { 'channels.shop.status': 'approved', 'channels.quick.status': 'approved' } });
+    await ids.db.collection('products').updateOne({ _id: ids.product }, { $set: { 'channels.shop': true, 'stock.shop': null } });
+
+    const body = (fulfilmentMode) => ({
+        sellerId: String(ids.seller), items: [cartLine(1)], address: farAway, deliveryAddress: farAway,
+        pricing: { subtotal: 60, total: 60 }, paymentMethod: 'cash', fulfilmentMode,
+    });
+    const quick = await call('POST', '/orders', { as, body: body('quick') });
+    assert.equal(quick.status, 400, 'quick is bounded by zones');
+
+    const shop = ok(await call('POST', '/orders', { as, body: body('standard') }), 'shop order outside zones', 201);
+    const stored = await ids.db.collection('orders').findOne({ _id: new mongoose.Types.ObjectId(String(shop.order._id || shop.order.id)) });
+    assert.equal(stored.fulfilmentMode, 'standard');
+});

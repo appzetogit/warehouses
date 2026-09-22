@@ -2688,8 +2688,9 @@ export default function Home() {
     const hasCoords =
       Number.isFinite(Number(effectiveLocation?.latitude)) &&
       Number.isFinite(Number(effectiveLocation?.longitude));
-    return hasCoords && zoneStatus === "OUT_OF_SERVICE" && !zoneLoading;
-  }, [effectiveLocation?.latitude, effectiveLocation?.longitude, zoneStatus, zoneLoading]);
+    // Zones only limit Quick (rider) delivery; the Shop store ships anywhere.
+    return fulfilmentMode === "quick" && hasCoords && zoneStatus === "OUT_OF_SERVICE" && !zoneLoading;
+  }, [fulfilmentMode, effectiveLocation?.latitude, effectiveLocation?.longitude, zoneStatus, zoneLoading]);
 
   // Removed GSAP animations - using CSS and ScrollReveal components instead for better performance
   // Auto-scroll removed - manual scroll only

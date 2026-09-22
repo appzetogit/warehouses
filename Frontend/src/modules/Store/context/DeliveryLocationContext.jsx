@@ -163,8 +163,10 @@ export function DeliveryLocationProvider({ children }) {
       zoneId,
       zone,
       zoneStatus,
-      isInService,
-      isOutOfService,
+      // Zones only limit Quick (rider) delivery; the Shop store ships anywhere,
+      // so outside the Quick store nobody is "out of service".
+      isInService: commerceMode !== "quick" || isInService,
+      isOutOfService: commerceMode === "quick" && isOutOfService,
       zoneLoading,
       zoneError,
       refreshZone,

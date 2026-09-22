@@ -8,7 +8,7 @@ import { ChevronRight, Coins, MapPin, RotateCcw, Star, Store, Tag } from "lucide
 import RecommendationRail from "@store/components/user/RecommendationRail"
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { CHANNEL_COPY, productInChannel } from "@store/utils/channelStock"
-import { CtaButton, DealBadge, DeliveryPromise, PriceTag } from "./ui"
+import { ImagePlaceholder, isRealImage, CtaButton, DealBadge, DeliveryPromise, PriceTag } from "./ui"
 
 const QTY_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1)
 
@@ -135,11 +135,15 @@ export default function ProductDetailDesktop({
               </div>
             )}
             <div className="flex aspect-square flex-1 items-center justify-center bg-white">
-              <img
-                src={allImages[activeImageIndex] || allImages[0]}
-                alt={product.name}
-                className="max-h-full max-w-full object-contain"
-              />
+              {isRealImage(allImages[activeImageIndex] || allImages[0]) ? (
+                <img
+                  src={allImages[activeImageIndex] || allImages[0]}
+                  alt={product.name}
+                  className="max-h-full max-w-full object-contain"
+                />
+              ) : (
+                <ImagePlaceholder name={product.name} className="rounded-[8px]" />
+              )}
             </div>
           </div>
 

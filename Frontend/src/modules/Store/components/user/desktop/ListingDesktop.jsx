@@ -18,7 +18,7 @@ import { searchAPI } from "@/services/api"
 import { API_BASE_URL } from "@store/api/config"
 import { isModuleAuthenticated } from "@store/utils/auth"
 import { channelAvailability, stockLabel, CHANNEL_COPY } from "@store/utils/channelStock"
-import { CtaButton, DealBadge, DeliveryPromise, PriceTag, percentOff } from "./ui"
+import { ImagePlaceholder, isRealImage, CtaButton, DealBadge, DeliveryPromise, PriceTag, percentOff } from "./ui"
 
 const cx = (...a) => a.filter(Boolean).join(" ")
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api(\/v\d+)?\/?$/, "")
@@ -121,7 +121,7 @@ export function ListingTile({ product, channel, etaMinutes, onAddToCart }) {
     <div className="flex h-full flex-col rounded-[8px] border border-wh-border bg-wh-surface p-3 text-wh-text">
       <Link to={to} className={cx("block rounded-[4px]", focusRing)}>
         <div className="flex aspect-square items-center justify-center overflow-hidden rounded-[4px] bg-[#F7F7F7]">
-          {img ? <img src={img} alt={product.name || "Product"} loading="lazy" className="h-full w-full object-contain mix-blend-multiply" /> : null}
+          {isRealImage(img) ? <img src={img} alt={product.name || "Product"} loading="lazy" className="h-full w-full object-contain mix-blend-multiply" /> : <ImagePlaceholder name={product.name} />}
         </div>
       </Link>
       <div className="mt-2 flex flex-1 flex-col gap-1">

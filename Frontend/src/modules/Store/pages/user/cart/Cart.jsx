@@ -2563,19 +2563,13 @@ export default function Cart() {
         </div>
         <div className="flex flex-col items-center justify-center py-20 px-4">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <Utensils className="h-10 w-10 text-gray-400" />
+            <ShoppingBag className="h-10 w-10 text-gray-400" />
           </div>
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">Your cart is empty</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Add items from a seller to start a new order</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Find something you like and it will show up here</p>
           <Link to={storePath("/")}>
-            <Button
-              className="text-white border-0"
-              style={{
-                background: "linear-gradient(135deg, rgba(var(--module-theme-rgb,250,2,114),0.9), var(--module-theme-color,#FA0272))",
-                boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,250,2,114),0.25)",
-              }}
-            >
-              Browse Sellers
+            <Button className="border-0 bg-[#FD920B] text-[#0F1111] hover:bg-[#E07F00]">
+              Start shopping
             </Button>
           </Link>
         </div>

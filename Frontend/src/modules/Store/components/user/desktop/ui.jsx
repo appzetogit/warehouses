@@ -15,6 +15,30 @@ const num = (v) => {
 const fmt = (n) => n.toLocaleString('en-IN', { maximumFractionDigits: 2 })
 
 /** Percent off from price and MRP, or null when there's no discount. */
+/**
+ * Stand-in for a product with no photo: a soft tile with a bag glyph and the
+ * product's initial, so empty catalogues still read as products.
+ */
+export function ImagePlaceholder({ name = '', className }) {
+  const initial = String(name).trim().charAt(0).toUpperCase()
+  return (
+    <div
+      role="img"
+      aria-label={name ? `${name} (no photo yet)` : 'No photo yet'}
+      className={cx('flex h-full w-full flex-col items-center justify-center gap-1 bg-[#F3F4F6] text-[#9CA3AF]', className)}
+    >
+      <svg viewBox="0 0 24 24" className="h-1/4 max-h-16 w-1/4 max-w-16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <path d="M6 8h12l-1 12H7L6 8Z" strokeLinejoin="round" />
+        <path d="M9 8V6a3 3 0 0 1 6 0v2" strokeLinecap="round" />
+      </svg>
+      {initial ? <span className="text-[13px] font-bold">{initial}</span> : null}
+    </div>
+  )
+}
+
+/** A real photo, not the generated brand-name image used as a last resort. */
+export const isRealImage = (src) => Boolean(src) && !String(src).startsWith('data:image/svg+xml')
+
 export const percentOff = (price, mrp) => {
   const p = num(price)
   const m = num(mrp)
@@ -121,7 +145,7 @@ export function ProductTile({ product, onAddToCart, href, mode, etaMinutes, deli
     <div className={cx('flex h-full flex-col rounded-[8px] bg-wh-surface p-2 text-wh-text', className)}>
       <Link to={to} className="block rounded-[4px] focus-visible:outline-2 focus-visible:outline-wh-brand">
         <div className="flex aspect-square items-center justify-center overflow-hidden rounded-[4px] bg-[#F7F7F7]">
-          {img ? <img src={img} alt={name} loading="lazy" className="h-full w-full object-contain mix-blend-multiply" /> : null}
+          {isRealImage(img) ? <img src={img} alt={name} loading="lazy" className="h-full w-full object-contain mix-blend-multiply" /> : <ImagePlaceholder name={name} />}
         </div>
       </Link>
       <div className="mt-2 flex flex-1 flex-col gap-1">

@@ -580,7 +580,11 @@ export async function createOrder(userId, dto, options = {}) {
       );
     }
 
-    const serviceableZone = await resolveServiceableZone(seller, deliveryAddress);
+    // Zones bound rider delivery only; a Shop (courier) order ships anywhere.
+    const serviceableZone =
+      (checkout?.fulfilmentMode || dto.fulfilmentMode || "quick") === "quick"
+        ? await resolveServiceableZone(seller, deliveryAddress)
+        : null;
 
     const paymentMethod =
       dto.paymentMethod === "card" ? "razorpay" : dto.paymentMethod;

@@ -121,10 +121,10 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
   const catTiles = categories.filter((c) => c?.name).slice(0, 4).map((c) => ({
     key: `cat-${c.id}`, to: storePath(`/category/${c.slug || slugify(c.name)}`), image: c.image, label: c.name,
   }))
-  if (catTiles.length >= 2) {
+  if (catTiles.length >= 4) {
     cards.push(<GridCard key="cats" title={isQuick ? "Shop essentials by category" : "Shop by category"} tiles={catTiles} seeMoreTo={storePath("/categories")} />)
   }
-  if (signedIn && orderItems.length >= 2) {
+  if (signedIn && orderItems.length >= 4) {
     const tiles = orderItems.slice(0, 4).map((it) => ({
       key: `again-${it.id}`, to: productLink(it.id), image: it.image || productById.get(it.id)?.image || "", label: it.name,
     }))
@@ -134,7 +134,9 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
     cards.push(<DealCard key="deal" title="Deal of the day" product={deals[0]} to={productLink(deals[0]._id)} seeMoreTo={storePath("/offers")} />)
   }
   for (const g of productGroups) {
-    if (g.items.length < 2) continue
+    const seen = new Set()
+    g.items = g.items.filter((p) => { const k = String(p.name || "").trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true })
+    if (g.items.length < 4) continue
     cards.push(
       <GridCard
         key={`grp-${g.id}`}
@@ -144,10 +146,10 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
       />,
     )
   }
-  if (deals.length >= 3) {
+  if (deals.length >= 5) {
     cards.push(
       <GridCard key="deals-grid" title="More savings"
-        tiles={deals.slice(1, 5).map((p) => ({ key: `d-${p._id}`, to: productLink(p._id), image: p.image, label: `${percentOff(p.price, p.mrp)}% off · ${p.name}` }))}
+        tiles={deals.slice(1, 5).map((p) => ({ key: `d-${p._id}`, to: productLink(p._id), image: p.image, name: p.name, label: `${percentOff(p.price, p.mrp)}% off · ${p.name}` }))}
         seeMoreTo={storePath("/offers")} />,
     )
   }
@@ -162,7 +164,7 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
   return (
     <div className="min-h-screen bg-wh-page pb-8">
       <HeroCarousel banners={heroBanners} onOpen={onOpenBanner} />
-      <div className={`relative z-10 mx-auto max-w-[1500px] space-y-5 px-5 ${heroBanners.length ? "-mt-[250px]" : "-mt-[200px]"}`}>
+      <div className={`relative z-10 mx-auto max-w-[1500px] space-y-5 px-5 ${heroBanners.length ? "-mt-[250px]" : "pt-5"}`}>
         {rowCards.length ? (
           <div className="grid grid-cols-3 gap-5 xl:grid-cols-4">
             {rowCards.map((card, i) => (

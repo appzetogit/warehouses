@@ -27,7 +27,7 @@ export default function HeroCarousel({ banners = [], onOpen }) {
   }, [count, index])
 
   if (!count) {
-    return <div className="h-[300px] bg-gradient-to-b from-wh-nav-3 to-wh-page" aria-hidden="true" />
+    return null
   }
 
   const go = (d) => setIndex((i) => (i + d + count) % count)

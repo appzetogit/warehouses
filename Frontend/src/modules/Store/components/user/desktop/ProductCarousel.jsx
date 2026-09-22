@@ -22,7 +22,7 @@ export default function ProductCarousel({ title, products = [], seeAllTo, mode, 
         ) : null}
       </div>
       <div className="relative">
-        <div ref={rowRef} className="flex gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:thin]">
+        <div ref={rowRef} className="flex gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {products.map((p) => (
             <div key={p._id} className="w-[200px] shrink-0">
               <ProductTile product={p} compact mode={mode} etaMinutes={etaMinutes} />

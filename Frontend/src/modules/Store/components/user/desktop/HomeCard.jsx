@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { DealBadge, percentOff } from "./ui"
+import { ImagePlaceholder, isRealImage, DealBadge, percentOff } from "./ui"
 
 const focus = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wh-brand"
 
@@ -28,10 +28,10 @@ export function GridCard({ title, tiles = [], seeMoreTo }) {
         {list.map((t) => (
           <Link key={t.key} to={t.to} className={`group block rounded-[4px] ${focus}`}>
             <div className="flex aspect-square items-center justify-center overflow-hidden bg-[#F7F7F7]">
-              {t.image ? (
+              {isRealImage(t.image) ? (
                 <img src={t.image} alt={t.label} loading="lazy" className="h-full w-full object-contain mix-blend-multiply" />
               ) : (
-                <span className="px-2 text-center text-[12px] text-wh-muted">{t.label}</span>
+                <ImagePlaceholder name={t.name || t.label} />
               )}
             </div>
             <span className="mt-1 block truncate text-[12px] leading-4 group-hover:text-wh-link-hover">{t.label}</span>
@@ -50,9 +50,11 @@ export function DealCard({ title, product, to, seeMoreTo }) {
     <HomeCard title={title} seeMoreTo={seeMoreTo} seeMoreLabel="See all deals">
       <Link to={to} className={`group block ${focus}`}>
         <div className="flex aspect-square max-h-[300px] w-full items-center justify-center overflow-hidden bg-[#F7F7F7]">
-          {product.image ? (
+          {isRealImage(product.image) ? (
             <img src={product.image} alt={product.name} loading="lazy" className="h-full w-full object-contain mix-blend-multiply" />
-          ) : null}
+          ) : (
+            <ImagePlaceholder name={product.name} />
+          )}
         </div>
         <div className="mt-2 flex items-center gap-2">
           <DealBadge percent={off} />
