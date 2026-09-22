@@ -64,6 +64,8 @@ import {
 } from "@store/utils/productVariants"
 import fssaiLogo from "@store/assets/fssai.png"
 import { SellerDetailSkeleton } from "@store/components/ui/loading-skeletons"
+import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
+import StoreDesktop from "@store/components/user/desktop/StoreDesktop"
 
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -99,7 +101,8 @@ const buildHeroImages = (seller) => {
 }
 
 function SellerDetailsContent() {
-  const { fulfilmentMode } = useStoreMode()
+  const { fulfilmentMode, storePath } = useStoreMode()
+  const isDesktop = useIsDesktop()
   const { slug } = useParams()
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
@@ -1957,6 +1960,26 @@ function SellerDetailsContent() {
   const safeHighlightIndex = highlightOffers.length > 0 ? highlightIndex % highlightOffers.length : 0
   const hasCartItems = itemCount > 0
   const menuButtonBottomClass = hasCartItems ? "bottom-[5.25rem]" : "bottom-4"
+
+  // Desktop (lg+): store header and product grid with a category rail; mobile below is unchanged.
+  if (isDesktop) {
+    return (
+      <StoreDesktop
+        seller={seller}
+        sections={seller.menuSections || []}
+        coverImage={displayHeroImages[0]}
+        isOpen={!isSellerOffline && !isOutOfService}
+        onAddToCart={(item) => {
+          if (hasProductVariants(item)) {
+            navigate(storePath(`/product/${item.id}`))
+            return
+          }
+          const current = getCartItem(getLineItemIdForDish(item))?.quantity || 0
+          updateItemQuantity(item, current + 1)
+        }}
+      />
+    )
+  }
 
   return (
     <AnimatedPage

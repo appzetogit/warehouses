@@ -3,6 +3,8 @@ import { useStoreMode } from "@store/context/StoreModeContext"
 import { channelAvailability } from "@store/utils/channelStock"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
+import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
+import { DesktopProductListing } from "@store/components/user/desktop/ListingDesktop"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, Star, Clock, Search, SlidersHorizontal, ChevronDown, Bookmark, BadgePercent, MapPin, ArrowDownUp, Timer, IndianRupee, UtensilsCrossed, ShieldCheck, X, Loader2, Grid2x2 } from "lucide-react"
 import { Card, CardContent } from "@store/components/ui/card"
@@ -41,6 +43,7 @@ const CATEGORY_PAGE_FILTERS_STORAGE_KEY = "store-category-page-filters-v1"
 export default function CategoryPage() {
   const { isQuick, fulfilmentMode, storePath } = useStoreMode()
   const { category } = useParams()
+  const isDesktop = useIsDesktop()
   const navigate = useNavigate()
   const { vegMode } = useProfile()
   const { effectiveLocation: location, zoneId, isOutOfService } = useDeliveryLocation()
@@ -883,6 +886,17 @@ export default function CategoryPage() {
   // Check if should show grayscale (user out of service)
   const shouldShowGrayscale = isOutOfService
   const isCategoryView = selectedCategory && selectedCategory !== 'all'
+
+  // Desktop (lg+): filter rail, results bar and product grid; mobile below is unchanged.
+  if (isDesktop) {
+    return (
+      <DesktopProductListing
+        categorySlug={String(category || "all").toLowerCase()}
+        onSelectCategory={(cat) => navigate(storePath(`/category/${cat ? cat.slug : "all"}`))}
+        zoneId={isQuick ? zoneId : undefined}
+      />
+    )
+  }
 
   return (
     <div className={`min-h-screen bg-white dark:bg-[#0a0a0a] ${shouldShowGrayscale ? 'grayscale opacity-75' : ''}`}>

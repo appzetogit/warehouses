@@ -22,7 +22,7 @@ export const config = {
      * from here: share pages, emails, default business settings.
      */
     brand: {
-        name: String(process.env.BRAND_NAME || 'Warehouses').trim(),
+        name: String(process.env.BRAND_NAME || 'The Warehouses').trim(),
         supportEmail: String(process.env.BRAND_SUPPORT_EMAIL || '').trim(),
         // Shown as the picture on push notifications; unset sends none.
         notificationImage: String(process.env.BRAND_NOTIFICATION_IMAGE || '').trim(),

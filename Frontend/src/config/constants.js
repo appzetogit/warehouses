@@ -1,6 +1,6 @@
 export const APP_CONFIG = {
   // Shown only until business settings load; the admin-set company name wins.
-  NAME: String(import.meta.env.VITE_BRAND_NAME || 'Warehouses').trim(),
+  NAME: String(import.meta.env.VITE_BRAND_NAME || 'The Warehouses').trim(),
   VERSION: '1.0.0',
 };
 

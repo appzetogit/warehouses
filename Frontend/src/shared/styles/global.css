@@ -44,9 +44,50 @@
   --sidebar-accent-foreground: oklch(0.3 0.08 60);
   --sidebar-border: oklch(0.9 0.02 85);
   --sidebar-ring: oklch(0.7 0.15 85);
+
+  /* Desktop storefront theme (DESKTOP_THEME.md) */
+  --wh-nav: #131921;
+  --wh-nav-2: #232F3E;
+  --wh-nav-3: #37475A;
+  --wh-brand: #FD920B;
+  --wh-brand-600: #E07F00;
+  --wh-cta: #FFD814;
+  --wh-cta-hover: #F7CA00;
+  --wh-cta-2: #FFA41C;
+  --wh-cta-2-hover: #FA8900;
+  --wh-page: #E3E6E6;
+  --wh-surface: #FFFFFF;
+  --wh-text: #0F1111;
+  --wh-muted: #565959;
+  --wh-link: #2162A1;
+  --wh-link-hover: #C7511F;
+  --wh-deal: #CC0C39;
+  --wh-success: #0B7B3C;
+  --wh-border: #D5D9D9;
+  --wh-quick: #0B7B3C;
 }
 
 @theme inline {
+  /* wh-* desktop tokens: bg-wh-nav, text-wh-link, ... */
+  --color-wh-nav: var(--wh-nav);
+  --color-wh-nav-2: var(--wh-nav-2);
+  --color-wh-nav-3: var(--wh-nav-3);
+  --color-wh-brand: var(--wh-brand);
+  --color-wh-brand-600: var(--wh-brand-600);
+  --color-wh-cta: var(--wh-cta);
+  --color-wh-cta-hover: var(--wh-cta-hover);
+  --color-wh-cta-2: var(--wh-cta-2);
+  --color-wh-cta-2-hover: var(--wh-cta-2-hover);
+  --color-wh-page: var(--wh-page);
+  --color-wh-surface: var(--wh-surface);
+  --color-wh-text: var(--wh-text);
+  --color-wh-muted: var(--wh-muted);
+  --color-wh-link: var(--wh-link);
+  --color-wh-link-hover: var(--wh-link-hover);
+  --color-wh-deal: var(--wh-deal);
+  --color-wh-success: var(--wh-success);
+  --color-wh-border: var(--wh-border);
+  --color-wh-quick: var(--wh-quick);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -170,4 +211,28 @@
 .pac-container {
   z-index: 999999 !important;
   pointer-events: auto !important;
+}
+
+/* Desktop storefront shell: Inter, 14/20. Applied only by lg+ desktop components. */
+.wh-desktop {
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--wh-text);
+}
+/* Business Settings injects a module font on #root * with !important; the desktop shell keeps Inter. */
+#root .wh-desktop,
+#root .wh-desktop * {
+  font-family: 'Inter', Arial, sans-serif !important;
+}
+.wh-desktop :focus-visible {
+  outline: 2px solid var(--wh-brand);
+  outline-offset: 2px;
+}
+.wh-container {
+  max-width: 1500px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 20px;
+  padding-right: 20px;
 }

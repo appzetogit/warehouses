@@ -23,3 +23,30 @@ export const brandMarkUrl = (name = APP_CONFIG.NAME) => {
 const brandMark = brandMarkUrl()
 
 export default brandMark
+
+/** The bundled logo for dark backgrounds (white text, transparent). */
+export const BRAND_LOGO_ON_DARK = "/brand/logo-on-dark.png"
+
+// Same key as @store/utils/businessSettings (kept local to avoid a config -> module import).
+const SETTINGS_KEY_CANDIDATES = ["store_business_settings"]
+
+const cachedLogoUrl = () => {
+  try {
+    for (const key of SETTINGS_KEY_CANDIDATES) {
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const url = JSON.parse(raw)?.logo?.url
+      if (url) return url
+    }
+  } catch {
+    /* no storage */
+  }
+  return ""
+}
+
+/**
+ * Logo for dark surfaces (desktop header/footer): the Business Settings logo
+ * when one is uploaded, else /brand/logo-on-dark.png. Pass settings when you
+ * already have them; otherwise the cached settings are read.
+ */
+export const brandLogoOnDark = (settings) => settings?.logo?.url || (settings ? "" : cachedLogoUrl()) || BRAND_LOGO_ON_DARK

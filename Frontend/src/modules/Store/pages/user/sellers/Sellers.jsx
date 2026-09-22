@@ -14,6 +14,8 @@ import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { sellerAPI } from "@store/api"
 import { API_BASE_URL } from "@store/api/config"
 import { useDelayedLoading } from "@store/hooks/useDelayedLoading"
+import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
+import { StoresDesktop } from "@store/components/user/desktop/IndexDesktop"
 
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "")
 
@@ -48,6 +50,7 @@ export default function Sellers() {
   const [sellers, setSellers] = useState([])
   const [loading, setLoading] = useState(true)
   const showSellersSkeleton = useDelayedLoading(loading)
+  const isDesktop = useIsDesktop()
 
   useEffect(() => {
     let cancelled = false
@@ -104,6 +107,9 @@ export default function Sellers() {
   }, [zoneId, fulfilmentMode])
 
   const hasSellers = useMemo(() => sellers.length > 0, [sellers.length])
+
+  // Desktop (lg+): a grid of store cards; mobile below is unchanged.
+  if (isDesktop) return <StoresDesktop stores={sellers} loading={loading} />
 
   return (
     <AnimatedPage className="min-h-screen bg-gradient-to-b from-yellow-50/30 dark:from-[#0a0a0a] via-white dark:via-[#0a0a0a] to-orange-50/20 dark:to-[#0a0a0a]">

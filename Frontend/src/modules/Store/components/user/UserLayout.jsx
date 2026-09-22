@@ -14,6 +14,9 @@ const debugError = (...args) => {}
 import SearchOverlay from "./SearchOverlay"
 import BottomNavigation from "./BottomNavigation"
 import DesktopNavbar from "./DesktopNavbar"
+import DesktopHeader from "./desktop/DesktopHeader"
+import DesktopFooter from "./desktop/DesktopFooter"
+import QuickZoneStrip from "./desktop/QuickZoneStrip"
 import GeminiAssistantWidget from "./GeminiAssistantWidget"
 import SpinWheelModal from "./SpinWheelModal"
 import { useUserNotifications } from "../../hooks/useUserNotifications"
@@ -199,6 +202,9 @@ export default function UserLayout() {
     isProfileRoot ||
     normalizedPath === "" // Handle empty string edge case
 
+  // Desktop (lg+) shell: header/footer on every storefront page except sign-in screens.
+  const showDesktopShell = !/(^|\/)auth(\/|$)/.test(normalizedPath)
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
       <CartProvider key={storeMode} mode={storeMode}>
@@ -210,13 +216,17 @@ export default function UserLayout() {
               <LocationSelectorProvider>
                 {/* <Navbar /> */}
                 {/* Desktop Navbar - Hidden on mobile, visible on medium+ screens */}
-                <div className="hidden md:block">
+                <div className="hidden md:block lg:hidden">
                   {showBottomNav && <DesktopNavbar />}
                 </div>
+                {/* Desktop (lg+) header, Quick ETA strip and footer (DESKTOP_THEME.md) */}
+                {showDesktopShell && <DesktopHeader onOpenSpin={() => setIsSpinWheelOpen(true)} />}
+                {showDesktopShell && storeMode === "quick" && <QuickZoneStrip />}
                 {/* <LocationPrompt /> */}
-                <main className={showBottomNav ? "md:pt-40" : ""}>
+                <main className={showBottomNav ? "md:pt-40 lg:pt-0" : ""}>
                   <Outlet />
                 </main>
+                {showDesktopShell && <DesktopFooter />}
                 {showBottomNav && <BottomNavigation />}
 
                 {/* Floating Daily Spin Trigger Button */}

@@ -28,6 +28,8 @@ import SEOHead from "@store/components/SEOHead"
 import RecommendationRail from "@store/components/user/RecommendationRail"
 import { useCart } from "@store/context/CartContext"
 import { Button } from "@store/components/ui/button"
+import ProductDetailDesktop from "@store/components/user/desktop/ProductDetailDesktop"
+import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
 import { CHANNEL_COPY, channelAvailability, otherChannel, productInChannel, stockLabel, variantInChannel } from "@store/utils/channelStock"
 
 export default function ProductDetail() {
@@ -35,6 +37,7 @@ export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
+  const isDesktop = useIsDesktop()
   const { addToCart, isInCart, getCartItem } = useCart()
 
   const [loading, setLoading] = useState(true)
@@ -140,10 +143,12 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (notInThisStore) {
-      return toast.error(`This item isn't available in ${CHANNEL_COPY[channel].label}.`)
+      toast.error(`This item isn't available in ${CHANNEL_COPY[channel].label}.`)
+      return false
     }
     if (!isAvailable) {
-      return toast.error("Selected item variant is currently out of stock")
+      toast.error("Selected item variant is currently out of stock")
+      return false
     }
 
     const variantLabel = currentVariant?.name || Object.values(selectedAttrs).join(" / ")
@@ -167,6 +172,12 @@ export default function ProductDetail() {
     })
 
     toast.success(`Added ${quantity} × ${product.name} to cart!`)
+    return true
+  }
+
+  // Desktop "Buy now": the normal add, then the cart page (which runs checkout).
+  const handleBuyNow = () => {
+    if (handleAddToCart()) navigate(storePath("/cart"))
   }
 
   if (loading) {
@@ -195,6 +206,45 @@ export default function ProductDetail() {
           Return to Browse
         </Button>
       </div>
+    )
+  }
+
+  if (isDesktop) {
+    return (
+      <>
+        <SEOHead
+          title={product.name}
+          description={product.description || [product.brand, product.name, product.packSize].filter(Boolean).join(" ")}
+          ogImage={allImages[0]}
+        />
+        <ProductDetailDesktop
+          product={product}
+          seller={seller}
+          storePath={storePath}
+          isQuick={isQuick}
+          channel={channel}
+          altChannel={altChannel}
+          altPath={altPath}
+          avail={avail}
+          altAvail={altAvail}
+          isAvailable={isAvailable}
+          notInThisStore={notInThisStore}
+          currentVariant={currentVariant}
+          selectedAttrs={selectedAttrs}
+          onSelectAttribute={handleSelectAttribute}
+          isValueEnabled={isValueEnabled}
+          allImages={allImages}
+          activeImageIndex={activeImageIndex}
+          setActiveImageIndex={setActiveImageIndex}
+          quantity={quantity}
+          setQuantity={setQuantity}
+          displayPrice={displayPrice}
+          displayMrp={displayMrp}
+          discountPercent={discountPercent}
+          onAddToCart={handleAddToCart}
+          onBuyNow={handleBuyNow}
+        />
+      </>
     )
   }
 

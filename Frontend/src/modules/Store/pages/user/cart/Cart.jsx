@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from "react"
 import { createPortal } from "react-dom"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Minus, ArrowLeft, ChevronRight, Clock, MapPin, Phone, FileText, Utensils, Tag, Percent, Share2, ChevronUp, ChevronDown, X, Check, Settings, CreditCard, Wallet, Building2, Sparkles, Banknote, Zap, CheckCircle2, MessageCircle, Send, Mail, Copy, Home, Briefcase, Pencil, Receipt, ShoppingCart, DoorOpen, PhoneOff, BellOff, Coins, Store, Truck, ShieldCheck } from "lucide-react"
+import { Plus, Minus, ArrowLeft, ChevronRight, Clock, MapPin, Phone, FileText, Utensils, Tag, Percent, Share2, ChevronUp, ChevronDown, X, Check, Settings, CreditCard, Wallet, Building2, Sparkles, Banknote, Zap, CheckCircle2, MessageCircle, Send, Mail, Copy, Home, Briefcase, Pencil, Receipt, ShoppingCart, DoorOpen, PhoneOff, BellOff, Coins, Store, Truck, ShieldCheck, Trash2, ShoppingBag } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
 
@@ -46,6 +46,8 @@ import {
 } from "@store/utils/autoCoupon"
 import CartAutoCouponBanner from "@store/components/user/CartAutoCouponBanner"
 import RecommendationRail from "@store/components/user/RecommendationRail"
+import CartSubtotalCard from "@store/components/user/desktop/CartSubtotalCard"
+import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
 import zoopSound from "@store/assets/audio/order-placed.mp3"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -318,6 +320,7 @@ export default function Cart() {
   const { cart, updateQuantity, getCartCount, clearCart, cleanCartForSeller, replaceCart, removeFromCart } = cartContext;
   const { getDefaultAddress, getDefaultPaymentMethod, setDefaultAddress, addresses, paymentMethods, userProfile } = useProfile()
   const { createOrder } = useOrders()
+  const isDesktop = useIsDesktop()
   const { location: currentLocation, loading: currentLocationLoading } = useUserLocation() // Get live location address
 
   const [appliedCoupon, setAppliedCoupon] = useState(null)
@@ -2582,8 +2585,8 @@ export default function Cart() {
 
   return (
     <div className="relative min-h-screen bg-slate-50 dark:bg-[#0a0a0a]">
-      {/* Header */}
-      <div className="sticky top-0 z-20 flex-shrink-0 text-white">
+      {/* Header (mobile; desktop uses the site header and the subtotal card) */}
+      <div className="sticky top-0 z-20 flex-shrink-0 text-white lg:hidden">
         <div style={{ backgroundColor: "var(--module-theme-color, #FA0272)" }}>
           <div className="max-w-7xl mx-auto px-3 md:px-6 pt-4 pb-4 md:pt-5 md:pb-5">
             <div className="flex items-start gap-2.5">
@@ -2647,14 +2650,14 @@ export default function Cart() {
       )}
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 relative z-10 bg-slate-50 dark:bg-[#0a0a0a]">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-10 relative z-10 bg-slate-50 dark:bg-[#0a0a0a] lg:bg-wh-page">
         <CartAutoCouponBanner
           appliedCoupon={appliedCoupon?.autoApplied ? appliedCoupon : null}
           savings={itemDiscountAmount}
         />
 
         {/* "You may also like": co-purchases of the first item, minus what is already in the cart */}
-        {cart.length > 0 && (
+        {cart.length > 0 && !isDesktop && (
           <div className="px-4 md:px-6 max-w-7xl mx-auto">
             <RecommendationRail
               productId={cart[0].productId || cart[0].itemId || cart[0].id}
@@ -2677,12 +2680,18 @@ export default function Cart() {
           </div>
         )}
 
-        <div className="max-w-7xl mx-auto px-4 md:px-6 pt-3 md:pt-4 pb-4 md:pb-6">
-          <div className="max-w-3xl mx-auto">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 pt-3 md:pt-4 pb-4 md:pb-6 lg:max-w-[1500px] lg:px-5 lg:pt-5">
+          <div className="max-w-3xl mx-auto lg:max-w-none">
             {/* Main Cart Content */}
-            <div className="space-y-2 md:space-y-4">
+            <div className="flex flex-col gap-2 md:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
+              {/* Left: cart lines, delivery and contact (desktop column; flattened on mobile) */}
+              <div className="contents lg:flex lg:flex-col lg:gap-4 lg:min-w-0">
               {/* Cart Items */}
-              <div className="bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-gray-800">
+              <div className="order-1 bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-gray-800 lg:rounded-[8px] lg:border-0 lg:shadow-none lg:px-5 lg:py-5">
+                <div className="hidden lg:flex items-end justify-between border-b border-wh-border pb-2 mb-4">
+                  <h1 className="text-[28px] font-normal leading-9 text-wh-text">Shopping Cart</h1>
+                  <span className="text-[14px] text-wh-muted">Price</span>
+                </div>
                 <div className="space-y-4">
                   {sellerGroups.map((group, gIdx) => (
                     <div key={group.sellerId || gIdx} className={sellerGroups.length > 1 ? "rounded-xl border border-slate-200 dark:border-gray-800 p-3 bg-slate-50/50 dark:bg-black/20 space-y-3" : "space-y-3"}>
@@ -2700,7 +2709,17 @@ export default function Cart() {
                         </div>
                       )}
                       {group.items.map((item) => (
-                        <div key={item.id} className="flex items-start gap-3 md:gap-4">
+                        <div key={item.id} className="flex items-start gap-3 md:gap-4 lg:gap-5 lg:border-b lg:border-wh-border lg:pb-4 lg:last:border-b-0">
+                          <Link
+                            to={storePath(`/product/${item.productId || item.itemId || item.id}`)}
+                            className="hidden lg:flex h-[180px] w-[180px] shrink-0 items-center justify-center overflow-hidden rounded-[4px] bg-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-wh-brand"
+                          >
+                            {item.image ? (
+                              <img src={item.image} alt={item.name} className="h-full w-full object-contain" loading="lazy" />
+                            ) : (
+                              <ShoppingBag className="h-8 w-8 text-gray-300" aria-hidden="true" />
+                            )}
+                          </Link>
                           {/* Veg/Non-veg indicator */}
                           {typeof item.isVeg === "boolean" && (
                             <div
@@ -2715,15 +2734,48 @@ export default function Cart() {
                           )}
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm md:text-base font-medium text-gray-800 dark:text-gray-200 leading-tight">{item.name}</p>
+                            <p className="text-sm md:text-base font-medium text-gray-800 dark:text-gray-200 leading-tight lg:text-[18px] lg:font-normal lg:leading-6 lg:text-wh-text">{item.name}</p>
                             {item.variantName ? (
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.variantName}</p>
                             ) : null}
+                            <p className="hidden lg:block mt-1 text-[12px] text-wh-success">In stock</p>
+                            {item.sellerName ? (
+                              <p className="hidden lg:block text-[12px] text-wh-muted">Sold by {item.sellerName}</p>
+                            ) : null}
+                            <div className="hidden lg:flex items-center gap-3 mt-3 text-[12px]">
+                              <div className="flex items-center rounded-full border-2 border-wh-cta">
+                                <button
+                                  type="button"
+                                  aria-label={item.quantity > 1 ? `Decrease quantity of ${item.name}` : `Remove ${item.name}`}
+                                  className="h-7 w-8 flex items-center justify-center rounded-l-full hover:bg-[#FFF8D6] focus-visible:outline-2 focus-visible:outline-wh-brand"
+                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                >
+                                  {item.quantity > 1 ? <Minus className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                </button>
+                                <span className="min-w-[28px] text-center text-[14px] font-bold tabular-nums">{item.quantity}</span>
+                                <button
+                                  type="button"
+                                  aria-label={`Increase quantity of ${item.name}`}
+                                  className="h-7 w-8 flex items-center justify-center rounded-r-full hover:bg-[#FFF8D6] focus-visible:outline-2 focus-visible:outline-wh-brand"
+                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                              <span className="h-4 w-px bg-wh-border" aria-hidden="true" />
+                              <button
+                                type="button"
+                                onClick={() => removeFromCart(item.id)}
+                                className="text-wh-link hover:text-wh-link-hover hover:underline focus-visible:outline-2 focus-visible:outline-wh-brand"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-3 md:gap-4">
-                            {/* Quantity controls */}
-                            <div className="flex items-center gap-1 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141414] px-1 py-0.5">
+                            {/* Quantity controls (mobile; desktop stepper is under the title) */}
+                            <div className="lg:hidden flex items-center gap-1 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141414] px-1 py-0.5">
                               <button
                                 type="button"
                                 className="h-5 w-5 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:opacity-70"
@@ -2803,44 +2855,8 @@ export default function Cart() {
                 ) : null}
               </div>
 
-              {/* Offers row */}
-              <button
-                type="button"
-                onClick={() => setShowOffersView(true)}
-                className={`w-full bg-white dark:bg-[#1a1a1a] rounded-2xl border shadow-sm px-4 py-3.5 flex items-center gap-3 text-left ${
-                  appliedCoupon
-                    ? "border-[#FA0272]/30 dark:border-[#FA0272]/40"
-                    : "border-slate-100 dark:border-gray-800"
-                }`}
-              >
-                <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  appliedCoupon
-                    ? "bg-pink-50 dark:bg-pink-950/40"
-                    : "bg-emerald-50 dark:bg-emerald-950/40"
-                }`}>
-                  <Tag className={`h-4 w-4 ${appliedCoupon ? "text-[#FA0272]" : "text-emerald-600"}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold ${appliedCoupon ? "text-[#FA0272]" : "text-gray-900 dark:text-white"}`}>
-                    {appliedCoupon
-                      ? `'${appliedCoupon.code}' applied`
-                      : "Payment offers & more"}
-                  </p>
-                  <p className={`text-xs mt-0.5 truncate ${appliedCoupon ? "text-[#FA0272]/80 font-medium" : "text-gray-500 dark:text-gray-400"}`}>
-                    {appliedCoupon
-                      ? `You saved ${RUPEE_SYMBOL}${discount.toFixed(0)} on this order`
-                      : loadingCoupons
-                        ? "Loading offers..."
-                        : availableCoupons.length > 0
-                          ? `${availableCoupons.length} offer${availableCoupons.length > 1 ? "s" : ""} available`
-                          : "Explore bank offers and coupons"}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
-              </button>
-
               {/* Delivery modes & instructions */}
-              <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden">
+              <div className="order-3 bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden">
                 <div className="p-3">
                   <div className="flex items-center rounded-full bg-gray-100 dark:bg-[#222222] p-1">
                     <button
@@ -3006,7 +3022,7 @@ export default function Cart() {
               </div>
 
               {/* Contact */}
-              <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden">
+              <div className="order-4 bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden">
                 <div className="px-4 py-3.5 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
@@ -3081,9 +3097,80 @@ export default function Cart() {
                 )}
               </div>
 
+              </div>
+              {/* Right: subtotal, offers, coins, bill (desktop column; flattened on mobile) */}
+              <div className="contents lg:flex lg:flex-col lg:gap-4 lg:sticky lg:top-28">
+              {/* Desktop subtotal card */}
+              {isDesktop && (
+                <CartSubtotalCard
+                  itemCount={cart.reduce((n, item) => n + (Number(item.quantity) || 1), 0)}
+                  subtotal={subtotal}
+                  finalPayable={finalPayable}
+                  savings={otherSavings}
+                  addressLabel={headerAddressLabel}
+                  addressText={headerAddressText}
+                  onChangeAddress={() => setShowAddressSheet(true)}
+                  paymentLabel={selectedPaymentLabel}
+                  onChangePayment={() => setShowPaymentSheet(true)}
+                  onProceed={handlePlaceOrder}
+                  proceedDisabled={
+                    isPlacingOrder ||
+                    loadingSeller ||
+                    !canPlaceOrder ||
+                    (selectedPaymentMethod === "wallet" && walletBalance < finalPayable)
+                  }
+                  proceedLabel={
+                    isPlacingOrder
+                      ? "Processing..."
+                      : loadingSeller
+                        ? "Loading..."
+                        : !canPlaceOrder
+                          ? "Store offline"
+                          : !hasSavedAddress
+                            ? "Add delivery address"
+                            : "Proceed to Buy"
+                  }
+                />
+              )}
+              {/* Offers row */}
+              <button
+                type="button"
+                onClick={() => setShowOffersView(true)}
+                className={`order-2 w-full bg-white dark:bg-[#1a1a1a] rounded-2xl border shadow-sm px-4 py-3.5 flex items-center gap-3 text-left ${
+                  appliedCoupon
+                    ? "border-[#FA0272]/30 dark:border-[#FA0272]/40"
+                    : "border-slate-100 dark:border-gray-800"
+                }`}
+              >
+                <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
+                  appliedCoupon
+                    ? "bg-pink-50 dark:bg-pink-950/40"
+                    : "bg-emerald-50 dark:bg-emerald-950/40"
+                }`}>
+                  <Tag className={`h-4 w-4 ${appliedCoupon ? "text-[#FA0272]" : "text-emerald-600"}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-semibold ${appliedCoupon ? "text-[#FA0272]" : "text-gray-900 dark:text-white"}`}>
+                    {appliedCoupon
+                      ? `'${appliedCoupon.code}' applied`
+                      : "Payment offers & more"}
+                  </p>
+                  <p className={`text-xs mt-0.5 truncate ${appliedCoupon ? "text-[#FA0272]/80 font-medium" : "text-gray-500 dark:text-gray-400"}`}>
+                    {appliedCoupon
+                      ? `You saved ${RUPEE_SYMBOL}${discount.toFixed(0)} on this order`
+                      : loadingCoupons
+                        ? "Loading offers..."
+                        : availableCoupons.length > 0
+                          ? `${availableCoupons.length} offer${availableCoupons.length > 1 ? "s" : ""} available`
+                          : "Explore bank offers and coupons"}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+              </button>
+
               {/* Coins Redemption Widget */}
               {coinBalance?.isEnabled && (
-                <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/50 dark:border-amber-600/30 rounded-2xl p-4 shadow-sm">
+                <div className="order-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/50 dark:border-amber-600/30 rounded-2xl p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400 shadow-inner">
@@ -3134,7 +3221,7 @@ export default function Cart() {
               )}
 
               {/* Bill Details */}
-              <div className="bg-white dark:bg-[#1a1a1a] px-4 py-4 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800">
+              <div className="order-6 bg-white dark:bg-[#1a1a1a] px-4 py-4 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800">
                 <button
                   type="button"
                   onClick={() => setShowBillDetails(!showBillDetails)}
@@ -3233,9 +3320,23 @@ export default function Cart() {
                 )}
               </div>
 
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed px-1">
+              <p className="order-7 text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed px-1">
                 Cancellation policy: Please double-check your order and address details. Orders are non-refundable once placed.
               </p>
+              {isDesktop && cart.length > 0 && (
+                <div className="rounded-[8px] bg-wh-surface px-5 pb-2">
+                  <RecommendationRail
+                    variant="desktop"
+                    productId={cart[0].productId || cart[0].itemId || cart[0].id}
+                    type="frequently_bought"
+                    fallbackType="similar"
+                    title="You may also like"
+                    excludeIds={cart.map((item) => item.productId || item.itemId || item.id)}
+                    limit={10}
+                  />
+                </div>
+              )}
+              </div>
 
             </div>
           </div>
@@ -3244,7 +3345,7 @@ export default function Cart() {
 
       {/* Bottom Sticky - Pay bar */}
       <div
-        className="bg-white dark:bg-[#1a1a1a] border-t dark:border-gray-800 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 flex-shrink-0 fixed bottom-0 left-0 right-0"
+        className="bg-white dark:bg-[#1a1a1a] border-t dark:border-gray-800 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 flex-shrink-0 fixed bottom-0 left-0 right-0 lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-3">

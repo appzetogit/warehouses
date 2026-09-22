@@ -118,6 +118,8 @@ import QuickSection from "@store/components/user/home/QuickSection";
 import PromoRow from "@store/components/user/home/PromoRow";
 import PromotionBannerCarousel from "@store/components/user/home/PromotionBannerCarousel";
 import OutOfZoneScreen from "@store/components/user/OutOfZoneScreen";
+import DesktopHome from "@store/components/user/desktop/DesktopHome";
+import useIsDesktop from "@store/components/user/desktop/useIsDesktop";
 
 
 // Explore More Icons
@@ -752,6 +754,7 @@ const SellerCard = React.memo(({
 
 export default function Home() {
   const { storePath, fulfilmentMode } = useStoreMode()
+  const isDesktop = useIsDesktop()
   const HERO_BANNER_AUTO_SLIDE_MS = 3500;
   const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
   const navigate = useNavigate();
@@ -2897,6 +2900,26 @@ export default function Home() {
 
   if (shouldShowOutOfZoneScreen) {
     return <OutOfZoneScreen location={effectiveLocation} />;
+  }
+
+  // lg+ gets the card-grid homepage; the markup below stays the mobile/tablet layout.
+  if (isDesktop) {
+    return (
+      <div className="hidden lg:block">
+        <DesktopHome
+          heroBanners={heroBannersData}
+          categories={realCategories}
+          zoneId={zoneId}
+          onOpenBanner={(banner) => {
+            const first = banner?.linkedSellers?.[0];
+            const sellerSlug = first?.slug || first?.sellerId || first?._id;
+            if (!sellerSlug) return;
+            captureScrollBeforeSellerNav();
+            navigate(storePath(`/sellers/${sellerSlug}`));
+          }}
+        />
+      </div>
+    );
   }
 
   return (

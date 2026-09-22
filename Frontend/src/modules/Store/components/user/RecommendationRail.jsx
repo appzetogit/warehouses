@@ -4,6 +4,7 @@ import { ShoppingBag } from "lucide-react"
 import { catalogAPI } from "@/services/api"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
+import { ProductTile } from "@store/components/user/desktop/ui"
 
 /**
  * A horizontal rail of recommended products for one product:
@@ -11,8 +12,9 @@ import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
  * price, shared attributes). Only what this storefront can deliver, in stock.
  * `fallbackType` is tried when the first type has nothing.
  * Renders nothing while loading, on error, or when empty.
+ * variant "desktop" renders the lg+ card style (DESKTOP_THEME.md).
  */
-export default function RecommendationRail({ productId, type = "similar", fallbackType = null, title, excludeIds = [], limit = 10, className = "" }) {
+export default function RecommendationRail({ productId, type = "similar", fallbackType = null, title, excludeIds = [], limit = 10, className = "", variant = "default" }) {
   const { fulfilmentMode, storePath } = useStoreMode()
   const [products, setProducts] = useState([])
   const excludeKey = excludeIds.map(String).sort().join(",")
@@ -32,6 +34,25 @@ export default function RecommendationRail({ productId, type = "similar", fallba
   }, [productId, type, fallbackType, fulfilmentMode, limit, excludeKey])
 
   if (!products.length) return null
+
+  if (variant === "desktop") {
+    return (
+      <section className={`bg-wh-surface py-4 ${className}`} aria-label={title}>
+        <h2 className="mb-3 text-[21px] font-bold leading-7 text-wh-text">{title}</h2>
+        <div className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:thin]">
+          {products.map((p) => (
+            <div key={p._id} className="w-[180px] shrink-0">
+              <ProductTile
+                product={{ ...p, price: p.displayPrice ?? p.price, image: p.image ? resolveMediaUrl(p.image) : "" }}
+                href={storePath(`/product/${p._id}`)}
+                compact
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className={`pt-4 ${className}`}>

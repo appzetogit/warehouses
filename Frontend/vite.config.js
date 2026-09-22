@@ -14,7 +14,7 @@ const servicesApi = path.resolve(__dirname, './src/services/api')
  * APP_CONFIG.NAME, so an unset VITE_BRAND_NAME never leaves a placeholder.
  */
 const brandTitle = () => {
-  let name = 'Warehouses'
+  let name = 'The Warehouses'
   return {
     name: 'brand-title',
     configResolved(config) {
