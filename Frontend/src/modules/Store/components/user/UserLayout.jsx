@@ -229,8 +229,8 @@ export default function UserLayout() {
                 {showDesktopShell && <DesktopFooter />}
                 {showBottomNav && <BottomNavigation />}
 
-                {/* Floating Daily Spin Trigger Button */}
-                <div className="fixed bottom-20 md:bottom-6 left-5 z-40">
+                {/* Floating Daily Spin trigger: not on sign-in pages, and on desktop the header has Spin & Win */}
+                {showDesktopShell && <div className="fixed bottom-20 md:bottom-6 left-5 z-40 lg:hidden">
                   <button
                     onClick={() => setIsSpinWheelOpen(true)}
                     className="flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-gray-950 font-bold text-xs shadow-xl hover:shadow-amber-500/30 transition-all border border-amber-300/40 cursor-pointer hover:scale-105 active:scale-95"
@@ -239,14 +239,14 @@ export default function UserLayout() {
                     <span className="text-base leading-none">🎡</span>
                     <span className="hidden sm:inline">Daily Spin</span>
                   </button>
-                </div>
+                </div>}
 
                 {/* Engagement Modals & Widgets */}
                 <SpinWheelModal
                   isOpen={isSpinWheelOpen}
                   onClose={() => setIsSpinWheelOpen(false)}
                 />
-                <GeminiAssistantWidget />
+                {showDesktopShell && <GeminiAssistantWidget />}
               </LocationSelectorProvider>
             </SearchOverlayProvider>
           </OrdersProvider>

@@ -27,7 +27,7 @@ export default function Favorites() {
   const handleRemoveDishFavorite = (e, dishId, sellerId) => {
     e.preventDefault()
     e.stopPropagation()
-    if (window.confirm("Remove this dish from favorites?")) {
+    if (window.confirm("Remove this item from favorites?")) {
       removeDishFavorite(dishId, sellerId)
       toast.success("Dish removed from favorites")
     }
@@ -53,15 +53,15 @@ export default function Favorites() {
           <CardContent className="py-12 text-center">
             <Heart
               className="h-16 w-16 mx-auto mb-4"
-              style={{ color: "var(--module-theme-color, #FA0272)" }}
+              style={{ color: "var(--module-theme-ink, #B45309)" }}
             />
             <p className="text-muted-foreground text-lg mb-4">You haven't added any favorites yet</p>
             <Link to="/user">
               <Button
-                className="text-white border-0"
+                className="text-wh-text border-0"
                 style={{
-                  background: "linear-gradient(135deg, rgba(var(--module-theme-rgb,250,2,114),0.92), var(--module-theme-color,#FA0272))",
-                  boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,250,2,114),0.25)",
+                  background: "linear-gradient(135deg, rgba(var(--module-theme-rgb,253,146,11),0.92), var(--module-theme-color,#FD920B))",
+                  boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,253,146,11),0.25)",
                 }}
               >
                 Explore Sellers
@@ -101,7 +101,7 @@ export default function Favorites() {
             onClick={() => setActiveTab("sellers")}
             className={`px-4 py-2 font-medium transition-colors ${
               activeTab === "sellers"
-                ? "border-b-2 border-primary-orange text-primary-orange"
+                ? "border-b-2 border-wh-brand text-wh-brand-ink"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             }`}
           >
@@ -111,7 +111,7 @@ export default function Favorites() {
             onClick={() => setActiveTab("dishes")}
             className={`px-4 py-2 font-medium transition-colors ${
               activeTab === "dishes"
-                ? "border-b-2 border-primary-orange text-primary-orange"
+                ? "border-b-2 border-wh-brand text-wh-brand-ink"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             }`}
           >
@@ -128,10 +128,10 @@ export default function Favorites() {
                 <p className="text-muted-foreground text-lg mb-4">No sellers saved yet</p>
                 <Link to="/user">
                   <Button
-                    className="text-white border-0"
+                    className="text-wh-text border-0"
                     style={{
-                      background: "linear-gradient(135deg, rgba(var(--module-theme-rgb,250,2,114),0.92), var(--module-theme-color,#FA0272))",
-                      boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,250,2,114),0.25)",
+                      background: "linear-gradient(135deg, rgba(var(--module-theme-rgb,253,146,11),0.92), var(--module-theme-color,#FD920B))",
+                      boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,253,146,11),0.25)",
                     }}
                   >
                     Explore Sellers
@@ -187,7 +187,7 @@ export default function Favorites() {
                         <span className="font-medium">{seller.distance}</span>
                       </div>
                     </div>
-                    <Button className="w-full bg-gradient-to-r bg-primary-orange hover:opacity-90 text-white text-xs py-1.5 h-8">
+                    <Button className="w-full bg-gradient-to-r bg-wh-brand hover:opacity-90 text-wh-text text-xs py-1.5 h-8">
                       View Seller
                       <ArrowRight className="h-3 w-3 ml-1" />
                     </Button>
@@ -206,13 +206,13 @@ export default function Favorites() {
             {dishFavorites.length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <Bookmark className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground text-lg mb-4">No dishes saved yet</p>
+                <p className="text-muted-foreground text-lg mb-4">No items saved yet</p>
                 <Link to="/user">
                   <Button
-                    className="text-white border-0"
+                    className="text-wh-text border-0"
                     style={{
-                      background: "linear-gradient(135deg, rgba(var(--module-theme-rgb,250,2,114),0.92), var(--module-theme-color,#FA0272))",
-                      boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,250,2,114),0.25)",
+                      background: "linear-gradient(135deg, rgba(var(--module-theme-rgb,253,146,11),0.92), var(--module-theme-color,#FD920B))",
+                      boxShadow: "0 8px 18px rgba(var(--module-theme-rgb,253,146,11),0.25)",
                     }}
                   >
                     Explore Dishes
@@ -272,11 +272,11 @@ export default function Favorites() {
                                 <span className="text-muted-foreground font-medium text-xs">{dish.foodType}</span>
                               )}
                             </div>
-                            <div className="text-sm font-bold text-primary-orange">
+                            <div className="text-sm font-bold text-wh-brand-ink">
                               {"\u20B9"}{Math.round(dish.price || 0)}
                             </div>
                           </div>
-                          <Button className="w-full bg-gradient-to-r bg-primary-orange hover:opacity-90 text-white text-xs py-1.5 h-8">
+                          <Button className="w-full bg-gradient-to-r bg-wh-brand hover:opacity-90 text-wh-text text-xs py-1.5 h-8">
                             View Dish
                             <ArrowRight className="h-3 w-3 ml-1" />
                           </Button>

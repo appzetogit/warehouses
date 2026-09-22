@@ -1208,7 +1208,7 @@ export default function OrderTracking() {
           <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 dark:text-white">Order Not Found</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">{error || 'The order you\'re looking for doesn\'t exist.'}</p>
           <Link to="/user/orders">
-            <Button className="text-white border-0" style={{ backgroundColor: "var(--module-theme-color, #EB590E)" }}>Back to Orders</Button>
+            <Button className="text-wh-text border-0" style={{ backgroundColor: "var(--module-theme-color, #FD920B)" }}>Back to Orders</Button>
           </Link>
         </div>
       </AnimatedPage>
@@ -1305,8 +1305,9 @@ export default function OrderTracking() {
   const complaintOrderId = encodeURIComponent(
     String(order?.orderId || order?.id || orderId || "")
   )
-  const themeColor = "var(--module-theme-color, #EB590E)"
-  const themeRgb = "var(--module-theme-rgb, 235,89,14)"
+  const themeColor = "var(--module-theme-color, #FD920B)"
+  const themeRgb = "var(--module-theme-rgb, 253,146,11)"
+  const themeInk = "var(--module-theme-ink, #B45309)"
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-[#0a0a0a]">
@@ -1367,7 +1368,7 @@ export default function OrderTracking() {
       {/* Green Header */}
       <motion.div
         className="text-white sticky top-0 z-40"
-        style={{ backgroundColor: isCancelledOrder ? "#dc2626" : themeColor }}
+        style={{ backgroundColor: isCancelledOrder ? "#dc2626" : "var(--wh-nav-2)" }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
@@ -1410,7 +1411,7 @@ export default function OrderTracking() {
             <div>
               <span
                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mb-3"
-                style={{ backgroundColor: `rgba(${themeRgb}, 0.12)`, color: themeColor }}
+                style={{ backgroundColor: `rgba(${themeRgb}, 0.12)`, color: themeInk }}
               >
                 {currentStatus.title}
               </span>
@@ -1570,7 +1571,7 @@ export default function OrderTracking() {
                 }}
                 aria-label="Call seller"
               >
-                <Phone className="w-4 h-4" style={{ color: themeColor }} />
+                <Phone className="w-4 h-4" style={{ color: themeInk }} />
               </button>
             )}
           </div>
@@ -1683,7 +1684,7 @@ export default function OrderTracking() {
           <DialogHeader className="mb-2">
             <DialogTitle
               className="text-xl font-bold bg-clip-text text-transparent"
-              style={{ backgroundImage: `linear-gradient(to right, ${themeColor}, rgba(${themeRgb}, 0.72))` }}
+              style={{ backgroundImage: `linear-gradient(to right, ${themeInk}, ${themeInk})` }}
             >
               Delivery Instructions
             </DialogTitle>
@@ -1702,7 +1703,7 @@ export default function OrderTracking() {
             <Button
               onClick={handleUpdateInstructions}
               disabled={isUpdatingInstructions}
-              className="w-full text-white font-bold h-12 rounded-xl border-none"
+              className="w-full text-wh-text font-bold h-12 rounded-xl border-none"
               style={{ backgroundImage: `linear-gradient(to right, ${themeColor}, rgba(${themeRgb}, 0.78))` }}
             >
               {isUpdatingInstructions ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Save Instructions"}

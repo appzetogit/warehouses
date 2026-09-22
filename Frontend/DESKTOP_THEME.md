@@ -17,6 +17,8 @@ Covers both storefronts: Shop at `/` and Quick at `/quick` (`useStoreMode()`).
 | `--wh-nav-3` | `#37475A` | footer "back to top" strip, nav hover |
 | `--wh-brand` | `#FD920B` | brand orange: search button, active states, links on dark |
 | `--wh-brand-600` | `#E07F00` | hover/pressed brand |
+| `--wh-brand-ink` | `#B45309` | brand-coloured text/icons/links on white or light backgrounds (orange `#FD920B` text on white fails AA) |
+| `--wh-brand-50` | `#FFF4E5` | light brand tint (selected rows, soft chips) |
 | `--wh-cta` | `#FFD814` | primary CTA "Add to cart" (pill) |
 | `--wh-cta-hover` | `#F7CA00` | |
 | `--wh-cta-2` | `#FFA41C` | secondary CTA "Buy now" (pill) |

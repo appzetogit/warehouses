@@ -38,12 +38,12 @@ function HeroBannerSkeleton({ className, compact = false }) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[28px] border border-white/50 bg-[linear-gradient(135deg,#fff8ef_0%,#fff0de_48%,#ffe3c5_100%)] shadow-[0_18px_60px_rgba(235,89,14,0.14)]",
+        "relative overflow-hidden rounded-[28px] border border-white/50 bg-[linear-gradient(135deg,#fff8ef_0%,#fff0de_48%,#ffe3c5_100%)] shadow-[0_18px_60px_rgba(253,146,11,0.14)]",
         compact ? "h-40 sm:h-48" : "h-56 sm:h-64 md:h-72 lg:h-80",
         className
       )}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(235,89,14,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(251,191,36,0.2),transparent_28%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(253,146,11,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(251,191,36,0.2),transparent_28%)]" />
       <div className="relative flex h-full flex-col justify-between p-5 sm:p-6 md:p-8">
         <div className="flex items-center justify-between gap-4">
           <Skeleton className="h-10 w-10 rounded-full bg-white/60" />
@@ -109,7 +109,7 @@ function SellerCardSkeleton({ className, compact = false }) {
     <div className={cn("h-full", className)}>
       <div className="h-full overflow-hidden rounded-[24px] border border-[#efe2d4] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-[#141414]">
         <div className={cn("relative overflow-hidden", compact ? "h-40 sm:h-44" : "h-44 sm:h-48 lg:h-52")}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(235,89,14,0.2),transparent_25%),linear-gradient(135deg,#fff7ee_0%,#ffe7cf_100%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(255,153,102,0.14),transparent_25%),linear-gradient(135deg,#262626_0%,#181818_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(253,146,11,0.2),transparent_25%),linear-gradient(135deg,#fff7ee_0%,#ffe7cf_100%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(255,153,102,0.14),transparent_25%),linear-gradient(135deg,#262626_0%,#181818_100%)]" />
           <Skeleton className="absolute left-4 top-4 h-8 w-20 rounded-full bg-white/60 dark:bg-white/10" />
           <Skeleton className="absolute right-4 top-4 h-9 w-9 rounded-full bg-white/60 dark:bg-white/10" />
           <div className="absolute inset-x-0 bottom-0 space-y-3 px-4 pb-4">

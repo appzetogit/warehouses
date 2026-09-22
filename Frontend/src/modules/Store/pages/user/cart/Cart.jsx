@@ -2568,7 +2568,7 @@ export default function Cart() {
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">Your cart is empty</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Find something you like and it will show up here</p>
           <Link to={storePath("/")}>
-            <Button className="border-0 bg-[#FD920B] text-[#0F1111] hover:bg-[#E07F00]">
+            <Button className="border-0 bg-[#FD920B] text-[#0F1111] hover:bg-wh-brand-600">
               Start shopping
             </Button>
           </Link>
@@ -2581,7 +2581,7 @@ export default function Cart() {
     <div className="relative min-h-screen bg-slate-50 dark:bg-[#0a0a0a]">
       {/* Header (mobile; desktop uses the site header and the subtotal card) */}
       <div className="sticky top-0 z-20 flex-shrink-0 text-white lg:hidden">
-        <div style={{ backgroundColor: "var(--module-theme-color, #FA0272)" }}>
+        <div style={{ backgroundColor: "var(--wh-nav-2)" }}>
           <div className="max-w-7xl mx-auto px-3 md:px-6 pt-4 pb-4 md:pt-5 md:pb-5">
             <div className="flex items-start gap-2.5">
               <Button
@@ -2624,7 +2624,7 @@ export default function Cart() {
         {/* Transition curve: Downward green corners effect */}
         <div 
           className="h-5 md:h-6 w-full relative"
-          style={{ backgroundColor: "var(--module-theme-color, #FA0272)" }}
+          style={{ backgroundColor: "var(--wh-nav-2)" }}
         >
           <div 
             className="absolute top-0 left-0 w-full bg-slate-50 dark:bg-[#0a0a0a] rounded-t-[1.75rem] md:rounded-t-[2rem]" 
@@ -2800,7 +2800,7 @@ export default function Cart() {
                                     )}
                                   </span>
                                   <div className="flex items-center gap-1 justify-end">
-                                    <span className="inline-flex items-center rounded-full border border-[#FA0272] bg-[#FA0272]/10 px-2 py-0.5 text-xs font-bold text-[#FA0272] tabular-nums">
+                                    <span className="inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-xs font-bold text-wh-brand-ink tabular-nums">
                                       {RUPEE_SYMBOL}
                                       {((item.price || 0) * (item.quantity || 1)).toFixed(0)}
                                     </span>
@@ -2834,7 +2834,7 @@ export default function Cart() {
                     onClick={() => setShowCookingSheet(true)}
                     className={`flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-2 text-[12px] font-semibold ${
                       note.trim()
-                        ? "border-[#EB590E]/40 bg-[#FFF1E8] text-[#EB590E]"
+                        ? "border-wh-brand/40 bg-[#FFF1E8] text-wh-brand-ink"
                         : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] text-gray-700 dark:text-gray-300"
                     }`}
                   >
@@ -2864,8 +2864,8 @@ export default function Cart() {
                     >
                       <span className="whitespace-nowrap">Delivery Modes</span>
                       <span
-                        className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wide px-1 sm:px-1.5 py-0.5 rounded-full text-white shrink-0"
-                        style={{ backgroundColor: "var(--module-theme-color, #FA0272)" }}
+                        className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wide px-1 sm:px-1.5 py-0.5 rounded-full text-wh-text shrink-0"
+                        style={{ backgroundColor: "var(--module-theme-color, #FD920B)" }}
                       >
                         New
                       </span>
@@ -2875,7 +2875,7 @@ export default function Cart() {
                       onClick={() => setDeliverySectionTab("instructions")}
                       className={`flex-1 rounded-full px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] font-semibold whitespace-nowrap transition-colors ${
                         deliverySectionTab === "instructions"
-                          ? "bg-white dark:bg-[#1a1a1a] text-[#FA0272] shadow-sm"
+                          ? "bg-white dark:bg-[#1a1a1a] text-wh-brand-ink shadow-sm"
                           : "text-gray-500 dark:text-gray-400"
                       }`}
                     >
@@ -2892,16 +2892,16 @@ export default function Cart() {
                       className="w-full flex items-start gap-3 text-left pb-3 border-b border-gray-100 dark:border-gray-800"
                     >
                       <div className={`mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        deliveryMode === "quick" ? "border-[#FA0272]" : "border-gray-300 dark:border-gray-600"
+                        deliveryMode === "quick" ? "border-wh-brand" : "border-gray-300 dark:border-gray-600"
                       }`}>
-                        {deliveryMode === "quick" ? <div className="h-2.5 w-2.5 rounded-full bg-[#FA0272]" /> : null}
+                        {deliveryMode === "quick" ? <div className="h-2.5 w-2.5 rounded-full bg-wh-brand" /> : null}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            Quick <Zap className="inline h-3.5 w-3.5 text-[#FA0272] mb-0.5" /> {quickDeliveryTime}
+                            Quick <Zap className="inline h-3.5 w-3.5 text-wh-brand-ink mb-0.5" /> {quickDeliveryTime}
                           </p>
-                          <p className={`text-xs font-semibold shrink-0 ${deliveryMode === "quick" ? "text-[#FA0272]" : "text-gray-500"}`}>
+                          <p className={`text-xs font-semibold shrink-0 ${deliveryMode === "quick" ? "text-wh-brand-ink" : "text-gray-500"}`}>
                             +{RUPEE_SYMBOL}{configuredQuickDeliveryFee}
                           </p>
                         </div>
@@ -2917,9 +2917,9 @@ export default function Cart() {
                       className="w-full flex items-start gap-3 text-left pt-3"
                     >
                       <div className={`mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        deliveryMode === "basic" ? "border-[#FA0272]" : "border-gray-300 dark:border-gray-600"
+                        deliveryMode === "basic" ? "border-wh-brand" : "border-gray-300 dark:border-gray-600"
                       }`}>
-                        {deliveryMode === "basic" ? <div className="h-2.5 w-2.5 rounded-full bg-[#FA0272]" /> : null}
+                        {deliveryMode === "basic" ? <div className="h-2.5 w-2.5 rounded-full bg-wh-brand" /> : null}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -2935,7 +2935,7 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={() => setShowAddressSheet(true)}
-                        className="w-full text-left text-sm font-medium text-[#EB590E] pt-1"
+                        className="w-full text-left text-sm font-medium text-wh-brand-ink pt-1"
                       >
                         Select a delivery location to continue
                       </button>
@@ -3031,7 +3031,7 @@ export default function Cart() {
                     type="button"
                     onClick={handleRecipientEditToggle}
                     className="text-xs font-bold uppercase tracking-wide shrink-0"
-                    style={{ color: "var(--module-theme-color, #FA0272)" }}
+                    style={{ color: "var(--module-theme-ink, #B45309)" }}
                   >
                     {isEditingRecipient ? "Save" : "Change"}
                   </button>
@@ -3060,14 +3060,14 @@ export default function Cart() {
                           }))
                         }
                         placeholder="Enter recipient name"
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#FA0272]"
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-wh-brand"
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
                         Phone number
                       </label>
-                      <div className="flex items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] overflow-hidden focus-within:border-[#FA0272]">
+                      <div className="flex items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] overflow-hidden focus-within:border-wh-brand">
                         <span className="px-3 text-sm text-gray-500 border-r border-gray-200 dark:border-gray-700">+91</span>
                         <input
                           type="tel"
@@ -3132,24 +3132,24 @@ export default function Cart() {
                 onClick={() => setShowOffersView(true)}
                 className={`order-2 w-full bg-white dark:bg-[#1a1a1a] rounded-2xl border shadow-sm px-4 py-3.5 flex items-center gap-3 text-left ${
                   appliedCoupon
-                    ? "border-[#FA0272]/30 dark:border-[#FA0272]/40"
+                    ? "border-wh-brand/30 dark:border-wh-brand/40"
                     : "border-slate-100 dark:border-gray-800"
                 }`}
               >
                 <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
                   appliedCoupon
-                    ? "bg-pink-50 dark:bg-pink-950/40"
+                    ? "bg-wh-brand-50 dark:bg-wh-brand/10"
                     : "bg-emerald-50 dark:bg-emerald-950/40"
                 }`}>
-                  <Tag className={`h-4 w-4 ${appliedCoupon ? "text-[#FA0272]" : "text-emerald-600"}`} />
+                  <Tag className={`h-4 w-4 ${appliedCoupon ? "text-wh-brand-ink" : "text-emerald-600"}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold ${appliedCoupon ? "text-[#FA0272]" : "text-gray-900 dark:text-white"}`}>
+                  <p className={`text-sm font-semibold ${appliedCoupon ? "text-wh-brand-ink" : "text-gray-900 dark:text-white"}`}>
                     {appliedCoupon
                       ? `'${appliedCoupon.code}' applied`
                       : "Payment offers & more"}
                   </p>
-                  <p className={`text-xs mt-0.5 truncate ${appliedCoupon ? "text-[#FA0272]/80 font-medium" : "text-gray-500 dark:text-gray-400"}`}>
+                  <p className={`text-xs mt-0.5 truncate ${appliedCoupon ? "text-wh-brand-ink/80 font-medium" : "text-gray-500 dark:text-gray-400"}`}>
                     {appliedCoupon
                       ? `You saved ${RUPEE_SYMBOL}${discount.toFixed(0)} on this order`
                       : loadingCoupons
@@ -3243,13 +3243,13 @@ export default function Cart() {
                         decimals={2}
                         showDiscountTag={false}
                         plainClassName="text-gray-800 dark:text-gray-200 font-medium tabular-nums"
-                        saleClassName="inline-flex items-center rounded-full border border-[#FA0272] bg-[#FA0272]/10 px-2 py-0.5 text-sm font-bold text-[#FA0272] tabular-nums"
+                        saleClassName="inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-sm font-bold text-wh-brand-ink tabular-nums"
                       />
                     </div>
                     {itemDiscountAmount > 0 && (
                       <div className="flex justify-between text-sm font-medium">
-                        <span className="text-[#FA0272] border-b border-dotted border-pink-300">Coupon Discount</span>
-                        <span className="text-[#FA0272]">-{RUPEE_SYMBOL}{itemDiscountAmount.toFixed(2)}</span>
+                        <span className="text-wh-brand-ink border-b border-dotted border-wh-brand/40">Coupon Discount</span>
+                        <span className="text-wh-brand-ink">-{RUPEE_SYMBOL}{itemDiscountAmount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex items-start justify-between gap-3 text-sm">
@@ -3280,8 +3280,8 @@ export default function Cart() {
                     </div>
                     {quickDeliveryFee > 0 && (
                       <div className="flex justify-between text-sm font-semibold">
-                        <span className="text-[#FA0272] border-b border-dotted border-pink-300">Quick Mode</span>
-                        <span className="text-[#FA0272]">{RUPEE_SYMBOL}{quickDeliveryFee.toFixed(2)}</span>
+                        <span className="text-wh-brand-ink border-b border-dotted border-wh-brand/40">Quick Mode</span>
+                        <span className="text-wh-brand-ink">{RUPEE_SYMBOL}{quickDeliveryFee.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
@@ -3306,7 +3306,7 @@ export default function Cart() {
                       <span>{RUPEE_SYMBOL}{finalPayable.toFixed(2)}</span>
                     </div>
                     {otherSavings > 0 && (
-                      <div className="rounded-xl bg-pink-50 dark:bg-pink-950/20 px-3 py-2.5 text-xs font-medium text-pink-700 dark:text-pink-300">
+                      <div className="rounded-xl bg-wh-brand-50 dark:bg-wh-brand/10 px-3 py-2.5 text-xs font-medium text-wh-brand-ink dark:text-wh-brand">
                         You saved {RUPEE_SYMBOL}{otherSavings.toFixed(0)} on fees and discounts
                       </div>
                     )}
@@ -3371,10 +3371,10 @@ export default function Cart() {
                 !canPlaceOrder ||
                 (selectedPaymentMethod === "wallet" && walletBalance < finalPayable)
               }
-              className="shrink-0 min-w-[132px] px-5 rounded-full text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="shrink-0 min-w-[132px] px-5 rounded-full text-wh-text font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               style={{
-                backgroundColor: "var(--module-theme-color, #FA0272)",
-                boxShadow: "0 8px 20px rgba(var(--module-theme-rgb, 250,2,114), 0.28)",
+                backgroundColor: "var(--module-theme-color, #FD920B)",
+                boxShadow: "0 8px 20px rgba(var(--module-theme-rgb, 253,146,11), 0.28)",
               }}
             >
               {isPlacingOrder
@@ -3445,10 +3445,10 @@ export default function Cart() {
                   <div className="relative mb-6">
                     <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-[#EB590E] to-[#D94F0C] rounded-full transition-all duration-100 ease-linear"
+                        className="h-full bg-gradient-to-r from-wh-brand to-wh-brand-600 rounded-full transition-all duration-100 ease-linear"
                         style={{
                           width: `${orderProgress}%`,
-                          boxShadow: '0 0 10px rgba(235, 89, 14, 0.5)'
+                          boxShadow: '0 0 10px rgba(253, 146, 11, 0.5)'
                         }}
                       />
                     </div>
@@ -3471,7 +3471,7 @@ export default function Cart() {
                     }}
                     className="w-full text-right"
                   >
-                    <span className="text-[#EB590E] font-semibold text-base hover:text-[#D94F0C] transition-colors">
+                    <span className="text-wh-brand-ink font-semibold text-base hover:text-wh-brand-ink transition-colors">
                       CANCEL
                     </span>
                   </button>
@@ -3496,7 +3496,7 @@ export default function Cart() {
                     style={{
                       left: `${Math.random() * 100}%`,
                       top: `-10%`,
-                      backgroundColor: ['#EB590E', '#3b82f6', '#f59e0b', '#ef4444', '#D94F0C', '#ec4899'][Math.floor(Math.random() * 6)],
+                      backgroundColor: ['#FD920B', '#3b82f6', '#f59e0b', '#ef4444', '#E07F00', '#ec4899'][Math.floor(Math.random() * 6)],
                       animation: `confettiFall ${2 + Math.random() * 2}s linear ${Math.random() * 2}s infinite`,
                       transform: `rotate(${Math.random() * 360}deg)`,
                     }}
@@ -3574,14 +3574,14 @@ export default function Cart() {
                   className="mt-12 text-center"
                   style={{ animation: 'slideUp 0.5s ease-out 0.8s both' }}
                 >
-                  <h3 className="text-3xl font-bold text-[#EB590E] dark:text-orange-400 mb-2">Order Placed!</h3>
+                  <h3 className="text-3xl font-bold text-wh-brand-ink dark:text-orange-400 mb-2">Order Placed!</h3>
                   <p className="text-gray-600 dark:text-gray-300">Your order is on its way</p>
                 </div>
 
                 {/* Action Button */}
                 <button
                   onClick={handleGoToOrders}
-                  className="mt-10 bg-[#EB590E] hover:bg-[#D94F0C] text-white font-semibold py-4 px-12 rounded-xl shadow-lg shadow-orange-200/70 dark:shadow-orange-950/40 transition-all hover:shadow-xl hover:scale-105"
+                  className="mt-10 bg-wh-brand hover:bg-wh-brand-600 text-wh-text font-semibold py-4 px-12 rounded-xl shadow-lg shadow-orange-200/70 dark:shadow-orange-950/40 transition-all hover:shadow-xl hover:scale-105"
                   style={{ animation: 'slideUp 0.5s ease-out 1s both' }}
                 >
                   Track Your Order
@@ -3654,7 +3654,7 @@ export default function Cart() {
                               onClick={() => handleSelectAddressFromSheet(address)}
                               className={`w-full flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-colors ${
                                 isSelected
-                                  ? "border-[#EB590E]/40 bg-[#FFF7F2] dark:bg-[#EB590E]/10"
+                                  ? "border-wh-brand/40 bg-[#FFF7F2] dark:bg-wh-brand/10"
                                   : "border-gray-100 dark:border-gray-800 bg-white dark:bg-[#222222] hover:border-gray-200"
                               }`}
                             >
@@ -3734,7 +3734,7 @@ export default function Cart() {
                       }}
                       rows={4}
                       placeholder="E.g. less spicy, no onions, extra sauce..."
-                      className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-4 py-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#EB590E] resize-none"
+                      className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-4 py-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-wh-brand resize-none"
                     />
                     <div className="mt-4 flex gap-2">
                       {note.trim() && (
@@ -3752,8 +3752,8 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={() => setShowCookingSheet(false)}
-                        className="flex-1 h-11 rounded-xl text-white text-sm font-bold"
-                        style={{ backgroundColor: "var(--module-theme-color, #FA0272)" }}
+                        className="flex-1 h-11 rounded-xl text-wh-text text-sm font-bold"
+                        style={{ backgroundColor: "var(--module-theme-color, #FD920B)" }}
                       >
                         Save
                       </button>
@@ -3776,7 +3776,7 @@ export default function Cart() {
               >
                 <div
                   className="sticky top-0 z-10 text-white shadow-sm"
-                  style={{ backgroundColor: "var(--module-theme-color, #FA0272)" }}
+                  style={{ backgroundColor: "var(--wh-nav-2)" }}
                 >
                   <div className="flex items-center gap-3 px-4 py-3">
                     <Button
@@ -3811,7 +3811,7 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={handleRemoveCoupon}
-                        className="text-xs font-bold text-[#EB590E] uppercase tracking-wide shrink-0"
+                        className="text-xs font-bold text-wh-brand-ink uppercase tracking-wide shrink-0"
                       >
                         Remove
                       </button>
@@ -3826,13 +3826,13 @@ export default function Cart() {
                         value={manualCouponCode}
                         onChange={(e) => setManualCouponCode(e.target.value.toUpperCase())}
                         placeholder="Enter coupon code"
-                        className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#EB590E]"
+                        className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-wh-brand"
                       />
                       <button
                         type="button"
                         onClick={handleApplyCouponCode}
-                        className="h-11 px-4 rounded-xl text-white text-sm font-bold shrink-0"
-                        style={{ backgroundColor: "var(--module-theme-color, #FA0272)" }}
+                        className="h-11 px-4 rounded-xl text-wh-text text-sm font-bold shrink-0"
+                        style={{ backgroundColor: "var(--module-theme-color, #FD920B)" }}
                       >
                         Apply
                       </button>
@@ -3864,7 +3864,7 @@ export default function Cart() {
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-start gap-3 min-w-0">
                                 <div className="h-10 w-10 rounded-xl bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center shrink-0">
-                                  <Percent className="h-5 w-5 text-[#EB590E]" />
+                                  <Percent className="h-5 w-5 text-wh-brand-ink" />
                                 </div>
                                 <div className="min-w-0">
                                   <p className="text-sm font-bold text-gray-900 dark:text-white">
@@ -3872,7 +3872,7 @@ export default function Cart() {
                                   </p>
                                   <p className="text-xs text-gray-500 mt-0.5">Use code '{coupon.code}'</p>
                                   {coupon.customerGroup === "new" ? (
-                                    <p className="text-[11px] text-[#EB590E] mt-1">First-time users only</p>
+                                    <p className="text-[11px] text-wh-brand-ink mt-1">First-time users only</p>
                                   ) : isLocked ? (
                                     <p className="text-[11px] text-blue-600 mt-1">
                                       Add items worth {RUPEE_SYMBOL}{(Number(coupon.minOrder) - subtotal).toFixed(0)} more
@@ -3886,7 +3886,7 @@ export default function Cart() {
                                 type="button"
                                 onClick={() => handleApplyCoupon(coupon)}
                                 disabled={isDisabled}
-                                className="shrink-0 border border-[#EB590E] text-[#EB590E] rounded-full px-4 py-1.5 text-xs font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="shrink-0 border border-wh-brand text-wh-brand-ink rounded-full px-4 py-1.5 text-xs font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                 {isApplied ? "Applied" : "Apply"}
                               </button>
@@ -3897,8 +3897,8 @@ export default function Cart() {
                     </div>
                   ) : (
                     <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-8 text-center">
-                      <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-to-br from-pink-100 to-orange-100 dark:from-pink-950/40 dark:to-orange-950/30 flex items-center justify-center">
-                        <Sparkles className="h-7 w-7 text-[#EB590E]" />
+                      <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-to-br from-wh-brand-50 to-orange-100 dark:from-wh-brand/10 dark:to-orange-950/30 flex items-center justify-center">
+                        <Sparkles className="h-7 w-7 text-wh-brand-ink" />
                       </div>
                       <h3 className="text-base font-bold text-gray-900 dark:text-white">No offers right now</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-xs mx-auto">
@@ -3911,7 +3911,7 @@ export default function Cart() {
                           <p className="text-[11px] text-gray-500 mt-1">Check at payment step</p>
                         </div>
                         <div className="rounded-xl bg-slate-50 dark:bg-[#141414] p-3">
-                          <Percent className="h-4 w-4 text-[#EB590E] mb-2" />
+                          <Percent className="h-4 w-4 text-wh-brand-ink mb-2" />
                           <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Seller deals</p>
                           <p className="text-[11px] text-gray-500 mt-1">Add more items to unlock</p>
                         </div>
@@ -3991,26 +3991,26 @@ export default function Cart() {
                             }
                           }}
                           className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 group ${selectedPaymentMethod === option.id
-                              ? 'border-[#EB590E] bg-[#EB590E] shadow-lg shadow-orange-500/30'
+                              ? 'border-wh-brand bg-wh-brand shadow-lg shadow-orange-500/30'
                               : 'border-gray-100 dark:border-gray-800/80 bg-white dark:bg-[#222222] hover:border-orange-200 dark:hover:border-orange-900/30 shadow-sm'
                             } ${option.disabled ? 'opacity-40 grayscale-[0.8] cursor-not-allowed' : 'cursor-pointer active:scale-[0.98]'}`}
                         >
                           <div className="flex items-center gap-4">
                             <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 ${selectedPaymentMethod === option.id
-                                ? 'bg-white/20 text-white'
+                                ? 'bg-white/20 text-wh-text'
                                 : option.color
                               }`}>
                               {option.icon}
                             </div>
                             <div className="text-left">
                               <div className="flex items-center gap-2">
-                                <span className={`text-sm font-black tracking-tight leading-none transition-colors ${selectedPaymentMethod === option.id ? 'text-white' : 'text-gray-900 dark:text-gray-100'
+                                <span className={`text-sm font-black tracking-tight leading-none transition-colors ${selectedPaymentMethod === option.id ? 'text-wh-text' : 'text-gray-900 dark:text-gray-100'
                                   }`}>
                                   {option.name}
                                 </span>
                                 {option.badge && (
                                   <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-sm tracking-wider ${selectedPaymentMethod === option.id
-                                      ? 'bg-white/20 text-white'
+                                      ? 'bg-white/20 text-wh-text'
                                       : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                     }`}>
                                     {option.badge}
@@ -4018,7 +4018,7 @@ export default function Cart() {
                                 )}
                               </div>
                               <div className="flex items-center gap-1.5 mt-1">
-                                <p className={`text-[11px] font-bold transition-colors ${selectedPaymentMethod === option.id ? 'text-white/80' : 'text-gray-400'
+                                <p className={`text-[11px] font-bold transition-colors ${selectedPaymentMethod === option.id ? 'text-wh-text/80' : 'text-gray-400'
                                   }`}>
                                   {option.description}
                                 </p>
@@ -4026,7 +4026,7 @@ export default function Cart() {
                                   <>
                                     <span className={`w-1 h-1 rounded-full ${selectedPaymentMethod === option.id ? 'bg-white/40' : 'bg-orange-300 dark:bg-orange-700'
                                       }`} />
-                                    <p className={`text-[10px] font-black uppercase tracking-tighter transition-colors ${selectedPaymentMethod === option.id ? 'text-white' : 'text-green-600 dark:text-green-500'
+                                    <p className={`text-[10px] font-black uppercase tracking-tighter transition-colors ${selectedPaymentMethod === option.id ? 'text-wh-text' : 'text-green-600 dark:text-green-500'
                                       }`}>
                                       {option.subInfo}
                                     </p>
@@ -4045,7 +4045,7 @@ export default function Cart() {
                               ? 'bg-white border-white'
                               : 'border-gray-200 dark:border-gray-700'
                             }`}>
-                            {selectedPaymentMethod === option.id && <Check className="w-3.5 h-3.5 text-[#EB590E]" strokeWidth={4} />}
+                            {selectedPaymentMethod === option.id && <Check className="w-3.5 h-3.5 text-wh-brand-ink" strokeWidth={4} />}
                           </div>
                         </button>
                       ))}
@@ -4057,11 +4057,11 @@ export default function Cart() {
                     >
                       <div className="flex-shrink-0">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Total Pay</p>
-                        <p className="text-xl font-black text-[#EB590E] tabular-nums">{RUPEE_SYMBOL}{total.toFixed(0)}</p>
+                        <p className="text-xl font-black text-wh-brand-ink tabular-nums">{RUPEE_SYMBOL}{total.toFixed(0)}</p>
                       </div>
                       <Button
                         onClick={() => setShowPaymentSheet(false)}
-                        className="flex-1 bg-[#EB590E] hover:bg-[#D94F0C] text-white h-11 rounded-xl text-sm font-bold shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98]"
+                        className="flex-1 bg-wh-brand hover:bg-wh-brand-600 text-wh-text h-11 rounded-xl text-sm font-bold shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98]"
                       >
                         Confirm Order
                       </Button>

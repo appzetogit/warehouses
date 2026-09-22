@@ -330,8 +330,8 @@ export default function ProductDetail() {
             )}
 
             {/* Coins Promotional Card */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/20 flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-wh-brand/10 border border-amber-500/20 flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-wh-brand to-wh-brand-600 text-wh-text flex items-center justify-center shrink-0 shadow-md">
                 <Coins className="w-5 h-5" />
               </div>
               <div>
@@ -350,7 +350,7 @@ export default function ProductDetail() {
             {/* Title & Brand */}
             <div>
               {product.brand && (
-                <span className="text-xs font-extrabold uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-wh-brand-ink dark:text-wh-brand">
                   {product.brand}
                 </span>
               )}

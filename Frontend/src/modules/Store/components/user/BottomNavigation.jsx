@@ -21,9 +21,9 @@ export default function BottomNavigation() {
         !pathname.includes("/cart") &&
         !pathname.includes("/profile")))
 
-  const activeColor = "var(--module-theme-color, #FA0272)"
-  const activeBg = "rgba(var(--module-theme-rgb, 250,2,114), 0.12)"
-  const activeFill = "rgba(var(--module-theme-rgb, 250,2,114), 0.2)"
+  const activeColor = "var(--module-theme-ink, #B45309)"
+  const activeBg = "rgba(var(--module-theme-rgb, 253,146,11), 0.12)"
+  const activeFill = "rgba(var(--module-theme-rgb, 253,146,11), 0.2)"
 
   const handleHomeNavClick = () => {
     // Explicit Home tab should start at top, not restore a prior seller leave position.

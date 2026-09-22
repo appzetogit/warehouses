@@ -10,6 +10,10 @@ import { BRAND_LOGO_ON_DARK } from "@/config/brandMark"
 import { useLocationSelector } from "../UserLayout"
 import { useBusinessSettings, usePublicCategories } from "./useDesktopShell"
 
+// The orange category bar carries dark text (white on orange is unreadable).
+const catItem =
+  "rounded-[2px] border border-transparent px-2 hover:border-wh-text focus-visible:border-wh-text focus-visible:outline-2 focus-visible:outline-wh-nav text-wh-text"
+
 // Hovered/focused items on the dark bars get a 1px white outline.
 const navItem =
   "rounded-[2px] border border-transparent px-2 hover:border-white focus-visible:border-white focus-visible:outline-2 focus-visible:outline-wh-brand text-white"
@@ -333,23 +337,23 @@ export default function DesktopHeader({ onOpenSpin }) {
       </div>
 
       {/* Category bar */}
-      <nav aria-label="Categories" className="bg-wh-nav-2">
+      <nav aria-label="Categories" className="bg-wh-brand">
         <div className="mx-auto flex h-[39px] max-w-[1500px] items-center gap-1 overflow-hidden px-[20px] text-[14px]">
-          <button type="button" onClick={() => setDrawerOpen(true)} className={`${navItem} flex h-[31px] items-center gap-1 font-bold`}>
+          <button type="button" onClick={() => setDrawerOpen(true)} className={`${catItem} flex h-[31px] items-center gap-1 font-bold`}>
             <Menu className="h-5 w-5" aria-hidden /> All
           </button>
           {topCats.map((c) => (
-            <Link key={c.id} to={storePath(`/category/${c.slug}`)} className={`${navItem} flex h-[31px] items-center whitespace-nowrap`}>
+            <Link key={c.id} to={storePath(`/category/${c.slug}`)} className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>
               {c.name}
             </Link>
           ))}
-          <Link to="/offers" className={`${navItem} flex h-[31px] items-center whitespace-nowrap`}>Today&apos;s Deals</Link>
-          <Link to="/coins" className={`${navItem} flex h-[31px] items-center whitespace-nowrap`}>Coins</Link>
+          <Link to="/offers" className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>Today&apos;s Deals</Link>
+          <Link to="/coins" className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>Coins</Link>
           {onOpenSpin ? (
-            <button type="button" onClick={onOpenSpin} className={`${navItem} flex h-[31px] items-center whitespace-nowrap`}>Spin &amp; Win</button>
+            <button type="button" onClick={onOpenSpin} className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>Spin &amp; Win</button>
           ) : null}
-          <Link to="/seller/signup" className={`${navItem} flex h-[31px] items-center whitespace-nowrap`}>Sell on {brandName}</Link>
-          <Link to="/help" className={`${navItem} flex h-[31px] items-center whitespace-nowrap`}>Help</Link>
+          <Link to="/seller/signup" className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>Sell on {brandName}</Link>
+          <Link to="/help" className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>Help</Link>
         </div>
       </nav>
 

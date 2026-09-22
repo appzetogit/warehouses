@@ -6,12 +6,12 @@ const RUPEE_SYMBOL = "\u20B9"
 
 const getAccentStyles = (isSelected) => ({
   border: isSelected
-    ? "border-[#EB590E] bg-gradient-to-br from-[#FFF7F2] via-white to-[#FFF2EB] dark:from-[#EB590E]/10 dark:via-[#1a1a1a] dark:to-[#EB590E]/5"
-    : "border-gray-200/90 bg-white dark:border-gray-700/90 dark:bg-[#222222] hover:border-[#EB590E]/40 hover:bg-[#FFFBF8] dark:hover:bg-[#252525]",
+    ? "border-wh-brand bg-gradient-to-br from-[#FFF7F2] via-white to-[#FFF2EB] dark:from-wh-brand/10 dark:via-[#1a1a1a] dark:to-wh-brand/5"
+    : "border-gray-200/90 bg-white dark:border-gray-700/90 dark:bg-[#222222] hover:border-wh-brand/40 hover:bg-[#FFFBF8] dark:hover:bg-[#252525]",
   radio: isSelected
-    ? "border-[#EB590E] bg-[#EB590E] text-white shadow-[0_4px_14px_-4px_rgba(235,89,14,0.65)]"
+    ? "border-wh-brand bg-wh-brand text-wh-text shadow-[0_4px_14px_-4px_rgba(253,146,11,0.65)]"
     : "border-gray-300 bg-white text-transparent dark:border-gray-600 dark:bg-[#2a2a2a]",
-  price: isSelected ? "text-[#EB590E]" : "text-gray-900 dark:text-white",
+  price: isSelected ? "text-wh-brand-ink" : "text-gray-900 dark:text-white",
 })
 
 export default function VariantSelector({
@@ -71,7 +71,7 @@ export default function VariantSelector({
                     )}
 
                     {qtyInCart > 0 && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#EB590E]/10 border border-[#EB590E]/20 px-2 py-0.5 text-[10px] font-semibold text-[#EB590E]">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-wh-brand/10 border border-wh-brand/20 px-2 py-0.5 text-[10px] font-semibold text-wh-brand-ink">
                         <ShoppingBag className="h-3 w-3" />
                         {qtyInCart} in cart
                       </span>
@@ -103,12 +103,12 @@ export default function VariantSelector({
                       </span>
                       <div className="flex items-center gap-1">
                         <span
-                          className={`inline-flex items-center rounded-full border border-[#FA0272] bg-[#FA0272]/10 px-2 py-0.5 text-sm font-bold text-[#FA0272] tabular-nums leading-none`}
+                          className={`inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-sm font-bold text-wh-brand-ink tabular-nums leading-none`}
                         >
                           {RUPEE_SYMBOL}{Math.round(variantPrice)}
                         </span>
                         {getProductDiscountPercent(null, variantPrice, variant.otherPrice) > 0 ? (
-                          <span className="inline-flex items-center rounded-full bg-[#FA0272] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white tabular-nums">
+                          <span className="inline-flex items-center rounded-full bg-wh-brand px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-wh-text tabular-nums">
                             {getProductDiscountPercent(null, variantPrice, variant.otherPrice)}% OFF
                           </span>
                         ) : null}

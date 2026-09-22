@@ -166,12 +166,12 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
                 value={searchValue}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Search for products, stores..."
-                className="pl-12 pr-12 h-12 w-full bg-white dark:bg-[#1a1a1a] border-gray-100 dark:border-gray-800 focus:border-[#FA0272] dark:focus:border-[#FA0272] rounded-full text-lg dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                className="pl-12 pr-12 h-12 w-full bg-white dark:bg-[#1a1a1a] border-gray-100 dark:border-gray-800 focus:border-wh-brand dark:focus:border-wh-brand rounded-full text-lg dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
               <button
                 type="button"
                 onClick={startVoiceSearch}
-                className={`absolute right-4 top-1/2 transform -translate-y-1/2 p-1.5 rounded-full transition-all ${isListening ? 'bg-[#FA0272] text-white animate-pulse' : 'text-gray-400 hover:text-[#FA0272] hover:bg-[#FA0272]/5'}`}
+                className={`absolute right-4 top-1/2 transform -translate-y-1/2 p-1.5 rounded-full transition-all ${isListening ? 'bg-wh-brand text-wh-text animate-pulse' : 'text-gray-400 hover:text-wh-brand-ink hover:bg-wh-brand/5'}`}
               >
                 <Mic className="h-5 w-5" />
               </button>
@@ -198,7 +198,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
           }}
         >
           <h3 className="text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-primary-orange" />
+            <Clock className="h-4 w-4 text-wh-brand-ink" />
             Recent Searches
           </h3>
           <div className="flex gap-2 sm:gap-3 flex-wrap">
@@ -206,12 +206,12 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
               <button
                 key={suggestion}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 border border-orange-200 dark:border-orange-800 hover:border-orange-300 dark:hover:border-orange-700 text-gray-700 dark:text-gray-300 hover:text-primary-orange dark:hover:text-orange-400 transition-all duration-200 text-xs sm:text-sm font-medium shadow-sm hover:shadow-md"
+                className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 border border-orange-200 dark:border-orange-800 hover:border-orange-300 dark:hover:border-orange-700 text-gray-700 dark:text-gray-300 hover:text-wh-brand-ink dark:hover:text-orange-400 transition-all duration-200 text-xs sm:text-sm font-medium shadow-sm hover:shadow-md"
                 style={{
                   animation: `scaleIn 0.3s ease-out ${0.1 + index * 0.02}s both`
                 }}
               >
-                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-primary-orange flex-shrink-0" />
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-wh-brand-ink flex-shrink-0" />
                 <span>{suggestion}</span>
               </button>
             ))}
@@ -225,7 +225,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
           }}
         >
           <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
-            {searchValue.trim() === "" ? "All Dishes" : `Search Results (${filteredProducts.length})`}
+            {searchValue.trim() === "" ? "All Products" : `Search Results (${filteredProducts.length})`}
           </h3>
           {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
@@ -253,7 +253,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
                     )}
                   </div>
                   <div className="px-1 sm:px-2 text-center">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-primary-orange dark:group-hover:text-orange-400 transition-colors line-clamp-2">
+                    <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-wh-brand-ink dark:group-hover:text-orange-400 transition-colors line-clamp-2">
                       {food.name}
                     </span>
                   </div>
@@ -265,13 +265,13 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
               {loadingProducts ? (
                 <>
                   <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4 animate-spin" />
-                  <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-semibold">Loading dishes from database...</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-semibold">Loading products...</p>
                 </>
               ) : (
                 <>
                   <Search className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-semibold">
-                    {searchValue.trim() ? `No results found for "${searchValue}"` : "No dishes found in database"}
+                    {searchValue.trim() ? `No results found for "${searchValue}"` : "No products found"}
                   </p>
                   <p className="text-sm sm:text-base text-gray-500 dark:text-gray-500 mt-2">
                     {searchValue.trim() ? "Try a different search term" : "Add menu items in seller menus to show here"}
@@ -287,11 +287,11 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
         <div className="absolute inset-0 z-[10000] flex flex-col items-center justify-center bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md">
           <div className="relative flex items-center justify-center">
             {/* Animated Ripples */}
-            <div className="absolute w-40 h-40 bg-[#FA0272]/20 rounded-full animate-ping" />
-            <div className="absolute w-32 h-32 bg-[#FA0272]/30 rounded-full animate-pulse" />
+            <div className="absolute w-40 h-40 bg-wh-brand/20 rounded-full animate-ping" />
+            <div className="absolute w-32 h-32 bg-wh-brand/30 rounded-full animate-pulse" />
             
             {/* Mic Icon Container */}
-            <div className="relative bg-gradient-to-tr from-[#FA0272] to-[#ff4b9c] p-8 rounded-full text-white shadow-[0_0_40px_rgba(250,2,114,0.4)] border-4 border-white dark:border-gray-800">
+            <div className="relative bg-gradient-to-tr from-wh-brand to-wh-brand-600 p-8 rounded-full text-wh-text shadow-[0_0_40px_rgba(253,146,11,0.4)] border-4 border-white dark:border-gray-800">
               <Mic className="h-12 w-12" />
             </div>
 
@@ -300,7 +300,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
               {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                 <div 
                   key={i}
-                  className="w-1.5 bg-[#FA0272] rounded-full animate-voice-bar"
+                  className="w-1.5 bg-wh-brand rounded-full animate-voice-bar"
                   style={{ 
                     animationDelay: `${i * 0.1}s`,
                     height: `${20 + Math.random() * 80}%`
@@ -312,13 +312,13 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
 
           <div className="mt-24 text-center">
             <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Speak Now</h2>
-            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for dishes or sellers...</p>
+            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for products or stores...</p>
           </div>
 
           <Button
             variant="ghost"
             onClick={onClose}
-            className="mt-16 text-gray-400 hover:text-[#FA0272] hover:bg-[#FA0272]/5 rounded-full px-8"
+            className="mt-16 text-gray-400 hover:text-wh-brand-ink hover:bg-wh-brand/5 rounded-full px-8"
           >
             Cancel
           </Button>

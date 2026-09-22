@@ -76,7 +76,7 @@ export default function CollectionDetail() {
               <Heart className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground text-lg mb-4">This collection is empty</p>
               <Link to="/user">
-                <Button className="bg-gradient-to-r bg-primary-orange hover:opacity-90 text-white">
+                <Button className="bg-gradient-to-r bg-wh-brand hover:opacity-90 text-wh-text">
                   Explore Sellers
                 </Button>
               </Link>

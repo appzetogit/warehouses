@@ -189,7 +189,7 @@ export default function SignIn() {
             <Button
               type="submit"
               disabled={isLoading || formData.phone.length !== 10}
-              className="w-full h-16 bg-[#FD920B] hover:bg-[#E07F00] text-[#0F1111] font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-[0_12px_24px_rgba(253,146,11,0.3)] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+              className="w-full h-16 bg-[#FD920B] hover:bg-wh-brand-600 text-[#0F1111] font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-[0_12px_24px_rgba(253,146,11,0.3)] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">

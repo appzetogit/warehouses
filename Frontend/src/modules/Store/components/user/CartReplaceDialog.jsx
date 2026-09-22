@@ -23,7 +23,7 @@ export default function CartReplaceDialog({
       >
         <div className="px-5 pt-6 pb-5 sm:px-6 sm:pt-7 sm:pb-6">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-950/40 ring-1 ring-orange-100 dark:ring-orange-900/50">
-            <ShoppingBag className="h-7 w-7 text-[#EB590E]" />
+            <ShoppingBag className="h-7 w-7 text-wh-brand-ink" />
           </div>
 
           <DialogTitle className="text-center text-lg sm:text-xl font-bold text-gray-900 dark:text-white leading-tight">
@@ -52,17 +52,17 @@ export default function CartReplaceDialog({
 
             <div className="flex justify-center">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-950/40">
-                <ArrowRight className="h-4 w-4 text-[#EB590E]" />
+                <ArrowRight className="h-4 w-4 text-wh-brand-ink" />
               </div>
             </div>
 
             <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-3.5 dark:border-orange-900/40 dark:bg-orange-950/20">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#EB590E]">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-wh-brand-ink">
                 New seller
               </p>
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-orange-100 dark:bg-[#1a1a1a] dark:ring-orange-900/40">
-                  <Store className="h-4 w-4 text-[#EB590E]" />
+                  <Store className="h-4 w-4 text-wh-brand-ink" />
                 </div>
                 <p className="min-w-0 flex-1 text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">
                   {newSellerName}
@@ -82,7 +82,7 @@ export default function CartReplaceDialog({
             </Button>
             <Button
               type="button"
-              className="h-11 rounded-xl bg-[#EB590E] text-sm font-semibold text-white shadow-[0_8px_20px_rgba(235,89,14,0.28)] hover:bg-[#d44f0d]"
+              className="h-11 rounded-xl bg-wh-brand text-sm font-semibold text-wh-text shadow-[0_8px_20px_rgba(253,146,11,0.28)] hover:bg-wh-brand-600"
               onClick={onConfirm}
             >
               Replace

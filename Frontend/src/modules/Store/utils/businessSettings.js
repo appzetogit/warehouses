@@ -13,8 +13,11 @@ import {
 } from "@store/services/publicAppConfig";
 
 const SETTINGS_KEY = 'store_business_settings';
+const BRAND_THEME_COLOR = "#FD920B";
+const BRAND_THEME_INK = "#B45309";
+const OLD_USER_DEFAULT_THEME_COLORS = ["#FA0272", "#EB590E"];
 const DEFAULT_MODULE_POWER_SCANNING = {
-  user: { themeColor: "#FA0272", fontFamily: "Poppins" },
+  user: { themeColor: BRAND_THEME_COLOR, fontFamily: "Poppins" },
   seller: { themeColor: "#2563EB", fontFamily: "Poppins" },
   delivery: { themeColor: "#00B761", fontFamily: "Poppins" },
 };
@@ -56,7 +59,7 @@ const LEGACY_BRAND_TAILWIND_COLORS = [
 const hexToRgbTuple = (hex) => {
   const raw = String(hex || "").trim();
   const normalized = raw.startsWith("#") ? raw.slice(1) : raw;
-  if (!/^[0-9A-Fa-f]{6}$/.test(normalized)) return "250,2,114";
+  if (!/^[0-9A-Fa-f]{6}$/.test(normalized)) return "253,146,11";
   const r = parseInt(normalized.slice(0, 2), 16);
   const g = parseInt(normalized.slice(2, 4), 16);
   const b = parseInt(normalized.slice(4, 6), 16);
@@ -190,7 +193,7 @@ const buildThemeOverrideCss = () => {
       font-family: var(--module-font-family, 'Poppins', sans-serif) !important;
     }
     .theme-text {
-      color: var(--module-theme-color) !important;
+      color: var(--module-theme-ink, var(--module-theme-color)) !important;
     }
     .theme-bg {
       background-color: var(--module-theme-color) !important;
@@ -222,7 +225,7 @@ const buildThemeOverrideCss = () => {
       --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
     }
     .text-primary {
-      color: var(--module-theme-color) !important;
+      color: var(--module-theme-ink, var(--module-theme-color)) !important;
     }
     .bg-primary {
       background-color: var(--module-theme-color) !important;
@@ -234,7 +237,7 @@ const buildThemeOverrideCss = () => {
       --tw-ring-color: var(--module-theme-color) !important;
     }
     ${textSelectors.join(", ")}, ${hoverTextSelectors.join(", ")} {
-      color: var(--module-theme-color) !important;
+      color: var(--module-theme-ink, var(--module-theme-color)) !important;
     }
     ${bgSelectors.join(", ")}, ${hoverBgSelectors.join(", ")} {
       background-color: var(--module-theme-color) !important;
@@ -267,7 +270,7 @@ const buildThemeOverrideCss = () => {
       border-color: var(--module-theme-color) !important;
     }
     ${twTextSelectors.join(", ")}, ${twHoverTextSelectors.join(", ")} {
-      color: var(--module-theme-color) !important;
+      color: var(--module-theme-ink, var(--module-theme-color)) !important;
     }
     ${twBgSelectors.join(", ")}, ${twHoverBgSelectors.join(", ")} {
       background-color: rgba(var(--module-theme-rgb), 0.10) !important;
@@ -470,7 +473,12 @@ export const getModulePowerScanning = (moduleName = "user", settingsOverride = n
   const moduleConfig = settings?.powerScanning?.[moduleKey] || DEFAULT_MODULE_POWER_SCANNING[moduleKey] || DEFAULT_MODULE_POWER_SCANNING.user;
 
   const rawColor = String(moduleConfig?.themeColor || "").trim();
-  const themeColor = /^#[0-9A-Fa-f]{6}$/.test(rawColor) ? rawColor : DEFAULT_MODULE_POWER_SCANNING[moduleKey]?.themeColor || DEFAULT_MODULE_POWER_SCANNING.user.themeColor;
+  // The customer storefront's old default colours (pink, then orange) are still
+  // saved in many settings documents; treat them as "not customised" so the
+  // storefront shows the current brand. A genuinely custom colour still wins.
+  const isOldUserDefault =
+    moduleKey === "user" && OLD_USER_DEFAULT_THEME_COLORS.includes(rawColor.toUpperCase());
+  const themeColor = /^#[0-9A-Fa-f]{6}$/.test(rawColor) && !isOldUserDefault ? rawColor : DEFAULT_MODULE_POWER_SCANNING[moduleKey]?.themeColor || DEFAULT_MODULE_POWER_SCANNING.user.themeColor;
   const fontFamily = String(moduleConfig?.fontFamily || "").trim() || (DEFAULT_MODULE_POWER_SCANNING[moduleKey]?.fontFamily || DEFAULT_MODULE_POWER_SCANNING.user.fontFamily);
   return { themeColor, fontFamily };
 };
@@ -483,6 +491,12 @@ export const applyModulePowerScanning = (moduleName = "user", settingsOverride =
 
   document.documentElement.style.setProperty("--module-theme-color", themeColor);
   document.documentElement.style.setProperty("--module-theme-rgb", rgbTuple);
+  // Text/icon colour for the theme on light backgrounds. The brand orange is too
+  // light for text (about 2.2:1 on white), so it gets the darker brand ink.
+  document.documentElement.style.setProperty(
+    "--module-theme-ink",
+    themeColor.toUpperCase() === BRAND_THEME_COLOR ? BRAND_THEME_INK : themeColor,
+  );
   document.documentElement.style.setProperty("--color-primary-orange", themeColor);
   document.documentElement.style.setProperty("--ring", themeColor);
   document.documentElement.style.setProperty("--module-font-family", fontStack);

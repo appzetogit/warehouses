@@ -231,12 +231,12 @@ export default function AddMoneyModal({ open, onOpenChange, onSuccess }) {
             <Button
               onClick={handleAddMoney}
               disabled={!amount || loading || processing || parseFloat(amount) < 1}
-              className="w-full h-12 text-white font-semibold text-base"
+              className="w-full h-12 text-wh-text font-semibold text-base"
               style={{
                 background:
-                  "linear-gradient(135deg, rgba(var(--module-theme-rgb,250,2,114),0.94), var(--module-theme-color,#FA0272))",
+                  "linear-gradient(135deg, rgba(var(--module-theme-rgb,253,146,11),0.94), var(--module-theme-color,#FD920B))",
                 boxShadow:
-                  "0 10px 20px rgba(var(--module-theme-rgb,250,2,114),0.30)",
+                  "0 10px 20px rgba(var(--module-theme-rgb,253,146,11),0.30)",
               }}
             >
               {loading || processing ? (

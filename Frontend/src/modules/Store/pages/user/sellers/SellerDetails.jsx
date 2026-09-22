@@ -537,7 +537,7 @@ function SellerDetailsContent() {
             slug: actualSeller?.slug || apiSeller?.slug || actualSeller?.name?.toLowerCase().replace(/\s+/g, '-') || apiSeller?.name?.toLowerCase().replace(/\s+/g, '-') || slug || "unknown",
             sellerId: actualSeller?.sellerId || actualSeller?._id || actualSeller?.id || apiSeller?.sellerId || apiSeller?._id || apiSeller?.id || null,
             // Add other fields with defaults
-            featuredDish: actualSeller?.featuredDish || apiSeller?.featuredDish || onboardingStep4?.featuredDish || "Special Dish",
+            featuredDish: actualSeller?.featuredDish || apiSeller?.featuredDish || onboardingStep4?.featuredDish || "Special Item",
             featuredPrice: actualSeller?.featuredPrice || apiSeller?.featuredPrice || onboardingStep4?.featuredPrice || 249,
             // Additional safety fields
             openDays: Array.isArray(actualSeller?.openDays)
@@ -2015,10 +2015,10 @@ function SellerDetailsContent() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search dishes..."
+                    placeholder="Search this store..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-full border border-white/50 dark:border-white/15 shadow-sm bg-white/50 dark:bg-black/30 backdrop-blur-md text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-[#EB590E] focus:border-transparent"
+                    className="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-full border border-white/50 dark:border-white/15 shadow-sm bg-white/50 dark:bg-black/30 backdrop-blur-md text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-wh-brand focus:border-transparent"
                     autoFocus
                     onBlur={() => {
                       if (!searchQuery) setShowSearch(false)
@@ -2118,13 +2118,13 @@ function SellerDetailsContent() {
               </div>
               <div className="flex flex-col items-end shrink-0">
                 <Badge
-                  className="text-white mb-1 flex items-center gap-1 px-2 py-1 border-0"
+                  className="text-wh-text mb-1 flex items-center gap-1 px-2 py-1 border-0"
                   style={{
-                    backgroundColor: "var(--module-theme-color, #FA0272)",
-                    boxShadow: "0 4px 10px rgba(var(--module-theme-rgb, 250,2,114), 0.28)",
+                    backgroundColor: "var(--module-theme-color, #FD920B)",
+                    boxShadow: "0 4px 10px rgba(var(--module-theme-rgb, 253,146,11), 0.28)",
                   }}
                 >
-                  <Star className="h-3 w-3 fill-white" />
+                  <Star className="h-3 w-3 fill-wh-text" />
                   {seller?.rating || 4.5}
                 </Badge>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -2139,10 +2139,10 @@ function SellerDetailsContent() {
                 <span>{seller?.deliveryTime || "25-30 mins"}</span>
               </div>
               <Badge
-                className={`${isSellerOffline ? "bg-rose-600" : ""} text-white border-0`}
+                className={`${isSellerOffline ? "bg-rose-600 text-white" : "text-wh-text"} border-0`}
                 style={!isSellerOffline ? {
-                  backgroundColor: "var(--module-theme-color, #FA0272)",
-                  boxShadow: "0 4px 10px rgba(var(--module-theme-rgb, 250,2,114), 0.25)",
+                  backgroundColor: "var(--module-theme-color, #FD920B)",
+                  boxShadow: "0 4px 10px rgba(var(--module-theme-rgb, 253,146,11), 0.25)",
                 } : undefined}
               >
                 {isSellerOffline ? "Offline" : "Open now"}
@@ -2163,8 +2163,8 @@ function SellerDetailsContent() {
           <button
             type="button"
             onClick={() => setShowOffersSheet(true)}
-            className="mx-3 sm:mx-4 md:mx-6 lg:mx-8 xl:mx-12 mt-3 block w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] rounded-2xl px-4 py-3 text-left shadow-[0_6px_20px_rgba(var(--module-theme-rgb,250,2,114),0.22)]"
-            style={{ backgroundColor: "var(--module-theme-color, #FA0272)" }}
+            className="mx-3 sm:mx-4 md:mx-6 lg:mx-8 xl:mx-12 mt-3 block w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] rounded-2xl px-4 py-3 text-left shadow-[0_6px_20px_rgba(var(--module-theme-rgb,253,146,11),0.22)]"
+            style={{ backgroundColor: "var(--wh-nav-2)" }}
           >
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
@@ -2211,14 +2211,14 @@ function SellerDetailsContent() {
               onClick={() => setShowFilterSheet(true)}
               className={`relative flex items-center gap-1.5 whitespace-nowrap rounded-xl border px-3 py-2 text-[13px] font-semibold transition-all shrink-0 ${
                 activeFilterCount > 0
-                  ? "border-[#EB590E] bg-[#FFF1E8] text-[#EB590E]"
+                  ? "border-wh-brand bg-[#FFF1E8] text-wh-brand-ink"
                   : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] text-gray-800 dark:text-gray-200"
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
               Filters
               {activeFilterCount > 0 && (
-                <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#EB590E] px-1 text-[10px] font-bold text-white">
+                <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-wh-brand px-1 text-[10px] font-bold text-wh-text">
                   {activeFilterCount}
                 </span>
               )}
@@ -2270,7 +2270,7 @@ function SellerDetailsContent() {
                     spicy: false,
                   })
                 }
-                className="text-[12px] font-semibold text-[#EB590E] whitespace-nowrap shrink-0 px-1"
+                className="text-[12px] font-semibold text-wh-brand-ink whitespace-nowrap shrink-0 px-1"
               >
                 Clear
               </button>
@@ -2285,12 +2285,12 @@ function SellerDetailsContent() {
                 onClick={() => setSelectedMenuCategory("all")}
                 className={`flex items-center justify-center shrink-0 transition-all ${
                   selectedMenuCategory === "all"
-                    ? "h-9 min-w-[36px] px-3 rounded-full text-white text-[13px] font-bold shadow-sm"
+                    ? "h-9 min-w-[36px] px-3 rounded-full text-wh-text text-[13px] font-bold shadow-sm"
                     : "h-9 min-w-[36px] px-3 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] text-[13px] font-semibold text-gray-600 dark:text-gray-300"
                 }`}
                 style={selectedMenuCategory === "all" ? {
-                  backgroundColor: "var(--module-theme-color, #FA0272)",
-                  boxShadow: "0 4px 12px rgba(var(--module-theme-rgb, 250,2,114), 0.25)",
+                  backgroundColor: "var(--module-theme-color, #FD920B)",
+                  boxShadow: "0 4px 12px rgba(var(--module-theme-rgb, 253,146,11), 0.25)",
                 } : undefined}
               >
                 All
@@ -2302,7 +2302,7 @@ function SellerDetailsContent() {
                   onClick={() => setSelectedMenuCategory(category.id)}
                   className={`flex items-center gap-2 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[13px] font-semibold shrink-0 transition-all ${
                     selectedMenuCategory === category.id
-                      ? "border-[#EB590E] bg-[#FFF1E8] text-[#EB590E]"
+                      ? "border-wh-brand bg-[#FFF1E8] text-wh-brand-ink"
                       : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] text-gray-700 dark:text-gray-300"
                   }`}
                 >
@@ -2468,14 +2468,14 @@ function SellerDetailsContent() {
                               }
                             }}
                             className={`flex gap-4 p-4 relative cursor-pointer transition-all duration-500 ${highlightedDishId === item.id
-                                ? "bg-gradient-to-r from-pink-50/80 to-white dark:from-pink-950/20 dark:to-[#1a1a1a] border-l-4 border-l-[#FA0272] shadow-[0_20px_50px_-12px_rgba(250,2,114,0.5)] scale-[1.02] z-20 rounded-3xl"
+                                ? "bg-gradient-to-r from-wh-brand-50/80 to-white dark:from-wh-brand/10 dark:to-[#1a1a1a] border-l-4 border-l-wh-brand shadow-[0_20px_50px_-12px_rgba(253,146,11,0.5)] scale-[1.02] z-20 rounded-3xl"
                                 : "rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#141414] shadow-sm"
                             }`}
                             onClick={() => handleItemClick(item)}
                           >
                             {highlightedDishId === item.id && (
                               <div className="absolute -top-2 left-4 z-30">
-                                <span className="bg-[#FA0272] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg animate-bounce uppercase tracking-wider">
+                                <span className="bg-wh-brand text-wh-text text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg animate-bounce uppercase tracking-wider">
                                   Selected
                                 </span>
                               </div>
@@ -2503,7 +2503,7 @@ function SellerDetailsContent() {
                               {isRecommendedItem(item) && (
                                 <div className="flex items-center gap-2 mt-1">
                                   <div className="h-1.5 w-16 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                    <div className="h-full bg-[#FA0272] w-3/4"></div>
+                                    <div className="h-full bg-wh-brand w-3/4"></div>
                                   </div>
                                   <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Highly reordered</span>
                                 </div>
@@ -2578,7 +2578,7 @@ function SellerDetailsContent() {
                                   animate={{ opacity: 1, scale: 1 }}
                                   className={`${item.image ? "absolute -bottom-2 left-1/2 -translate-x-1/2" : "relative"} bg-white border font-bold px-4 py-1.5 rounded-lg shadow-md flex items-center gap-1 ${shouldShowGrayscale
                                     ? 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'
-                                    : 'border-[#EB590E] text-[#EB590E] hover:bg-orange-50'
+                                    : 'border-wh-brand text-wh-brand-ink hover:bg-orange-50'
                                     }`}
                                 >
                                   <button
@@ -2589,7 +2589,7 @@ function SellerDetailsContent() {
                                       }
                                     }}
                                     disabled={shouldShowGrayscale}
-                                    className={shouldShowGrayscale ? 'text-gray-400 cursor-not-allowed' : 'text-[#EB590E] hover:text-[#D94F0C]'}
+                                    className={shouldShowGrayscale ? 'text-gray-400 cursor-not-allowed' : 'text-wh-brand-ink hover:text-wh-brand-ink'}
                                   >
                                     <Minus size={14} />
                                   </button>
@@ -2602,7 +2602,7 @@ function SellerDetailsContent() {
                                       }
                                     }}
                                     disabled={shouldShowGrayscale}
-                                    className={shouldShowGrayscale ? 'text-gray-400 cursor-not-allowed' : 'text-[#EB590E] hover:text-[#D94F0C]'}
+                                    className={shouldShowGrayscale ? 'text-gray-400 cursor-not-allowed' : 'text-wh-brand-ink hover:text-wh-brand-ink'}
                                   >
                                     <Plus size={14} className="stroke-[3px]" />
                                   </button>
@@ -2622,7 +2622,7 @@ function SellerDetailsContent() {
                                   disabled={shouldShowGrayscale}
                                   className={`${item.image ? "absolute -bottom-2 left-1/2 -translate-x-1/2" : "relative"} bg-white border font-bold px-6 py-1.5 rounded-lg shadow-md flex items-center gap-1 transition-colors ${shouldShowGrayscale
                                     ? 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'
-                                    : 'border-[#EB590E] text-[#EB590E] hover:bg-orange-50'
+                                    : 'border-wh-brand text-wh-brand-ink hover:bg-orange-50'
                                     }`}
                                 >
                                   ADD <Plus size={14} className="stroke-[3px]" />
@@ -2697,14 +2697,14 @@ function SellerDetailsContent() {
                                         }
                                       }}
                                       className={`flex gap-4 p-4 relative cursor-pointer transition-all duration-500 ${highlightedDishId === item.id
-                                        ? "bg-gradient-to-r from-pink-50/80 to-white dark:from-pink-950/20 dark:to-[#1a1a1a] border-l-4 border-l-[#FA0272] shadow-[0_20px_50px_-12px_rgba(250,2,114,0.5)] scale-[1.02] z-20 rounded-3xl"
+                                        ? "bg-gradient-to-r from-wh-brand-50/80 to-white dark:from-wh-brand/10 dark:to-[#1a1a1a] border-l-4 border-l-wh-brand shadow-[0_20px_50px_-12px_rgba(253,146,11,0.5)] scale-[1.02] z-20 rounded-3xl"
                                         : "rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#141414] shadow-sm"
                                     }`}
                                       onClick={() => handleItemClick(item)}
                                     >
                                       {highlightedDishId === item.id && (
                                         <div className="absolute -top-2 left-4 z-30">
-                                          <span className="bg-[#FA0272] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg animate-bounce uppercase tracking-wider">
+                                          <span className="bg-wh-brand text-wh-text text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg animate-bounce uppercase tracking-wider">
                                             Selected
                                           </span>
                                         </div>
@@ -2732,7 +2732,7 @@ function SellerDetailsContent() {
                                         {isRecommendedItem(item) && (
                                           <div className="flex items-center gap-2 mt-1">
                                             <div className="h-1.5 w-16 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                              <div className="h-full bg-[#EB590E] w-3/4"></div>
+                                              <div className="h-full bg-wh-brand w-3/4"></div>
                                             </div>
                                             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Highly reordered</span>
                                           </div>
@@ -2807,7 +2807,7 @@ function SellerDetailsContent() {
                                             animate={{ opacity: 1, scale: 1 }}
                                             className={`${item.image ? "absolute -bottom-2 left-1/2 -translate-x-1/2" : "relative"} bg-white border font-bold px-4 py-1.5 rounded-lg shadow-md flex items-center gap-1 ${shouldShowGrayscale
                                               ? 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'
-                                              : 'border-[#EB590E] text-[#EB590E] hover:bg-orange-50'
+                                              : 'border-wh-brand text-wh-brand-ink hover:bg-orange-50'
                                               }`}
                                           >
                                             <button
@@ -2818,7 +2818,7 @@ function SellerDetailsContent() {
                                                 }
                                               }}
                                               disabled={shouldShowGrayscale}
-                                              className={shouldShowGrayscale ? 'text-gray-400 cursor-not-allowed' : 'text-[#EB590E] hover:text-[#D94F0C]'}
+                                              className={shouldShowGrayscale ? 'text-gray-400 cursor-not-allowed' : 'text-wh-brand-ink hover:text-wh-brand-ink'}
                                             >
                                               <Minus size={14} />
                                             </button>
@@ -2831,7 +2831,7 @@ function SellerDetailsContent() {
                                                 }
                                               }}
                                               disabled={shouldShowGrayscale}
-                                              className={shouldShowGrayscale ? 'text-gray-400 cursor-not-allowed' : 'text-[#EB590E] hover:text-[#D94F0C]'}
+                                              className={shouldShowGrayscale ? 'text-gray-400 cursor-not-allowed' : 'text-wh-brand-ink hover:text-wh-brand-ink'}
                                             >
                                               <Plus size={14} className="stroke-[3px]" />
                                             </button>
@@ -2851,7 +2851,7 @@ function SellerDetailsContent() {
                                             disabled={shouldShowGrayscale}
                                             className={`${item.image ? "absolute -bottom-2 left-1/2 -translate-x-1/2" : "relative"} bg-white border font-bold px-6 py-1.5 rounded-lg shadow-md flex items-center gap-1 transition-colors ${shouldShowGrayscale
                                               ? 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'
-                                              : 'border-[#EB590E] text-[#EB590E] hover:bg-orange-50'
+                                              : 'border-wh-brand text-wh-brand-ink hover:bg-orange-50'
                                               }`}
                                           >
                                             ADD <Plus size={14} className="stroke-[3px]" />
@@ -3000,7 +3000,7 @@ function SellerDetailsContent() {
                   {/* Close Button */}
                   <div className="border-t border-gray-200 dark:border-gray-800 px-4 py-4 bg-white dark:bg-[#1a1a1a]">
                     <Button
-                      className="w-full bg-[#1a1a1a] dark:bg-[#EB590E] hover:bg-[#EB590E] dark:hover:bg-[#D94F0C] text-white border-0 flex items-center justify-center gap-2 py-6 rounded-xl font-bold transition-all shadow-lg"
+                      className="w-full bg-[#1a1a1a] dark:bg-wh-brand hover:bg-wh-brand-600 dark:hover:bg-wh-brand-600 text-white border-0 flex items-center justify-center gap-2 py-6 rounded-xl font-bold transition-all shadow-lg"
                       onClick={() => setShowMenuSheet(false)}
                     >
                       <X className="h-5 w-5" />
@@ -3147,7 +3147,7 @@ function SellerDetailsContent() {
                           }))
                         }
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all w-full ${filters.highlyReordered
-                          ? "border-[#EB590E] dark:border-[#EB590E] bg-[#FFF2EB] dark:bg-[#EB590E]/20 text-[#EB590E] dark:text-[#EB590E]"
+                          ? "border-wh-brand dark:border-wh-brand bg-[#FFF2EB] dark:bg-wh-brand/20 text-wh-brand-ink dark:text-wh-brand"
                           : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                           }`}
                       >
@@ -3193,7 +3193,7 @@ function SellerDetailsContent() {
                       Clear All
                     </button>
                     <Button
-                      className="bg-[#EB590E] hover:bg-[#D94F0C] text-white px-6 py-2.5 rounded-lg font-bold"
+                      className="bg-wh-brand hover:bg-wh-brand-600 text-wh-text px-6 py-2.5 rounded-lg font-bold"
                       onClick={() => setShowFilterSheet(false)}
                     >
                       Apply {activeFilterCount > 0 && `(${activeFilterCount})`}
@@ -3252,9 +3252,9 @@ function SellerDetailsContent() {
                             className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2a2a2a]"
                           >
                             {outlet?.isNearest && (
-                              <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-[#FFF2EB] dark:bg-[#EB590E]/20 rounded-md">
-                                <Zap className="h-3.5 w-3.5 text-[#EB590E] dark:text-[#EB590E] fill-[#EB590E] dark:fill-[#EB590E]" />
-                                <span className="text-xs font-semibold text-[#EB590E] dark:text-[#EB590E]">
+                              <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-[#FFF2EB] dark:bg-wh-brand/20 rounded-md">
+                                <Zap className="h-3.5 w-3.5 text-wh-brand-ink dark:text-wh-brand fill-wh-brand dark:fill-wh-brand" />
+                                <span className="text-xs font-semibold text-wh-brand-ink dark:text-wh-brand">
                                   Nearest available outlet
                                 </span>
                               </div>
@@ -3356,7 +3356,7 @@ function SellerDetailsContent() {
                         // Don't close modal on click, let checkbox handle it
                       }}
                     >
-                      <div className="h-12 w-12 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center flex-shrink-0">
+                      <div className="h-12 w-12 rounded-lg bg-wh-brand-50 dark:bg-wh-brand/10 flex items-center justify-center flex-shrink-0">
                         <Bookmark className="h-6 w-6 text-red-500 dark:text-red-400 fill-red-500 dark:fill-red-400" />
                       </div>
                       <div className="flex-1 text-left">
@@ -3393,7 +3393,7 @@ function SellerDetailsContent() {
                       className="w-full flex items-start gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
                       onClick={() => setShowManageCollections(false)}
                     >
-                      <div className="h-12 w-12 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center flex-shrink-0">
+                      <div className="h-12 w-12 rounded-lg bg-wh-brand-50 dark:bg-wh-brand/10 flex items-center justify-center flex-shrink-0">
                         <Plus className="h-6 w-6 text-red-500 dark:text-red-400" />
                       </div>
                       <div className="flex-1 text-left">
@@ -3407,7 +3407,7 @@ function SellerDetailsContent() {
                   {/* Done Button */}
                   <div className="border-t border-gray-200 dark:border-gray-800 px-4 py-4">
                     <Button
-                      className="w-full bg-[#EB590E] hover:bg-[#D94F0C] text-white py-3 rounded-lg font-bold"
+                      className="w-full bg-wh-brand hover:bg-wh-brand-600 text-wh-text py-3 rounded-lg font-bold"
                       onClick={() => {
                         setShowManageCollections(false)
                       }}
@@ -3549,7 +3549,7 @@ function SellerDetailsContent() {
                   </div>
 
                   {/* Bottom Action Bar */}
-                  <div className={`border-t px-4 py-4 bg-white dark:bg-[#1a1a1a] ${hasProductVariants(selectedItem) ? "border-[#EB590E]/10 dark:border-[#EB590E]/20" : "border-gray-200 dark:border-gray-800"}`}>
+                  <div className={`border-t px-4 py-4 bg-white dark:bg-[#1a1a1a] ${hasProductVariants(selectedItem) ? "border-wh-brand/10 dark:border-wh-brand/20" : "border-gray-200 dark:border-gray-800"}`}>
                     {hasProductVariants(selectedItem) && (
                       <div className="mb-3 flex items-center justify-between rounded-xl bg-gray-50 dark:bg-[#222222] px-3 py-2">
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -3563,7 +3563,7 @@ function SellerDetailsContent() {
                     <div className="flex items-center gap-4">
                       {/* Quantity Selector */}
                       <div className={`flex items-center gap-3 rounded-xl px-3 h-[44px] ${hasProductVariants(selectedItem)
-                        ? "border-2 border-[#EB590E]/25 bg-[#FFF7F2] dark:bg-[#EB590E]/5"
+                        ? "border-2 border-wh-brand/25 bg-[#FFF7F2] dark:bg-wh-brand/5"
                         : "border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-[#2a2a2a]"
                         } ${shouldShowGrayscale ? "opacity-50" : ""}`}>
                         <button
@@ -3617,7 +3617,7 @@ function SellerDetailsContent() {
                         className={`flex-1 h-[44px] rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg border-0 ${shouldShowGrayscale
                           ? '!bg-gray-300 dark:!bg-gray-700 !text-gray-500 dark:!text-gray-600 cursor-not-allowed opacity-50 shadow-none'
                           : hasProductVariants(selectedItem)
-                            ? '!bg-[#EB590E] hover:!bg-[#D94F0C] !text-white shadow-[0_8px_20px_-8px_rgba(235,89,14,0.65)]'
+                            ? '!bg-wh-brand hover:!bg-wh-brand-600 !text-wh-text shadow-[0_8px_20px_-8px_rgba(253,146,11,0.65)]'
                             : '!bg-red-500 hover:!bg-red-600 !text-white shadow-red-500/25'
                           }`}
                         onClick={(e) => {
@@ -3938,7 +3938,7 @@ function SellerDetailsContent() {
                   {/* Close Button */}
                   <div className="border-t border-gray-200 dark:border-gray-800 px-4 py-4 bg-white dark:bg-[#1a1a1a]">
                     <Button
-                      className="w-full bg-[#1a1a1a] dark:bg-[#EB590E] hover:bg-[#EB590E] dark:hover:bg-[#D94F0C] text-white border-0 flex items-center justify-center gap-2 py-6 rounded-xl font-bold transition-all shadow-lg"
+                      className="w-full bg-[#1a1a1a] dark:bg-wh-brand hover:bg-wh-brand-600 dark:hover:bg-wh-brand-600 text-white border-0 flex items-center justify-center gap-2 py-6 rounded-xl font-bold transition-all shadow-lg"
                       onClick={() => setShowOffersSheet(false)}
                     >
                       <X className="h-5 w-5" />

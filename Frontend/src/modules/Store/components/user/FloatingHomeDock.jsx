@@ -68,10 +68,10 @@ function FloatingHomeDockInner({
                 <button
                   type="button"
                   onClick={() => navigate(linkTo)}
-                  className="w-full rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3 text-white shadow-[0_8px_18px_rgba(0,0,0,0.16)] border border-white/20 cursor-pointer hover:shadow-[0_10px_22px_rgba(0,0,0,0.2)] active:scale-[0.99] transition-all duration-200"
+                  className="w-full rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3 text-wh-text shadow-[0_8px_18px_rgba(0,0,0,0.16)] border border-white/20 cursor-pointer hover:shadow-[0_10px_22px_rgba(0,0,0,0.2)] active:scale-[0.99] transition-all duration-200"
                   style={{
                     background:
-                      "linear-gradient(135deg, rgba(var(--module-theme-rgb,250,2,114),0.94), rgba(var(--module-theme-rgb,250,2,114),0.78))",
+                      "linear-gradient(135deg, rgba(var(--module-theme-rgb,253,146,11),0.94), rgba(var(--module-theme-rgb,253,146,11),0.78))",
                   }}
                 >
                   <span className="text-sm font-semibold truncate">

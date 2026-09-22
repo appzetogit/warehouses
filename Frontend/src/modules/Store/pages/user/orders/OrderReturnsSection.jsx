@@ -91,7 +91,7 @@ export default function OrderReturnsSection({ order }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="w-full bg-white dark:bg-zinc-900 border border-[#EB590E] text-[#EB590E] py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+          className="w-full bg-white dark:bg-zinc-900 border border-wh-brand text-wh-brand-ink py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-900/20"
         >
           <PackageX className="w-4 h-4" />
           Return items
@@ -232,7 +232,7 @@ function ReturnRequestModal({ orderId, info, onClose, onDone }) {
           type="button"
           onClick={submit}
           disabled={submitting || uploading}
-          className="w-full bg-[#EB590E] text-white py-3 rounded-lg font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
+          className="w-full bg-wh-brand text-wh-text py-3 rounded-lg font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
           Request return

@@ -49,7 +49,7 @@ export default function Refund() {
     return (
       <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center p-6">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-[#FA0272]" />
+          <Loader2 className="h-10 w-10 animate-spin text-wh-brand-ink" />
           <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Loading...</p>
         </div>
       </div>
@@ -90,7 +90,7 @@ export default function Refund() {
                 prose-headings:font-black prose-headings:text-gray-900 dark:prose-headings:text-white
                 prose-p:text-gray-600 dark:prose-p:text-gray-400 prose-p:leading-relaxed
                 prose-strong:text-gray-900 dark:prose-strong:text-white
-                prose-a:text-[#FA0272] dark:prose-a:text-[#EB590E]
+                prose-a:text-wh-brand-ink dark:prose-a:text-wh-brand
                 prose-li:text-gray-600 dark:prose-li:text-gray-400"
               dangerouslySetInnerHTML={{ __html: refundData.content }}
             />

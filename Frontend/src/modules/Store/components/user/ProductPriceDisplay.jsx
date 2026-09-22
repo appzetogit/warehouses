@@ -25,8 +25,8 @@ export function DualMoney({
   showDiscountTag = true,
   className = "",
   strikeClassName = "text-sm text-gray-400 line-through tabular-nums",
-  saleClassName = "inline-flex items-center rounded-full border border-[#FA0272] bg-[#FA0272]/10 px-2 py-0.5 text-sm font-bold text-[#FA0272] tabular-nums",
-  offClassName = "inline-flex items-center rounded-full bg-[#FA0272] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white tabular-nums",
+  saleClassName = "inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-sm font-bold text-wh-brand-ink tabular-nums",
+  offClassName = "inline-flex items-center rounded-full bg-wh-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-wh-text tabular-nums",
   plainClassName = "font-semibold text-gray-900 dark:text-white tabular-nums",
 }) {
   const price = Number(amount) || 0
@@ -74,8 +74,8 @@ export default function ProductPriceDisplay({
   showDiscountTag = true,
   className = "",
   strikeClassName = "text-sm text-gray-400 line-through tabular-nums",
-  saleClassName = "inline-flex items-center rounded-full border border-[#FA0272] bg-[#FA0272]/10 px-2 py-0.5 text-sm font-bold text-[#FA0272] tabular-nums",
-  offClassName = "inline-flex items-center rounded-full bg-[#FA0272] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white tabular-nums",
+  saleClassName = "inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-sm font-bold text-wh-brand-ink tabular-nums",
+  offClassName = "inline-flex items-center rounded-full bg-wh-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-wh-text tabular-nums",
   plainClassName = "font-semibold text-gray-900 dark:text-white tabular-nums",
 }) {
   const price = Math.round(

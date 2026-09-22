@@ -340,7 +340,7 @@ export default function AddToCartAnimation({
       // Step 1: Scale up with glow
       tl.to(linkRef.current, {
         scale: 1.08,
-        boxShadow: '0 10px 25px rgba(235, 89, 14, 0.4)',
+        boxShadow: '0 10px 25px rgba(253, 146, 11, 0.4)',
         duration: 0.15,
         ease: 'power2.out',
         transformOrigin: 'center center',
@@ -349,7 +349,7 @@ export default function AddToCartAnimation({
         // Step 2: Bounce back
         .to(linkRef.current, {
           scale: 1.0,
-          boxShadow: '0 4px 12px rgba(235, 89, 14, 0.3)',
+          boxShadow: '0 4px 12px rgba(253, 146, 11, 0.3)',
           duration: 0.2,
           ease: 'power2.inOut',
         })
@@ -456,13 +456,13 @@ export default function AddToCartAnimation({
                 debugLog('View cart clicked, navigating to:', linkTo);
                 navigate(linkTo);
               }}
-              className={`text-white shadow-[0_8px_18px_rgba(0,0,0,0.16)] transition-all duration-300 pointer-events-auto border border-white/20 cursor-pointer hover:shadow-[0_10px_22px_rgba(0,0,0,0.2)] ${
+              className={`text-wh-text shadow-[0_8px_18px_rgba(0,0,0,0.16)] transition-all duration-300 pointer-events-auto border border-white/20 cursor-pointer hover:shadow-[0_10px_22px_rgba(0,0,0,0.2)] ${
                 variant === 'bar'
                   ? 'w-full rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3'
                   : 'rounded-full px-3.5 py-2 flex items-center gap-2.5'
               } ${pillClassName}`}
               style={{
-                background: 'linear-gradient(135deg, rgba(var(--module-theme-rgb,250,2,114),0.94), rgba(var(--module-theme-rgb,250,2,114),0.78))',
+                background: 'linear-gradient(135deg, rgba(var(--module-theme-rgb,253,146,11),0.94), rgba(var(--module-theme-rgb,253,146,11),0.78))',
               }}
             >
               {variant === 'bar' ? (
@@ -534,7 +534,7 @@ export default function AddToCartAnimation({
                       viewBox="0 0 16 16"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
-                      className="text-white"
+                      className="text-wh-text"
                     >
                       <path
                         d="M6 12L10 8L6 4"

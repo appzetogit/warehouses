@@ -178,7 +178,7 @@ export default function ProductDetailDesktop({
                 </span>
               )}
               <span className="inline-flex items-center gap-1 rounded-[8px] border border-wh-border px-2.5 py-1.5 text-[12px]">
-                <Coins className="h-3.5 w-3.5 text-wh-brand" aria-hidden="true" /> Coins usable at checkout
+                <Coins className="h-3.5 w-3.5 text-wh-brand-ink" aria-hidden="true" /> Coins usable at checkout
               </span>
               <span className="inline-flex items-center gap-1 rounded-[8px] border border-wh-border px-2.5 py-1.5 text-[12px]">
                 <Tag className="h-3.5 w-3.5 text-wh-success" aria-hidden="true" /> Coupons applied in cart

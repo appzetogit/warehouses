@@ -22,9 +22,9 @@ export default function QuickSection() {
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-[#FA0272] text-white px-8 py-3 rounded-2xl shadow-2xl flex flex-col items-center gap-1 border-4 border-white"
+          className="bg-wh-brand text-wh-text px-8 py-3 rounded-2xl shadow-2xl flex flex-col items-center gap-1 border-4 border-white"
         >
-          <Zap className="h-8 w-8 fill-white" />
+          <Zap className="h-8 w-8 fill-wh-text" />
           <span className="text-xl font-black uppercase tracking-tighter italic">Coming Soon</span>
           <span className="text-xs font-bold opacity-80 uppercase tracking-widest leading-none">Instant Grocery</span>
         </motion.div>

@@ -11,7 +11,8 @@ import { Badge } from "@store/components/ui/badge"
 import { useProfile } from "@store/context/ProfileContext"
 import { toast } from "sonner"
 
-const ORANGE = "#EB590E"
+const ORANGE = "#FD920B"
+const ORANGE_INK = "#B45309"
 
 const getAddressId = (address) => address?.id || address?._id || ""
 
@@ -158,7 +159,7 @@ export default function SelectAddress() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" style={{ color: ORANGE }} />
+                  <MapPin className="h-5 w-5" style={{ color: ORANGE_INK }} />
                   Save as
                 </CardTitle>
               </CardHeader>
@@ -172,7 +173,7 @@ export default function SelectAddress() {
                         type="button"
                         variant={active ? "default" : "outline"}
                         onClick={() => setLabel(x)}
-                        className={active ? "text-white" : ""}
+                        className={active ? "text-wh-text" : ""}
                         style={active ? { backgroundColor: ORANGE } : undefined}
                       >
                         {x}
@@ -191,7 +192,7 @@ export default function SelectAddress() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Search className="h-5 w-5" style={{ color: ORANGE }} />
+                  <Search className="h-5 w-5" style={{ color: ORANGE_INK }} />
                   Autocomplete
                 </CardTitle>
               </CardHeader>
@@ -244,7 +245,7 @@ export default function SelectAddress() {
                                   </div>
                                   {selected && (
                                     <div className="pt-1">
-                                      <Check className="h-5 w-5" style={{ color: ORANGE }} />
+                                      <Check className="h-5 w-5" style={{ color: ORANGE_INK }} />
                                     </div>
                                   )}
                                 </div>
@@ -347,7 +348,7 @@ export default function SelectAddress() {
           <div className="pt-2">
             <Button
               type="submit"
-              className="w-full h-12 text-base font-semibold text-white"
+              className="w-full h-12 text-base font-semibold text-wh-text"
               style={{ backgroundColor: ORANGE }}
               disabled={isSaving}
             >

@@ -31,7 +31,7 @@ const helpCategories = [
     id: "ordering",
     title: "Ordering",
     icon: Package,
-    color: "text-[#EB590E]",
+    color: "text-wh-brand-ink",
     bgColor: "bg-orange-50",
     description: "Learn how to place and manage orders",
     topics: [
@@ -57,7 +57,7 @@ const helpCategories = [
     id: "payments",
     title: "Payments",
     icon: CreditCard,
-    color: "text-[#EB590E]",
+    color: "text-wh-brand-ink",
     bgColor: "bg-orange-50",
     description: "Payment methods and billing questions",
     topics: [
@@ -109,7 +109,7 @@ const helpCategories = [
     id: "account",
     title: "Account & Profile",
     icon: User,
-    color: "text-[#EB590E]",
+    color: "text-wh-brand-ink",
     bgColor: "bg-orange-50",
     description: "Manage your account and preferences",
     topics: [
@@ -135,7 +135,7 @@ const helpCategories = [
     id: "refunds",
     title: "Refunds & Returns",
     icon: Shield,
-    color: "text-[#EB590E]",
+    color: "text-wh-brand-ink",
     bgColor: "bg-orange-50",
     description: "Refund policy and return process",
     topics: [
@@ -244,7 +244,7 @@ export default function Help() {
               <CardContent className="p-4 md:p-5 lg:p-6">
                 <div className="flex items-center gap-3 md:gap-4">
                   <div className="p-2 md:p-3 bg-yellow-100 rounded-lg">
-                    <Package className="h-5 w-5 md:h-6 md:w-6 text-primary-orange" />
+                    <Package className="h-5 w-5 md:h-6 md:w-6 text-wh-brand-ink" />
                   </div>
                   <div>
                     <h3 className="text-sm md:text-base font-semibold">Track Your Order</h3>
@@ -257,7 +257,7 @@ export default function Help() {
               <CardContent className="p-4 md:p-5 lg:p-6">
                 <div className="flex items-center gap-3 md:gap-4">
                   <div className="p-2 md:p-3 bg-orange-100 rounded-lg">
-                    <User className="h-5 w-5 md:h-6 md:w-6 text-[#EB590E]" />
+                    <User className="h-5 w-5 md:h-6 md:w-6 text-wh-brand-ink" />
                   </div>
                   <div>
                     <h3 className="text-sm md:text-base font-semibold">Manage Account</h3>
@@ -269,7 +269,7 @@ export default function Help() {
             <CardContent className="p-4 md:p-5 lg:p-6">
               <div className="flex items-center gap-3 md:gap-4">
                 <div className="p-2 md:p-3 bg-orange-100 rounded-lg">
-                  <MessageCircle className="h-5 w-5 md:h-6 md:w-6 text-[#EB590E]" />
+                  <MessageCircle className="h-5 w-5 md:h-6 md:w-6 text-wh-brand-ink" />
                 </div>
                 <div>
                   <h3 className="text-sm md:text-base font-semibold">Contact Support</h3>
@@ -371,7 +371,7 @@ export default function Help() {
           <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200 shadow-lg">
             <CardHeader className="p-4 md:p-5 lg:p-6">
               <CardTitle className="text-xl md:text-2xl lg:text-3xl flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 md:h-6 md:w-6 text-primary-orange" />
+                <MessageCircle className="h-5 w-5 md:h-6 md:w-6 text-wh-brand-ink" />
                 Still Need Help?
               </CardTitle>
               <CardDescription className="text-sm md:text-base">
@@ -382,7 +382,7 @@ export default function Help() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
                 <div className="flex items-start gap-3 p-4 bg-white rounded-lg">
                   <div className="p-2 bg-orange-100 rounded-lg">
-                    <Phone className="h-5 w-5 text-[#EB590E]" />
+                    <Phone className="h-5 w-5 text-wh-brand-ink" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Phone Support</h3>
@@ -399,7 +399,7 @@ export default function Help() {
                 </div>
                 <div className="flex items-start gap-3 p-4 bg-white rounded-lg">
                   <div className="p-2 bg-orange-100 rounded-lg">
-                    <Mail className="h-5 w-5 text-[#EB590E]" />
+                    <Mail className="h-5 w-5 text-wh-brand-ink" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Email Support</h3>
@@ -416,7 +416,7 @@ export default function Help() {
                 </div>
                 <div className="flex items-start gap-3 p-4 bg-white rounded-lg">
                   <div className="p-2 bg-orange-100 rounded-lg">
-                    <MessageCircle className="h-5 w-5 text-[#EB590E]" />
+                    <MessageCircle className="h-5 w-5 text-wh-brand-ink" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Live Chat</h3>

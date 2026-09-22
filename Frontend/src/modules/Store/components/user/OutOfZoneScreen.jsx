@@ -80,7 +80,7 @@ const OutOfZoneScreen = ({ location }) => {
           </p>
           <Link
             to="/"
-            className="mt-6 inline-flex items-center justify-center rounded-full bg-[#FD920B] px-6 py-3 text-[15px] font-bold text-[#0F1111] no-underline hover:bg-[#E07F00] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="mt-6 inline-flex items-center justify-center rounded-full bg-[#FD920B] px-6 py-3 text-[15px] font-bold text-[#0F1111] no-underline hover:bg-wh-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Shop on {companyName}
           </Link>

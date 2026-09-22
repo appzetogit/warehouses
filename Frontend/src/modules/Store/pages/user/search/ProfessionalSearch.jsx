@@ -245,10 +245,10 @@ export default function ProfessionalSearch() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
             <Input 
               autoFocus
-              placeholder="Search for sellers or dishes..." 
+              placeholder="Search for products or stores..." 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="pl-12 pr-12 h-12 w-full bg-slate-100 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-rose-500 rounded-full text-base"
+              className="pl-12 pr-12 h-12 w-full bg-slate-100 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-wh-brand rounded-full text-base"
             />
             {query && (
               <button onClick={handleClear} className="absolute right-12 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600">
@@ -257,7 +257,7 @@ export default function ProfessionalSearch() {
             )}
             <button 
               onClick={handleVoiceSearch}
-              className={`absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'text-gray-400 hover:text-rose-500 hover:bg-rose-50'}`}
+              className={`absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all ${isListening ? 'bg-wh-brand text-wh-text animate-pulse' : 'text-gray-400 hover:text-wh-brand-ink hover:bg-wh-brand-50'}`}
             >
               <Mic className="w-5 h-5" />
             </button>
@@ -277,7 +277,7 @@ export default function ProfessionalSearch() {
                   onClick={() => handleCategoryClick(cat._id)}
                   className={`flex w-16 min-w-16 flex-shrink-0 snap-start flex-col items-center group transition-all ${selectedCategoryId === cat._id ? 'scale-110' : ''}`}
                 >
-                  <div className={`w-14 h-14 rounded-2xl mb-2 flex items-center justify-center overflow-hidden border-2 transition-all ${selectedCategoryId === cat._id ? 'border-rose-500 shadow-lg shadow-rose-100' : 'border-transparent bg-white dark:bg-zinc-900'}`}>
+                  <div className={`w-14 h-14 rounded-2xl mb-2 flex items-center justify-center overflow-hidden border-2 transition-all ${selectedCategoryId === cat._id ? 'border-wh-brand shadow-lg shadow-wh-brand/20' : 'border-transparent bg-white dark:bg-zinc-900'}`}>
                     {cat.image ? (
                       <img 
                         src={getMediaUrl(cat.image)} 
@@ -288,7 +288,7 @@ export default function ProfessionalSearch() {
                       <Utensils className="w-6 h-6 text-slate-300" />
                     )}
                   </div>
-                  <span className={`text-[11px] font-medium text-center line-clamp-1 ${selectedCategoryId === cat._id ? 'text-rose-600' : 'text-slate-600 dark:text-slate-400'}`}>
+                  <span className={`text-[11px] font-medium text-center line-clamp-1 ${selectedCategoryId === cat._id ? 'text-wh-brand-ink' : 'text-slate-600 dark:text-slate-400'}`}>
                     {cat.name}
                   </span>
                 </button>
@@ -304,7 +304,7 @@ export default function ProfessionalSearch() {
                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                className="flex flex-col items-center justify-center py-20"
             >
-              <Loader2 className="w-8 h-8 text-rose-500 animate-spin mb-3" />
+              <Loader2 className="w-8 h-8 text-wh-brand-ink animate-spin mb-3" />
               <p className="text-slate-400 text-sm">Finding the best for you...</p>
             </motion.div>
           )}
@@ -340,7 +340,7 @@ export default function ProfessionalSearch() {
                   <button
                     key={chip.id}
                     onClick={() => setRemovedChips((prev) => [...prev, chip.id])}
-                    className="flex items-center gap-1 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs font-medium hover:bg-rose-100 transition-colors"
+                    className="flex items-center gap-1 px-3 py-1 rounded-full bg-wh-brand-50 dark:bg-wh-brand/10 border border-wh-brand/40 dark:border-wh-brand/30 text-wh-brand-ink dark:text-wh-brand text-xs font-medium hover:bg-wh-brand-50 transition-colors"
                     title="Remove filter"
                   >
                     {chip.label}
@@ -380,7 +380,7 @@ export default function ProfessionalSearch() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                    <div className="w-1 h-5 bg-orange-500 rounded-full" />
-                   <h2 className="text-lg font-bold dark:text-white">Dishes from sellers</h2>
+                   <h2 className="text-lg font-bold dark:text-white">Stores with this item</h2>
                 </div>
                 <div className="grid gap-4">
                   {results.dishes.map((r) => (
@@ -393,7 +393,7 @@ export default function ProfessionalSearch() {
                           />
                        </div>
                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <div className="text-rose-500 text-[10px] font-bold uppercase tracking-wider mb-1">
+                          <div className="text-wh-brand-ink text-[10px] font-bold uppercase tracking-wider mb-1">
                              Matched: {r.matchedDish || query}
                           </div>
                           <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1">{r.sellerName}</h3>
@@ -416,7 +416,7 @@ export default function ProfessionalSearch() {
             {results.sellers.length > 0 && (
               <section>
                 <div className="flex items-center gap-2 mb-4">
-                   <div className="w-1 h-5 bg-rose-500 rounded-full" />
+                   <div className="w-1 h-5 bg-wh-brand rounded-full" />
                    <h2 className="text-lg font-bold dark:text-white">Sellers</h2>
                 </div>
                 <div className="grid gap-6">
@@ -454,7 +454,7 @@ export default function ProfessionalSearch() {
                             <span>•</span>
                             <span>{r.location?.area || "Nearby"}</span>
                          </div>
-                         <div className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                         <div className="text-[10px] font-bold text-wh-brand-ink bg-wh-brand-50 dark:bg-wh-brand/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
                             Top Pick
                          </div>
                       </div>
@@ -472,7 +472,7 @@ export default function ProfessionalSearch() {
                  </div>
                  <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">We couldn't find any results</h2>
                  <p className="text-slate-500 text-sm max-w-xs">Maybe try searching for something else or check your spelling</p>
-                 <Button variant="outline" onClick={handleClear} className="mt-6 rounded-xl border-rose-500 text-rose-500 hover:bg-rose-50">
+                 <Button variant="outline" onClick={handleClear} className="mt-6 rounded-xl border-wh-brand text-wh-brand-ink hover:bg-wh-brand-50">
                     Clear all filters
                  </Button>
               </div>
@@ -486,11 +486,11 @@ export default function ProfessionalSearch() {
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md">
           <div className="relative flex items-center justify-center">
             {/* Animated Ripples */}
-            <div className="absolute w-40 h-40 bg-rose-500/20 rounded-full animate-ping" />
-            <div className="absolute w-32 h-32 bg-rose-500/30 rounded-full animate-pulse" />
+            <div className="absolute w-40 h-40 bg-wh-brand/20 rounded-full animate-ping" />
+            <div className="absolute w-32 h-32 bg-wh-brand/30 rounded-full animate-pulse" />
             
             {/* Mic Icon Container */}
-            <div className="relative bg-gradient-to-tr from-rose-600 to-rose-400 p-8 rounded-full text-white shadow-[0_0_40px_rgba(225,29,72,0.4)] border-4 border-white dark:border-zinc-800">
+            <div className="relative bg-gradient-to-tr from-wh-brand to-wh-brand-600 p-8 rounded-full text-wh-text shadow-[0_0_40px_rgba(253,146,11,0.4)] border-4 border-white dark:border-zinc-800">
               <Mic className="h-12 w-12" />
             </div>
 
@@ -499,7 +499,7 @@ export default function ProfessionalSearch() {
               {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                 <div 
                   key={i}
-                  className="w-1.5 bg-rose-500 rounded-full animate-voice-bar"
+                  className="w-1.5 bg-wh-brand rounded-full animate-voice-bar"
                   style={{ 
                     animationDelay: `${i * 0.1}s`,
                     height: `${20 + Math.random() * 80}%`
@@ -511,13 +511,13 @@ export default function ProfessionalSearch() {
 
           <div className="mt-24 text-center">
             <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Speak Now</h2>
-            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for dishes or sellers...</p>
+            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium">I'm listening for products or stores...</p>
           </div>
 
           <Button
             variant="ghost"
             onClick={() => setIsListening(false)}
-            className="mt-16 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-full px-8"
+            className="mt-16 text-gray-400 hover:text-wh-brand-ink hover:bg-wh-brand-50 dark:hover:bg-wh-brand/10 rounded-full px-8"
           >
             Cancel
           </Button>

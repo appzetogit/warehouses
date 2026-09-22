@@ -197,7 +197,7 @@ export default function Sellers() {
                                   <span className="font-medium whitespace-nowrap">{seller.distance}</span>
                                 </div>
                               </div>
-                              <Button className="bg-primary-orange hover:opacity-90 dark:hover:opacity-80 text-white text-xs sm:text-sm h-7 sm:h-8 px-3 sm:px-4 flex-shrink-0 transition-opacity">
+                              <Button className="bg-wh-brand hover:opacity-90 dark:hover:opacity-80 text-wh-text text-xs sm:text-sm h-7 sm:h-8 px-3 sm:px-4 flex-shrink-0 transition-opacity">
                                 Order Now
                               </Button>
                             </div>
@@ -206,7 +206,7 @@ export default function Sellers() {
 
                         <div className="w-36 sm:w-44 md:w-56 lg:w-64 xl:w-72 flex-shrink-0 relative overflow-hidden group/image">
                           <img
-                            src={seller.image || "https://via.placeholder.com/400x300?text=Restaurant"}
+                            src={seller.image || "https://via.placeholder.com/400x300?text=Store"}
                             alt={seller.name}
                             className="w-full h-full object-cover"
                           />
