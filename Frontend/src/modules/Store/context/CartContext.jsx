@@ -51,6 +51,26 @@ const defaultCartContext = {
 
 const CartContext = createContext(defaultCartContext)
 
+/**
+ * Whether a new line belongs to a different seller than the cart's first line.
+ * Names are compared when both sides have one (ids come in several formats for
+ * the same seller); otherwise ids decide. One rule, used both when deciding to
+ * prompt and when writing the cart — when the two disagreed, an item could be
+ * dropped while the caller was told it had been added.
+ */
+const isDifferentSeller = (existing, incoming) => {
+    const name = (value) =>
+        String(typeof value === "string" ? value : value?.name || "").trim().toLowerCase()
+    const existingName = name(existing?.seller)
+    const incomingName = name(incoming?.seller)
+    if (existingName && incomingName) return existingName !== incomingName
+
+    const existingId = existing?.sellerId
+    const incomingId = incoming?.sellerId
+    if (existingId && incomingId) return String(existingId) !== String(incomingId)
+    return false
+}
+
 const normalizeCartData = (rawCart) => {
   if (!Array.isArray(rawCart)) return []
 
@@ -297,27 +317,10 @@ export function CartProvider({ children, mode = "shop" }) {
     const safeCart = normalizeCartData(cart)
     const isStandardMode = mode !== "quick"
     if (!forceReplace && safeCart.length > 0 && !isStandardMode) {
-      const firstItemSellerId = safeCart[0]?.sellerId
       const firstItemSellerName = safeCart[0]?.seller
-      const newItemSellerId = item?.sellerId
       const newItemSellerName = item?.seller
-      const normalizeName = (name) => (name ? String(name).trim().toLowerCase() : '')
 
-      const firstSellerNameNormalized = normalizeName(firstItemSellerName)
-      const newSellerNameNormalized = normalizeName(newItemSellerName)
-      const hasNameMismatch =
-        firstSellerNameNormalized &&
-        newSellerNameNormalized &&
-        firstSellerNameNormalized !== newSellerNameNormalized
-
-      const hasIdMismatch =
-        !firstSellerNameNormalized &&
-        !newSellerNameNormalized &&
-        firstItemSellerId &&
-        newItemSellerId &&
-        String(firstItemSellerId) !== String(newItemSellerId)
-
-      if (hasNameMismatch || hasIdMismatch) {
+      if (isDifferentSeller(safeCart[0], item)) {
         setCartReplacePrompt({
           item,
           sourcePosition,
@@ -339,45 +342,19 @@ export function CartProvider({ children, mode = "shop" }) {
 
     setCart((prev) => {
       const safePrev = forceReplace ? [] : normalizeCartData(prev)
-      // Validate seller consistency only in quick mode (standard mode supports multi-vendor cart)
-      if (!forceReplace && safePrev.length > 0 && !isStandardMode) {
-        const firstItemSellerId = safePrev[0]?.sellerId;
-        const firstItemSellerName = safePrev[0]?.seller;
-        const newItemSellerId = item?.sellerId;
-        const newItemSellerName = item?.seller;
-        
-        // Normalize seller names for comparison (trim and case-insensitive)
-        const normalizeName = (name) => name ? name.trim().toLowerCase() : '';
-        const firstSellerNameNormalized = normalizeName(firstItemSellerName);
-        const newSellerNameNormalized = normalizeName(newItemSellerName);
-        
-        // Check seller name first (more reliable than IDs which can have different formats)
-        // If names match, allow it even if IDs differ (same seller, different ID format)
-        if (firstSellerNameNormalized && newSellerNameNormalized) {
-          if (firstSellerNameNormalized !== newSellerNameNormalized) {
-            debugError('❌ Cannot add item: Seller name mismatch!', {
-              cartSellerId: firstItemSellerId,
-              cartSellerName: firstItemSellerName,
-              newItemSellerId: newItemSellerId,
-              newItemSellerName: newItemSellerName
-            });
-            return safePrev;
-          }
-          // Names match - allow it (even if IDs differ, it's the same seller)
-        } else if (firstItemSellerId && newItemSellerId) {
-          // If names are not available, fallback to ID comparison
-          if (firstItemSellerId !== newItemSellerId) {
-            debugError('❌ Cannot add item: Cart contains items from different seller!', {
-              cartSellerId: firstItemSellerId,
-              cartSellerName: firstItemSellerName,
-              newItemSellerId: newItemSellerId,
-              newItemSellerName: newItemSellerName
-            });
-            return safePrev;
-          }
-        }
+      // Validate seller consistency only in quick mode (standard mode supports multi-vendor cart).
+      // The caller was already asked to confirm above; this only guards a cart
+      // that changed in between.
+      if (!forceReplace && safePrev.length > 0 && !isStandardMode && isDifferentSeller(safePrev[0], item)) {
+        debugError('❌ Cannot add item: the cart belongs to another seller', {
+          cartSellerId: safePrev[0]?.sellerId,
+          cartSellerName: safePrev[0]?.seller,
+          newItemSellerId: item?.sellerId,
+          newItemSellerName: item?.seller,
+        });
+        return safePrev;
       }
-      
+
       const existing = safePrev.find((i) => i.id === item.id)
       if (existing) {
         // Set last add event for animation when incrementing existing item

@@ -232,8 +232,10 @@ function QuickCartBottomBar() {
   if (open || !itemCount || dismissedAt != null) return null
 
   return (
-    <div className="wh-desktop fixed inset-x-0 bottom-0 z-[60] hidden lg:block">
-      <div className="mx-auto mb-4 flex max-w-[520px] items-center gap-3 rounded-[10px] bg-wh-brand-ink px-4 py-3 text-white shadow-2xl">
+    // The strip spans the window, so it must not swallow clicks meant for the
+    // buttons that float beside it; only the bar itself takes them.
+    <div className="wh-desktop pointer-events-none fixed inset-x-0 bottom-0 z-[60] hidden lg:block">
+      <div className="pointer-events-auto mx-auto mb-4 flex max-w-[520px] items-center gap-3 rounded-[10px] bg-wh-brand-ink px-4 py-3 text-white shadow-2xl">
         <ShoppingCart className="h-5 w-5 shrink-0" aria-hidden="true" />
         <p className="min-w-0 flex-1 truncate text-[14px] font-semibold">
           {itemCount} item{itemCount === 1 ? "" : "s"} · ₹{formatMoney(total)}
