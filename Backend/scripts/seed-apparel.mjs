@@ -646,6 +646,168 @@ const CATALOGUE_ITEMS = [
         '320 GSM Brushed fleece-lined cotton blend\nRibbed V-insert neckline, cuffs and hem band\nMachine wash cold with like colours\nManufactured in Ludhiana, India',
         ['sweatshirt', 'crewneck', 'fleece', 'pullover', 'loungewear']
     ],
+
+    // --- Additional Items (bringing catalogue total to 45 products) ---
+    [
+        'T-Shirts', 'Oversized Typography Graphic Tee', 0, 849, 1599,
+        ['Black', 'White', 'Rust'], ['S', 'M', 'L', 'XL'], true, 35, 10,
+        [
+            'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=1000&auto=format&fit=crop&q=80',
+        ],
+        '240 GSM Heavy combed cotton with screen-printed back graphic\nDrop-shoulder streetwear cut with ribbed neckline\nMachine wash cold inside-out\nPrinted in Bengaluru, India',
+        ['graphic tee', 'oversized', 'streetwear', 'cotton', 'typography']
+    ],
+    [
+        'T-Shirts', 'Pique Cotton Classic Polo T-Shirt', 1, 899, 1699,
+        ['Navy', 'Olive', 'White'], ['M', 'L', 'XL', 'XXL'], false, 40, null,
+        [
+            'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=1000&auto=format&fit=crop&q=80',
+        ],
+        'Honeycomb breathable pique knit cotton\nRibbed collar and sleeve bands with two-button placket\nWash cold; dry flat\nCrafted in Tirupur, India',
+        ['polo', 'pique', 'collar tee', 'smart casual', 'golf polo']
+    ],
+    [
+        'T-Shirts', 'Raglan Sleeve Slub Henley Tee', 2, 799, 1499,
+        ['Charcoal', 'Beige'], ['S', 'M', 'L'], false, 25, null,
+        [
+            'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1618354691229-88d47f285158?w=1000&auto=format&fit=crop&q=80',
+        ],
+        '100% Textured slub cotton with wooden three-button henley neck\nContrast raglan 3/4 sleeves\nGentle wash cold\nMade in Ahmedabad, India',
+        ['henley', 'raglan', 'slub cotton', 'casual', 'tshirt']
+    ],
+    [
+        'Shirts', 'Micro-Corduroy Long Sleeve Overshirt', 0, 1799, 3299,
+        ['Olive', 'Rust', 'Charcoal'], ['M', 'L', 'XL'], true, 30, 8,
+        [
+            'https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1626497764746-6dc36546b388?w=1000&auto=format&fit=crop&q=80',
+        ],
+        'Soft 21-wale fine cotton corduroy\nTwin chest flap pockets with antique metal snap buttons\nMachine wash cold inside-out\nStitched in Ludhiana, India',
+        ['corduroy', 'overshirt', 'winter shirt', 'layering', 'casual']
+    ],
+    [
+        'Shirts', 'Cuban Collar Botanical Printed Resort Shirt', 2, 1299, 2299,
+        ['Navy', 'White'], ['S', 'M', 'L', 'XL'], false, 30, null,
+        [
+            'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=1000&auto=format&fit=crop&q=80',
+        ],
+        'Lightweight rayon-cotton blend with lush tropical leaf motif\nCamp Cuban collar with relaxed straight hem\nCold gentle wash; hang dry\nPrinted in Goa, India',
+        ['cuban collar', 'resort shirt', 'hawaiian shirt', 'summer', 'printed shirt']
+    ],
+    [
+        'Jeans', 'Distressed Vintage Wash Slim Jeans', 0, 2199, 3999,
+        ['Navy', 'Charcoal'], ['S', 'M', 'L', 'XL'], true, 25, 5,
+        [
+            'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=1000&auto=format&fit=crop&q=80',
+        ],
+        '12 oz Hand-sanded distressed denim with knee rips and whiskers\nSlim tapered fit with 2% elastane for flexible movement\nMachine wash inside-out in cold water\nCrafted in Surat, India',
+        ['distressed jeans', 'ripped jeans', 'slim fit', 'vintage denim', 'denim']
+    ],
+    [
+        'Jeans', 'Straight-Leg Ecru Natural Denim Jeans', 1, 1999, 3499,
+        ['Beige', 'White'], ['M', 'L', 'XL'], false, 30, null,
+        [
+            'https://images.unsplash.com/photo-1582552938357-32b906df40cb?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=1000&auto=format&fit=crop&q=80',
+        ],
+        '100% Unbleached natural cotton bull denim with raw cotton flecks\nHigh-waisted straight leg with copper rivets\nWash cold with mild detergent\nConstructed in Ahmedabad, India',
+        ['ecru jeans', 'white jeans', 'natural denim', 'straight fit', 'denim']
+    ],
+    [
+        'Dresses', 'Tiered Smocked Cotton Floral Midi Dress', 2, 1699, 3199,
+        ['Rust', 'Olive'], ['S', 'M', 'L', 'XL'], false, 25, null,
+        [
+            'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=1000&auto=format&fit=crop&q=80',
+        ],
+        '100% Breathable cambric cotton with artisanal floral bootis\nShirred elastic bodice with tiered ruffled skirt\nGentle machine wash cold\nHand-printed in Sanganer, Rajasthan',
+        ['midi dress', 'floral dress', 'smocked', 'cottagecore', 'tiered dress']
+    ],
+    [
+        'Dresses', 'Bodycon Ribbed Knit Sleeveless Midi Dress', 0, 1499, 2799,
+        ['Black', 'Maroon', 'Charcoal'], ['XS', 'S', 'M', 'L'], true, 30, 8,
+        [
+            'https://images.unsplash.com/photo-1502716119720-b23a93e5fe1b?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=1000&auto=format&fit=crop&q=80',
+        ],
+        'Form-fitting modal elastane heavy rib knit\nSleeveless scoop neckline with elegant side calf slit\nHand wash cold; lay flat to dry\nManufactured in Tirupur, India',
+        ['bodycon', 'ribbed dress', 'sleeveless', 'party dress', 'cocktail']
+    ],
+    [
+        'Kurtas', 'Bandhani Print Pure Silk Anarkali Kurta', 0, 2299, 4499,
+        ['Maroon', 'Rust'], ['S', 'M', 'L', 'XL'], true, 20, 5,
+        [
+            'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1000&auto=format&fit=crop&q=80',
+        ],
+        'Art silk flared anarkali silhouette with traditional Bandhani dots\nGold gota patti lace border detailing\nDry clean only\nCrafted in Jaipur, Rajasthan',
+        ['bandhani', 'anarkali', 'silk kurta', 'festive wear', 'wedding wear']
+    ],
+    [
+        'Kurtas', 'Dabu Handblock Print Indigo A-Line Kurta', 1, 1399, 2599,
+        ['Navy', 'White'], ['M', 'L', 'XL', 'XXL'], false, 35, null,
+        [
+            'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?w=1000&auto=format&fit=crop&q=80',
+        ],
+        'Mud-resist Dabu printed handloom cotton\nA-line flare with functional deep side pockets\nHand wash cold with mild detergent\nNaturally dyed in Akola, Rajasthan',
+        ['indigo kurta', 'dabu print', 'handblock', 'cotton kurta', 'sustainable']
+    ],
+    [
+        'Tops', 'Ribbed High-Neck Sleeveless Knit Top', 0, 699, 1299,
+        ['Black', 'White', 'Beige'], ['XS', 'S', 'M', 'L'], true, 40, 12,
+        [
+            'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1534126511673-b6899657816a?w=1000&auto=format&fit=crop&q=80',
+        ],
+        'Fine-gauge stretch cotton modal rib\nChic high mock-neck with armhole rib finish\nDelicate machine wash cold\nSpun in Coimbatore, India',
+        ['high neck', 'sleeveless', 'ribbed top', 'minimalist', 'capsule wardrobe']
+    ],
+    [
+        'Tops', 'Linen Tie-Up Wrap Crop Blouse', 2, 899, 1699,
+        ['Olive', 'Rust', 'White'], ['S', 'M', 'L'], false, 28, null,
+        [
+            'https://images.unsplash.com/photo-1564584217132-2271feaeb3c5?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=1000&auto=format&fit=crop&q=80',
+        ],
+        '100% Breathable pre-washed pure linen\nSurplice wrap neckline with long adjustable side ties\nGentle machine wash cold\nStitched in Kochi, Kerala',
+        ['wrap top', 'linen crop top', 'resort top', 'summer blouse', 'linen']
+    ],
+    [
+        'Gym Tees & Tops', 'Muscle-Fit Dry-Tech Workout Tank', 0, 649, 1199,
+        ['Charcoal', 'Black', 'Navy'], ['S', 'M', 'L', 'XL'], true, 35, 10,
+        [
+            'https://images.unsplash.com/photo-1506152983158-b4a74a01c721?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=1000&auto=format&fit=crop&q=80',
+        ],
+        'Micro-mesh polyester with silver anti-odor technology\nDeep dropped armholes with reinforced flatlock stitching\nMachine wash cold; do not use fabric softener\nEngineered in Ludhiana, India',
+        ['workout tank', 'gym stringer', 'muscle fit', 'bodybuilding', 'drytech']
+    ],
+    [
+        'Track Pants & Joggers', 'High-Waisted Seamless Compression Tights', 1, 1399, 2499,
+        ['Black', 'Navy', 'Olive'], ['XS', 'S', 'M', 'L'], false, 30, null,
+        [
+            'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=1000&auto=format&fit=crop&q=80',
+        ],
+        '75% Nylon, 25% Spandex squat-proof compression fabric\nWide stay-put waistband with hidden key pocket\nMachine wash cold inside-out\nManufactured in Gurugram, India',
+        ['leggings', 'yoga tights', 'compression', 'gym leggings', 'high waist']
+    ],
+    [
+        'Bomber & Denim Jackets', 'Quilted Ultralight Packable Puffer Vest', 0, 1899, 3499,
+        ['Black', 'Navy', 'Olive'], ['S', 'M', 'L', 'XL'], true, 25, 6,
+        [
+            'https://images.unsplash.com/photo-1544441893-675973e31985?w=1000&auto=format&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1520975954732-35dd22299614?w=1000&auto=format&fit=crop&q=80',
+        ],
+        'Windproof ripstop nylon shell with faux-down thermoregulation fill\nStand collar with zippered hand-warmer pockets\nWipe clean or machine wash gentle\nCrafted in Noida, India',
+        ['puffer vest', 'gilet', 'quilted vest', 'winter vest', 'packable jacket']
+    ],
 ];
 
 // Curated verified product reviews to seed
