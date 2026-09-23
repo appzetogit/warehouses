@@ -48,6 +48,35 @@ const SEED_TAG = 'apparel-seed-v1';
 const UPLOAD_ROOT = process.env.UPLOAD_STORAGE_ROOT || '/var/www/warehouses-uploads';
 const SEED_MEDIA_DIR = path.join(UPLOAD_ROOT, 'seed');
 
+const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop&q=80';
+
+async function downloadSingleUrl(remoteUrl, fullPath) {
+    const client = remoteUrl.startsWith('https') ? https : http;
+    return new Promise((resolve, reject) => {
+        const req = client.get(remoteUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, (res) => {
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                return downloadSingleUrl(res.headers.location, fullPath).then(resolve).catch(reject);
+            }
+            if (res.statusCode !== 200) {
+                res.resume();
+                return reject(new Error(`HTTP ${res.statusCode} for ${remoteUrl}`));
+            }
+            const fileStream = fs.createWriteStream(fullPath);
+            res.pipe(fileStream);
+            fileStream.on('finish', () => {
+                fileStream.close();
+                try { fs.chmodSync(fullPath, 0o644); } catch {}
+                resolve();
+            });
+            fileStream.on('error', (err) => {
+                fs.unlink(fullPath, () => {});
+                reject(err);
+            });
+        });
+        req.on('error', reject);
+    });
+}
+
 /**
  * Downloads a file from a URL to a local destination if it does not already exist.
  * Sets 0o755 on directories and 0o644 on files.
@@ -64,31 +93,16 @@ async function ensureDownloaded(remoteUrl, localRelPath) {
         return `/uploads/seed/${localRelPath.replace(/\\/g, '/')}`;
     }
 
-    const client = remoteUrl.startsWith('https') ? https : http;
-
-    await new Promise((resolve, reject) => {
-        const req = client.get(remoteUrl, { headers: { 'User-Agent': 'WarehousesSeed/1.0' } }, (res) => {
-            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-                return ensureDownloaded(res.headers.location, localRelPath).then(resolve).catch(reject);
-            }
-            if (res.statusCode !== 200) {
-                res.resume();
-                return reject(new Error(`HTTP ${res.statusCode} downloading ${remoteUrl}`));
-            }
-            const fileStream = fs.createWriteStream(fullPath);
-            res.pipe(fileStream);
-            fileStream.on('finish', () => {
-                fileStream.close();
-                try { fs.chmodSync(fullPath, 0o644); } catch {}
-                resolve();
-            });
-            fileStream.on('error', (err) => {
-                fs.unlink(fullPath, () => {});
-                reject(err);
-            });
-        });
-        req.on('error', reject);
-    });
+    try {
+        await downloadSingleUrl(remoteUrl, fullPath);
+    } catch (err) {
+        console.warn(`  [Notice] Image download warning: ${err.message}. Using high-res fallback.`);
+        try {
+            await downloadSingleUrl(DEFAULT_FALLBACK_IMAGE, fullPath);
+        } catch (fbErr) {
+            console.warn(`  [Notice] Fallback download failed: ${fbErr.message}`);
+        }
+    }
 
     return `/uploads/seed/${localRelPath.replace(/\\/g, '/')}`;
 }
@@ -248,7 +262,7 @@ const SEED_CATEGORIES = [
             },
             {
                 name: 'Jeans',
-                image: 'https://images.unsplash.com/photo-1542272604-780c96856592?w=800&auto=format&fit=crop&q=80',
+                image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&auto=format&fit=crop&q=80',
                 commissionPercent: 10,
                 sortOrder: 3,
             },
