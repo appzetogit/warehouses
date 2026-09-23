@@ -5,10 +5,10 @@ import { ArrowLeft, Search, Grid2x2, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 import { adminAPI } from "@store/api";
 import { productImages } from "@store/constants/images";
+import { resolveMediaUrl } from "@/shared/utils/mediaUrl";
 import OptimizedImage from "@store/components/OptimizedImage";
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext";
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation";
-import { API_BASE_URL } from "@store/api/config";
 import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop";
 import { CategoriesDesktop } from "@store/components/user/desktop/IndexDesktop";
 
@@ -22,25 +22,10 @@ export default function Categories() {
   const [searchQuery, setSearchQuery] = useState("");
   const { effectiveLocation: location, zoneId } = useDeliveryLocation();
 
-  const BACKEND_ORIGIN = useMemo(() => API_BASE_URL.replace(/\/api\/?$/, ""), []);
-
-  const normalizeImageUrl = (imageUrl) => {
-    if (typeof imageUrl !== "string") return "";
-    const trimmed = imageUrl.trim();
-    if (!trimmed) return "";
-    if (/^data:/i.test(trimmed) || /^blob:/i.test(trimmed)) return trimmed;
-    
-    const normalizedInput = trimmed
-      .replace(/\\/g, "/")
-      .replace(/^(https?):\/(?!\/)/i, "$1://")
-      .replace(/^(https?:\/\/)(https?:\/\/)/i, "$1");
-
-    if (/^(https?:)?\/\//i.test(normalizedInput)) return normalizedInput;
-
-    return normalizedInput.startsWith("/")
-      ? `${BACKEND_ORIGIN}${normalizedInput}`
-      : `${BACKEND_ORIGIN}/${normalizedInput.replace(/^\.?\/*/, "")}`;
-  };
+  // resolveMediaUrl is the one place that knows how to turn a stored /uploads
+  // path into a URL. The copy that used to live here stripped only a trailing
+  // "/api", so with our "/api/v1" base every category image 404'd.
+  const normalizeImageUrl = (imageUrl) => resolveMediaUrl(imageUrl);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -69,7 +54,7 @@ export default function Categories() {
       }
     };
     fetchCategories();
-  }, [zoneId, BACKEND_ORIGIN]);
+  }, [zoneId]);
 
   const filteredCategories = categories.filter((cat) =>
     (cat.name || "").toLowerCase().includes(searchQuery.toLowerCase())

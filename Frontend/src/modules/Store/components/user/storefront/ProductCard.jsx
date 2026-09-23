@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { Star } from "lucide-react"
 import { useStoreMode } from "@store/context/StoreModeContext"
@@ -21,8 +22,53 @@ export default function ProductCard({
   footNote = null,
 }) {
   const { storePath } = useStoreMode()
+  const ref = useRef(null)
   const id = product?._id || product?.id
-  const image = mediaUrl(product?.image || (Array.isArray(product?.images) ? product.images[0] : ""))
+
+  // Every photo the product has, so the card can cycle through them.
+  const gallery = useMemo(() => {
+    const raw = [product?.image, ...(Array.isArray(product?.images) ? product.images : [])]
+    const urls = raw
+      .map((entry) => mediaUrl(typeof entry === "string" ? entry : entry?.url))
+      .filter((url) => isRealImage(url))
+    return [...new Set(urls)].slice(0, 5)
+  }, [product])
+
+  const [frame, setFrame] = useState(0)
+
+  // Cycle only while the card is on screen, and never when the visitor has
+  // asked for less motion — an animation nobody is looking at is just battery.
+  useEffect(() => {
+    if (gallery.length < 2) return undefined
+    const el = ref.current
+    if (!el) return undefined
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+    if (still) return undefined
+
+    let timer = null
+    const start = () => {
+      if (timer) return
+      timer = setInterval(() => setFrame((f) => (f + 1) % gallery.length), 2600)
+    }
+    const stop = () => {
+      clearInterval(timer)
+      timer = null
+    }
+    if (typeof IntersectionObserver === "undefined") {
+      start()
+      return stop
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => (entry.isIntersecting ? start() : stop()),
+      { threshold: 0.35 },
+    )
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      stop()
+    }
+  }, [gallery.length])
+
   const price = Number(product?.displayPrice ?? product?.price ?? 0)
   const mrp = Number(product?.mrp ?? 0)
   const off = percentOff(price, mrp)
@@ -30,19 +76,41 @@ export default function ProductCard({
   const ratingCount = Number(product?.ratingCount ?? product?.totalRatings) || 0
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-wh-border bg-wh-surface">
+    <article
+      ref={ref}
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-wh-border bg-wh-surface transition-shadow duration-300 hover:shadow-lg"
+    >
       <Link to={storePath(`/product/${id}`)} className="flex flex-1 flex-col focus-visible:outline-2 focus-visible:outline-wh-brand">
-        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-t-2xl bg-[#F7F7F7]">
-          {isRealImage(image) ? (
-            <img
-              src={image}
-              alt={product?.name || "Product"}
-              loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-500 ease-out hover:scale-105"
-            />
+        <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-t-2xl bg-[#F7F7F7]">
+          {gallery.length ? (
+            gallery.map((url, i) => (
+              <img
+                key={url}
+                src={url}
+                alt={i === 0 ? product?.name || "Product" : ""}
+                aria-hidden={i === 0 ? undefined : "true"}
+                loading={i === 0 ? "lazy" : "eager"}
+                className={`absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-105 ${
+                  i === frame ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            ))
           ) : (
             <ImagePlaceholder name={product?.name} />
           )}
+          {/* Which photo is showing, when there is more than one. */}
+          {gallery.length > 1 ? (
+            <span aria-hidden="true" className="absolute inset-x-0 bottom-1.5 flex justify-center gap-1">
+              {gallery.map((url, i) => (
+                <span
+                  key={url}
+                  className={`h-1 rounded-full bg-white transition-all duration-300 ${
+                    i === frame ? "w-3 opacity-95" : "w-1 opacity-60"
+                  }`}
+                />
+              ))}
+            </span>
+          ) : null}
           {badge}
         </div>
 

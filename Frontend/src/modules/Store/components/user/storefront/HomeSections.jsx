@@ -32,7 +32,7 @@ export function TrustStrip() {
       {TRUST.map(({ icon: Icon, title, note }) => (
         <div
           key={title}
-          className="flex items-center gap-2 rounded-2xl border border-wh-border bg-wh-surface p-2.5 sm:gap-3 sm:p-3"
+          className="wh-lift flex items-center gap-2 rounded-2xl border border-wh-border bg-wh-surface p-2.5 hover:shadow-md sm:gap-3 sm:p-3"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-wh-brand-50 text-wh-brand-ink">
             <Icon className="h-4 w-4" aria-hidden="true" />
@@ -56,7 +56,7 @@ export function Marquee({ items = [] }) {
       <div className="wh-marquee-track flex w-max items-center gap-8 whitespace-nowrap px-4">
         {run.map((text, i) => (
           <span key={i} className="flex items-center gap-2 text-[12px] font-semibold text-white/90">
-            <span aria-hidden="true" className="text-wh-brand">
+            <span aria-hidden="true" className="wh-blink text-wh-brand">
               ★
             </span>
             {text}
@@ -82,7 +82,7 @@ export function CollectionTiles({ title, subtitle, tiles = [], seeAllTo }) {
             <Link
               key={tile.id}
               to={tile.to}
-              className="group relative block aspect-[4/5] overflow-hidden rounded-2xl bg-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-wh-brand"
+              className="wh-lift wh-sheen group relative block aspect-[4/5] overflow-hidden rounded-2xl bg-[#F7F7F7] hover:shadow-lg focus-visible:outline-2 focus-visible:outline-wh-brand"
             >
               {isRealImage(image) ? (
                 <img

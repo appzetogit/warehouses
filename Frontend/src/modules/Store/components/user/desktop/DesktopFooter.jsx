@@ -64,7 +64,7 @@ export default function DesktopFooter() {
       </button>
 
       <div className="bg-wh-nav-2">
-        <div className="mx-auto grid max-w-[1000px] grid-cols-4 gap-10 px-[20px] py-10">
+        <div className="mx-auto grid max-w-[1000px] grid-cols-2 gap-x-6 gap-y-8 px-4 py-8 sm:grid-cols-4 sm:gap-10 sm:px-[20px] sm:py-10">
           <Column title="Get to Know Us">
             <FLink to="/profile/about">About {brandName}</FLink>
             <FLink to={storePath("/sellers")}>Our stores</FLink>
@@ -126,7 +126,7 @@ export default function DesktopFooter() {
       </div>
 
       <div className="bg-wh-nav">
-        <div className="mx-auto flex max-w-[1500px] flex-col items-center gap-2 px-[20px] py-6 text-[12px] text-[#DDD]">
+        <div className="mx-auto flex max-w-[1500px] flex-col items-center gap-2 px-4 py-6 text-center text-[12px] text-[#DDD] sm:px-[20px]">
           <Link to={storePath("/")} aria-label={`${brandName} home`}>
             <img
               src={logoSrc || logoOnDark}

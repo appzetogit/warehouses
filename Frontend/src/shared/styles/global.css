@@ -342,3 +342,62 @@
     animation: none;
   }
 }
+
+/* Liveness: a slow drift on hero art, a sheen that crosses a card on hover,
+ * and a gentle pulse for "live" markers. All dropped under reduced motion. */
+@keyframes wh-ken-burns {
+  from { transform: scale(1) translate3d(0, 0, 0); }
+  to { transform: scale(1.08) translate3d(0, -1.5%, 0); }
+}
+
+@keyframes wh-sheen {
+  from { transform: translateX(-120%) skewX(-18deg); }
+  to { transform: translateX(220%) skewX(-18deg); }
+}
+
+@keyframes wh-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.wh-kenburns {
+  animation: wh-ken-burns 18s ease-in-out infinite alternate;
+}
+
+.wh-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  pointer-events: none;
+}
+
+.wh-sheen:hover::after {
+  animation: wh-sheen 0.9s ease-out;
+}
+
+.wh-blink {
+  animation: wh-blink 1.6s ease-in-out infinite;
+}
+
+/* Cards and tiles lift a little under the pointer. */
+.wh-lift {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+}
+
+.wh-lift:hover {
+  transform: translateY(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wh-kenburns,
+  .wh-blink,
+  .wh-sheen:hover::after {
+    animation: none;
+  }
+
+  .wh-lift:hover {
+    transform: none;
+  }
+}

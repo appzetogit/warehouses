@@ -44,7 +44,9 @@ export default function HeroCarousel({ banners = [], onOpen }) {
       {/* Background slide image */}
       {slides.map((b, i) => {
         const active = i === (index % slides.length)
-        const common = `absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-700 ${active ? "opacity-100" : "opacity-0"}`
+        const common = `absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-700 ${
+          active ? "opacity-100 wh-kenburns" : "opacity-0"
+        }`
         return isVideoUrl(b.imageUrl) ? (
           <video key={b.imageUrl + i} src={b.imageUrl} className={common} muted loop autoPlay={active} playsInline preload={active ? "auto" : "metadata"} aria-hidden={!active} />
         ) : (
@@ -60,7 +62,7 @@ export default function HeroCarousel({ banners = [], onOpen }) {
 
       {/* Hero Content Overlay (Left) */}
       <div className="relative z-20 mx-auto flex h-full max-w-[1500px] flex-col justify-center px-4 pb-8 sm:px-8 lg:px-12 lg:pb-12">
-        <div className="max-w-[78%] text-left sm:max-w-xl">
+        <div key={index} className="wh-reveal is-visible max-w-[78%] text-left sm:max-w-xl">
           <span className="inline-block text-[10px] font-bold uppercase tracking-[0.18em] text-[#f59e0b] drop-shadow-sm sm:text-[12px] sm:tracking-[0.2em]">
             {current.tag || "NEW SEASON COLLECTION"}
           </span>

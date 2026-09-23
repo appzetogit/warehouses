@@ -109,6 +109,7 @@ function AccountMenu({ firstName, signedIn, storePath }) {
 function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
   const panelRef = useRef(null)
   const [expanded, setExpanded] = useState(null)
+  const [shown, setShown] = useState(false)
   useEffect(() => {
     if (!open) return undefined
     const prev = document.activeElement
@@ -125,17 +126,44 @@ function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
       prev?.focus?.()
     }
   }, [open, onClose])
+
+  // Stay mounted for the closing slide, and start off-canvas on the opening one.
+  useEffect(() => {
+    if (!open) {
+      setShown(false)
+      return undefined
+    }
+    const id = requestAnimationFrame(() => setShown(true))
+    return () => cancelAnimationFrame(id)
+  }, [open])
+
   if (!open) return null
+
   return (
     <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label="All categories">
-      <button type="button" aria-label="Close categories" onClick={onClose} className="absolute inset-0 h-full w-full cursor-default bg-black/70" />
-      <div ref={panelRef} className="absolute left-0 top-0 flex h-full w-[365px] flex-col bg-wh-surface text-wh-text shadow-2xl">
-        <div className="flex h-[50px] items-center bg-wh-nav-2 px-8 text-[19px] font-bold text-white">Hello, shop {brandName}</div>
-        <button type="button" onClick={onClose} aria-label="Close" className="absolute left-[372px] top-3 text-white">
-          <X className="h-7 w-7" aria-hidden />
-        </button>
+      <button
+        type="button"
+        aria-label="Close categories"
+        onClick={onClose}
+        className={`absolute inset-0 h-full w-full cursor-default bg-black/70 transition-opacity duration-300 ${
+          shown ? "opacity-100" : "opacity-0"
+        }`}
+      />
+      <div
+        ref={panelRef}
+        className={`absolute left-0 top-0 flex h-full w-[86%] max-w-[365px] flex-col bg-wh-surface text-wh-text shadow-2xl transition-transform duration-300 ease-out ${
+          shown ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* The band carries the header's colour, so the drawer reads as part of it. */}
+        <div className="flex h-[56px] items-center justify-between gap-2 bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316] px-5 text-[17px] font-bold text-white">
+          <span className="truncate">Hello, shop {brandName}</span>
+          <button type="button" onClick={onClose} aria-label="Close" className="shrink-0 rounded-full p-1 hover:bg-black/15">
+            <X className="h-6 w-6" aria-hidden />
+          </button>
+        </div>
         <nav className="flex-1 overflow-y-auto py-2">
-          <h2 className="px-8 pb-1 pt-3 text-[18px] font-bold">Shop by category</h2>
+          <h2 className="px-5 pb-1 pt-3 text-[16px] font-bold">Shop by category</h2>
           <ul>
             {tree.map((c) => (
               <li key={c.id}>
@@ -143,7 +171,7 @@ function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
                   <Link
                     to={storePath(`/category/${c.slug}`)}
                     onClick={onClose}
-                    className="flex-1 px-8 py-3 text-[14px] hover:bg-[#EAEDED]"
+                    className="min-w-0 flex-1 truncate px-5 py-3 text-[14px] hover:bg-[#EAEDED]"
                   >
                     {c.name}
                   </Link>
@@ -163,7 +191,7 @@ function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
                   <ul className="bg-[#F7F8F8]">
                     {c.children.map((s) => (
                       <li key={s.id}>
-                        <Link to={storePath(`/category/${s.slug}`)} onClick={onClose} className="block px-12 py-2 text-[13px] hover:bg-[#EAEDED]">
+                        <Link to={storePath(`/category/${s.slug}`)} onClick={onClose} className="block truncate px-9 py-2 text-[13px] hover:bg-[#EAEDED]">
                           {s.name}
                         </Link>
                       </li>
@@ -172,13 +200,13 @@ function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
                 ) : null}
               </li>
             ))}
-            {!tree.length ? <li className="px-8 py-3 text-wh-muted">No categories yet.</li> : null}
+            {!tree.length ? <li className="px-5 py-3 text-wh-muted">No categories yet.</li> : null}
           </ul>
           <div className="mt-2 border-t border-wh-border pt-2">
-            <Link to={storePath("/categories")} onClick={onClose} className="block px-8 py-3 text-[14px] hover:bg-[#EAEDED]">
+            <Link to={storePath("/categories")} onClick={onClose} className="block px-5 py-3 text-[14px] hover:bg-[#EAEDED]">
               See all categories
             </Link>
-            <Link to="/help" onClick={onClose} className="block px-8 py-3 text-[14px] hover:bg-[#EAEDED]">
+            <Link to="/help" onClick={onClose} className="block px-5 py-3 text-[14px] hover:bg-[#EAEDED]">
               Help
             </Link>
           </div>
