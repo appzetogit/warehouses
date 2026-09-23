@@ -24,7 +24,7 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
   const { storePath, fulfilmentMode } = useStoreMode()
   const { openLocationSelector } = useLocationSelector()
   const eta = useQuickEta()
-  const { tree } = usePublicCategories(zoneId)
+  const { tree, loading: categoriesLoading } = usePublicCategories(zoneId)
 
   const [products, setProducts] = useState([])
   const [productsLoading, setProductsLoading] = useState(true)
@@ -170,7 +170,7 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
           </section>
         ) : null}
 
-        <QuickCategoryTiles tree={tree} loading={!tree.length} title="Shop essentials by category" />
+        <QuickCategoryTiles tree={tree} loading={categoriesLoading} title="Shop essentials by category" />
 
         {!outOfZone ? <QuickPromoBanners banners={heroBanners} onOpen={onOpenBanner} /> : null}
 

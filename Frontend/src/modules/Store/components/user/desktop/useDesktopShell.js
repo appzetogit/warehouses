@@ -38,13 +38,16 @@ const categoriesCache = new Map()
 export function usePublicCategories(zoneId) {
   const key = String(zoneId || "global")
   const [list, setList] = useState(() => categoriesCache.get(key) || [])
+  const [loading, setLoading] = useState(() => !categoriesCache.has(key))
   useEffect(() => {
     let alive = true
     const cached = categoriesCache.get(key)
     if (cached) {
       setList(cached)
+      setLoading(false)
       return undefined
     }
+    setLoading(true)
     adminAPI
       .getPublicCategories(zoneId ? { zoneId } : {})
       .then((res) => {
@@ -62,9 +65,16 @@ export function usePublicCategories(zoneId) {
           // everything back in the admin's sortOrder.
           .sort((a, b) => a.sortOrder - b.sortOrder || a.order - b.order)
         categoriesCache.set(key, items)
-        if (alive) setList(items)
+        if (alive) {
+          setList(items)
+          setLoading(false)
+        }
       })
-      .catch(() => alive && setList([]))
+      .catch(() => {
+        if (!alive) return
+        setList([])
+        setLoading(false)
+      })
     return () => {
       alive = false
     }
