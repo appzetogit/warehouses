@@ -32,10 +32,11 @@ async function run() {
           password: hash,
           name: existing.name || nameArg,
           role: "ADMIN",
+          adminType: existing.adminType || "super_admin",
           isActive: true,
           servicesAccess: existing.servicesAccess?.length
             ? existing.servicesAccess
-            : ["food", "quickCommerce", "taxi"],
+            : ["quick", "shop"],
           updatedAt: new Date(),
         },
       }
@@ -51,8 +52,12 @@ async function run() {
       fcmTokens: [],
       fcmTokenMobile: [],
       role: "ADMIN",
+      // Written explicitly: the raw driver bypasses the schema, and a lean read
+      // of an admin without adminType computes no permissions at all.
+      adminType: "super_admin",
+      permissions: {},
       isActive: true,
-      servicesAccess: ["food", "quickCommerce", "taxi"],
+      servicesAccess: ["quick", "shop"],
       createdAt: new Date(),
       updatedAt: new Date(),
     });

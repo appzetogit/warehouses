@@ -38,7 +38,7 @@ const preview = (value) => {
 };
 
 async function main() {
-    await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
+    await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
     console.log(`connected -> ${mongoose.connection.name}${APPLY ? '' : '  (dry run)'}\n`);
 
     const settings =

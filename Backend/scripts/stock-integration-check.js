@@ -37,7 +37,7 @@ const qtyOf = async (id) => {
 };
 
 async function main() {
-    await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
+    await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
     if (mongoose.connection.name !== 'quickcommerce') {
         console.error(`refusing to run against '${mongoose.connection.name}'`);
         process.exit(1);

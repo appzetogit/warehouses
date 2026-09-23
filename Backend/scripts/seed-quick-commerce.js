@@ -121,7 +121,7 @@ const PRODUCTS = [
 async function main() {
     const wipe = process.argv.includes('--wipe');
 
-    await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
+    await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
     console.log(`connected -> ${mongoose.connection.name}`);
 
     if (wipe) {

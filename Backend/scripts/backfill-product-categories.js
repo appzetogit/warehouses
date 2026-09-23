@@ -64,7 +64,7 @@ const BY_KEYWORD = [
 ];
 
 async function main() {
-  await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
+  await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
   if (mongoose.connection.name !== 'quickcommerce') {
     console.error(`refusing to touch '${mongoose.connection.name}'`);
     process.exit(1);

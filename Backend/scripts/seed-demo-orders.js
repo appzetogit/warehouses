@@ -78,7 +78,7 @@ const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const pick = (arr, n) => arr[n % arr.length];
 
 async function main() {
-    await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
+    await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI, { serverSelectionTimeoutMS: 30000 });
     if (mongoose.connection.name !== 'quickcommerce') {
         console.error(`refusing to touch '${mongoose.connection.name}'`);
         process.exit(1);

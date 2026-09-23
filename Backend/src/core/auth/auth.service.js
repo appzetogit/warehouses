@@ -572,6 +572,11 @@ export const getProfile = async (userId, role) => {
     case ROLES.ADMIN:
       profile = await Admin.findById(id).select("-password").lean();
       if (profile) {
+        // A lean read skips schema defaults, so an admin row written without
+        // adminType (older rows, the create-admin script) would come back with
+        // no permissions at all and an empty admin panel. Fall back to the
+        // schema's default, exactly as login does.
+        profile.adminType = profile.adminType || "super_admin";
         profile.effectivePermissions = profile.adminType === "super_admin"
           ? ADMIN_FULL_PERMISSIONS
           : sanitizeAdminPermissions(profile.permissions || {});
