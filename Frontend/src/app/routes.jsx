@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Suspense, lazy, useEffect } from 'react'
-import { AppShellSkeleton } from '@store/components/ui/loading-skeletons'
+import Loader from '@store/components/Loader'
 
 const NATIVE_LAST_ROUTE_KEY = 'native_last_route'
 
@@ -8,7 +8,9 @@ const NATIVE_LAST_ROUTE_KEY = 'native_last_route'
 const StoreApp = lazy(() => import('../modules/Store/routes'))
 import ProtectedRoute from '@store/components/ProtectedRoute'
 
-const PageLoader = () => <AppShellSkeleton />
+// Storefront visitors see the storefront's shape; the panels keep the neutral
+// shell (Loader decides from the path).
+const PageLoader = () => <Loader />
 
 /** Renders the store module for everything under /food (legacy) and / (new). */
 const StoreAppWrapper = () => {
