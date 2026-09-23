@@ -5,6 +5,7 @@ import { isModuleAuthenticated } from "@store/utils/auth"
 import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
 import HeroCarousel from "./HeroCarousel"
 import { CategoryGridCard, FeaturedDealCard, PopularProductsCard } from "./HomeCard"
+import { HomeSkeleton } from "./HomeSkeletons"
 import ProductCarousel from "./ProductCarousel"
 import { percentOff } from "./ui"
 
@@ -28,16 +29,19 @@ const slugify = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, "-")
 export default function DesktopHome({ heroBanners = [], categories = [], zoneId, onOpenBanner, etaMinutes }) {
   const { storePath, fulfilmentMode, isQuick } = useStoreMode()
   const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
   const [orderItems, setOrderItems] = useState([])
   const [recommended, setRecommended] = useState([])
   const signedIn = isModuleAuthenticated("user")
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
     searchAPI
       .searchProducts({ limit: PRODUCT_LIMIT, fulfilmentMode, ...(zoneId ? { zoneId } : {}) })
       .then((res) => { if (!cancelled) setProducts((res?.data?.data?.products || []).map(toTile)) })
       .catch(() => { if (!cancelled) setProducts([]) })
+      .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [fulfilmentMode, zoneId])
 
@@ -144,6 +148,10 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
 
   const featuredTshirts = popularTiles(productGroups[0], "pop-a")
   const featuredShirts = popularTiles(productGroups[1], "pop-b")
+
+  // Hold the page's shape while the catalogue loads, instead of flashing an
+  // empty screen and then pushing everything down.
+  if (loading) return <HomeSkeleton />
 
   const topGroup = productGroups[0]
   const recommendedList = recommended.filter((p) => p?._id)

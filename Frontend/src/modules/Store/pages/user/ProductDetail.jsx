@@ -31,6 +31,7 @@ import { useCart } from "@store/context/CartContext"
 import { Button } from "@store/components/ui/button"
 import ProductDetailDesktop from "@store/components/user/desktop/ProductDetailDesktop"
 import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
+import { ProductDetailSkeleton } from "@store/components/user/desktop/HomeSkeletons"
 import { CHANNEL_COPY, channelAvailability, otherChannel, productInChannel, stockLabel, variantInChannel } from "@store/utils/channelStock"
 
 export default function ProductDetail() {
@@ -203,21 +204,9 @@ export default function ProductDetail() {
     if (handleAddToCart()) navigate(storePath("/cart"))
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-8">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 animate-pulse">
-          <div className="h-96 md:h-[500px] bg-gray-200 dark:bg-gray-800 rounded-3xl" />
-          <div className="space-y-4">
-            <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded-xl w-3/4" />
-            <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded-xl w-1/4" />
-            <div className="h-24 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-            <div className="h-40 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // The skeleton mirrors the real page's columns, so nothing jumps when the
+  // product arrives.
+  if (loading) return <ProductDetailSkeleton />
 
   if (!product) {
     return (
