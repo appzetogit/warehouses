@@ -81,7 +81,17 @@ export default function SavedForLater({ variant = "mobile", className = "" }) {
     try {
       const res = await userAPI.moveSavedToCart(row.id)
       const line = res?.data?.data?.line
-      if (line && Number(line.quantity) > 0) addToCart(line, null, { quantity: line.quantity })
+      if (line && Number(line.quantity) > 0) {
+        const result = addToCart(line, null, { quantity: line.quantity })
+        if (result?.ok === false) {
+          // Keep the row: the item is still saved, not moved.
+          if (!result.needsConfirmation) {
+            toast.error(result.error || "Could not move this item to your cart")
+          }
+          load()
+          return
+        }
+      }
       setItems((prev) => prev.filter((r) => r.id !== row.id))
       toast.success(line?.quantityReduced ? `Moved to cart (only ${line.cartQuantity} available)` : "Moved to cart")
     } catch (e) {

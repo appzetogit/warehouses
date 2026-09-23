@@ -141,20 +141,24 @@ export default function GeminiAssistantWidget() {
 
   const handleAddToCart = (product, e) => {
     e.stopPropagation()
-    try {
-      addToCart({
-        id: product.id,
-        _id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        sellerId: product.sellerId,
-        quantity: 1,
-      })
-      toast.success(`Added ${product.name} to cart!`)
-    } catch (err) {
-      toast.error("Could not add item to cart")
+    const result = addToCart({
+      id: product.id,
+      _id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      sellerId: product.sellerId,
+      seller: product.sellerName || product.seller,
+      quantity: 1,
+    })
+    if (result?.ok === false) {
+      // needsConfirmation means the replace dialog is up; it speaks for itself.
+      if (!result.needsConfirmation) {
+        toast.error(result.error || "Could not add item to cart")
+      }
+      return
     }
+    toast.success(`Added ${product.name} to cart!`)
   }
 
   return (

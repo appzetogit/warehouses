@@ -164,7 +164,7 @@ export default function ProductDetail() {
 
     const variantLabel = currentVariant?.name || Object.values(selectedAttrs).join(" / ")
 
-    addToCart({
+    const result = addToCart({
       id: product._id,
       itemId: product._id,
       productId: product._id,
@@ -176,11 +176,23 @@ export default function ProductDetail() {
       otherPrice: displayMrp,
       image: allImages[0],
       sellerId: seller?._id,
+      // Both spellings: the cart reads `seller` for the name it shows, e.g. in
+      // the "replace cart?" dialog.
+      seller: seller?.sellerName || "Store",
       sellerName: seller?.sellerName || "Store",
       quantity,
       selectedAttributes: selectedAttrs,
       channels: product.channels,
     })
+
+    if (result?.ok === false) {
+      // A cart from another seller puts up the replace dialog; nothing was
+      // added, so don't claim otherwise or move on to checkout.
+      if (!result.needsConfirmation) {
+        toast.error(result.error || "Could not add this item to your cart")
+      }
+      return false
+    }
 
     toast.success(`Added ${quantity} × ${product.name} to cart!`)
     return true
