@@ -1331,26 +1331,9 @@ export default function ProductsList() {
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  First image is the one shown in menus and search. Drag is not needed —
+                  First image is the one shown in listings and search. Drag is not needed —
                   use “Make primary”.
                 </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Timing</label>
-                <div className="relative">
-                  <select
-                  value={productForm.preparationTime}
-                  onChange={(e) => setProductForm((prev) => ({ ...prev, preparationTime: e.target.value }))}
-                    className="w-full px-3 py-2.5 pr-10 border border-slate-300 rounded-lg text-sm bg-white appearance-none"
-                  >
-                    <option value="">Select timing</option>
-                    <option value="10-20 mins">10-20 mins</option>
-                    <option value="20-25 mins">20-25 mins</option>
-                    <option value="25-35 mins">25-35 mins</option>
-                    <option value="35-45 mins">35-45 mins</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                </div>
               </div>
               {productImages.length ? (
                 <div className="md:col-span-2">
