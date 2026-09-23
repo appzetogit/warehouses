@@ -13,13 +13,14 @@ const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-
 function PageShell({ title, subtitle, filter, setFilter, placeholder, children }) {
   return (
     <div className="min-h-screen bg-wh-page text-wh-text">
-      <div className="mx-auto max-w-[1500px] px-5 py-6">
-        <div className="mb-5 flex items-end justify-between gap-6">
+      <div className="mx-auto max-w-[1500px] px-3 py-5 sm:px-5 sm:py-6">
+        {/* The title and the filter stack on a phone; side by side from sm. */}
+        <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
           <div>
-            <h1 className="text-[24px] font-bold leading-8">{title}</h1>
+            <h1 className="font-display text-[26px] font-semibold leading-tight sm:text-[30px]">{title}</h1>
             {subtitle ? <p className="text-[14px] text-wh-muted">{subtitle}</p> : null}
           </div>
-          <label className="relative w-80">
+          <label className="relative w-full sm:w-80">
             <span className="sr-only">{placeholder}</span>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-wh-muted" aria-hidden="true" />
             <input
@@ -37,7 +38,7 @@ function PageShell({ title, subtitle, filter, setFilter, placeholder, children }
   )
 }
 
-const Skeleton = ({ n = 12, cols = "grid-cols-5 2xl:grid-cols-6" }) => (
+const Skeleton = ({ n = 12, cols = "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6" }) => (
   <div className={cx("grid gap-4", cols)}>
     {Array.from({ length: n }).map((_, i) => (
       <div key={i} className="animate-pulse rounded-[8px] bg-wh-surface p-4">
@@ -56,7 +57,7 @@ export function CategoriesDesktop({ categories = [], loading }) {
   return (
     <PageShell title="Shop by category" subtitle={loading ? "" : `${categories.length} categories`} filter={filter} setFilter={setFilter} placeholder="Find a category">
       {loading ? <Skeleton /> : rows.length ? (
-        <div className="grid grid-cols-5 gap-4 2xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 2xl:grid-cols-6">
           {rows.map((c) => (
             <Link
               key={c.id}
@@ -85,8 +86,8 @@ export function StoresDesktop({ stores = [], loading }) {
   const rows = stores.filter((s) => (s.name || "").toLowerCase().includes(filter.trim().toLowerCase()))
   return (
     <PageShell title="All stores" subtitle={loading ? "" : `${stores.length} stores`} filter={filter} setFilter={setFilter} placeholder="Find a store">
-      {loading ? <Skeleton n={8} cols="grid-cols-4 2xl:grid-cols-5" /> : rows.length ? (
-        <div className="grid grid-cols-4 gap-4 2xl:grid-cols-5">
+      {loading ? <Skeleton n={8} cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5" /> : rows.length ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 2xl:grid-cols-5">
           {rows.map((s) => (
             <Link
               key={s.id}
