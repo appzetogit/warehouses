@@ -52,10 +52,13 @@ export default function Rail({ rows = 2, children, ariaLabel, auto = 0, cols }) 
       if (paused.current || document.hidden) return
       const max = el.scrollWidth - el.clientWidth
       if (max <= 0) return
-      const first = el.firstElementChild
-      const by = first ? first.getBoundingClientRect().width + 12 : el.clientWidth * 0.5
+      // The distance between two columns, not a child's own width: the rail
+      // snaps, and a step short of the next snap point is simply undone.
+      const [a, b] = el.children
+      const by = a && b ? b.offsetLeft - a.offsetLeft : el.clientWidth * 0.5
+      if (by <= 0) return
       el.scrollTo({
-        left: el.scrollLeft >= max - 4 ? 0 : el.scrollLeft + by,
+        left: el.scrollLeft >= max - 4 ? 0 : Math.min(el.scrollLeft + by, max),
         behavior: "smooth",
       })
     }
@@ -86,9 +89,13 @@ export default function Rail({ rows = 2, children, ariaLabel, auto = 0, cols }) 
       onPointerEnter={hold}
       onPointerLeave={release}
       onPointerDown={hold}
+      onPointerUp={release}
+      onPointerCancel={release}
       onFocusCapture={hold}
       onBlurCapture={release}
       onTouchStart={hold}
+      onTouchEnd={release}
+      onTouchCancel={release}
     >
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => page(-1)} disabled={atStart} aria-label="Scroll left" className={arrow}>
