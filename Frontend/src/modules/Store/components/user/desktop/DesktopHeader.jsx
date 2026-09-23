@@ -15,9 +15,9 @@ import { locationPincode, useQuickEta } from "./useDeliveryEstimates"
 const catItem =
   "rounded-[2px] border border-transparent px-2 hover:border-wh-text focus-visible:border-wh-text focus-visible:outline-2 focus-visible:outline-wh-nav text-wh-text"
 
-// Hovered/focused items on the dark bars get a 1px white outline.
+// Hovered/focused items on the orange bar get a soft dark pill hover.
 const navItem =
-  "rounded-[2px] border border-transparent px-2 hover:border-white focus-visible:border-white focus-visible:outline-2 focus-visible:outline-wh-brand text-white"
+  "rounded-[6px] border border-transparent px-2.5 py-1 hover:bg-black/15 focus-visible:bg-black/20 focus-visible:outline-2 focus-visible:outline-white text-white transition-colors"
 
 const isSignedIn = () => {
   try {
@@ -242,9 +242,9 @@ export default function DesktopHeader({ onOpenSpin }) {
 
   return (
     <header className="wh-desktop sticky top-0 z-50 hidden lg:block">
-      {/* Top bar */}
-      <div className="bg-[#131921]">
-        <div className="mx-auto flex h-[60px] max-w-[1500px] items-stretch gap-2 px-[20px] py-[5px]">
+      {/* Top bar (Rich Orange Gradient) */}
+      <div className="bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316] shadow-sm">
+        <div className="mx-auto flex h-[62px] max-w-[1500px] items-stretch gap-2 px-[20px] py-[6px]">
           <Link
             to={storePath("/")}
             onClick={() => clearHomeScrollState()}
@@ -254,7 +254,7 @@ export default function DesktopHeader({ onOpenSpin }) {
             <img
               src={logoSrc}
               alt={brandName}
-              className="h-[40px] w-auto max-w-[140px] object-contain"
+              className="h-[42px] w-auto max-w-[145px] object-contain drop-shadow-sm"
               onError={() => logoSrc !== BRAND_LOGO_ON_DARK && setLogoSrc(BRAND_LOGO_ON_DARK)}
             />
           </Link>
@@ -262,7 +262,7 @@ export default function DesktopHeader({ onOpenSpin }) {
           <button type="button" onClick={openLocationSelector} className={`${navItem} flex shrink-0 items-end gap-1.5 pb-1 text-left`}>
             <MapPin className="mb-0.5 h-4 w-4 text-white" aria-hidden />
             <span className="flex flex-col leading-tight">
-              <span className="text-[11px] text-[#CCCCCC]">Deliver to you</span>
+              <span className="text-[11px] text-white/80 font-medium">Deliver to you</span>
               <span className="flex items-center gap-0.5 text-[14px] font-bold text-white">
                 {effectiveLocation?.city || area || "Indore"} <ChevronDown className="h-3 w-3" aria-hidden />
               </span>
@@ -270,13 +270,13 @@ export default function DesktopHeader({ onOpenSpin }) {
           </button>
 
           <form role="search" onSubmit={submitSearch} className="mx-2 flex min-w-0 flex-1 items-center">
-            <div className="flex h-[40px] w-full overflow-hidden rounded-[8px] focus-within:ring-2 focus-within:ring-[#f59e0b]">
+            <div className="flex h-[42px] w-full overflow-hidden rounded-[8px] bg-white shadow-md focus-within:ring-2 focus-within:ring-white">
               <label className="sr-only" htmlFor="wh-search-cat">Search in</label>
               <select
                 id="wh-search-cat"
                 value={cat}
                 onChange={(e) => setCat(e.target.value)}
-                className="max-w-[150px] shrink-0 border-r border-gray-300 bg-[#f3f4f6] px-3 text-[13px] text-gray-700 hover:bg-gray-200 focus:outline-none cursor-pointer"
+                className="max-w-[150px] shrink-0 border-r border-gray-200 bg-gray-50 px-3 text-[13px] font-medium text-gray-700 hover:bg-gray-100 focus:outline-none cursor-pointer"
               >
                 <option value="">All Categories</option>
                 {roots.map((c) => (
@@ -291,21 +291,21 @@ export default function DesktopHeader({ onOpenSpin }) {
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search for shirts, jackets, shoes and more..."
                 autoComplete="off"
-                className="min-w-0 flex-1 bg-white px-3 text-[14px] text-gray-900 placeholder:text-gray-500 focus:outline-none"
+                className="min-w-0 flex-1 bg-white px-3.5 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none"
               />
-              <button type="submit" aria-label="Search" className="flex w-[48px] shrink-0 items-center justify-center bg-[#f59e0b] hover:bg-[#ea8c00] transition-colors">
-                <Search className="h-5 w-5 text-gray-950" aria-hidden />
+              <button type="submit" aria-label="Search" className="flex w-[48px] shrink-0 items-center justify-center bg-[#111827] hover:bg-[#1f2937] text-white transition-colors">
+                <Search className="h-5 w-5 text-white" aria-hidden />
               </button>
             </div>
           </form>
 
           <div role="group" aria-label="Choose store" className="flex shrink-0 items-center mx-1">
-            <div className="flex rounded-full bg-[#1e293b] p-0.5 border border-white/10">
+            <div className="flex rounded-full bg-black/20 backdrop-blur-md p-0.5 border border-white/20">
               <button
                 type="button"
                 aria-pressed={!isQuick}
                 onClick={() => setCommerceMode("standard")}
-                className={`rounded-full px-3.5 py-1 text-[13px] font-bold transition-colors ${!isQuick ? "bg-[#f59e0b] text-gray-950 shadow-sm" : "text-white hover:bg-white/10"}`}
+                className={`rounded-full px-3.5 py-1 text-[13px] font-bold transition-all ${!isQuick ? "bg-white text-gray-950 shadow-sm" : "text-white hover:bg-white/10"}`}
               >
                 Shop
               </button>
@@ -313,7 +313,7 @@ export default function DesktopHeader({ onOpenSpin }) {
                 type="button"
                 aria-pressed={isQuick}
                 onClick={() => setCommerceMode("quick")}
-                className={`rounded-full px-3.5 py-1 text-[13px] font-bold transition-colors ${isQuick ? "bg-[#f59e0b] text-gray-950 shadow-sm" : "text-white hover:bg-white/10"}`}
+                className={`rounded-full px-3.5 py-1 text-[13px] font-bold transition-all ${isQuick ? "bg-white text-gray-950 shadow-sm" : "text-white hover:bg-white/10"}`}
               >
                 Quick - 10 min
               </button>
@@ -323,8 +323,8 @@ export default function DesktopHeader({ onOpenSpin }) {
           <AccountMenu firstName={firstName} signedIn={signedIn} storePath={storePath} />
 
           <Link to="/orders" className={`${navItem} flex shrink-0 flex-col justify-center leading-tight`}>
-            <span className="text-[12px] text-[#CCCCCC]">Returns</span>
-            <span className="text-[14px] font-bold">&amp; Orders</span>
+            <span className="text-[11px] text-white/80 font-medium">Returns</span>
+            <span className="text-[14px] font-bold text-white">&amp; Orders</span>
           </Link>
 
           <Link
@@ -334,7 +334,7 @@ export default function DesktopHeader({ onOpenSpin }) {
           >
             <span className="relative">
               <ShoppingCart className="h-7 w-7 text-white" aria-hidden />
-              <span className="absolute -top-1.5 left-1/2 min-w-[20px] -translate-x-1/2 rounded-full bg-[#f59e0b] px-1 text-center text-[12px] font-bold leading-5 text-gray-950">
+              <span className="absolute -top-1.5 left-1/2 min-w-[20px] -translate-x-1/2 rounded-full bg-white px-1 text-center text-[12px] font-black leading-5 text-[#ea580c] shadow-xs">
                 {cartCount > 99 ? "99+" : cartCount}
               </span>
             </span>
@@ -349,7 +349,7 @@ export default function DesktopHeader({ onOpenSpin }) {
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            className="flex h-[32px] items-center gap-1.5 rounded-[4px] bg-[#f59e0b] px-3.5 font-bold text-gray-950 shadow-sm hover:bg-[#ea8c00] transition-colors"
+            className="flex h-[32px] items-center gap-1.5 rounded-[4px] bg-gradient-to-r from-[#ea580c] to-[#f97316] px-3.5 font-bold text-white shadow-xs hover:opacity-95 transition-opacity"
           >
             <Menu className="h-4 w-4" aria-hidden /> All
           </button>
