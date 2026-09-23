@@ -13,6 +13,7 @@ const debugError = (...args) => {}
 
 import SearchOverlay from "./SearchOverlay"
 import DesktopHeader from "./desktop/DesktopHeader"
+import BottomNav from "./storefront/BottomNav"
 import DesktopFooter from "./desktop/DesktopFooter"
 import QuickZoneStrip from "./desktop/QuickZoneStrip"
 import QuickCartDock, { QuickCartUIProvider } from "./desktop/quick/QuickCartPanel"
@@ -214,10 +215,12 @@ export default function UserLayout() {
                     width (DESKTOP_THEME.md). */}
                 {showDesktopShell && <DesktopHeader onOpenSpin={() => setIsSpinWheelOpen(true)} />}
                 {showDesktopShell && storeMode === "quick" && <QuickZoneStrip />}
-                <main>
+                {/* Room for the phone's tab bar, which floats over the page. */}
+                <main className="pb-[57px] md:pb-0">
                   <Outlet />
                 </main>
                 {showDesktopShell && <DesktopFooter />}
+                {showDesktopShell && <BottomNav />}
 
                 {/* Floating Daily Spin trigger: bottom-left with rich animations (desktop & mobile) */}
                 {showDesktopShell && (

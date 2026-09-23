@@ -8,99 +8,6 @@
 
 const shimmer = "animate-pulse bg-[#E9ECEF]"
 
-/** The HomeCard shell: rounded, bordered, a title line and a "View all" line. */
-function CardShell({ children }) {
-  return (
-    <section className="flex flex-col justify-between rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-      <div>
-        <div className="mb-4 flex items-center justify-between">
-          <div className={`h-5 w-40 rounded ${shimmer}`} />
-          <div className={`h-3 w-14 rounded ${shimmer}`} />
-        </div>
-        {children}
-      </div>
-    </section>
-  )
-}
-
-/** Matches CategoryGridCard: 2x2 of 4:3 tiles. */
-export function CategoryGridCardSkeleton() {
-  return (
-    <CardShell>
-      <div className="grid grid-cols-2 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={`aspect-[4/3] w-full rounded-xl ${shimmer}`} />
-        ))}
-      </div>
-    </CardShell>
-  )
-}
-
-/** Matches FeaturedDealCard: one 16:10 image, name, price, rating row. */
-export function FeaturedDealCardSkeleton() {
-  return (
-    <CardShell>
-      <div className={`aspect-[16/10] w-full rounded-xl ${shimmer}`} />
-      <div className={`mt-3 h-4 w-4/5 rounded ${shimmer}`} />
-      <div className={`mt-2 h-5 w-24 rounded ${shimmer}`} />
-      <div className={`mt-2 h-3 w-32 rounded ${shimmer}`} />
-    </CardShell>
-  )
-}
-
-/** Matches PopularProductsCard: 2x2 of 4:3 images with a caption line. */
-export function PopularProductsCardSkeleton() {
-  return (
-    <CardShell>
-      <div className="grid grid-cols-2 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i}>
-            <div className={`aspect-[4/3] w-full rounded-xl ${shimmer}`} />
-            <div className={`mt-1.5 h-3 w-4/5 rounded ${shimmer}`} />
-          </div>
-        ))}
-      </div>
-    </CardShell>
-  )
-}
-
-/** The four feature cards, in the same responsive grid as the real row. */
-export function FeatureRowSkeleton() {
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <CategoryGridCardSkeleton />
-      <FeaturedDealCardSkeleton />
-      <PopularProductsCardSkeleton />
-      <PopularProductsCardSkeleton />
-    </div>
-  )
-}
-
-/**
- * Matches ProductCarousel: a heading, then a row of product tiles that shows
- * as many as the viewport fits.
- */
-export function ProductCarouselSkeleton({ count = 7 }) {
-  return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <div className={`h-5 w-44 rounded ${shimmer}`} />
-        <div className={`h-3 w-16 rounded ${shimmer}`} />
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
-        {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className={i >= 2 ? "hidden sm:block lg:block" : ""}>
-            <div className={`aspect-square w-full rounded-xl ${shimmer}`} />
-            <div className={`mt-2 h-3 w-full rounded ${shimmer}`} />
-            <div className={`mt-1.5 h-3 w-2/3 rounded ${shimmer}`} />
-            <div className={`mt-2 h-4 w-1/2 rounded ${shimmer}`} />
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
 /** The hero banner's footprint, at each of its three heights. */
 export function HeroSkeleton() {
   return (
@@ -108,15 +15,84 @@ export function HeroSkeleton() {
   )
 }
 
-/** The whole home page: hero, feature row and two rails. */
+/** A centred section heading: title, subtitle, divider. */
+function HeadingSkeleton() {
+  return (
+    <div className="mb-4 text-center sm:mb-6">
+      <div className={`mx-auto h-7 w-56 rounded ${shimmer}`} />
+      <div className={`mx-auto mt-2 h-3 w-44 rounded ${shimmer}`} />
+      <div className={`mx-auto mt-3 h-[3px] w-14 rounded-full ${shimmer}`} />
+    </div>
+  )
+}
+
+/** Matches a Rail of ProductCards: two rows of 46vw cards on a phone. */
+export function RailSkeleton() {
+  return (
+    <section>
+      <HeadingSkeleton />
+      <div className="grid grid-flow-col grid-rows-2 auto-cols-[46vw] gap-3 overflow-hidden sm:auto-cols-[31vw] lg:auto-cols-[200px] lg:grid-rows-1">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="overflow-hidden rounded-2xl border border-wh-border bg-wh-surface">
+            <div className={`aspect-[4/5] w-full ${shimmer}`} />
+            <div className="space-y-1.5 p-2">
+              <div className={`h-3 w-full rounded ${shimmer}`} />
+              <div className={`h-3 w-2/3 rounded ${shimmer}`} />
+              <div className={`h-4 w-1/2 rounded ${shimmer}`} />
+              <div className={`h-7 w-full rounded-full ${shimmer}`} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/** Matches TrustStrip: four cards, two across on a phone. */
+export function TrustStripSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-2 rounded-2xl border border-wh-border bg-wh-surface p-2.5">
+          <div className={`h-9 w-9 shrink-0 rounded-xl ${shimmer}`} />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className={`h-3 w-4/5 rounded ${shimmer}`} />
+            <div className={`h-2.5 w-3/5 rounded ${shimmer}`} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Matches CollectionTiles: 4:5 tiles, two across on a phone. */
+export function CollectionTilesSkeleton() {
+  return (
+    <section>
+      <HeadingSkeleton />
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className={`aspect-[4/5] rounded-2xl ${shimmer}`} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/** The whole home page, in the order the real one renders. */
 export function HomeSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-100/70 pb-12" role="status" aria-label="Loading the storefront">
-      <HeroSkeleton />
-      <div className="relative z-20 mx-auto -mt-6 max-w-[1500px] space-y-4 px-3 sm:px-5 lg:-mt-16 lg:space-y-6">
-        <FeatureRowSkeleton />
-        <ProductCarouselSkeleton />
-        <ProductCarouselSkeleton />
+    <div className="min-h-screen bg-wh-page pb-12" role="status" aria-label="Loading the storefront">
+      <div className="mx-auto max-w-[1500px] px-3 pt-3 sm:px-5">
+        <div className="overflow-hidden rounded-2xl">
+          <HeroSkeleton />
+        </div>
+      </div>
+      <div className="mx-auto max-w-[1500px] space-y-6 px-3 py-4 sm:space-y-8 sm:px-5">
+        <TrustStripSkeleton />
+        <div className={`h-9 w-full rounded-2xl ${shimmer}`} />
+        <CollectionTilesSkeleton />
+        <RailSkeleton />
       </div>
     </div>
   )
@@ -205,8 +181,8 @@ export function StorefrontShellSkeleton() {
       </div>
       <HeroSkeleton />
       <div className="relative z-20 mx-auto -mt-6 max-w-[1500px] space-y-4 px-3 sm:px-5 lg:-mt-16 lg:space-y-6">
-        <FeatureRowSkeleton />
-        <ProductCarouselSkeleton />
+        <TrustStripSkeleton />
+        <CollectionTilesSkeleton />
       </div>
     </div>
   )

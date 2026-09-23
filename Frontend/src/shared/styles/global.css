@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Manrope:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=Open+Sans:wght@400;600;700&family=Outfit:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Rubik:wght@400;500;700&family=Ubuntu:wght@400;500;700&family=Work+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Manrope:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=Open+Sans:wght@400;600;700&family=Outfit:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Rubik:wght@400;500;700&family=Ubuntu:wght@400;500;700&family=Work+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "leaflet/dist/leaflet.css";
@@ -273,4 +273,72 @@
   margin-right: auto;
   padding-left: 20px;
   padding-right: 20px;
+}
+
+
+/* ---------------------------------------------------------------------------
+ * Storefront (MOBILE_UI_SPEC.md), modelled on rikocraft.com: a serif display
+ * face for section headings, and the motion its sections use.
+ * ------------------------------------------------------------------------- */
+:root {
+  --wh-display: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+}
+
+.font-display {
+  font-family: var(--wh-display);
+}
+
+@keyframes wh-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes wh-slide-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wh-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Sections start hidden and rise into place when they scroll into view. */
+.wh-reveal {
+  opacity: 0;
+}
+
+.wh-reveal.is-visible {
+  animation: wh-slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.wh-marquee-track {
+  animation: wh-marquee 28s linear infinite;
+}
+
+/* A rail scrolls horizontally and snaps, without showing a scrollbar. */
+.wh-rail {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.wh-rail::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wh-reveal {
+    opacity: 1;
+  }
+
+  .wh-reveal.is-visible {
+    animation: none;
+  }
+
+  .wh-marquee-track {
+    animation: none;
+  }
 }

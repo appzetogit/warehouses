@@ -292,11 +292,20 @@ export default function DesktopHeader({ onOpenSpin }) {
     <header className="wh-desktop sticky top-0 z-50">
       {/* Top bar (Rich Orange Gradient) */}
       <div className="bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316] shadow-sm">
-        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-1 gap-y-1.5 px-2.5 py-2 lg:h-[62px] lg:flex-nowrap lg:px-[20px] lg:py-[6px]">
+        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-1 gap-y-2 px-2.5 py-2 lg:h-[62px] lg:flex-nowrap lg:gap-x-1 lg:px-[20px] lg:py-[6px]">
+          {/* The category drawer's trigger; from lg it lives on the orange bar. */}
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Browse categories"
+            className={`${navItem} shrink-0 lg:hidden`}
+          >
+            <Menu className="h-6 w-6 text-white" aria-hidden />
+          </button>
           <Link
             to={storePath("/")}
             onClick={() => clearHomeScrollState()}
-            className={`${navItem} flex shrink-0 items-center`}
+            className={`${navItem} flex shrink-0 items-center lg:mx-0`}
             aria-label={`${brandName} home`}
           >
             <img
@@ -395,7 +404,9 @@ export default function DesktopHeader({ onOpenSpin }) {
             </div>
           </div>
 
-          <AccountMenu firstName={firstName} signedIn={signedIn} storePath={storePath} />
+          <div className="hidden lg:block">
+            <AccountMenu firstName={firstName} signedIn={signedIn} storePath={storePath} />
+          </div>
 
           <Link to="/orders" className={`${navItem} hidden shrink-0 flex-col justify-center leading-tight lg:flex`}>
             <span className="text-[11px] text-white/80 font-medium">Returns</span>
@@ -427,7 +438,7 @@ export default function DesktopHeader({ onOpenSpin }) {
       </div>
 
       {/* Sub-navbar / Category bar (Clean White Bar with Orange All button) */}
-      <nav aria-label="Categories" className="border-b border-gray-200 bg-white shadow-xs">
+      <nav aria-label="Categories" className="hidden border-b border-gray-200 bg-white shadow-xs lg:block">
         <div className="mx-auto flex h-[42px] max-w-[1500px] items-center gap-2 overflow-x-auto px-3 text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:overflow-hidden lg:px-[20px]">
           <button
             type="button"

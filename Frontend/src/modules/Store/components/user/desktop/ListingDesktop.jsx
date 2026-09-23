@@ -14,7 +14,7 @@ import { useStoreMode } from "@store/context/StoreModeContext"
 import { adminAPI } from "@store/api"
 import { searchAPI } from "@/services/api"
 import { channelAvailability, stockLabel } from "@store/utils/channelStock"
-import { ImagePlaceholder, isRealImage, CtaButton, DealBadge, DeliveryPromise, PriceTag, percentOff } from "./ui"
+import { ImagePlaceholder, isRealImage, DealBadge, DeliveryPromise, PriceTag, percentOff } from "./ui"
 import { mediaUrl, useDesktopAddToCart } from "./desktopCart"
 import { QuickGridSkeleton, QuickProductGrid } from "./quick/QuickRail"
 import QuickSubcategoryRail from "./quick/QuickSubcategoryRail"
@@ -67,34 +67,53 @@ export function ListingTile({ product, channel, etaMinutes, onAddToCart }) {
   const rating = num(product.rating ?? product.averageRating)
   const inStock = channelAvailability(product, channel).inStock
   const hasOptions = Array.isArray(product.variants) && product.variants.length > 0
+  // The card's proportions follow MOBILE_UI_SPEC.md: a 4:5 cover image flush to
+  // the card's top, then a compact body and a full-width outlined action.
   return (
-    <div className="flex h-full flex-col rounded-[8px] border border-wh-border bg-wh-surface p-3 text-wh-text">
-      <Link to={to} className={cx("block rounded-[4px]", focusRing)}>
-        <div className="flex aspect-square items-center justify-center overflow-hidden rounded-[4px] bg-[#F7F7F7]">
-          {isRealImage(img) ? <img src={img} alt={product.name || "Product"} loading="lazy" className="h-full w-full object-contain mix-blend-multiply" /> : <ImagePlaceholder name={product.name} />}
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-wh-border bg-wh-surface text-wh-text">
+      <Link to={to} className={cx("block", focusRing)}>
+        <div className="aspect-[4/5] w-full overflow-hidden rounded-t-2xl bg-[#F7F7F7]">
+          {isRealImage(img) ? (
+            <img
+              src={img}
+              alt={product.name || "Product"}
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out hover:scale-105"
+            />
+          ) : (
+            <ImagePlaceholder name={product.name} />
+          )}
         </div>
       </Link>
-      <div className="mt-2 flex flex-1 flex-col gap-1">
-        <Link to={to} className={cx("line-clamp-2 text-[14px] leading-5 hover:text-wh-link-hover", focusRing)}>
+      <div className="flex flex-1 flex-col gap-1 p-2 sm:p-2.5">
+        <Link to={to} className={cx("line-clamp-2 text-[12px] font-semibold uppercase leading-snug tracking-tight hover:text-wh-link-hover sm:text-[13px]", focusRing)}>
           {product.name}
         </Link>
-        {product.packSize ? <span className="text-[12px] text-wh-muted">{product.packSize}</span> : null}
-        {rating ? (
-          <span className="text-[12px] text-wh-muted" aria-label={`Rated ${rating.toFixed(1)} out of 5`}>
-            <span className="text-wh-brand" aria-hidden="true">{"★".repeat(Math.round(rating))}</span> {rating.toFixed(1)}
-          </span>
-        ) : null}
-        <div className="flex flex-wrap items-center gap-2">
-          {hasOptions ? <span className="text-[12px] text-wh-muted">From</span> : null}
+        {product.packSize ? <span className="text-[11px] text-wh-muted">{product.packSize}</span> : null}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          {hasOptions ? <span className="text-[11px] text-wh-muted">From</span> : null}
           <PriceTag price={price} mrp={mrp} />
           {off ? <DealBadge percent={off} /> : null}
         </div>
+        {rating ? (
+          <span className="text-[11px] text-wh-muted" aria-label={`Rated ${rating.toFixed(1)} out of 5`}>
+            <span className="text-wh-brand" aria-hidden="true">{"★".repeat(Math.round(rating))}</span> {rating.toFixed(1)}
+          </span>
+        ) : null}
         <StockDeliveryLine product={product} channel={channel} etaMinutes={etaMinutes} />
         {onAddToCart ? (
           <div className="mt-auto pt-2">
-            <CtaButton disabled={!inStock} onClick={() => onAddToCart(product)}>
+            <button
+              type="button"
+              disabled={!inStock}
+              onClick={() => onAddToCart(product)}
+              className={cx(
+                "w-full rounded-full border-[0.8px] border-wh-text px-3 py-1.5 text-[12px] font-medium text-wh-text transition-colors hover:border-wh-brand hover:bg-wh-brand disabled:cursor-not-allowed disabled:opacity-50",
+                focusRing,
+              )}
+            >
               {hasOptions ? "See options" : "Add to cart"}
-            </CtaButton>
+            </button>
           </div>
         ) : null}
       </div>
