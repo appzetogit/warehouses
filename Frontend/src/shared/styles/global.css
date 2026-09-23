@@ -70,6 +70,8 @@
 }
 
 @theme inline {
+  /* Quick desktop grid step at 1400px (QUICK_UI_SPEC.md): `wide:` variants. */
+  --breakpoint-wide: 1400px;
   /* wh-* desktop tokens: bg-wh-nav, text-wh-link, ... */
   --color-wh-nav: var(--wh-nav);
   --color-wh-nav-2: var(--wh-nav-2);

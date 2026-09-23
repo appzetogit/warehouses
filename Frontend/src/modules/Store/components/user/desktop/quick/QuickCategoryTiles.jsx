@@ -10,7 +10,7 @@ import { isRealImage } from "../ui"
 import { cx, focusRing } from "./quickHelpers"
 import { mediaUrl } from "../desktopCart"
 
-const TILE_GRID = "grid grid-cols-5 gap-3 xl:grid-cols-6 min-[1400px]:grid-cols-8"
+const TILE_GRID = "grid grid-cols-5 gap-3 xl:max-wide:grid-cols-6 wide:grid-cols-8"
 
 /** Flatten the tree into tiles: every parent's children, parents without children kept. */
 export function categoryTilesFromTree(tree = [], limit = 24) {
