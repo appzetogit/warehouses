@@ -34,12 +34,13 @@ import { HomePromotionBanner } from '../src/modules/commerce/landing/models/home
 import { LandingSettings } from '../src/modules/commerce/landing/models/landingSettings.model.js';
 import { ProductReview } from '../src/modules/commerce/reviews/models/productReview.model.js';
 import { User } from '../src/core/users/user.model.js';
+import { Offer } from '../src/modules/commerce/admin/models/offer.model.js';
 import { recomputeProductRating } from '../src/modules/commerce/reviews/services/productReview.service.js';
 
 const SEED_TAG = 'apparel-seed-v1';
 
 // Add seedTag to Mongoose schemas dynamically so Mongoose's strict mode does not strip it
-[Zone, Category, Product, Attribute, AttributeSet, Seller, HeroBanner, HomePromotionBanner, ProductReview, User].forEach((model) => {
+[Zone, Category, Product, Attribute, AttributeSet, Seller, HeroBanner, HomePromotionBanner, ProductReview, User, Offer].forEach((model) => {
     if (!model.schema.paths.seedTag) {
         model.schema.add({ seedTag: { type: String, trim: true, index: true, default: null } });
     }
@@ -856,6 +857,65 @@ const SAMPLE_REVIEWS = [
     },
 ];
 
+// Curated platform & seller coupons for /offers and cart
+const SEED_OFFERS = [
+    {
+        couponCode: 'WELCOME300',
+        title: 'Flat ₹300 OFF',
+        discountType: 'flat-price',
+        discountValue: 300,
+        minOrderValue: 999,
+        sellerScope: 'all',
+        customerScope: 'all',
+        isFirstOrderOnly: false,
+    },
+    {
+        couponCode: 'FESTIVE25',
+        title: '25% OFF',
+        discountType: 'percentage',
+        discountValue: 25,
+        maxDiscount: 750,
+        minOrderValue: 1499,
+        sellerScope: 'all',
+        customerScope: 'all',
+        isFirstOrderOnly: false,
+    },
+    {
+        couponCode: 'URBAN500',
+        title: 'Flat ₹500 OFF',
+        discountType: 'flat-price',
+        discountValue: 500,
+        minOrderValue: 1999,
+        sellerScope: 'selected',
+        sellerIndex: 0, // Urban Thread
+        customerScope: 'all',
+        isFirstOrderOnly: false,
+    },
+    {
+        couponCode: 'KORA150',
+        title: 'Flat ₹150 OFF',
+        discountType: 'flat-price',
+        discountValue: 150,
+        minOrderValue: 799,
+        sellerScope: 'selected',
+        sellerIndex: 1, // Kora Basics
+        customerScope: 'all',
+        isFirstOrderOnly: false,
+    },
+    {
+        couponCode: 'VOGUE15',
+        title: '15% OFF',
+        discountType: 'percentage',
+        discountValue: 15,
+        maxDiscount: 500,
+        minOrderValue: 1199,
+        sellerScope: 'selected',
+        sellerIndex: 2, // Vogue Craft
+        customerScope: 'all',
+        isFirstOrderOnly: false,
+    },
+];
+
 async function main() {
     const isWipe = process.argv.includes('--wipe');
     const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
@@ -882,6 +942,7 @@ async function main() {
             ProductReview.deleteMany({ seedTag: SEED_TAG }),
             Zone.deleteMany({ seedTag: SEED_TAG }),
             User.deleteMany({ seedTag: SEED_TAG }),
+            Offer.deleteMany({ seedTag: SEED_TAG }),
         ]);
 
         console.log(`Deleted counts:`);
@@ -895,6 +956,7 @@ async function main() {
         console.log(`ProductReviews:      ${wipeResults[7].deletedCount}`);
         console.log(`Zones:               ${wipeResults[8].deletedCount}`);
         console.log(`Reviewer Users:      ${wipeResults[9].deletedCount}`);
+        console.log(`Offers:              ${wipeResults[10].deletedCount}`);
 
         if (process.argv.includes('--wipe-images')) {
             if (fs.existsSync(SEED_MEDIA_DIR)) {
@@ -1349,6 +1411,38 @@ async function main() {
         console.log(`Review added: "${reviewData.title}" (${reviewData.rating}★) on ${product.name}`);
     }
 
+    console.log(`\n--- Step 8: Promotional Offers & Coupons ---`);
+    const oneYearLater = new Date();
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+    for (const off of SEED_OFFERS) {
+        const seller = off.sellerIndex !== undefined ? sellerDocs[off.sellerIndex] : null;
+        await Offer.findOneAndUpdate(
+            { couponCode: off.couponCode },
+            {
+                $set: {
+                    couponCode: off.couponCode,
+                    discountType: off.discountType,
+                    discountValue: off.discountValue,
+                    minOrderValue: off.minOrderValue,
+                    maxDiscount: off.maxDiscount ?? null,
+                    customerScope: off.customerScope,
+                    sellerScope: off.sellerScope,
+                    sellerId: seller ? seller._id : undefined,
+                    sellerIds: seller ? [seller._id] : [],
+                    isFirstOrderOnly: off.isFirstOrderOnly,
+                    startDate: new Date(),
+                    endDate: oneYearLater,
+                    status: 'active',
+                    showInCart: true,
+                    seedTag: SEED_TAG,
+                },
+            },
+            { upsert: true, new: true }
+        );
+        console.log(`Offer Coupon: ${off.couponCode} (${off.title}) [Scope: ${off.sellerScope}]`);
+    }
+
     // Disk usage summary
     let folderSizeBytes = 0;
     let fileCount = 0;
@@ -1377,6 +1471,7 @@ async function main() {
     console.log(`Hero Banners:      ${HERO_BANNERS.length}`);
     console.log(`Promo Banners:     ${PROMO_BANNERS.length}`);
     console.log(`Reviews Seeded:    ${SAMPLE_REVIEWS.length}`);
+    console.log(`Offers Seeded:     ${SEED_OFFERS.length}`);
     console.log(`Media Files:       ${fileCount} files (${folderSizeMB} MB in ${SEED_MEDIA_DIR})`);
     console.log(`==============================================`);
     console.log(`\nTo re-run idempotently:`);
