@@ -237,11 +237,14 @@ export default function DesktopHeader({ onOpenSpin }) {
 
   const topCats = roots.slice(0, 6)
 
+  const subnavLink =
+    "flex h-[32px] items-center whitespace-nowrap rounded-[4px] px-2.5 text-[13px] font-medium text-gray-800 hover:text-black hover:bg-gray-100 transition-colors"
+
   return (
     <header className="wh-desktop sticky top-0 z-50 hidden lg:block">
       {/* Top bar */}
-      <div className="bg-wh-nav">
-        <div className="mx-auto flex h-[60px] max-w-[1500px] items-stretch gap-1 px-[20px] py-[5px]">
+      <div className="bg-[#131921]">
+        <div className="mx-auto flex h-[60px] max-w-[1500px] items-stretch gap-2 px-[20px] py-[5px]">
           <Link
             to={storePath("/")}
             onClick={() => clearHomeScrollState()}
@@ -256,24 +259,26 @@ export default function DesktopHeader({ onOpenSpin }) {
             />
           </Link>
 
-          <button type="button" onClick={openLocationSelector} className={`${navItem} flex shrink-0 items-end gap-1 pb-1 text-left`}>
-            <MapPin className="mb-0.5 h-4 w-4" aria-hidden />
+          <button type="button" onClick={openLocationSelector} className={`${navItem} flex shrink-0 items-end gap-1.5 pb-1 text-left`}>
+            <MapPin className="mb-0.5 h-4 w-4 text-white" aria-hidden />
             <span className="flex flex-col leading-tight">
-              <span className="text-[12px] text-[#CCCCCC]">Deliver to {firstName || "you"}</span>
-              <span className="max-w-[150px] truncate text-[14px] font-bold">{deliverLine2}</span>
+              <span className="text-[11px] text-[#CCCCCC]">Deliver to you</span>
+              <span className="flex items-center gap-0.5 text-[14px] font-bold text-white">
+                {effectiveLocation?.city || area || "Indore"} <ChevronDown className="h-3 w-3" aria-hidden />
+              </span>
             </span>
           </button>
 
           <form role="search" onSubmit={submitSearch} className="mx-2 flex min-w-0 flex-1 items-center">
-            <div className="flex h-[40px] w-full overflow-hidden rounded-[8px] focus-within:outline-3 focus-within:outline-wh-brand">
+            <div className="flex h-[40px] w-full overflow-hidden rounded-[8px] focus-within:ring-2 focus-within:ring-[#f59e0b]">
               <label className="sr-only" htmlFor="wh-search-cat">Search in</label>
               <select
                 id="wh-search-cat"
                 value={cat}
                 onChange={(e) => setCat(e.target.value)}
-                className="max-w-[160px] shrink-0 border-r border-wh-border bg-[#E6E6E6] px-2 text-[12px] text-[#555] hover:bg-[#D4D4D4] focus:outline-none"
+                className="max-w-[150px] shrink-0 border-r border-gray-300 bg-[#f3f4f6] px-3 text-[13px] text-gray-700 hover:bg-gray-200 focus:outline-none cursor-pointer"
               >
-                <option value="">All</option>
+                <option value="">All Categories</option>
                 {roots.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -284,23 +289,23 @@ export default function DesktopHeader({ onOpenSpin }) {
                 type="search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder={`Search ${brandName}`}
+                placeholder="Search for shirts, jackets, shoes and more..."
                 autoComplete="off"
-                className="min-w-0 flex-1 bg-white px-3 text-[15px] text-wh-text placeholder:text-[#6F7373] focus:outline-none"
+                className="min-w-0 flex-1 bg-white px-3 text-[14px] text-gray-900 placeholder:text-gray-500 focus:outline-none"
               />
-              <button type="submit" aria-label="Search" className="flex w-[45px] shrink-0 items-center justify-center bg-wh-brand hover:bg-wh-brand-600">
-                <Search className="h-5 w-5 text-wh-text" aria-hidden />
+              <button type="submit" aria-label="Search" className="flex w-[48px] shrink-0 items-center justify-center bg-[#f59e0b] hover:bg-[#ea8c00] transition-colors">
+                <Search className="h-5 w-5 text-gray-950" aria-hidden />
               </button>
             </div>
           </form>
 
-          <div role="group" aria-label="Choose store" className="flex shrink-0 items-center">
-            <div className="flex rounded-full bg-wh-nav-2 p-0.5">
+          <div role="group" aria-label="Choose store" className="flex shrink-0 items-center mx-1">
+            <div className="flex rounded-full bg-[#1e293b] p-0.5 border border-white/10">
               <button
                 type="button"
                 aria-pressed={!isQuick}
                 onClick={() => setCommerceMode("standard")}
-                className={`rounded-full px-3 py-1 text-[13px] font-bold ${!isQuick ? "bg-wh-brand text-wh-text" : "text-white hover:bg-wh-nav-3"}`}
+                className={`rounded-full px-3.5 py-1 text-[13px] font-bold transition-colors ${!isQuick ? "bg-[#f59e0b] text-gray-950 shadow-sm" : "text-white hover:bg-white/10"}`}
               >
                 Shop
               </button>
@@ -308,9 +313,9 @@ export default function DesktopHeader({ onOpenSpin }) {
                 type="button"
                 aria-pressed={isQuick}
                 onClick={() => setCommerceMode("quick")}
-                className={`rounded-full px-3 py-1 text-[13px] font-bold ${isQuick ? "bg-wh-brand text-wh-text" : "text-white hover:bg-wh-nav-3"}`}
+                className={`rounded-full px-3.5 py-1 text-[13px] font-bold transition-colors ${isQuick ? "bg-[#f59e0b] text-gray-950 shadow-sm" : "text-white hover:bg-white/10"}`}
               >
-                Quick · {quickEta} min
+                Quick - 10 min
               </button>
             </div>
           </div>
@@ -318,44 +323,49 @@ export default function DesktopHeader({ onOpenSpin }) {
           <AccountMenu firstName={firstName} signedIn={signedIn} storePath={storePath} />
 
           <Link to="/orders" className={`${navItem} flex shrink-0 flex-col justify-center leading-tight`}>
-            <span className="text-[12px]">Returns</span>
+            <span className="text-[12px] text-[#CCCCCC]">Returns</span>
             <span className="text-[14px] font-bold">&amp; Orders</span>
           </Link>
 
           <Link
             to={storePath("/cart")}
             aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
-            className={`${navItem} relative flex shrink-0 items-end gap-1 pb-1`}
+            className={`${navItem} relative flex shrink-0 items-end gap-1.5 pb-1`}
           >
             <span className="relative">
-              <ShoppingCart className="h-8 w-8" aria-hidden />
-              <span className="absolute -top-1 left-1/2 min-w-[20px] -translate-x-1/2 rounded-full bg-wh-brand px-1 text-center text-[13px] font-bold leading-5 text-wh-text">
+              <ShoppingCart className="h-7 w-7 text-white" aria-hidden />
+              <span className="absolute -top-1.5 left-1/2 min-w-[20px] -translate-x-1/2 rounded-full bg-[#f59e0b] px-1 text-center text-[12px] font-bold leading-5 text-gray-950">
                 {cartCount > 99 ? "99+" : cartCount}
               </span>
             </span>
-            <span className="text-[14px] font-bold">Cart</span>
+            <span className="text-[14px] font-bold text-white">Cart</span>
           </Link>
         </div>
       </div>
 
-      {/* Category bar */}
-      <nav aria-label="Categories" className="bg-wh-brand">
-        <div className="mx-auto flex h-[39px] max-w-[1500px] items-center gap-1 overflow-hidden px-[20px] text-[14px]">
-          <button type="button" onClick={() => setDrawerOpen(true)} className={`${catItem} flex h-[31px] items-center gap-1 font-bold`}>
-            <Menu className="h-5 w-5" aria-hidden /> All
+      {/* Sub-navbar / Category bar (Clean White Bar with Orange All button) */}
+      <nav aria-label="Categories" className="border-b border-gray-200 bg-white shadow-xs">
+        <div className="mx-auto flex h-[42px] max-w-[1500px] items-center gap-2 overflow-hidden px-[20px] text-[13px]">
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="flex h-[32px] items-center gap-1.5 rounded-[4px] bg-[#f59e0b] px-3.5 font-bold text-gray-950 shadow-sm hover:bg-[#ea8c00] transition-colors"
+          >
+            <Menu className="h-4 w-4" aria-hidden /> All
           </button>
-          {topCats.map((c) => (
-            <Link key={c.id} to={storePath(`/category/${c.slug}`)} className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>
-              {c.name}
-            </Link>
-          ))}
-          <Link to="/offers" className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>Today&apos;s Deals</Link>
-          <Link to="/coins" className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>Coins</Link>
+          <Link to={storePath("/category/men")} className={subnavLink}>Men</Link>
+          <Link to={storePath("/category/women")} className={subnavLink}>Women</Link>
+          <Link to={storePath("/category/activewear")} className={subnavLink}>Activewear</Link>
+          <Link to={storePath("/category/jackets")} className={subnavLink}>Jackets</Link>
+          <Link to="/offers" className={subnavLink}>Today&apos;s Deals</Link>
+          <Link to="/coins" className={subnavLink}>Coins</Link>
           {onOpenSpin ? (
-            <button type="button" onClick={onOpenSpin} className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>Spin &amp; Win</button>
-          ) : null}
-          <Link to="/seller/signup" className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>Sell on {brandName}</Link>
-          <Link to="/help" className={`${catItem} flex h-[31px] items-center whitespace-nowrap`}>Help</Link>
+            <button type="button" onClick={onOpenSpin} className={subnavLink}>Spin &amp; Win</button>
+          ) : (
+            <Link to="/spin" className={subnavLink}>Spin &amp; Win</Link>
+          )}
+          <Link to="/seller/signup" className={subnavLink}>Sell on {brandName}</Link>
+          <Link to="/help" className={subnavLink}>Help</Link>
         </div>
       </nav>
 

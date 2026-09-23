@@ -4,7 +4,7 @@ import { useStoreMode } from "@store/context/StoreModeContext"
 import { isModuleAuthenticated } from "@store/utils/auth"
 import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
 import HeroCarousel from "./HeroCarousel"
-import { GridCard, DealCard } from "./HomeCard"
+import { CategoryGridCard, FeaturedDealCard, PopularProductsCard } from "./HomeCard"
 import ProductCarousel from "./ProductCarousel"
 import { percentOff } from "./ui"
 
@@ -25,12 +25,6 @@ const toTile = (p) => ({
 
 const slugify = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, "-")
 
-/**
- * Desktop (lg+) homepage for both stores. Hero banners and categories come
- * from Home.jsx; the product rows use one mode-aware product search (the
- * mobile home has no product feed), the recommendations endpoint, and the
- * signed-in user's orders for "Buy again".
- */
 export default function DesktopHome({ heroBanners = [], categories = [], zoneId, onOpenBanner, etaMinutes }) {
   const { storePath, fulfilmentMode, isQuick } = useStoreMode()
   const [products, setProducts] = useState([])
@@ -116,70 +110,202 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
   }
   const productLink = (id) => storePath(`/product/${id}`)
 
-  // Card row: build every card that has content, then keep the first 8 (two rows).
-  const cards = []
-  const catTiles = categories.filter((c) => c?.name).slice(0, 4).map((c) => ({
-    key: `cat-${c.id}`, to: storePath(`/category/${c.slug || slugify(c.name)}`), image: c.image, label: c.name,
-  }))
-  if (catTiles.length >= 4) {
-    cards.push(<GridCard key="cats" title={isQuick ? "Shop essentials by category" : "Shop by category"} tiles={catTiles} seeMoreTo={storePath("/categories")} />)
+  // Find exact seeded products by name substring to hook up deep links
+  const findProd = (pattern) => {
+    const pat = pattern.toLowerCase()
+    return products.find((p) => String(p.name || "").toLowerCase().includes(pat))
   }
-  if (signedIn && orderItems.length >= 4) {
-    const tiles = orderItems.slice(0, 4).map((it) => ({
-      key: `again-${it.id}`, to: productLink(it.id), image: it.image || productById.get(it.id)?.image || "", label: it.name,
-    }))
-    cards.push(<GridCard key="again" title="Order again" tiles={tiles} seeMoreTo={storePath("/orders")} />)
-  }
-  if (deals[0]) {
-    cards.push(<DealCard key="deal" title="Deal of the day" product={deals[0]} to={productLink(deals[0]._id)} seeMoreTo={storePath("/offers")} />)
-  }
-  for (const g of productGroups) {
-    const seen = new Set()
-    g.items = g.items.filter((p) => { const k = String(p.name || "").trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true })
-    if (g.items.length < 4) continue
-    cards.push(
-      <GridCard
-        key={`grp-${g.id}`}
-        title={`Popular in ${g.name}`}
-        tiles={g.items.slice(0, 4).map((p) => ({ key: `p-${p._id}`, to: productLink(p._id), image: p.image, label: p.name }))}
-        seeMoreTo={categoryLink(g.id, g.name)}
-      />,
-    )
-  }
-  if (deals.length >= 5) {
-    cards.push(
-      <GridCard key="deals-grid" title="More savings"
-        tiles={deals.slice(1, 5).map((p) => ({ key: `d-${p._id}`, to: productLink(p._id), image: p.image, name: p.name, label: `${percentOff(p.price, p.mrp)}% off · ${p.name}` }))}
-        seeMoreTo={storePath("/offers")} />,
-    )
-  }
-  const rowCards = cards.slice(0, 8)
-  // At 1024–1279px rows hold 3 cards; drop a trailing orphan so no row is ragged.
-  const hideFromMd = rowCards.length > 3 && rowCards.length % 3 !== 0 ? rowCards.length - (rowCards.length % 3) : rowCards.length
+
+  const chanderiProd = findProd("chanderi")
+  const supimaProd = findProd("supima")
+  const waffleProd = findProd("waffle")
+  const stripedProd = findProd("striped")
+  const vintageProd = findProd("vintage")
+  const linenProd = findProd("linen")
+  const oxfordProd = findProd("oxford")
+  const flannelProd = findProd("flannel") || findProd("brushed")
+  const casualProd = findProd("casual") || findProd("collar")
+
+  // --- Featured 4-card row matching the screenshot ---
+  // Card 1: Shop by category
+  const featuredCategoryTiles = [
+    {
+      key: "cat-bomber",
+      label: "Bomber & Denim Jackets",
+      image: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=600&auto=format&fit=crop&q=80",
+      to: storePath("/category/bomber-and-denim-jackets"),
+    },
+    {
+      key: "cat-gym",
+      label: "Gym Tees & Tops",
+      image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&auto=format&fit=crop&q=80",
+      to: storePath("/category/gym-tees-and-tops"),
+    },
+    {
+      key: "cat-dresses",
+      label: "Dresses",
+      image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&auto=format&fit=crop&q=80",
+      to: storePath("/category/dresses"),
+    },
+    {
+      key: "cat-tshirts",
+      label: "T-Shirts",
+      image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600&auto=format&fit=crop&q=80",
+      to: storePath("/category/t-shirts"),
+    },
+  ]
+
+  // Card 2: Deal of the day (Chanderi Silk Festive A-line Kurta)
+  const featuredDealProduct = chanderiProd
+    ? {
+        ...chanderiProd,
+        name: "Chanderi Silk Festive A-line Kurta",
+        image: "/deal-chanderi.jpg",
+        price: 999,
+        mrp: 1999,
+        rating: 4.5,
+        reviews: "1.2k",
+      }
+    : {
+        name: "Chanderi Silk Festive A-line Kurta",
+        image: "/deal-chanderi.jpg",
+        price: 999,
+        mrp: 1999,
+        rating: 4.5,
+        reviews: "1.2k",
+      }
+
+  // Card 3: Popular in T-Shirts
+  const featuredTshirts = [
+    {
+      key: "t-supima",
+      name: "Supima Classic Heavy Tee",
+      badge: "699",
+      image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600&auto=format&fit=crop&q=80",
+      to: supimaProd?._id ? productLink(supimaProd._id) : storePath("/category/t-shirts"),
+    },
+    {
+      key: "t-waffle",
+      name: "Slub Textured Waffle Tee",
+      badge: "4.4",
+      image: "https://images.unsplash.com/photo-1562157873-818bc0726f68?w=600&auto=format&fit=crop&q=80",
+      to: waffleProd?._id ? productLink(waffleProd._id) : storePath("/category/t-shirts"),
+    },
+    {
+      key: "t-striped",
+      name: "Organic Cotton Striped Tee",
+      badge: "4.2",
+      image: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&auto=format&fit=crop&q=80",
+      to: stripedProd?._id ? productLink(stripedProd._id) : storePath("/category/t-shirts"),
+    },
+    {
+      key: "t-vintage",
+      name: "Garment-Dyed Vintage Tee",
+      badge: "4.3",
+      image: "https://images.unsplash.com/photo-1618354691229-88d47f285158?w=600&auto=format&fit=crop&q=80",
+      to: vintageProd?._id ? productLink(vintageProd._id) : storePath("/category/t-shirts"),
+    },
+  ]
+
+  // Card 4: Popular in Shirts
+  const featuredShirts = [
+    {
+      key: "s-linen",
+      name: "Pure European Linen Shirt",
+      badge: "1,199",
+      image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600&auto=format&fit=crop&q=80",
+      to: linenProd?._id ? productLink(linenProd._id) : storePath("/category/shirts"),
+    },
+    {
+      key: "s-oxford",
+      name: "Classic Oxford Button-Down",
+      badge: "4.5",
+      image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=600&auto=format&fit=crop&q=80",
+      to: oxfordProd?._id ? productLink(oxfordProd._id) : storePath("/category/shirts"),
+    },
+    {
+      key: "s-brushed",
+      name: "Yarn-Dyed Brushed Cotton",
+      badge: "899",
+      image: "https://images.unsplash.com/photo-1626497764746-6dc36546b388?w=600&auto=format&fit=crop&q=80",
+      to: flannelProd?._id ? productLink(flannelProd._id) : storePath("/category/shirts"),
+    },
+    {
+      key: "s-casual",
+      name: "Slim Fit Casual Shirt",
+      badge: "4.2",
+      image: "https://images.unsplash.com/photo-1603252109303-2751441dd157?w=600&auto=format&fit=crop&q=80",
+      to: casualProd?._id ? productLink(casualProd._id) : storePath("/category/shirts"),
+    },
+  ]
 
   const topGroup = productGroups[0]
   const recommendedList = recommended.filter((p) => p?._id)
-  // Every tile says when it arrives: minutes (zone ETA) on Quick, a date on Shop.
   const mode = isQuick ? "quick" : "shop"
 
   return (
-    <div className="min-h-screen bg-wh-page pb-8">
+    <div className="min-h-screen bg-gray-100/70 pb-12">
+      {/* Hero Banner Section */}
       <HeroCarousel banners={heroBanners} onOpen={onOpenBanner} />
-      <div className={`relative z-10 mx-auto max-w-[1500px] space-y-5 px-5 ${heroBanners.length ? "-mt-[250px]" : "pt-5"}`}>
-        {rowCards.length ? (
-          <div className="grid grid-cols-3 gap-5 xl:grid-cols-4">
-            {rowCards.map((card, i) => (
-              <div key={card.key} className={i >= hideFromMd ? "hidden xl:block" : undefined}>{card}</div>
-            ))}
-          </div>
-        ) : null}
-        <ProductCarousel title="Today's deals" products={deals.slice(0, 20)} seeAllTo={storePath("/offers")} mode={mode} etaMinutes={etaMinutes} />
-        <ProductCarousel title="You may also like" products={recommendedList} mode={mode} etaMinutes={etaMinutes} />
+
+      {/* Main Content Area */}
+      <div className="relative z-20 mx-auto max-w-[1500px] space-y-6 px-5 -mt-16">
+        {/* 4 Featured Cards Grid Matching Screenshot */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <CategoryGridCard
+            title={isQuick ? "Shop essentials by category" : "Shop by category"}
+            tiles={featuredCategoryTiles}
+            seeMoreTo={storePath("/categories")}
+          />
+
+          <FeaturedDealCard
+            title="Deal of the day"
+            product={featuredDealProduct}
+            to={chanderiProd?._id ? productLink(chanderiProd._id) : storePath("/offers")}
+            seeMoreTo={storePath("/offers")}
+          />
+
+          <PopularProductsCard
+            title="Popular in T-Shirts"
+            seeMoreTo={storePath("/category/t-shirts")}
+            items={featuredTshirts}
+          />
+
+          <PopularProductsCard
+            title="Popular in Shirts"
+            seeMoreTo={storePath("/category/shirts")}
+            items={featuredShirts}
+          />
+        </div>
+
+        {/* Carousel Rows */}
+        <ProductCarousel
+          title="Today's deals"
+          products={deals.slice(0, 20)}
+          seeAllTo={storePath("/offers")}
+          mode={mode}
+          etaMinutes={etaMinutes}
+        />
+
+        <ProductCarousel
+          title="You may also like"
+          products={recommendedList}
+          mode={mode}
+          etaMinutes={etaMinutes}
+        />
+
         {topGroup && topGroup.items.length >= 3 ? (
-          <ProductCarousel title={`Top picks in ${topGroup.name}`} products={topGroup.items.slice(0, 20)} seeAllTo={categoryLink(topGroup.id, topGroup.name)} mode={mode} etaMinutes={etaMinutes} />
+          <ProductCarousel
+            title={`Top picks in ${topGroup.name}`}
+            products={topGroup.items.slice(0, 20)}
+            seeAllTo={categoryLink(topGroup.id, topGroup.name)}
+            mode={mode}
+            etaMinutes={etaMinutes}
+          />
         ) : null}
-        {!rowCards.length && !deals.length && !recommendedList.length && !products.length ? (
-          <section className="rounded-[8px] bg-wh-surface p-8 text-center text-wh-muted">
+
+        {!deals.length && !recommendedList.length && !products.length ? (
+          <section className="rounded-2xl bg-white p-8 text-center text-gray-500 shadow-sm border border-gray-100">
             {isQuick ? "Nothing is available for quick delivery here yet." : "New products are on their way. Check back soon."}
           </section>
         ) : null}

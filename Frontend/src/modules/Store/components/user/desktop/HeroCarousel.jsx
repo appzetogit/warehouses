@@ -1,18 +1,28 @@
 import { useEffect, useState } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Link } from "react-router-dom"
+import { ChevronLeft, ChevronRight, ArrowRight, Truck, ShieldCheck, RotateCcw } from "lucide-react"
+import { useStoreMode } from "@store/context/StoreModeContext"
 import { isVideoUrl } from "@store/utils/mediaType"
 
-const AUTO_MS = 5000
+const AUTO_MS = 6000
 
-/**
- * Desktop hero: full-width banner carousel (~300px visible, the image runs
- * taller so the first card row can overlap it) whose bottom fades into
- * --wh-page. `banners` are the existing hero banners ({ imageUrl, ... }).
- */
+const DEFAULT_SLIDES = [
+  {
+    imageUrl: "/hero-boutique.jpg",
+    tag: "NEW SEASON COLLECTION",
+    title: "Style That\nMoves With You",
+    subtitle: "Trendy styles. Everyday comfort. Unbeatable prices.",
+    ctaText: "Shop Now",
+    ctaLink: "/categories",
+  },
+]
+
 export default function HeroCarousel({ banners = [], onOpen }) {
-  const slides = banners.filter((b) => b && typeof b.imageUrl === "string" && b.imageUrl)
+  const { storePath } = useStoreMode()
+  const rawSlides = banners.filter((b) => b && typeof b.imageUrl === "string" && b.imageUrl)
+  const slides = rawSlides.length > 0 ? rawSlides : DEFAULT_SLIDES
   const [index, setIndex] = useState(0)
-  const count = slides.length
+  const count = Math.max(slides.length, 3)
 
   useEffect(() => {
     if (index >= count) setIndex(0)
@@ -26,41 +36,124 @@ export default function HeroCarousel({ banners = [], onOpen }) {
     return () => clearInterval(t)
   }, [count, index])
 
-  if (!count) {
-    return null
-  }
-
   const go = (d) => setIndex((i) => (i + d + count) % count)
-  const current = slides[Math.min(index, count - 1)]
-  const clickable = typeof onOpen === "function" && (current.linkedSellers?.length || 0) > 0
+  const current = slides[index % slides.length] || slides[0]
 
   return (
-    <section className="relative h-[550px] w-full overflow-hidden bg-wh-page" aria-roledescription="carousel" aria-label="Featured">
+    <section className="relative h-[440px] w-full overflow-hidden bg-[#1a1a1a]" aria-roledescription="carousel" aria-label="Featured">
+      {/* Background slide image */}
       {slides.map((b, i) => {
-        const active = i === index
-        const common = `absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-700 ${active ? "opacity-100" : "opacity-0"}`
+        const active = i === (index % slides.length)
+        const common = `absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-700 ${active ? "opacity-100" : "opacity-0"}`
         return isVideoUrl(b.imageUrl) ? (
           <video key={b.imageUrl + i} src={b.imageUrl} className={common} muted loop autoPlay={active} playsInline preload={active ? "auto" : "metadata"} aria-hidden={!active} />
         ) : (
-          <img key={b.imageUrl + i} src={b.imageUrl} alt={b.title || b.name || `Banner ${i + 1}`} className={common} loading={i === 0 ? "eager" : "lazy"} aria-hidden={!active} />
+          <img key={b.imageUrl + i} src={b.imageUrl} alt={b.title || `Hero banner ${i + 1}`} className={common} loading={i === 0 ? "eager" : "lazy"} aria-hidden={!active} />
         )
       })}
-      {clickable ? (
-        <button type="button" className="absolute inset-x-0 top-0 h-[260px] cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-wh-brand" onClick={() => onOpen(current)} aria-label={`Open banner ${index + 1}`} />
-      ) : null}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[300px] bg-gradient-to-b from-transparent to-wh-page" />
+
+      {/* Dark gradient overlay for text readability */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent z-10" />
+
+      {/* Bottom fade into the page background */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-gray-100/90 to-transparent z-10" />
+
+      {/* Hero Content Overlay (Left) */}
+      <div className="relative z-20 mx-auto flex h-full max-w-[1500px] flex-col justify-center px-8 lg:px-12 pb-12">
+        <div className="max-w-xl text-left">
+          <span className="inline-block text-[12px] font-bold tracking-[0.2em] text-[#f59e0b] uppercase drop-shadow-sm">
+            {current.tag || "NEW SEASON COLLECTION"}
+          </span>
+          <h1 className="mt-2 text-4xl sm:text-5xl lg:text-[54px] font-black leading-[1.08] tracking-tight text-white drop-shadow-md whitespace-pre-line">
+            {current.title || "Style That\nMoves With You"}
+          </h1>
+          <p className="mt-3 text-[15px] sm:text-[16px] text-gray-200 drop-shadow">
+            {current.subtitle || "Trendy styles. Everyday comfort. Unbeatable prices."}
+          </p>
+          <div className="mt-6">
+            <Link
+              to={storePath(current.ctaLink || "/categories")}
+              className="inline-flex items-center gap-2 rounded-full bg-[#f59e0b] px-6 py-2.5 text-[14px] font-bold text-gray-950 shadow-lg hover:bg-[#ea8c00] hover:scale-105 active:scale-95 transition-all"
+            >
+              {current.ctaText || "Shop Now"}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Carousel navigation arrows */}
       {count > 1 ? (
         <>
-          <button type="button" onClick={() => go(-1)} aria-label="Previous banner"
-            className="absolute left-0 top-0 flex h-[250px] w-20 items-center justify-center text-wh-text hover:outline hover:outline-1 hover:outline-white focus-visible:outline-2 focus-visible:outline-wh-brand">
-            <ChevronLeft className="h-10 w-10" strokeWidth={1.5} />
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            aria-label="Previous banner"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-12 w-10 items-center justify-center rounded-r bg-black/30 text-white backdrop-blur-xs hover:bg-black/60 transition-colors"
+          >
+            <ChevronLeft className="h-6 w-6" />
           </button>
-          <button type="button" onClick={() => go(1)} aria-label="Next banner"
-            className="absolute right-0 top-0 flex h-[250px] w-20 items-center justify-center text-wh-text hover:outline hover:outline-1 hover:outline-white focus-visible:outline-2 focus-visible:outline-wh-brand">
-            <ChevronRight className="h-10 w-10" strokeWidth={1.5} />
+          <button
+            type="button"
+            onClick={() => go(1)}
+            aria-label="Next banner"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-12 w-10 items-center justify-center rounded-l bg-black/30 text-white backdrop-blur-xs hover:bg-black/60 transition-colors"
+          >
+            <ChevronRight className="h-6 w-6" />
           </button>
         </>
       ) : null}
+
+      {/* Carousel indicator dots */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20">
+        {[0, 1, 2].map((dotIdx) => {
+          const isActive = index % 3 === dotIdx
+          return (
+            <button
+              key={dotIdx}
+              type="button"
+              onClick={() => setIndex(dotIdx)}
+              aria-label={`Go to slide ${dotIdx + 1}`}
+              className={`rounded-full transition-all duration-300 ${
+                isActive ? "h-2.5 w-2.5 bg-[#f59e0b]" : "h-2 w-2 bg-white/50 hover:bg-white/80"
+              }`}
+            />
+          )
+        })}
+      </div>
+
+      {/* Trust Badges (Bottom Right) */}
+      <div className="absolute bottom-6 right-8 hidden xl:flex items-center gap-6 z-20">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#f59e0b]/50 bg-black/50 backdrop-blur-sm text-[#f59e0b] shadow-sm">
+            <Truck className="h-5 w-5" />
+          </div>
+          <div className="text-left text-white leading-tight">
+            <div className="text-[13px] font-bold">Fast Delivery</div>
+            <div className="text-[12px] text-gray-300">in Indore</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#f59e0b]/50 bg-black/50 backdrop-blur-sm text-[#f59e0b] shadow-sm">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <div className="text-left text-white leading-tight">
+            <div className="text-[13px] font-bold">100% Genuine</div>
+            <div className="text-[12px] text-gray-300">Products</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#f59e0b]/50 bg-black/50 backdrop-blur-sm text-[#f59e0b] shadow-sm">
+            <RotateCcw className="h-5 w-5" />
+          </div>
+          <div className="text-left text-white leading-tight">
+            <div className="text-[13px] font-bold">Easy Returns</div>
+            <div className="text-[12px] text-gray-300">&amp; Exchanges</div>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }
