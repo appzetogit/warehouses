@@ -103,7 +103,9 @@ export function ListingTile({ product, channel, etaMinutes, onAddToCart }) {
 }
 
 export function TileGrid({ children }) {
-  return <div className="grid grid-cols-4 gap-4 2xl:grid-cols-5">{children}</div>
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 2xl:grid-cols-5">{children}</div>
+  )
 }
 
 function RailSection({ title, children }) {
@@ -321,11 +323,16 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
 
   return (
     <div className="min-h-screen bg-wh-surface text-wh-text">
-      <div className={cx("mx-auto flex max-w-[1500px] px-5 py-4", showQuickRail ? "gap-4" : "gap-6")}>
+      <div
+        className={cx(
+          "mx-auto flex max-w-[1500px] px-3 py-4 sm:px-5",
+          showQuickRail ? "flex-col gap-3 sm:flex-row sm:gap-4" : "gap-6",
+        )}
+      >
         {showQuickRail ? (
           <QuickSubcategoryRail items={quickRailItems} selectedId={selectedCat?.id} heading={heading} />
         ) : (
-        <aside className="w-[240px] shrink-0" aria-label="Filters">
+        <aside className="hidden w-[240px] shrink-0 lg:block" aria-label="Filters">
           {tree.length > 0 && onSelectCategory ? (
             <RailSection title="Category">
               <CategoryTree tree={tree} selectedId={selectedCat?.id || effectiveCategoryId} onSelect={onSelectCategory} />

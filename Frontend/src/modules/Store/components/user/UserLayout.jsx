@@ -12,8 +12,6 @@ const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 import SearchOverlay from "./SearchOverlay"
-import BottomNavigation from "./BottomNavigation"
-import DesktopNavbar from "./DesktopNavbar"
 import DesktopHeader from "./desktop/DesktopHeader"
 import DesktopFooter from "./desktop/DesktopFooter"
 import QuickZoneStrip from "./desktop/QuickZoneStrip"
@@ -196,15 +194,9 @@ export default function UserLayout() {
   const normalizedPath =
     location.pathname.length > 1 ? location.pathname.replace(/\/+$/, "") : location.pathname
 
-  const isProfileRoot = normalizedPath === "/profile"
   const storeMode = getStoreModeFromPath(normalizedPath)
 
-  const showBottomNav = normalizedPath === "/" ||
-    normalizedPath === "/quick" ||
-    isProfileRoot ||
-    normalizedPath === "" // Handle empty string edge case
-
-  // Desktop (lg+) shell: header/footer on every storefront page except sign-in screens.
+  // The storefront shell: header/footer on every storefront page except sign-in screens.
   const showDesktopShell = !/(^|\/)auth(\/|$)/.test(normalizedPath)
 
   return (
@@ -218,20 +210,14 @@ export default function UserLayout() {
               <LocationSelectorProvider>
                 {/* Quick desktop cart panel state, shared by the header button and the dock */}
                 <QuickCartUIProvider>
-                {/* <Navbar /> */}
-                {/* Desktop Navbar - Hidden on mobile, visible on medium+ screens */}
-                <div className="hidden md:block lg:hidden">
-                  {showBottomNav && <DesktopNavbar />}
-                </div>
-                {/* Desktop (lg+) header, Quick ETA strip and footer (DESKTOP_THEME.md) */}
+                {/* One responsive header, Quick ETA strip and footer for every
+                    width (DESKTOP_THEME.md). */}
                 {showDesktopShell && <DesktopHeader onOpenSpin={() => setIsSpinWheelOpen(true)} />}
                 {showDesktopShell && storeMode === "quick" && <QuickZoneStrip />}
-                {/* <LocationPrompt /> */}
-                <main className={showBottomNav ? "md:pt-40 lg:pt-0" : ""}>
+                <main>
                   <Outlet />
                 </main>
                 {showDesktopShell && <DesktopFooter />}
-                {showBottomNav && <BottomNavigation />}
 
                 {/* Floating Daily Spin trigger: bottom-left with rich animations (desktop & mobile) */}
                 {showDesktopShell && (

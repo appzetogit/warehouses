@@ -14,7 +14,7 @@ export default function QuickZoneStrip() {
 
   if (isOutOfService) {
     return (
-      <div className="wh-desktop hidden bg-[#FFF4E5] lg:block" role="status">
+      <div className="wh-desktop bg-[#FFF4E5]" role="status">
         <div className="mx-auto flex h-[32px] max-w-[1500px] items-center gap-2 px-[20px] text-[13px] text-wh-text">
           <span>Quick delivery isn&apos;t available at {area} yet.</span>
           <button type="button" onClick={openLocationSelector} className="font-medium text-wh-link hover:text-wh-link-hover hover:underline">
@@ -25,7 +25,7 @@ export default function QuickZoneStrip() {
     )
   }
   return (
-    <div className="wh-desktop hidden bg-wh-quick lg:block" role="status">
+    <div className="wh-desktop bg-wh-quick" role="status">
       <div className="mx-auto flex h-[32px] max-w-[1500px] items-center gap-2 px-[20px] text-[13px] text-white">
         <span>
           Delivering to <strong>{area}</strong> in ~{eta} min

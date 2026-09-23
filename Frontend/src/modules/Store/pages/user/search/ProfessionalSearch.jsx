@@ -13,7 +13,7 @@ import { useLocation as useGeoLocation } from "@store/hooks/useLocation"
 import { useZone } from "@store/hooks/useZone"
 import { adminAPI, searchAPI } from "@/services/api"
 import { motion, AnimatePresence } from "framer-motion"
-import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
+import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
 import { DesktopProductListing } from "@store/components/user/desktop/ListingDesktop"
 
 // Helper to resolve media URLs consistently
@@ -47,7 +47,7 @@ export default function ProfessionalSearch() {
   const navigate = useNavigate()
   const { location: userCoords } = useGeoLocation()
   const { zoneId, zoneStatus } = useZone(userCoords)
-  const isDesktop = useIsDesktop()
+  const isDesktop = useStorefrontLayout()
   
   const [query, setQuery] = useState(initialQuery)
   const debouncedQuery = useDebounce(query, 500)

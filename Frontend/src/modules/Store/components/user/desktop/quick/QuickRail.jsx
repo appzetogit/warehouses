@@ -9,7 +9,8 @@ import { Link } from "react-router-dom"
 import QuickProductCard, { QuickProductCardSkeleton } from "./QuickProductCard"
 import { cx, focusRing, productId } from "./quickHelpers"
 
-export const QUICK_GRID = "grid grid-cols-4 gap-3 xl:max-wide:grid-cols-5 wide:grid-cols-6"
+export const QUICK_GRID =
+  "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:max-wide:grid-cols-5 wide:grid-cols-6"
 
 /** A rail needs this many products before it earns a row of its own. */
 export const MIN_RAIL_PRODUCTS = 4

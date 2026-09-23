@@ -14,7 +14,7 @@ import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { sellerAPI } from "@store/api"
 import { API_BASE_URL } from "@store/api/config"
 import { useDelayedLoading } from "@store/hooks/useDelayedLoading"
-import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
+import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
 import { StoresDesktop } from "@store/components/user/desktop/IndexDesktop"
 import { imagePlaceholder } from "@store/constants/images"
 
@@ -51,7 +51,7 @@ export default function Sellers() {
   const [sellers, setSellers] = useState([])
   const [loading, setLoading] = useState(true)
   const showSellersSkeleton = useDelayedLoading(loading)
-  const isDesktop = useIsDesktop()
+  const isDesktop = useStorefrontLayout()
 
   useEffect(() => {
     let cancelled = false

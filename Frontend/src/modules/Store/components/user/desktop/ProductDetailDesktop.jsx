@@ -100,7 +100,7 @@ export default function ProductDetailDesktop({
 
   return (
     <div className="min-h-screen bg-wh-surface pb-10 text-[14px] leading-5 text-wh-text">
-      <div className="mx-auto max-w-[1500px] px-5">
+      <div className="mx-auto max-w-[1500px] px-3 sm:px-5">
         <nav aria-label="Breadcrumb" className="py-3 text-[12px] text-wh-muted">
           <ol className="flex flex-wrap items-center gap-1">
             {breadcrumb.map((b, i) => (
@@ -116,11 +116,11 @@ export default function ProductDetailDesktop({
           </ol>
         </nav>
 
-        <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,5fr)_260px] gap-6 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)_300px]">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,5fr)_260px] lg:gap-6 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)_300px]">
           {/* 1. Gallery */}
-          <div className="flex gap-3 self-start lg:sticky lg:top-28">
+          <div className="flex flex-col-reverse gap-3 self-start sm:flex-row lg:sticky lg:top-28">
             {allImages.length > 1 && (
-              <div className="flex max-h-[520px] w-[52px] shrink-0 flex-col gap-2 overflow-y-auto">
+              <div className="flex w-full shrink-0 gap-2 overflow-x-auto sm:max-h-[520px] sm:w-[52px] sm:flex-col sm:overflow-x-visible sm:overflow-y-auto">
                 {allImages.map((img, idx) => (
                   <button
                     key={idx}

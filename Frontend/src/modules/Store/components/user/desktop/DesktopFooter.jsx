@@ -54,7 +54,7 @@ export default function DesktopFooter() {
   const phone = settings?.phone?.number ? `${settings.phone.countryCode || ""} ${settings.phone.number}`.trim() : ""
 
   return (
-    <footer className="wh-desktop mt-8 hidden lg:block">
+    <footer className="wh-desktop mt-8">
       <button
         type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}

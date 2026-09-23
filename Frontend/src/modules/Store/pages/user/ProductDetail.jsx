@@ -30,7 +30,7 @@ import ProductReviews from "@store/components/user/reviews/ProductReviews"
 import { useCart } from "@store/context/CartContext"
 import { Button } from "@store/components/ui/button"
 import ProductDetailDesktop from "@store/components/user/desktop/ProductDetailDesktop"
-import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
+import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
 import { CHANNEL_COPY, channelAvailability, otherChannel, productInChannel, stockLabel, variantInChannel } from "@store/utils/channelStock"
 
 export default function ProductDetail() {
@@ -38,7 +38,7 @@ export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
-  const isDesktop = useIsDesktop()
+  const isDesktop = useStorefrontLayout()
   const { addToCart, isInCart, getCartItem } = useCart()
 
   const [loading, setLoading] = useState(true)

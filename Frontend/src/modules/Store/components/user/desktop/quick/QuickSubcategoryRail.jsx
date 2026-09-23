@@ -17,14 +17,17 @@ export default function QuickSubcategoryRail({ items = [], selectedId, heading }
   const { storePath } = useStoreMode()
   if (!items.length) return null
   return (
-    <nav aria-label={heading || "Subcategories"} className="w-[90px] shrink-0 border-r border-wh-border">
-      <div className="sticky top-[136px] max-h-[calc(100vh-150px)] overflow-y-auto py-2 [scrollbar-width:thin]">
-        <ul className="space-y-1 pr-1">
+    <nav
+      aria-label={heading || "Subcategories"}
+      className="w-full shrink-0 border-b border-wh-border sm:w-[90px] sm:border-b-0 sm:border-r"
+    >
+      <div className="overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:sticky sm:top-[136px] sm:max-h-[calc(100vh-150px)] sm:overflow-x-visible sm:overflow-y-auto sm:[scrollbar-width:thin]">
+        <ul className="flex gap-1 pr-1 sm:block sm:space-y-1">
           {items.map((c) => {
             const active = String(c.id) === String(selectedId)
             const img = mediaUrl(c.image)
             return (
-              <li key={c.id} className="relative">
+              <li key={c.id} className="relative w-[76px] shrink-0 sm:w-auto">
                 {active ? (
                   <span aria-hidden="true" className="absolute left-0 top-1/2 h-8 w-[3px] -translate-y-1/2 rounded-r bg-wh-brand-ink" />
                 ) : null}

@@ -64,7 +64,7 @@ import {
 } from "@store/utils/productVariants"
 import fssaiLogo from "@store/assets/fssai.png"
 import { SellerDetailSkeleton } from "@store/components/ui/loading-skeletons"
-import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
+import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
 import StoreDesktop from "@store/components/user/desktop/StoreDesktop"
 
 const debugLog = (...args) => {}
@@ -102,7 +102,7 @@ const buildHeroImages = (seller) => {
 
 function SellerDetailsContent() {
   const { fulfilmentMode, storePath } = useStoreMode()
-  const isDesktop = useIsDesktop()
+  const isDesktop = useStorefrontLayout()
   const { slug } = useParams()
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()

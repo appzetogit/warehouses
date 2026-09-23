@@ -142,7 +142,7 @@ function QuickCartSlidePanel() {
   const lines = Array.isArray(cart) ? cart : []
 
   return (
-    <div className="wh-desktop fixed inset-0 z-[70] hidden lg:block" role="dialog" aria-modal="true" aria-label="Your quick cart">
+    <div className="wh-desktop fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-label="Your quick cart">
       <button type="button" aria-label="Close cart" onClick={closePanel} className="absolute inset-0 h-full w-full cursor-default bg-black/50" />
       <div
         ref={panelRef}
@@ -234,7 +234,7 @@ function QuickCartBottomBar() {
   return (
     // The strip spans the window, so it must not swallow clicks meant for the
     // buttons that float beside it; only the bar itself takes them.
-    <div className="wh-desktop pointer-events-none fixed inset-x-0 bottom-0 z-[60] hidden lg:block">
+    <div className="wh-desktop pointer-events-none fixed inset-x-0 bottom-0 z-[60]">
       <div className="pointer-events-auto mx-auto mb-4 flex max-w-[520px] items-center gap-3 rounded-[10px] bg-wh-brand-ink px-4 py-3 text-white shadow-2xl">
         <ShoppingCart className="h-5 w-5 shrink-0" aria-hidden="true" />
         <p className="min-w-0 flex-1 truncate text-[14px] font-semibold">

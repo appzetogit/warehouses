@@ -40,7 +40,7 @@ export default function HeroCarousel({ banners = [], onOpen }) {
   const current = slides[index % slides.length] || slides[0]
 
   return (
-    <section className="relative h-[440px] w-full overflow-hidden bg-[#1a1a1a]" aria-roledescription="carousel" aria-label="Featured">
+    <section className="relative h-[260px] w-full overflow-hidden bg-[#1a1a1a] sm:h-[340px] lg:h-[440px]" aria-roledescription="carousel" aria-label="Featured">
       {/* Background slide image */}
       {slides.map((b, i) => {
         const active = i === (index % slides.length)
@@ -59,21 +59,21 @@ export default function HeroCarousel({ banners = [], onOpen }) {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-gray-100/90 to-transparent z-10" />
 
       {/* Hero Content Overlay (Left) */}
-      <div className="relative z-20 mx-auto flex h-full max-w-[1500px] flex-col justify-center px-8 lg:px-12 pb-12">
-        <div className="max-w-xl text-left">
-          <span className="inline-block text-[12px] font-bold tracking-[0.2em] text-[#f59e0b] uppercase drop-shadow-sm">
+      <div className="relative z-20 mx-auto flex h-full max-w-[1500px] flex-col justify-center px-4 pb-8 sm:px-8 lg:px-12 lg:pb-12">
+        <div className="max-w-[78%] text-left sm:max-w-xl">
+          <span className="inline-block text-[10px] font-bold uppercase tracking-[0.18em] text-[#f59e0b] drop-shadow-sm sm:text-[12px] sm:tracking-[0.2em]">
             {current.tag || "NEW SEASON COLLECTION"}
           </span>
-          <h1 className="mt-2 text-4xl sm:text-5xl lg:text-[54px] font-black leading-[1.08] tracking-tight text-white drop-shadow-md whitespace-pre-line">
+          <h1 className="mt-1.5 whitespace-pre-line text-[26px] font-black leading-[1.1] tracking-tight text-white drop-shadow-md sm:mt-2 sm:text-5xl lg:text-[54px]">
             {current.title || "Style That\nMoves With You"}
           </h1>
-          <p className="mt-3 text-[15px] sm:text-[16px] text-gray-200 drop-shadow">
+          <p className="mt-2 text-[13px] text-gray-200 drop-shadow sm:mt-3 sm:text-[16px]">
             {current.subtitle || "Trendy styles. Everyday comfort. Unbeatable prices."}
           </p>
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <Link
               to={storePath(current.ctaLink || "/categories")}
-              className="inline-flex items-center gap-2 rounded-full bg-[#f59e0b] px-6 py-2.5 text-[14px] font-bold text-gray-950 shadow-lg hover:bg-[#ea8c00] hover:scale-105 active:scale-95 transition-all"
+              className="inline-flex items-center gap-2 rounded-full bg-[#f59e0b] px-4 py-2 text-[13px] font-bold text-gray-950 shadow-lg sm:px-6 sm:py-2.5 sm:text-[14px] hover:bg-[#ea8c00] hover:scale-105 active:scale-95 transition-all"
             >
               {current.ctaText || "Shop Now"}
               <ArrowRight className="h-4 w-4" />
@@ -89,7 +89,7 @@ export default function HeroCarousel({ banners = [], onOpen }) {
             type="button"
             onClick={() => go(-1)}
             aria-label="Previous banner"
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-12 w-10 items-center justify-center rounded-r bg-black/30 text-white backdrop-blur-xs hover:bg-black/60 transition-colors"
+            className="absolute left-2 top-1/2 z-20 hidden h-12 w-10 -translate-y-1/2 items-center justify-center rounded-r bg-black/30 sm:flex text-white backdrop-blur-xs hover:bg-black/60 transition-colors"
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
@@ -97,7 +97,7 @@ export default function HeroCarousel({ banners = [], onOpen }) {
             type="button"
             onClick={() => go(1)}
             aria-label="Next banner"
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-12 w-10 items-center justify-center rounded-l bg-black/30 text-white backdrop-blur-xs hover:bg-black/60 transition-colors"
+            className="absolute right-2 top-1/2 z-20 hidden h-12 w-10 -translate-y-1/2 items-center justify-center rounded-l bg-black/30 sm:flex text-white backdrop-blur-xs hover:bg-black/60 transition-colors"
           >
             <ChevronRight className="h-6 w-6" />
           </button>

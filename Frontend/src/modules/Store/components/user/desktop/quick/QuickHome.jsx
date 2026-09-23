@@ -152,7 +152,7 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
     !productsLoading && !recommendedLoading && deals.length < MIN_RAIL_PRODUCTS && !bestsellerGroups.length && recommended.length < MIN_RAIL_PRODUCTS
 
   return (
-    <div className="wh-desktop hidden min-h-screen bg-wh-page pb-16 lg:block">
+    <div className="wh-desktop min-h-screen bg-wh-page pb-16">
       <div className="mx-auto max-w-[1500px] space-y-4 px-5 py-4">
         {outOfZone ? (
           <section className="rounded-[8px] border border-wh-border bg-wh-surface p-6 text-center" role="status">

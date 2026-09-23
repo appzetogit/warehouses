@@ -155,7 +155,7 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
       <HeroCarousel banners={heroBanners} onOpen={onOpenBanner} />
 
       {/* Main Content Area */}
-      <div className="relative z-20 mx-auto max-w-[1500px] space-y-6 px-5 -mt-16">
+      <div className="relative z-20 mx-auto -mt-6 max-w-[1500px] space-y-4 px-3 sm:px-5 lg:-mt-16 lg:space-y-6">
         {/* 4 Featured Cards Grid Matching Screenshot */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <CategoryGridCard

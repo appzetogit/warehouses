@@ -3,7 +3,7 @@ import { useStoreMode } from "@store/context/StoreModeContext"
 import { channelAvailability } from "@store/utils/channelStock"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
-import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
+import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
 import { DesktopProductListing } from "@store/components/user/desktop/ListingDesktop"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, Star, Clock, Search, SlidersHorizontal, ChevronDown, Bookmark, BadgePercent, MapPin, ArrowDownUp, Timer, IndianRupee, UtensilsCrossed, ShieldCheck, X, Loader2, Grid2x2 } from "lucide-react"
@@ -45,7 +45,7 @@ const CATEGORY_PAGE_FILTERS_STORAGE_KEY = "store-category-page-filters-v1"
 export default function CategoryPage() {
   const { isQuick, fulfilmentMode, storePath } = useStoreMode()
   const { category } = useParams()
-  const isDesktop = useIsDesktop()
+  const isDesktop = useStorefrontLayout()
   const navigate = useNavigate()
   const { vegMode } = useProfile()
   const { effectiveLocation: location, zoneId, isOutOfService } = useDeliveryLocation()

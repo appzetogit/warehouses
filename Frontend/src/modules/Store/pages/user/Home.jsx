@@ -119,7 +119,7 @@ import PromotionBannerCarousel from "@store/components/user/home/PromotionBanner
 import OutOfZoneScreen from "@store/components/user/OutOfZoneScreen";
 import DesktopHome from "@store/components/user/desktop/DesktopHome";
 import QuickHome from "@store/components/user/desktop/quick/QuickHome";
-import useIsDesktop from "@store/components/user/desktop/useIsDesktop";
+import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop";
 
 
 // Explore More Icons
@@ -754,7 +754,7 @@ const SellerCard = React.memo(({
 
 export default function Home() {
   const { storePath, fulfilmentMode } = useStoreMode()
-  const isDesktop = useIsDesktop()
+  const isDesktop = useStorefrontLayout()
   const HERO_BANNER_AUTO_SLIDE_MS = 3500;
   const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api(\/v\d+)?\/?$/i, "");
   const navigate = useNavigate();
@@ -2903,9 +2903,9 @@ export default function Home() {
     );
   }, [displayCategories, showCategorySkeleton, navigate, isCategoryStuck]);
 
-  // /quick at lg+ gets the instant-delivery layout (QUICK_UI_SPEC.md). It keeps
+  // /quick gets the instant-delivery layout (QUICK_UI_SPEC.md). It keeps
   // showing the category tiles when the address is out of zone, so this runs
-  // before the out-of-zone screen. Shop and mobile fall through unchanged.
+  // before the out-of-zone screen.
   if (isDesktop && fulfilmentMode === "quick") {
     return (
       <QuickHome
@@ -2928,10 +2928,10 @@ export default function Home() {
     return <OutOfZoneScreen location={effectiveLocation} />;
   }
 
-  // lg+ gets the card-grid homepage; the markup below stays the mobile/tablet layout.
+  // The card-grid homepage, at every width.
   if (isDesktop) {
     return (
-      <div className="hidden lg:block">
+      <div>
         <DesktopHome
           heroBanners={heroBannersData}
           categories={realCategories}

@@ -9,13 +9,13 @@ import OptimizedImage from "@store/components/OptimizedImage";
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext";
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation";
 import { API_BASE_URL } from "@store/api/config";
-import useIsDesktop from "@store/components/user/desktop/useIsDesktop";
+import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop";
 import { CategoriesDesktop } from "@store/components/user/desktop/IndexDesktop";
 
 export default function Categories() {
   const { storePath } = useStoreMode()
   const navigate = useNavigate();
-  const isDesktop = useIsDesktop();
+  const isDesktop = useStorefrontLayout();
   const goBack = useAppBackNavigation();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
