@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { Product } from '../../admin/models/product.model.js';
+import { Category } from '../../admin/models/category.model.js';
 import { Seller } from '../models/seller.model.js';
 import { getProductDisplayOtherPrice, getProductDisplayPrice, serializeProductVariants } from '../../admin/services/productVariant.service.js';
 import { restoreExpiredProductAvailability } from './productAvailability.service.js';
@@ -13,6 +14,48 @@ import { productChannelFields, serializeSellerChannels } from '../../shared/chan
 import { productRatingFields } from '../../reviews/services/productReview.service.js';
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** "Fruits & Vegetables" -> "fruits-vegetables", matching the storefront URLs. */
+const slugifyCategoryName = (name) =>
+    String(name || '')
+        .toLowerCase()
+        .replace(/&/g, ' ')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+/**
+ * Categories a storefront URL covers: the one whose name slugifies to
+ * `categorySlug`, plus its children. Browsing a parent ("dairy") has to list
+ * what sits under it ("Milk", "Curd & Yogurt"), which a name match alone
+ * never finds.
+ */
+const resolveCategoryBranch = async (categorySlug) => {
+    const slug = String(categorySlug || '').trim().toLowerCase();
+    if (!slug || slug === 'all') return null;
+
+    const categories = await Category.find({ isActive: { $ne: false } })
+        .select('_id name parentId')
+        .lean();
+
+    const matches = categories.filter(
+        (category) =>
+            slugifyCategoryName(category.name) === slug ||
+            String(category._id) === slug
+    );
+    if (!matches.length) return null;
+
+    const matchedIds = new Set(matches.map((category) => String(category._id)));
+    const branch = categories.filter(
+        (category) =>
+            matchedIds.has(String(category._id)) ||
+            (category.parentId && matchedIds.has(String(category.parentId)))
+    );
+
+    return {
+        ids: branch.map((category) => category._id),
+        names: branch.map((category) => category.name).filter(Boolean)
+    };
+};
 
 const buildCategoryKeywords = (categorySlug) => {
     const raw = String(categorySlug || '').trim().toLowerCase();
@@ -70,15 +113,24 @@ export async function listPublicProducts(query = {}) {
     const modeFilter = fulfilmentModeProductFilter(fulfilmentMode);
     if (modeFilter) productFilter.$and = [modeFilter];
 
-    const keywords = buildCategoryKeywords(categorySlug);
-    if (keywords.length > 0) {
-        productFilter.$or = keywords.flatMap((keyword) => {
-            const rx = escapeRegex(keyword);
-            return [
-                { name: { $regex: rx, $options: 'i' } },
-                { categoryName: { $regex: rx, $options: 'i' } }
-            ];
-        });
+    const branch = await resolveCategoryBranch(categorySlug);
+    if (branch) {
+        // A real category: list exactly what belongs to it and its children.
+        productFilter.$or = [
+            { categoryId: { $in: branch.ids } },
+            { categoryName: { $in: branch.names } }
+        ];
+    } else {
+        const keywords = buildCategoryKeywords(categorySlug);
+        if (keywords.length > 0) {
+            productFilter.$or = keywords.flatMap((keyword) => {
+                const rx = escapeRegex(keyword);
+                return [
+                    { name: { $regex: rx, $options: 'i' } },
+                    { categoryName: { $regex: rx, $options: 'i' } }
+                ];
+            });
+        }
     }
 
     const list = await Product.find(productFilter)

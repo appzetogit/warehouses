@@ -96,28 +96,28 @@ export function FeaturedDealCard({
     </div>
   )
 
-  const p = product || {
-    name: "Chanderi Silk Festive A-line Kurta",
-    image: "/deal-chanderi.jpg",
-    price: 999,
-    mrp: 1999,
-    rating: 4.5,
-    reviews: "1.2k",
-  }
+  // Without a real product there is nothing honest to show here.
+  if (!product) return null
+  const p = product
+  const rating = Number(p.rating) > 0 ? Number(p.rating) : null
+  const ratingCount = Number(p.ratingCount ?? p.totalRatings ?? p.reviews) || 0
+  const discount = p.mrp > p.price ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0
 
   return (
     <HomeCard title={title} headerBadge={headerBadge}>
       <Link to={to} className={`group block ${focus}`}>
         <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-100 shadow-xs">
           <img
-            src={p.image || "/deal-chanderi.jpg"}
+            src={p.image}
             alt={p.name}
             loading="lazy"
             className="h-full w-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-106"
           />
-          <div className="absolute bottom-2.5 left-2.5 rounded bg-gradient-to-r from-red-600 to-rose-600 px-2.5 py-0.5 text-[11px] font-black text-white shadow-md">
-            50% OFF
-          </div>
+          {discount > 0 && (
+            <div className="absolute bottom-2.5 left-2.5 rounded bg-gradient-to-r from-red-600 to-rose-600 px-2.5 py-0.5 text-[11px] font-black text-white shadow-md">
+              {discount}% OFF
+            </div>
+          )}
         </div>
 
         <h3 className="mt-3 text-[15px] font-bold text-gray-900 line-clamp-1 group-hover:text-amber-600 transition-colors">
@@ -125,19 +125,34 @@ export function FeaturedDealCard({
         </h3>
 
         <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-[20px] font-black text-gray-950">₹{p.price ? p.price.toLocaleString("en-IN") : "999"}</span>
-          <span className="text-[13px] text-gray-400 line-through">₹{p.mrp ? p.mrp.toLocaleString("en-IN") : "1,999"}</span>
+          <span className="text-[20px] font-black text-gray-950">₹{Number(p.price || 0).toLocaleString("en-IN")}</span>
+          {p.mrp > p.price && (
+            <span className="text-[13px] text-gray-400 line-through">₹{Number(p.mrp).toLocaleString("en-IN")}</span>
+          )}
         </div>
 
         <div className="mt-1 flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <div className="flex text-amber-500">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-              ))}
-            </div>
-            <span className="ml-1 text-[13px] font-bold text-gray-800">{p.rating || "4.5"}</span>
-            <span className="text-[12px] text-gray-500">({p.reviews || "1.2k"} reviews)</span>
+            {rating ? (
+              <>
+                <div className="flex text-amber-500">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-3.5 w-3.5 ${i < Math.round(rating) ? "fill-amber-500 text-amber-500" : "text-gray-300"}`}
+                    />
+                  ))}
+                </div>
+                <span className="ml-1 text-[13px] font-bold text-gray-800">{rating.toFixed(1)}</span>
+                {ratingCount > 0 && (
+                  <span className="text-[12px] text-gray-500">
+                    ({ratingCount.toLocaleString("en-IN")} {ratingCount === 1 ? "rating" : "ratings"})
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-[12px] text-gray-500">No ratings yet</span>
+            )}
           </div>
 
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-700 group-hover:bg-[#f59e0b] group-hover:text-black transition-all duration-300 shadow-xs group-hover:scale-105">

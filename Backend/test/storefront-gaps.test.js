@@ -190,3 +190,41 @@ test('social links: https only, saved per key, served publicly', async () => {
     assert.equal(pub.socialLinks.whatsapp, '');
     assert.equal(pub.socialLinks.facebook, '');
 });
+
+// ----- Browsing a parent category -----
+
+test('a parent category page lists the products of its children', async () => {
+    const sellerId = new mongoose.Types.ObjectId();
+    await db.collection('sellers').insertOne({
+        _id: sellerId,
+        sellerName: 'Gaps Store',
+        status: 'approved',
+        isActive: true,
+        isAcceptingOrders: true,
+        channels: { shop: { status: 'approved' }, quick: { status: 'none' } },
+    });
+    await db.collection('products').insertMany([
+        {
+            name: 'Gaps Toned Milk', sellerId, categoryId: ids.milk, categoryName: 'Gaps Milk',
+            price: 30, approvalStatus: 'approved', isActive: true, isAvailable: true,
+            channels: { shop: true, quick: false }, availableIn: { shop: true, quick: false },
+            stock: { shop: 10 },
+        },
+        {
+            name: 'Gaps Thick Curd', sellerId, categoryId: ids.curd, categoryName: 'Gaps Curd',
+            price: 40, approvalStatus: 'approved', isActive: true, isAvailable: true,
+            channels: { shop: true, quick: false }, availableIn: { shop: true, quick: false },
+            stock: { shop: 10 },
+        },
+    ]);
+
+    const parent = ok(await call('GET', '/catalog/products?fulfilmentMode=standard&category=gaps-dairy'), 'parent category');
+    const names = parent.products.map((p) => p.name).sort();
+    assert.deepEqual(names, ['Gaps Thick Curd', 'Gaps Toned Milk'], 'the parent lists both children');
+
+    const child = ok(await call('GET', '/catalog/products?fulfilmentMode=standard&category=gaps-milk'), 'child category');
+    assert.deepEqual(child.products.map((p) => p.name), ['Gaps Toned Milk'], 'a child lists only its own');
+
+    const byId = ok(await call(`GET`, `/catalog/products?fulfilmentMode=standard&category=${ids.dairy}`), 'parent by id');
+    assert.equal(byId.products.length, 2, 'a category id works as well as its slug');
+});

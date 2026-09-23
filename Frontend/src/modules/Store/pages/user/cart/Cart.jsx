@@ -7,6 +7,7 @@ import confetti from "canvas-confetti"
 
 import AnimatedPage from "@store/components/user/AnimatedPage"
 import { Button } from "@store/components/ui/button"
+import { isModuleAuthenticated } from "@store/utils/auth"
 import { useCart } from "@store/context/CartContext"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { useProfile } from "@store/context/ProfileContext"
@@ -91,7 +92,16 @@ const formatFullAddress = (address) => {
   if (address.zipCode) addressParts.push(address.zipCode)
 
   if (addressParts.length > 0) {
-    return addressParts.join(', ')
+    // Saved addresses often repeat a value across street/city/state
+    // ("Indore, Indore, Indore, Madhya Pradesh") — show each part once.
+    const seen = new Set()
+    const unique = addressParts.filter((part) => {
+      const key = String(part).trim().toLowerCase()
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    return unique.join(', ')
   }
 
   // Priority 3: Use address field if available
@@ -330,7 +340,7 @@ export default function Cart() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("razorpay")
   const [showPaymentSheet, setShowPaymentSheet] = useState(false)
   const [showAddressSheet, setShowAddressSheet] = useState(false)
-  const [showCookingSheet, setShowCookingSheet] = useState(false)
+  const [showNoteSheet, setShowNoteSheet] = useState(false)
   const [showOffersView, setShowOffersView] = useState(false)
   const [deliverySectionTab, setDeliverySectionTab] = useState("modes")
   const { fulfilmentMode: storeFulfilmentMode, storePath } = useStoreMode()
@@ -1918,6 +1928,14 @@ export default function Cart() {
 
 
   const handlePlaceOrder = async () => {
+    // Guests can build a cart, but an order needs an account: send them to
+    // sign in and bring them straight back here.
+    if (!isModuleAuthenticated("user")) {
+      toast.error("Please sign in to place your order")
+      navigate("/auth/login", { state: { from: "/cart" } })
+      return
+    }
+
     if (!hasSavedAddress) {
       toast.error("Please choose a delivery location to continue")
       setShowAddressSheet(true)
@@ -1938,7 +1956,7 @@ export default function Cart() {
     }
 
     if (cart.length === 0) {
-      alert("Your cart is empty")
+      toast.error("Your cart is empty")
       return
     }
 
@@ -2106,7 +2124,7 @@ export default function Cart() {
             sellerId: item.sellerId
           }))
         });
-        alert('Error: Seller information is missing. Please refresh the page and try again.');
+        toast.error('Error: Seller information is missing. Please refresh the page and try again.');
         setIsPlacingOrder(false);
         return;
       }
@@ -2186,7 +2204,7 @@ export default function Cart() {
             sellerDataName: sellerData?.name,
             cartSellerName: cartSellerNames[0]
           });
-          alert(`Error: Cart items belong to "${cartSellerNames[0] || 'Unknown Seller'}" but seller data doesn't match. Please refresh the page and try again.`);
+          toast.error(`Error: Cart items belong to "${cartSellerNames[0] || 'Unknown Seller'}" but seller data doesn't match. Please refresh the page and try again.`);
           setIsPlacingOrder(false);
           return;
         }
@@ -2200,7 +2218,7 @@ export default function Cart() {
             cartSellerName: cartSellerName,
             finalSellerName: finalSellerName
           });
-          alert(`Error: Cart items belong to "${cartSellerName}" but seller data shows "${finalSellerName}". Please refresh the page and try again.`);
+          toast.error(`Error: Cart items belong to "${cartSellerName}" but seller data shows "${finalSellerName}". Please refresh the page and try again.`);
           setIsPlacingOrder(false);
           return;
         }
@@ -2230,7 +2248,7 @@ export default function Cart() {
           cartSellerName: cart[0]?.seller,
           finalSellerName: finalSellerName
         });
-        alert('Error: Seller information mismatch detected. Please refresh the page and try again.');
+        toast.error('Error: Seller information mismatch detected. Please refresh the page and try again.');
         setIsPlacingOrder(false);
         return;
       }
@@ -2448,7 +2466,7 @@ export default function Cart() {
               error?.response?.data?.errors?.[0]?.message ||
               error?.message ||
               "Payment verification failed. Please contact support."
-            alert(errorMessage)
+            toast.error(errorMessage)
             setIsPlacingOrder(false)
           }
         },
@@ -2457,7 +2475,7 @@ export default function Cart() {
           // Don't show alert for user cancellation
           if (error?.code !== 'PAYMENT_CANCELLED' && error?.message !== 'PAYMENT_CANCELLED') {
             const errorMessage = error?.description || error?.message || "Payment failed. Please try again."
-            alert(errorMessage)
+            toast.error(errorMessage)
           } else {
             await cleanupAbandonedOnlinePayment()
           }
@@ -2535,7 +2553,7 @@ export default function Cart() {
         errorMessage = error.message
       }
 
-      alert(errorMessage)
+      toast.error(errorMessage)
       setIsPlacingOrder(false)
     }
   }
@@ -2850,7 +2868,7 @@ export default function Cart() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowCookingSheet(true)}
+                    onClick={() => setShowNoteSheet(true)}
                     className={`flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-2 text-[12px] font-semibold ${
                       note.trim()
                         ? "border-wh-brand/40 bg-[#FFF1E8] text-wh-brand-ink"
@@ -2858,12 +2876,12 @@ export default function Cart() {
                     }`}
                   >
                     <Pencil className="h-3.5 w-3.5" />
-                    {note.trim() ? "Edit cooking requests" : "Cooking requests"}
+                    {note.trim() ? "Edit order note" : "Add order note"}
                   </button>
                 </div>
                 {note.trim() ? (
                   <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                    <span className="font-semibold text-gray-700 dark:text-gray-300">Cooking note:</span> {note.trim()}
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">Order note:</span> {note.trim()}
                   </p>
                 ) : null}
               </div>
@@ -2928,7 +2946,7 @@ export default function Cart() {
                           </p>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          In a hurry? Get food up to 15 mins faster
+                          In a hurry? Get your order up to 15 mins faster
                         </p>
                       </div>
                     </button>
@@ -3714,15 +3732,15 @@ export default function Cart() {
             )}
           </AnimatePresence>
 
-          {/* Cooking Instructions Bottom Sheet */}
+          {/* Order note bottom sheet */}
           <AnimatePresence>
-            {showCookingSheet && (
+            {showNoteSheet && (
               <>
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  onClick={() => setShowCookingSheet(false)}
+                  onClick={() => setShowNoteSheet(false)}
                   className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
                 />
                 <motion.div
@@ -3736,17 +3754,17 @@ export default function Cart() {
                   <div className="p-5">
                     <div className="w-10 h-1 bg-gray-200 dark:bg-gray-800 rounded-full mx-auto mb-4" />
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">Cooking requests</h2>
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">Order note</h2>
                       <button
                         type="button"
-                        onClick={() => setShowCookingSheet(false)}
+                        onClick={() => setShowNoteSheet(false)}
                         className="w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full"
                       >
                         <X className="w-4 h-4 text-gray-500" />
                       </button>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                      These notes are shared with the seller partner while preparing your order
+                      These notes are shared with the seller while they pack your order
                     </p>
                     <textarea
                       value={note}
@@ -3773,7 +3791,7 @@ export default function Cart() {
                       )}
                       <button
                         type="button"
-                        onClick={() => setShowCookingSheet(false)}
+                        onClick={() => setShowNoteSheet(false)}
                         className="flex-1 h-11 rounded-xl text-wh-text text-sm font-bold"
                         style={{ backgroundColor: "var(--module-theme-color, #FD920B)" }}
                       >

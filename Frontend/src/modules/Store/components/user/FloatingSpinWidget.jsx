@@ -1,5 +1,5 @@
-import React from "react"
-import { Sparkles, Gift } from "lucide-react"
+import React, { useEffect, useState } from "react"
+import { Sparkles, X } from "lucide-react"
 
 /**
  * FloatingSpinWidget
@@ -10,15 +10,63 @@ import { Sparkles, Gift } from "lucide-react"
  * - Bobbing floating animation
  * - Eye-catching "Spin & Win" badge with "Free Spin" chip
  * - Opens the Spin & Win Lucky Wheel modal on click
+ *
+ * It floats over the page, so it shrinks to the wheel alone after a few
+ * seconds (and can be dismissed for the session) — at full width it covered
+ * the filter rail on category pages.
  */
+const SPIN_WIDGET_DISMISSED_KEY = "store-spin-widget-dismissed-v1"
+
 export default function FloatingSpinWidget({ onOpenSpin }) {
+  const [collapsed, setCollapsed] = useState(false)
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem(SPIN_WIDGET_DISMISSED_KEY) === "1"
+    } catch {
+      return false
+    }
+  })
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCollapsed(true), 6000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const dismiss = (event) => {
+    event.stopPropagation()
+    setDismissed(true)
+    try {
+      sessionStorage.setItem(SPIN_WIDGET_DISMISSED_KEY, "1")
+    } catch {
+      /* session storage unavailable — hide for this render only */
+    }
+  }
+
+  if (dismissed) return null
+
   return (
-    <div className="fixed bottom-20 md:bottom-8 left-4 md:left-8 z-40 select-none animate-float">
+    <div
+      className="group/spin fixed bottom-20 md:bottom-8 left-4 md:left-8 z-40 select-none animate-float"
+      onMouseEnter={() => setCollapsed(false)}
+      onFocus={() => setCollapsed(false)}
+    >
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Hide Spin & Win"
+        className={`absolute -top-1.5 -right-1.5 z-10 w-5 h-5 rounded-full bg-white text-gray-600 border border-amber-200 shadow-md flex items-center justify-center transition-opacity ${
+          collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+      >
+        <X className="w-3 h-3" />
+      </button>
       <button
         onClick={onOpenSpin}
         type="button"
         aria-label="Spin & Win Daily Rewards"
-        className="group relative flex items-center gap-3 pl-2 pr-4 py-2 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-2xl hover:shadow-[0_10px_25px_-5px_rgba(245,158,11,0.6)] border-2 border-amber-300/80 cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95"
+        className={`group relative flex items-center gap-3 rounded-full ${
+          collapsed ? "p-1" : "pl-2 pr-4 py-2"
+        } bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-2xl hover:shadow-[0_10px_25px_-5px_rgba(245,158,11,0.6)] border-2 border-amber-300/80 cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95`}
       >
         {/* Pulsing Outer Glow Aura */}
         <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 opacity-60 blur-md group-hover:opacity-90 animate-pulse transition duration-500 -z-10" />
@@ -64,7 +112,7 @@ export default function FloatingSpinWidget({ onOpenSpin }) {
         </div>
 
         {/* Text and Badges */}
-        <div className="flex flex-col text-left leading-none">
+        <div className={`flex-col text-left leading-none ${collapsed ? "hidden" : "flex"}`}>
           <div className="flex items-center gap-1.5">
             <span className="text-[13px] font-black tracking-tight text-white drop-shadow-sm">
               Spin & Win

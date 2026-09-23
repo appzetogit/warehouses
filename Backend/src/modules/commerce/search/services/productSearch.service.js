@@ -10,6 +10,7 @@ import {
 import { productChannelFields } from '../../shared/channels.js';
 import { serializeProductVariants } from '../../admin/services/productVariant.service.js';
 import { packSizeRegex } from './queryParser.service.js';
+import { Category } from '../../admin/models/category.model.js';
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const isTrue = (v) => v === true || v === 'true' || v === '1';
@@ -208,7 +209,13 @@ export async function searchProducts(query = {}) {
         // Smart search: a category and its subcategories (set by the server, never from the URL).
         filters.push({ categoryId: { $in: query.categoryIds.filter((id) => mongoose.Types.ObjectId.isValid(String(id))).map((id) => new mongoose.Types.ObjectId(String(id))) } });
     } else if (query.categoryId && mongoose.Types.ObjectId.isValid(query.categoryId)) {
-        filters.push({ categoryId: new mongoose.Types.ObjectId(query.categoryId) });
+        // Products hang off leaf categories, so a parent has to match its
+        // children too — otherwise picking "Men" in the facets finds nothing.
+        const children = await Category.find({ parentId: new mongoose.Types.ObjectId(query.categoryId) })
+            .select('_id')
+            .lean();
+        const ids = [new mongoose.Types.ObjectId(query.categoryId), ...children.map((c) => c._id)];
+        filters.push({ categoryId: { $in: ids } });
     }
     const pack = query.packSize ? packSizeRegex(query.packSize) : null;
     if (pack) filters.push({ $or: [{ packSize: pack }, { variants: { $elemMatch: { ...ACTIVE, name: pack } } }] });

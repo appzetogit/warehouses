@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useCart } from "@store/context/CartContext"
 import { useStoreMode } from "@store/context/StoreModeContext"
-import { isModuleAuthenticated } from "@store/utils/auth"
 import { API_BASE_URL } from "@store/api/config"
 
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api(\/v\d+)?\/?$/, "")
@@ -23,7 +22,11 @@ export function mediaUrl(value) {
 
 const firstImage = (p) => mediaUrl(p?.imageUrl || p?.image || (Array.isArray(p?.images) ? p.images[0] : ""))
 
-/** Add a product without options straight to the cart; products with variants open their page. */
+/**
+ * Add a product without options straight to the cart; products with variants
+ * open their page. Guests may fill a cart just as they can from a product
+ * page — signing in is asked for at checkout.
+ */
 export function useDesktopAddToCart() {
   const { addToCart } = useCart()
   const { storePath } = useStoreMode()
@@ -33,11 +36,6 @@ export function useDesktopAddToCart() {
     if (!id) return
     if (Array.isArray(product.variants) && product.variants.length > 0) {
       navigate(storePath(`/product/${id}`))
-      return
-    }
-    if (!isModuleAuthenticated("user")) {
-      toast.error("Please log in to add items to your cart")
-      navigate("/auth/login")
       return
     }
     const seller = sellerOverride || product.seller || {}

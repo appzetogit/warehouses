@@ -110,134 +110,40 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
   }
   const productLink = (id) => storePath(`/product/${id}`)
 
-  // Find exact seeded products by name substring to hook up deep links
-  const findProd = (pattern) => {
-    const pat = pattern.toLowerCase()
-    return products.find((p) => String(p.name || "").toLowerCase().includes(pat))
-  }
+  // --- Featured 4-card row ---------------------------------------------
+  // All four cards read the live catalogue: no placeholder names, ratings or
+  // stock photos, so what a shopper clicks is what they saw.
+  const categoryTileImage = (cat) =>
+    cat?.image ? resolveMediaUrl(cat.image) : ""
 
-  const chanderiProd = findProd("chanderi")
-  const supimaProd = findProd("supima")
-  const waffleProd = findProd("waffle")
-  const stripedProd = findProd("striped")
-  const vintageProd = findProd("vintage")
-  const linenProd = findProd("linen")
-  const oxfordProd = findProd("oxford")
-  const flannelProd = findProd("flannel") || findProd("brushed")
-  const casualProd = findProd("casual") || findProd("collar")
+  // Card 1: shop by category — the categories that actually have products.
+  const featuredCategoryTiles = productGroups.slice(0, 4).map((group) => {
+    const match = categories.find(
+      (c) => String(c.id) === String(group.id) || c.name === group.name,
+    )
+    return {
+      key: `cat-${group.id}`,
+      label: group.name,
+      image: categoryTileImage(match) || firstImage(group.items[0]),
+      to: categoryLink(group.id, group.name),
+    }
+  })
 
-  // --- Featured 4-card row matching the screenshot ---
-  // Card 1: Shop by category
-  const featuredCategoryTiles = [
-    {
-      key: "cat-bomber",
-      label: "Bomber & Denim Jackets",
-      image: "/categories/bomber-denim-jackets.webp",
-      to: storePath("/category/bomber-and-denim-jackets"),
-    },
-    {
-      key: "cat-gym",
-      label: "Gym Tees & Tops",
-      image: "/categories/gym-tees-tops.webp",
-      to: storePath("/category/gym-tees-and-tops"),
-    },
-    {
-      key: "cat-dresses",
-      label: "Dresses",
-      image: "/categories/dresses.webp",
-      to: storePath("/category/dresses"),
-    },
-    {
-      key: "cat-tshirts",
-      label: "T-Shirts",
-      image: "/categories/t-shirts.webp",
-      to: storePath("/category/t-shirts"),
-    },
-  ]
+  // Card 2: deal of the day — the deepest discount on offer right now.
+  const featuredDealProduct = deals[0] || products[0] || null
 
-  // Card 2: Deal of the day (Chanderi Silk Festive A-line Kurta)
-  const featuredDealProduct = chanderiProd
-    ? {
-        ...chanderiProd,
-        name: "Chanderi Silk Festive A-line Kurta",
-        image: "/deal-chanderi.jpg",
-        price: 999,
-        mrp: 1999,
-        rating: 4.5,
-        reviews: "1.2k",
-      }
-    : {
-        name: "Chanderi Silk Festive A-line Kurta",
-        image: "/deal-chanderi.jpg",
-        price: 999,
-        mrp: 1999,
-        rating: 4.5,
-        reviews: "1.2k",
-      }
+  /** Four products from a category for the 2x2 cards, rating badge only. */
+  const popularTiles = (group, prefix) =>
+    (group?.items || []).slice(0, 4).map((item, idx) => ({
+      key: `${prefix}-${item._id || idx}`,
+      name: item.name,
+      badge: Number(item.rating) > 0 ? Number(item.rating).toFixed(1) : "",
+      image: firstImage(item),
+      to: productLink(item._id),
+    }))
 
-  // Card 3: Popular in T-Shirts
-  const featuredTshirts = [
-    {
-      key: "t-supima",
-      name: "Supima Classic Heavy Tee",
-      badge: "699",
-      image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600&auto=format&fit=crop&q=80",
-      to: supimaProd?._id ? productLink(supimaProd._id) : storePath("/category/t-shirts"),
-    },
-    {
-      key: "t-waffle",
-      name: "Slub Textured Waffle Tee",
-      badge: "4.4",
-      image: "https://images.unsplash.com/photo-1562157873-818bc0726f68?w=600&auto=format&fit=crop&q=80",
-      to: waffleProd?._id ? productLink(waffleProd._id) : storePath("/category/t-shirts"),
-    },
-    {
-      key: "t-striped",
-      name: "Organic Cotton Striped Tee",
-      badge: "4.2",
-      image: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&auto=format&fit=crop&q=80",
-      to: stripedProd?._id ? productLink(stripedProd._id) : storePath("/category/t-shirts"),
-    },
-    {
-      key: "t-vintage",
-      name: "Garment-Dyed Vintage Tee",
-      badge: "4.3",
-      image: "https://images.unsplash.com/photo-1618354691229-88d47f285158?w=600&auto=format&fit=crop&q=80",
-      to: vintageProd?._id ? productLink(vintageProd._id) : storePath("/category/t-shirts"),
-    },
-  ]
-
-  // Card 4: Popular in Shirts
-  const featuredShirts = [
-    {
-      key: "s-linen",
-      name: "Pure European Linen Shirt",
-      badge: "1,199",
-      image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600&auto=format&fit=crop&q=80",
-      to: linenProd?._id ? productLink(linenProd._id) : storePath("/category/shirts"),
-    },
-    {
-      key: "s-oxford",
-      name: "Classic Oxford Button-Down",
-      badge: "4.5",
-      image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=600&auto=format&fit=crop&q=80",
-      to: oxfordProd?._id ? productLink(oxfordProd._id) : storePath("/category/shirts"),
-    },
-    {
-      key: "s-brushed",
-      name: "Yarn-Dyed Brushed Cotton",
-      badge: "899",
-      image: "https://images.unsplash.com/photo-1626497764746-6dc36546b388?w=600&auto=format&fit=crop&q=80",
-      to: flannelProd?._id ? productLink(flannelProd._id) : storePath("/category/shirts"),
-    },
-    {
-      key: "s-casual",
-      name: "Slim Fit Casual Shirt",
-      badge: "4.2",
-      image: "https://images.unsplash.com/photo-1603252109303-2751441dd157?w=600&auto=format&fit=crop&q=80",
-      to: casualProd?._id ? productLink(casualProd._id) : storePath("/category/shirts"),
-    },
-  ]
+  const featuredTshirts = popularTiles(productGroups[0], "pop-a")
+  const featuredShirts = popularTiles(productGroups[1], "pop-b")
 
   const topGroup = productGroups[0]
   const recommendedList = recommended.filter((p) => p?._id)
@@ -261,19 +167,19 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
           <FeaturedDealCard
             title="Deal of the day"
             product={featuredDealProduct}
-            to={chanderiProd?._id ? productLink(chanderiProd._id) : storePath("/offers")}
+            to={featuredDealProduct?._id ? productLink(featuredDealProduct._id) : storePath("/offers")}
             seeMoreTo={storePath("/offers")}
           />
 
           <PopularProductsCard
-            title="Popular in T-Shirts"
-            seeMoreTo={storePath("/category/t-shirts")}
+            title={productGroups[0] ? `Popular in ${productGroups[0].name}` : "Popular now"}
+            seeMoreTo={productGroups[0] ? categoryLink(productGroups[0].id, productGroups[0].name) : storePath("/categories")}
             items={featuredTshirts}
           />
 
           <PopularProductsCard
-            title="Popular in Shirts"
-            seeMoreTo={storePath("/category/shirts")}
+            title={productGroups[1] ? `Popular in ${productGroups[1].name}` : "Popular now"}
+            seeMoreTo={productGroups[1] ? categoryLink(productGroups[1].id, productGroups[1].name) : storePath("/categories")}
             items={featuredShirts}
           />
         </div>
