@@ -755,7 +755,7 @@ export default function Home() {
   const { storePath, fulfilmentMode } = useStoreMode()
   const isDesktop = useIsDesktop()
   const HERO_BANNER_AUTO_SLIDE_MS = 3500;
-  const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+  const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api(\/v\d+)?\/?$/i, "");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
@@ -960,6 +960,10 @@ export default function Home() {
         } catch {
           return normalizedInput;
         }
+      }
+
+      if (normalizedInput.startsWith("/uploads/") || normalizedInput.startsWith("/categories/")) {
+        return normalizedInput;
       }
 
       const absolutePath = normalizedInput.startsWith("/")
