@@ -19,6 +19,7 @@ import DesktopFooter from "./desktop/DesktopFooter"
 import QuickZoneStrip from "./desktop/QuickZoneStrip"
 import GeminiAssistantWidget from "./GeminiAssistantWidget"
 import SpinWheelModal from "./SpinWheelModal"
+import FloatingSpinWidget from "./FloatingSpinWidget"
 import { useUserNotifications } from "../../hooks/useUserNotifications"
 import { shouldSkipScrollResetForHome } from "@store/utils/homeScrollRestore"
 
@@ -229,17 +230,10 @@ export default function UserLayout() {
                 {showDesktopShell && <DesktopFooter />}
                 {showBottomNav && <BottomNavigation />}
 
-                {/* Floating Daily Spin trigger: not on sign-in pages, and on desktop the header has Spin & Win */}
-                {showDesktopShell && <div className="fixed bottom-20 md:bottom-6 left-5 z-40 lg:hidden">
-                  <button
-                    onClick={() => setIsSpinWheelOpen(true)}
-                    className="flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-gray-950 font-bold text-xs shadow-xl hover:shadow-amber-500/30 transition-all border border-amber-300/40 cursor-pointer hover:scale-105 active:scale-95"
-                    title="Daily Lucky Wheel - Win Coins"
-                  >
-                    <span className="text-base leading-none">🎡</span>
-                    <span className="hidden sm:inline">Daily Spin</span>
-                  </button>
-                </div>}
+                {/* Floating Daily Spin trigger: bottom-left with rich animations (desktop & mobile) */}
+                {showDesktopShell && (
+                  <FloatingSpinWidget onOpenSpin={() => setIsSpinWheelOpen(true)} />
+                )}
 
                 {/* Engagement Modals & Widgets */}
                 <SpinWheelModal

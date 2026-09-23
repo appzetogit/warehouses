@@ -206,6 +206,38 @@
 .animate-slide-in-left { animation: slide-in-left 0.8s ease-out; }
 .animate-fade-down { animation: fade-down 0.5s ease-out; }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes ticker {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-14deg); }
+  75% { transform: rotate(14deg); }
+}
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4), 0 0 30px rgba(234, 88, 12, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.8), 0 0 50px rgba(234, 88, 12, 0.4);
+  }
+}
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-float { animation: float 3.5s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 12s linear infinite; }
+.animate-ticker { animation: ticker 0.1s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-shimmer-sweep { animation: shimmer-sweep 2.5s ease-in-out infinite; }
+
 .leaflet-container { height: 100%; width: 100%; z-index: 1; }
 .custom-marker { background: transparent; border: none; }
 .touch-none { touch-action: none; }
