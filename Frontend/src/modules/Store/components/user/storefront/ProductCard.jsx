@@ -26,12 +26,29 @@ export default function ProductCard({
   const id = product?._id || product?.id
 
   // Every photo the product has, so the card can cycle through them.
+  //
+  // `image` often arrives already resolved to an absolute URL while `images`
+  // stay relative, so the same file appears under two spellings. Comparing
+  // paths keeps one copy — otherwise a card spends half its cycle fading one
+  // photo into itself, which reads as nothing happening.
   const gallery = useMemo(() => {
     const raw = [product?.image, ...(Array.isArray(product?.images) ? product.images : [])]
-    const urls = raw
-      .map((entry) => mediaUrl(typeof entry === "string" ? entry : entry?.url))
-      .filter((url) => isRealImage(url))
-    return [...new Set(urls)].slice(0, 5)
+    const seen = new Set()
+    const urls = []
+    for (const entry of raw) {
+      const url = mediaUrl(typeof entry === "string" ? entry : entry?.url)
+      if (!isRealImage(url)) continue
+      let key = url
+      try {
+        key = new URL(url, window.location.origin).pathname
+      } catch {
+        /* not a parseable URL; compare the raw string */
+      }
+      if (seen.has(key)) continue
+      seen.add(key)
+      urls.push(url)
+    }
+    return urls.slice(0, 5)
   }, [product])
 
   const [frame, setFrame] = useState(0)

@@ -11,8 +11,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
  *
  * A progress bar under the rail shows how far along the list you are.
  */
-export default function Rail({ rows = 2, children, ariaLabel }) {
+export default function Rail({ rows = 2, children, ariaLabel, auto = 0, cols }) {
   const scroller = useRef(null)
+  const paused = useRef(false)
   const [progress, setProgress] = useState(0)
   const [atStart, setAtStart] = useState(true)
   const [atEnd, setAtEnd] = useState(false)
@@ -38,6 +39,38 @@ export default function Rail({ rows = 2, children, ariaLabel }) {
     }
   }, [sync])
 
+  // Drift along on its own, so the row reads as alive rather than parked.
+  // It pauses while a pointer is over it, while it has focus, and when the tab
+  // is hidden, and it is off entirely under prefers-reduced-motion.
+  useEffect(() => {
+    if (!auto) return undefined
+    const el = scroller.current
+    if (!el) return undefined
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return undefined
+
+    const step = () => {
+      if (paused.current || document.hidden) return
+      const max = el.scrollWidth - el.clientWidth
+      if (max <= 0) return
+      const first = el.firstElementChild
+      const by = first ? first.getBoundingClientRect().width + 12 : el.clientWidth * 0.5
+      el.scrollTo({
+        left: el.scrollLeft >= max - 4 ? 0 : el.scrollLeft + by,
+        behavior: "smooth",
+      })
+    }
+
+    const timer = setInterval(step, auto)
+    return () => clearInterval(timer)
+  }, [auto])
+
+  const hold = () => {
+    paused.current = true
+  }
+  const release = () => {
+    paused.current = false
+  }
+
   const page = (direction) => {
     const el = scroller.current
     if (!el) return
@@ -48,7 +81,15 @@ export default function Rail({ rows = 2, children, ariaLabel }) {
     "hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-wh-border bg-wh-surface text-wh-text shadow-sm transition hover:bg-wh-brand-50 disabled:opacity-0 lg:flex"
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onPointerEnter={hold}
+      onPointerLeave={release}
+      onPointerDown={hold}
+      onFocusCapture={hold}
+      onBlurCapture={release}
+      onTouchStart={hold}
+    >
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => page(-1)} disabled={atStart} aria-label="Scroll left" className={arrow}>
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
@@ -58,9 +99,9 @@ export default function Rail({ rows = 2, children, ariaLabel }) {
           ref={scroller}
           role="group"
           aria-label={ariaLabel}
-          className={`wh-rail grid min-w-0 flex-1 auto-cols-[46vw] grid-flow-col gap-3 overflow-x-auto pb-1 sm:auto-cols-[31vw] lg:auto-cols-[200px] ${
-            rows === 2 ? "grid-rows-2 lg:grid-rows-1" : "grid-rows-1"
-          }`}
+          className={`wh-rail grid min-w-0 flex-1 grid-flow-col gap-3 overflow-x-auto pb-1 ${
+            cols || "auto-cols-[46vw] sm:auto-cols-[31vw] lg:auto-cols-[200px]"
+          } ${rows === 2 ? "grid-rows-2 lg:grid-rows-1" : "grid-rows-1"}`}
         >
           {children}
         </div>

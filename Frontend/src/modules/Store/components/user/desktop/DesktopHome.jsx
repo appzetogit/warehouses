@@ -210,6 +210,7 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
           subtitle="The biggest savings on right now"
           products={deals.slice(0, 20)}
           onAdd={addToCart}
+          auto={5200}
         />
 
         <FeatureBand

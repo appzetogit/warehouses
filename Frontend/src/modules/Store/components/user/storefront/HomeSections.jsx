@@ -75,14 +75,21 @@ export function CollectionTiles({ title, subtitle, tiles = [], seeAllTo }) {
   return (
     <Reveal as="section" aria-label={title}>
       <SectionHeading title={title} subtitle={subtitle} />
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
+      {/* The collections drift along on their own, and stop the moment you
+          reach for one. */}
+      <Rail
+        rows={1}
+        ariaLabel={title}
+        auto={3800}
+        cols="auto-cols-[40vw] sm:auto-cols-[26vw] lg:auto-cols-[190px]"
+      >
         {tiles.map((tile) => {
           const image = mediaUrl(tile.image)
           return (
             <Link
               key={tile.id}
               to={tile.to}
-              className="wh-lift wh-sheen group relative block aspect-[4/5] overflow-hidden rounded-2xl bg-[#F7F7F7] hover:shadow-lg focus-visible:outline-2 focus-visible:outline-wh-brand"
+              className="wh-lift wh-sheen group relative block aspect-[4/5] snap-start overflow-hidden rounded-2xl bg-[#F7F7F7] hover:shadow-lg focus-visible:outline-2 focus-visible:outline-wh-brand"
             >
               {isRealImage(image) ? (
                 <img
@@ -104,7 +111,7 @@ export function CollectionTiles({ title, subtitle, tiles = [], seeAllTo }) {
             </Link>
           )
         })}
-      </div>
+      </Rail>
       {seeAllTo ? (
         <div className="mt-4 text-center">
           <Link
@@ -120,13 +127,13 @@ export function CollectionTiles({ title, subtitle, tiles = [], seeAllTo }) {
 }
 
 /** A titled rail of product cards. */
-export function ProductRailSection({ title, subtitle, products = [], onAdd, minimum = 4 }) {
+export function ProductRailSection({ title, subtitle, products = [], onAdd, minimum = 4, auto = 0 }) {
   if (products.length < minimum) return null
 
   return (
     <Reveal as="section" aria-label={title}>
       <SectionHeading title={title} subtitle={subtitle} />
-      <Rail ariaLabel={title}>
+      <Rail ariaLabel={title} auto={auto}>
         {products.map((product) => (
           <div key={product._id || product.id} className="snap-start">
             <ProductCard product={product} onAction={onAdd} />
