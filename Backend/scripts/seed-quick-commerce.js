@@ -11,7 +11,11 @@
  * them, so it is safe to run against a database that already has this data.
  *
  *   node scripts/seed-quick-commerce.js
+ *   node scripts/seed-quick-commerce.js --city=indore
  *   node scripts/seed-quick-commerce.js --wipe   (removes only what this seeds)
+ *
+ * --city picks the zone and its stores (see CITIES). Seeding a second city adds
+ * its zone and stores next to the first; the shared catalogue is reused.
  */
 import 'dotenv/config';
 import mongoose from 'mongoose';
@@ -23,35 +27,50 @@ import { availableInPipeline } from '../src/modules/commerce/shared/channels.js'
 
 const SEED_TAG = 'seed:quick-commerce';
 
-// Bengaluru-ish box, big enough that any city coordinate used for testing lands
-// inside it. Zones are plain lat/lng rings, not GeoJSON.
-const ZONE_RING = [
-    { latitude: 12.80, longitude: 77.40 },
-    { latitude: 13.20, longitude: 77.40 },
-    { latitude: 13.20, longitude: 77.80 },
-    { latitude: 12.80, longitude: 77.80 },
-];
+/**
+ * A city preset: the zone ring (plain lat/lng, not GeoJSON), its Quick delivery
+ * promise, and the stores inside it. Pick one with --city=<key>; boxes are wide
+ * enough that any address in the city falls inside.
+ */
+const CITIES = {
+    bengaluru: {
+        zoneName: 'Bengaluru Central',
+        etaMinutes: 12,
+        ring: [
+            { latitude: 12.80, longitude: 77.40 },
+            { latitude: 13.20, longitude: 77.40 },
+            { latitude: 13.20, longitude: 77.80 },
+            { latitude: 12.80, longitude: 77.80 },
+        ],
+        sellers: [
+            { sellerName: 'FreshMart Express', ownerName: 'Ravi Kumar', ownerEmail: 'freshmart@example.com', ownerPhone: '9000000101', latitude: 12.9716, longitude: 77.5946, estimatedDeliveryTime: '10-15 mins', city: 'Bengaluru', state: 'Karnataka', pincode: '560001' },
+            { sellerName: 'DailyNeeds Store', ownerName: 'Anita Sharma', ownerEmail: 'dailyneeds@example.com', ownerPhone: '9000000102', latitude: 12.9352, longitude: 77.6245, estimatedDeliveryTime: '15-20 mins', city: 'Bengaluru', state: 'Karnataka', pincode: '560034' },
+        ],
+    },
+    indore: {
+        zoneName: 'Indore City',
+        etaMinutes: 10,
+        ring: [
+            { latitude: 22.62, longitude: 75.75 },
+            { latitude: 22.82, longitude: 75.75 },
+            { latitude: 22.82, longitude: 76.00 },
+            { latitude: 22.62, longitude: 76.00 },
+        ],
+        sellers: [
+            { sellerName: 'Vijay Nagar Daily', ownerName: 'Rahul Verma', ownerEmail: 'vijaynagar@example.com', ownerPhone: '9000000201', latitude: 22.7533, longitude: 75.8937, estimatedDeliveryTime: '10-15 mins', city: 'Indore', state: 'Madhya Pradesh', pincode: '452010' },
+            { sellerName: 'Palasia Fresh Mart', ownerName: 'Neha Jain', ownerEmail: 'palasia@example.com', ownerPhone: '9000000202', latitude: 22.7244, longitude: 75.8839, estimatedDeliveryTime: '15-20 mins', city: 'Indore', state: 'Madhya Pradesh', pincode: '452001' },
+        ],
+    },
+};
 
-const SELLERS = [
-    {
-        sellerName: 'FreshMart Express',
-        ownerName: 'Ravi Kumar',
-        ownerEmail: 'freshmart@example.com',
-        ownerPhone: '9000000101',
-        latitude: 12.9716,
-        longitude: 77.5946,
-        estimatedDeliveryTime: '10-15 mins',
-    },
-    {
-        sellerName: 'DailyNeeds Store',
-        ownerName: 'Anita Sharma',
-        ownerEmail: 'dailyneeds@example.com',
-        ownerPhone: '9000000102',
-        latitude: 12.9352,
-        longitude: 77.6245,
-        estimatedDeliveryTime: '15-20 mins',
-    },
-];
+const cityArg = (process.argv.find((a) => a.startsWith('--city=')) || '').split('=')[1] || 'bengaluru';
+const CITY = CITIES[cityArg.toLowerCase()];
+if (!CITY) {
+    console.error(`Unknown --city=${cityArg}. Use one of: ${Object.keys(CITIES).join(', ')}`);
+    process.exit(1);
+}
+const ZONE_RING = CITY.ring;
+const SELLERS = CITY.sellers;
 
 // parent -> children. Two levels, which is the ceiling the model enforces.
 const CATEGORIES = {
@@ -121,11 +140,12 @@ async function main() {
 
     // --- zone ---
     const zone = await Zone.findOneAndUpdate(
-        { name: 'Bengaluru Central' },
+        { name: CITY.zoneName },
         {
             $set: {
-                name: 'Bengaluru Central',
-                zoneName: 'Bengaluru Central',
+                name: CITY.zoneName,
+                zoneName: CITY.zoneName,
+                etaMinutes: CITY.etaMinutes,
                 country: 'India',
                 serviceLocation: SEED_TAG,
                 unit: 'kilometer',
@@ -161,11 +181,12 @@ async function main() {
                     openingTime: '12:00 AM',
                     closingTime: '11:59 PM',
                     openDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-                    addressLine1: 'MG Road',
-                    area: 'Central',
-                    city: 'Bengaluru',
-                    state: 'Karnataka',
-                    pincode: '560001',
+                    addressLine1: s.addressLine1 || 'Main Road',
+                    area: s.area || 'Central',
+                    // The Shop channel needs a real 6-digit pickup pincode.
+                    city: s.city,
+                    state: s.state,
+                    pincode: s.pincode,
                     location: { type: 'Point', coordinates: [s.longitude, s.latitude] },
                     rating: 4.4,
                     totalRatings: 120,

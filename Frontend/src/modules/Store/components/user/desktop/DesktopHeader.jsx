@@ -10,6 +10,7 @@ import { BRAND_LOGO_ON_DARK } from "@/config/brandMark"
 import { useLocationSelector } from "../UserLayout"
 import { useBusinessSettings, usePublicCategories } from "./useDesktopShell"
 import { locationPincode, useQuickEta } from "./useDeliveryEstimates"
+import { useQuickCartPanel } from "./quick/QuickCartPanel"
 
 // The orange category bar carries dark text (white on orange is unreadable).
 const catItem =
@@ -199,6 +200,7 @@ export default function DesktopHeader({ onOpenSpin }) {
   const { brandName, logoOnDark } = useBusinessSettings()
   const { roots, tree } = usePublicCategories(zoneId)
   const quickEta = useQuickEta()
+  const quickCart = useQuickCartPanel()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [q, setQ] = useState("")
   const [cat, setCat] = useState("")
@@ -236,6 +238,18 @@ export default function DesktopHeader({ onOpenSpin }) {
   }
 
   const topCats = roots.slice(0, 6)
+
+  const cartVisual = (
+    <>
+      <span className="relative">
+        <ShoppingCart className="h-7 w-7 text-white" aria-hidden />
+        <span className="absolute -top-1.5 left-1/2 min-w-[20px] -translate-x-1/2 rounded-full bg-white px-1 text-center text-[12px] font-black leading-5 text-[#ea580c] shadow-xs">
+          {cartCount > 99 ? "99+" : cartCount}
+        </span>
+      </span>
+      <span className="text-[14px] font-bold text-white">Cart</span>
+    </>
+  )
 
   const subnavLink =
     "flex h-[32px] items-center whitespace-nowrap rounded-[4px] px-2.5 text-[13px] font-medium text-gray-800 hover:text-black hover:bg-gray-100 transition-colors"
@@ -327,19 +341,27 @@ export default function DesktopHeader({ onOpenSpin }) {
             <span className="text-[14px] font-bold text-white">&amp; Orders</span>
           </Link>
 
-          <Link
-            to={storePath("/cart")}
-            aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
-            className={`${navItem} relative flex shrink-0 items-end gap-1.5 pb-1`}
-          >
-            <span className="relative">
-              <ShoppingCart className="h-7 w-7 text-white" aria-hidden />
-              <span className="absolute -top-1.5 left-1/2 min-w-[20px] -translate-x-1/2 rounded-full bg-white px-1 text-center text-[12px] font-black leading-5 text-[#ea580c] shadow-xs">
-                {cartCount > 99 ? "99+" : cartCount}
-              </span>
-            </span>
-            <span className="text-[14px] font-bold text-white">Cart</span>
-          </Link>
+          {/* On /quick the cart button opens the slide-in panel; Shop still links to /cart. */}
+          {isQuick && quickCart.enabled ? (
+            <button
+              type="button"
+              onClick={quickCart.openPanel}
+              aria-haspopup="dialog"
+              aria-expanded={quickCart.open}
+              aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
+              className={`${navItem} relative flex shrink-0 items-end gap-1.5 pb-1`}
+            >
+              {cartVisual}
+            </button>
+          ) : (
+            <Link
+              to={storePath("/cart")}
+              aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
+              className={`${navItem} relative flex shrink-0 items-end gap-1.5 pb-1`}
+            >
+              {cartVisual}
+            </Link>
+          )}
         </div>
       </div>
 

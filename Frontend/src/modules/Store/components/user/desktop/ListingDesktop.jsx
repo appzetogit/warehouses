@@ -8,22 +8,23 @@
  * attr[...], minPrice, maxPrice, inStockOnly, sort, page, limit, facets).
  */
 import { useEffect, useMemo, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { toast } from "sonner"
+import { Link } from "react-router-dom"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
 import { useStoreMode } from "@store/context/StoreModeContext"
-import { useCart } from "@store/context/CartContext"
 import { adminAPI } from "@store/api"
 import { searchAPI } from "@/services/api"
-import { API_BASE_URL } from "@store/api/config"
-import { isModuleAuthenticated } from "@store/utils/auth"
 import { channelAvailability, stockLabel } from "@store/utils/channelStock"
 import { ImagePlaceholder, isRealImage, CtaButton, DealBadge, DeliveryPromise, PriceTag, percentOff } from "./ui"
+import { mediaUrl, useDesktopAddToCart } from "./desktopCart"
+import { QuickGridSkeleton, QuickProductGrid } from "./quick/QuickRail"
+import QuickSubcategoryRail from "./quick/QuickSubcategoryRail"
 
 const cx = (...a) => a.filter(Boolean).join(" ")
-const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api(\/v\d+)?\/?$/, "")
 const PAGE_SIZE = 24
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wh-brand"
+
+// Re-exported so existing importers (StoreDesktop) keep working.
+export { mediaUrl, useDesktopAddToCart }
 
 export const SORT_OPTIONS = [
   { value: "relevance", label: "Featured" },
@@ -33,59 +34,8 @@ export const SORT_OPTIONS = [
   { value: "newest", label: "Newest arrivals" },
 ]
 
-export function mediaUrl(value) {
-  const url = typeof value === "string" ? value : value?.url
-  if (typeof url !== "string" || !url.trim()) return ""
-  const t = url.trim()
-  if (/^(https?:)?\/\//i.test(t) || /^(data|blob):/i.test(t)) return t
-  return `${BACKEND_ORIGIN}${t.startsWith("/") ? "" : "/"}${t}`
-}
-
 const firstImage = (p) => mediaUrl(p?.imageUrl || p?.image || (Array.isArray(p?.images) ? p.images[0] : ""))
 const num = (v) => (v == null || v === "" || !Number.isFinite(Number(v)) ? null : Number(v))
-
-/** Add a product without options straight to the cart; products with variants open their page. */
-export function useDesktopAddToCart() {
-  const { addToCart } = useCart()
-  const { storePath } = useStoreMode()
-  const navigate = useNavigate()
-  return (product, sellerOverride = null) => {
-    const id = product?._id || product?.id
-    if (!id) return
-    if (Array.isArray(product.variants) && product.variants.length > 0) {
-      navigate(storePath(`/product/${id}`))
-      return
-    }
-    if (!isModuleAuthenticated("user")) {
-      toast.error("Please log in to add items to your cart")
-      navigate("/auth/login")
-      return
-    }
-    const seller = sellerOverride || product.seller || {}
-    const sellerName = seller.name || seller.sellerName || "Store"
-    const result = addToCart({
-      id,
-      itemId: id,
-      productId: id,
-      name: product.name,
-      price: product.displayPrice ?? product.price,
-      variantId: null,
-      variantName: "",
-      variantPrice: product.displayPrice ?? product.price,
-      otherPrice: product.mrp,
-      image: firstImage(product),
-      seller: sellerName,
-      sellerName,
-      sellerId: seller._id || seller.id || product.sellerId,
-      channels: product.channels,
-    })
-    if (result?.ok === false) {
-      if (!result.needsConfirmation) toast.error(result.error || "Could not add this item to your cart")
-      return
-    }
-    toast.success(`Added ${product.name} to cart`)
-  }
-}
 
 /** Green delivery promise when in stock, otherwise the stock label; "Only N left" when low. */
 export function StockDeliveryLine({ product, channel, etaMinutes }) {
@@ -352,6 +302,17 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
   }
   const anyFilter = filters.brands.length || filters.minPrice != null || filters.maxPrice != null || filters.inStockOnly || Object.values(filters.attrs).some((v) => v.length)
 
+  // Quick category pages swap the filter rail for the subcategory rail
+  // (QUICK_UI_SPEC.md). Search keeps the filters it has today.
+  const quickRailItems = useMemo(() => {
+    if (!isQuick || q || !selectedCat) return []
+    const parent =
+      tree.find((t) => t.id === selectedCat.id) ||
+      tree.find((t) => (t.children || []).some((c) => c.id === selectedCat.id))
+    return parent?.children?.length ? parent.children : []
+  }, [isQuick, q, selectedCat, tree])
+  const showQuickRail = quickRailItems.length > 0
+
   const { loading, products, total, facets, chips } = state
   const from = total ? (page - 1) * PAGE_SIZE + 1 : 0
   const to = Math.min(page * PAGE_SIZE, total)
@@ -360,7 +321,10 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
 
   return (
     <div className="min-h-screen bg-wh-surface text-wh-text">
-      <div className="mx-auto flex max-w-[1500px] gap-6 px-5 py-4">
+      <div className={cx("mx-auto flex max-w-[1500px] px-5 py-4", showQuickRail ? "gap-4" : "gap-6")}>
+        {showQuickRail ? (
+          <QuickSubcategoryRail items={quickRailItems} selectedId={selectedCat?.id} heading={heading} />
+        ) : (
         <aside className="w-[240px] shrink-0" aria-label="Filters">
           {tree.length > 0 && onSelectCategory ? (
             <RailSection title="Category">
@@ -403,6 +367,7 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
             </button>
           ) : null}
         </aside>
+        )}
 
         <main className="min-w-0 flex-1">
           <h1 className="text-[21px] font-bold leading-7">{heading}</h1>
@@ -438,6 +403,7 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
 
           <div className="mt-4">
             {loading ? (
+              isQuick ? <QuickGridSkeleton count={12} /> : (
               <TileGrid>
                 {Array.from({ length: 10 }).map((_, i) => (
                   <div key={i} className="animate-pulse rounded-[8px] border border-wh-border p-3">
@@ -447,12 +413,15 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
                   </div>
                 ))}
               </TileGrid>
+              )
             ) : products.length ? (
+              isQuick ? <QuickProductGrid products={products} /> : (
               <TileGrid>
                 {products.map((p) => (
                   <ListingTile key={p._id} product={p} channel={channel} onAddToCart={addToCart} />
                 ))}
               </TileGrid>
+              )
             ) : (
               <div className="py-16 text-center">
                 <p className="text-[16px] font-bold">No products match{q ? ` "${q}"` : ""}.</p>

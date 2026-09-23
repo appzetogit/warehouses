@@ -17,6 +17,7 @@ import DesktopNavbar from "./DesktopNavbar"
 import DesktopHeader from "./desktop/DesktopHeader"
 import DesktopFooter from "./desktop/DesktopFooter"
 import QuickZoneStrip from "./desktop/QuickZoneStrip"
+import QuickCartDock, { QuickCartUIProvider } from "./desktop/quick/QuickCartPanel"
 import GeminiAssistantWidget from "./GeminiAssistantWidget"
 import SpinWheelModal from "./SpinWheelModal"
 import FloatingSpinWidget from "./FloatingSpinWidget"
@@ -215,6 +216,8 @@ export default function UserLayout() {
           <OrdersProvider>
             <SearchOverlayProvider>
               <LocationSelectorProvider>
+                {/* Quick desktop cart panel state, shared by the header button and the dock */}
+                <QuickCartUIProvider>
                 {/* <Navbar /> */}
                 {/* Desktop Navbar - Hidden on mobile, visible on medium+ screens */}
                 <div className="hidden md:block lg:hidden">
@@ -241,6 +244,10 @@ export default function UserLayout() {
                   onClose={() => setIsSpinWheelOpen(false)}
                 />
                 {showDesktopShell && <GeminiAssistantWidget />}
+
+                {/* Quick (lg+) slide-in cart panel and bottom bar (QUICK_UI_SPEC.md) */}
+                {showDesktopShell && storeMode === "quick" && <QuickCartDock />}
+                </QuickCartUIProvider>
               </LocationSelectorProvider>
             </SearchOverlayProvider>
           </OrdersProvider>
