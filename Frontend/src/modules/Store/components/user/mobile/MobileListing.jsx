@@ -116,12 +116,18 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
   const baseParams = useMemo(
     () => ({
       ...(q ? { q, smart: 1 } : {}),
-      ...(current ? { categoryId: current.id } : {}),
+      // A category id this session's list doesn't know yet (added since it
+      // loaded) still filters, rather than falling back to everything.
+      ...(current
+        ? { categoryId: current.id }
+        : /^[a-f0-9]{24}$/i.test(String(categorySlug))
+          ? { categoryId: categorySlug }
+          : {}),
       ...(minDiscount > 0 ? { minDiscount } : {}),
       fulfilmentMode,
       ...(isQuick && zoneId ? { zoneId } : {}),
     }),
-    [q, current, minDiscount, fulfilmentMode, isQuick, zoneId],
+    [q, current, categorySlug, minDiscount, fulfilmentMode, isQuick, zoneId],
   )
 
   useEffect(() => {
@@ -158,7 +164,7 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
     [baseParams],
   )
 
-  const heading = title || current?.name || (q ? `"${q}"` : "All products")
+  const heading = title || current?.name || (q ? `"${q}"` : /^[a-f0-9]{24}$/i.test(String(categorySlug)) ? "Products" : "All products")
   const nFilters = activeFilterCount(filters)
   const chip = (on) =>
     `flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors ${
