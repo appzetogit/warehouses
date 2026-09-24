@@ -60,6 +60,37 @@ async function generateIcons() {
   <path d="M18 36v6h12v-6"/>
   <line x1="14" y1="42" x2="34" y2="42"/>
 </svg>`,
+        'dairy.svg': `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M16 8h16v6l-4 6v20H20V20l-4-6V8z"/>
+  <line x1="16" y1="8" x2="32" y2="8"/>
+  <line x1="20" y1="28" x2="28" y2="28"/>
+</svg>`,
+        'fresh.svg': `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M24 10c0-4 4-6 8-6-1 4-3 6-8 6z"/>
+  <path d="M24 10c-5-4-14 0-14 10 0 14 10 24 14 24s14-10 14-24c0-10-9-14-14-10z"/>
+</svg>`,
+        'staples.svg': `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M24 44V12"/>
+  <path d="M24 20c-4-4-10-2-10 4 3 1 7-1 10-4z"/>
+  <path d="M24 20c4-4 10-2 10 4-3 1-7-1-10-4z"/>
+  <path d="M24 28c-4-4-10-2-10 4 3 1 7-1 10-4z"/>
+  <path d="M24 28c4-4 10-2 10 4-3 1-7-1-10-4z"/>
+  <path d="M24 12c0-6 4-8 4-8s0 4-4 8z"/>
+</svg>`,
+        'snacks.svg': `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="24" cy="24" r="18"/>
+  <circle cx="18" cy="18" r="2" fill="currentColor"/>
+  <circle cx="28" cy="16" r="2" fill="currentColor"/>
+  <circle cx="20" cy="28" r="2" fill="currentColor"/>
+  <circle cx="30" cy="28" r="2" fill="currentColor"/>
+</svg>`,
+        'beverages.svg': `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M8 16h24v16a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8V16z"/>
+  <path d="M32 20h6a4 4 0 0 1 0 8h-6"/>
+  <line x1="14" y1="8" x2="14" y2="12"/>
+  <line x1="20" y1="6" x2="20" y2="12"/>
+  <line x1="26" y1="8" x2="26" y2="12"/>
+</svg>`,
         'electronics.svg': `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <rect x="12" y="6" width="24" height="36" rx="4"/>
   <line x1="21" y1="36" x2="27" y2="36"/>
@@ -308,6 +339,204 @@ async function seedLayoutInMongo() {
                 startsAt: null,
                 endsAt: null,
                 sortOrder: 1,
+                isActive: true,
+            },
+            {
+                slug: 'dairy',
+                label: 'Dairy & Breakfast',
+                iconUrl: '/uploads/quick/icons/dairy.svg',
+                backgroundUrl: '/uploads/quick/themes/all/bg.webp',
+                accent: '#0284C7',
+                poweredBy: [],
+                promoTiles: [
+                    { title: 'Farm Fresh Milk & Dahi', imageUrl: '/uploads/quick/themes/all/tile-1.webp', link: '/quick/category/milk' },
+                    { title: 'Butter, Cheese & Paneer', imageUrl: '/uploads/quick/themes/all/tile-2.webp', link: '/quick/category/butter-and-cheese' },
+                    { title: 'Breakfast Cereals & Breads', imageUrl: '/uploads/quick/themes/all/tile-3.webp', link: '/quick/category/dairy' },
+                ],
+                rewards: {
+                    title: 'Morning Breakfast Rewards',
+                    subtitle: 'Extra 50 coins on orders before 9 AM',
+                    thumbs: ['/uploads/quick/themes/all/rewards-1.webp', '/uploads/quick/themes/all/rewards-2.webp', '/uploads/quick/themes/all/rewards-3.webp'],
+                    link: '/spin',
+                },
+                offerStrip: { text: 'Flat 15% off on daily dairy combos above ₹199 →', link: '/quick/category/dairy' },
+                sortOrder: 2,
+                isActive: true,
+            },
+            {
+                slug: 'fresh',
+                label: 'Fruits & Veggies',
+                iconUrl: '/uploads/quick/icons/fresh.svg',
+                backgroundUrl: '/uploads/quick/themes/all/bg.webp',
+                accent: '#16A34A',
+                poweredBy: [],
+                promoTiles: [
+                    { title: 'Farm Fresh Seasonal Fruits', imageUrl: '/uploads/quick/themes/all/tile-2.webp', link: '/quick/category/fresh-fruits' },
+                    { title: 'Crisp Daily Vegetables', imageUrl: '/uploads/quick/themes/all/tile-1.webp', link: '/quick/category/fresh-vegetables' },
+                    { title: 'Organic Clean Greens', imageUrl: '/uploads/quick/themes/all/tile-3.webp', link: '/quick/category/fruits-and-vegetables' },
+                ],
+                rewards: {
+                    title: 'Green Harvest Rewards',
+                    subtitle: 'Earn 2x coins on fresh harvest items',
+                    thumbs: ['/uploads/quick/themes/all/rewards-1.webp', '/uploads/quick/themes/all/rewards-2.webp', '/uploads/quick/themes/all/rewards-3.webp'],
+                    link: '/spin',
+                },
+                offerStrip: { text: 'Free Coriander & Chillies on orders above ₹149 →', link: '/quick/category/fresh-vegetables' },
+                sortOrder: 3,
+                isActive: true,
+            },
+            {
+                slug: 'staples',
+                label: 'Atta, Rice & Dal',
+                iconUrl: '/uploads/quick/icons/staples.svg',
+                backgroundUrl: '/uploads/quick/themes/all/bg.webp',
+                accent: '#CA8A04',
+                poweredBy: [],
+                promoTiles: [
+                    { title: 'Sharbati Chakki Atta', imageUrl: '/uploads/quick/themes/all/tile-1.webp', link: '/quick/category/atta-and-flour' },
+                    { title: 'Royal Basmati & Organic Dals', imageUrl: '/uploads/quick/themes/all/tile-2.webp', link: '/quick/category/rice-and-pulses' },
+                    { title: 'Cold-Pressed Oils & Ghee', imageUrl: '/uploads/quick/themes/all/tile-3.webp', link: '/quick/category/oils' },
+                ],
+                rewards: {
+                    title: 'Pantry Bulk Rewards',
+                    subtitle: 'Save ₹100 instantly on 10kg pantry packs',
+                    thumbs: ['/uploads/quick/themes/all/rewards-1.webp', '/uploads/quick/themes/all/rewards-2.webp', '/uploads/quick/themes/all/rewards-3.webp'],
+                    link: '/spin',
+                },
+                offerStrip: { text: 'Up to 30% off on Monthly Kitchen Staples →', link: '/quick/category/staples' },
+                sortOrder: 4,
+                isActive: true,
+            },
+            {
+                slug: 'snacks',
+                label: 'Snacks & Munchies',
+                iconUrl: '/uploads/quick/icons/snacks.svg',
+                backgroundUrl: '/uploads/quick/themes/all/bg.webp',
+                accent: '#EA580C',
+                poweredBy: [],
+                promoTiles: [
+                    { title: 'Chips, Crisps & Namkeens', imageUrl: '/uploads/quick/themes/all/tile-3.webp', link: '/quick/category/chips-and-namkeen' },
+                    { title: 'Cookies & Tea Biscuits', imageUrl: '/uploads/quick/themes/all/tile-1.webp', link: '/quick/category/biscuits' },
+                    { title: 'Party Nachos & Dips', imageUrl: '/uploads/quick/themes/all/tile-2.webp', link: '/quick/category/snacks' },
+                ],
+                rewards: {
+                    title: 'Late Night Munchies Club',
+                    subtitle: 'Spin & win midnight craving surprises',
+                    thumbs: ['/uploads/quick/themes/all/rewards-1.webp', '/uploads/quick/themes/all/rewards-2.webp', '/uploads/quick/themes/all/rewards-3.webp'],
+                    link: '/spin',
+                },
+                offerStrip: { text: 'Buy 2 Get 1 Free on all namkeens & chips →', link: '/quick/category/snacks' },
+                sortOrder: 5,
+                isActive: true,
+            },
+            {
+                slug: 'beverages',
+                label: 'Drinks & Juices',
+                iconUrl: '/uploads/quick/icons/beverages.svg',
+                backgroundUrl: '/uploads/quick/themes/all/bg.webp',
+                accent: '#2563EB',
+                poweredBy: [],
+                promoTiles: [
+                    { title: 'Chilled Colas & Sodas', imageUrl: '/uploads/quick/themes/all/tile-1.webp', link: '/quick/category/soft-drinks' },
+                    { title: 'Artisanal Tea & Coffees', imageUrl: '/uploads/quick/themes/all/tile-2.webp', link: '/quick/category/tea-and-coffee' },
+                    { title: '100% Fruit Juices', imageUrl: '/uploads/quick/themes/all/tile-3.webp', link: '/quick/category/beverages' },
+                ],
+                rewards: {
+                    title: 'Chill Out Rewards',
+                    subtitle: 'Get free chilled ice packs on select beverages',
+                    thumbs: ['/uploads/quick/themes/all/rewards-1.webp', '/uploads/quick/themes/all/rewards-2.webp', '/uploads/quick/themes/all/rewards-3.webp'],
+                    link: '/spin',
+                },
+                offerStrip: { text: 'Delivered ice-cold in 10 minutes guaranteed →', link: '/quick/category/soft-drinks' },
+                sortOrder: 6,
+                isActive: true,
+            },
+            {
+                slug: 'electronics',
+                label: 'Electronics',
+                iconUrl: '/uploads/quick/icons/electronics.svg',
+                backgroundUrl: '/uploads/quick/themes/all/bg.webp',
+                accent: '#7C3AED',
+                poweredBy: [],
+                promoTiles: [
+                    { title: 'Fast Chargers & Cables', imageUrl: '/uploads/quick/themes/all/tile-1.webp', link: '/quick/search?q=charger' },
+                    { title: 'TWS Earbuds & Speakers', imageUrl: '/uploads/quick/themes/all/tile-2.webp', link: '/quick/search?q=earbuds' },
+                    { title: 'Powerbanks & Tech Accessories', imageUrl: '/uploads/quick/themes/all/tile-3.webp', link: '/quick/search?q=powerbank' },
+                ],
+                rewards: {
+                    title: 'Tech Gadget Rewards',
+                    subtitle: 'Earn up to 250 coins on tech purchases',
+                    thumbs: ['/uploads/quick/themes/all/rewards-1.webp', '/uploads/quick/themes/all/rewards-2.webp', '/uploads/quick/themes/all/rewards-3.webp'],
+                    link: '/spin',
+                },
+                offerStrip: { text: 'Brand warranty on all electronics delivered in 10m →', link: '/quick/search?q=electronics' },
+                sortOrder: 7,
+                isActive: true,
+            },
+            {
+                slug: 'beauty',
+                label: 'Beauty & Care',
+                iconUrl: '/uploads/quick/icons/beauty.svg',
+                backgroundUrl: '/uploads/quick/themes/all/bg.webp',
+                accent: '#DB2777',
+                poweredBy: [],
+                promoTiles: [
+                    { title: 'Korean Skincare & Serums', imageUrl: '/uploads/quick/themes/all/tile-2.webp', link: '/quick/search?q=skincare' },
+                    { title: 'Haircare & Shampoos', imageUrl: '/uploads/quick/themes/all/tile-1.webp', link: '/quick/search?q=haircare' },
+                    { title: 'Deos, Perfumes & Body Mists', imageUrl: '/uploads/quick/themes/all/tile-3.webp', link: '/quick/search?q=perfume' },
+                ],
+                rewards: {
+                    title: 'Glow Up Rewards',
+                    subtitle: 'Extra 10% coin cashback on premium beauty',
+                    thumbs: ['/uploads/quick/themes/all/rewards-1.webp', '/uploads/quick/themes/all/rewards-2.webp', '/uploads/quick/themes/all/rewards-3.webp'],
+                    link: '/spin',
+                },
+                offerStrip: { text: 'Top salon brands at minimum 25% OFF →', link: '/quick/search?q=beauty' },
+                sortOrder: 8,
+                isActive: true,
+            },
+            {
+                slug: 'gifting',
+                label: 'Gifting & Sweets',
+                iconUrl: '/uploads/quick/icons/gifting.svg',
+                backgroundUrl: '/uploads/quick/themes/festive/bg.webp',
+                accent: '#E11D48',
+                poweredBy: [],
+                promoTiles: [
+                    { title: 'Luxury Chocolate Boxes', imageUrl: '/uploads/quick/themes/festive/tile-1.webp', link: '/quick/search?q=chocolate' },
+                    { title: 'Dry Fruit Luxury Hampers', imageUrl: '/uploads/quick/themes/festive/tile-2.webp', link: '/quick/search?q=dryfruits' },
+                    { title: 'Gift Cards & Celebrations', imageUrl: '/uploads/quick/themes/festive/tile-3.webp', link: '/quick/search?q=gift' },
+                ],
+                rewards: {
+                    title: 'Celebration Rewards',
+                    subtitle: 'Gift wrapping included on all gift hampers',
+                    thumbs: ['/uploads/quick/themes/festive/rewards-1.webp', '/uploads/quick/themes/festive/rewards-2.webp', '/uploads/quick/themes/festive/rewards-3.webp'],
+                    link: '/spin',
+                },
+                offerStrip: { text: 'Express 10-minute surprise gift delivery →', link: '/quick/search?q=gifting' },
+                sortOrder: 9,
+                isActive: true,
+            },
+            {
+                slug: 'decor',
+                label: 'Home & Living',
+                iconUrl: '/uploads/quick/icons/decor.svg',
+                backgroundUrl: '/uploads/quick/themes/all/bg.webp',
+                accent: '#4F46E5',
+                poweredBy: [],
+                promoTiles: [
+                    { title: 'Aromatherapy & Scented Candles', imageUrl: '/uploads/quick/themes/all/tile-3.webp', link: '/quick/search?q=candle' },
+                    { title: 'Pooja Diyas & Festive Lights', imageUrl: '/uploads/quick/themes/festive/tile-3.webp', link: '/quick/search?q=pooja' },
+                    { title: 'Kitchen & Home Utility', imageUrl: '/uploads/quick/themes/all/tile-1.webp', link: '/quick/search?q=kitchen' },
+                ],
+                rewards: {
+                    title: 'Home Decor Bonanza',
+                    subtitle: 'Win home makeover voucher up to ₹1,000',
+                    thumbs: ['/uploads/quick/themes/all/rewards-1.webp', '/uploads/quick/themes/all/rewards-2.webp', '/uploads/quick/themes/all/rewards-3.webp'],
+                    link: '/spin',
+                },
+                offerStrip: { text: 'Transform your home with fast same-day delivery →', link: '/quick/search?q=decor' },
+                sortOrder: 10,
                 isActive: true,
             },
         ],
