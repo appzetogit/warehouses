@@ -27,7 +27,7 @@ const SpeechRecognition =
 
 function EtaBlock() {
   const eta = useQuickEta()
-  const { effectiveLocation, displayAddressText } = useDeliveryLocation()
+  const { effectiveLocation, displayAddressText, setCommerceMode } = useDeliveryLocation()
   const { openLocationSelector } = useLocationSelector()
   const signedIn = isModuleAuthenticated("user")
   const [distanceKm, setDistanceKm] = useState(null)
@@ -82,6 +82,25 @@ function EtaBlock() {
 
   return (
     <div className="px-4 pb-3 pt-3">
+      {/* The same Shop | Quick switch as the Shop header, so there is a way back. */}
+      <div role="group" aria-label="Choose store" className="mb-2 inline-flex items-center rounded-full border border-wh-border bg-wh-surface p-0.5 shadow-sm">
+        <button
+          type="button"
+          aria-pressed="false"
+          onClick={() => setCommerceMode("standard")}
+          className="rounded-full px-3 py-1 text-[12px] font-bold text-wh-muted active:scale-95"
+        >
+          Shop
+        </button>
+        <button
+          type="button"
+          aria-pressed="true"
+          className="flex items-center gap-0.5 rounded-full bg-wh-brand-ink px-3 py-1 text-[12px] font-bold text-white shadow-xs"
+        >
+          <span className="text-amber-300" aria-hidden="true">⚡</span>
+          Quick
+        </button>
+      </div>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[13px] font-bold text-wh-text">Delivery in</p>

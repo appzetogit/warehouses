@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom"
-import { Home, LayoutGrid, Store, Package, RotateCcw, User } from "lucide-react"
+import { Home, LayoutGrid, Store, Package, User } from "lucide-react"
 import { useCart } from "@store/context/CartContext"
 import { useStoreMode } from "@store/context/StoreModeContext"
 
@@ -9,7 +9,7 @@ import { useStoreMode } from "@store/context/StoreModeContext"
  */
 export default function BottomNav() {
   const { pathname } = useLocation()
-  const { storePath, isQuick } = useStoreMode()
+  const { storePath } = useStoreMode()
   const { getCartCount } = useCart()
   const cartCount = getCartCount()
 
@@ -23,16 +23,8 @@ export default function BottomNav() {
     match: (p) => p.startsWith("/profile") || p.startsWith("/user/profile"),
   }
 
-  // Quick follows the instant-delivery apps (QUICK_MOBILE_SPEC.md §1): the
-  // cart floats above the bar, and buying the usual again is one tap away.
-  const quickItems = [
-    { to: home, label: "Home", icon: Home, match: isHome },
-    { to: storePath("/order-again"), label: "Order Again", icon: RotateCcw, match: (p) => p.endsWith("/order-again") },
-    { to: storePath("/categories"), label: "Categories", icon: LayoutGrid, match: (p) => /\/(categories|category)/.test(p) },
-    account,
-  ]
-
-  const shopItems = [
+  // One tab bar for Shop and Quick; each tab stays inside the current store.
+  const items = [
     { to: home, label: "Home", icon: Home, match: isHome },
     {
       to: storePath("/categories"),
@@ -54,7 +46,6 @@ export default function BottomNav() {
     },
     account,
   ]
-  const items = isQuick ? quickItems : shopItems
 
   // Pages with their own pinned action bar (Add to Cart, checkout) hide the tabs.
   if (/\/product\/|\/cart(\/|$)/.test(pathname)) return null
