@@ -363,12 +363,16 @@ export default function MobileHome({ heroBanners = [], products = [], loading = 
     [products],
   )
 
+  // Featured stores: only those selling something here, nearest first.
+  const sellingIds = new Set(products.map((p) => String(p.sellerId || p.seller?._id || "")))
+  const featuredStores = stores.filter((s) => sellingIds.has(String(s._id)))
+
   if (loading && !products.length) return <MobileHomeSkeleton />
 
   return (
     <div className="space-y-6 bg-[#F7F7F8] pb-8 pt-3 lg:hidden">
       <BannerCarousel banners={heroBanners} />
-      <Promises storeCount={stores.length} />
+      <Promises storeCount={featuredStores.length} />
       <CategoryRow categories={categoryRow} />
       <ProductRail
         title={isQuick ? "Trending Near You" : "Trending Now"}
@@ -377,7 +381,7 @@ export default function MobileHome({ heroBanners = [], products = [], loading = 
       />
       {isQuick ? <FeaturedRail items={layout.featured} /> : null}
       <BrandRow brands={brands} />
-      <FeaturedStores stores={stores} />
+      <FeaturedStores stores={featuredStores} />
       {isQuick ? <CampaignBanner campaign={layout.campaigns[0]} /> : null}
       <ProductRail title="Deals of the Day" subtitle="The biggest savings right now" products={deals} to={`${storePath("/search")}?minDiscount=10`} />
 

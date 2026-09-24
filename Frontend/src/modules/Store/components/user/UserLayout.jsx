@@ -15,6 +15,7 @@ import SearchOverlay from "./SearchOverlay"
 import DesktopHeader from "./desktop/DesktopHeader"
 import BottomNav from "./storefront/BottomNav"
 import MobileHeader from "./mobile/MobileHeader"
+import ReorderIntake from "./mobile/ReorderIntake"
 import { QuickLayoutProvider } from "./quick-mobile/QuickLayoutContext"
 import DesktopFooter from "./desktop/DesktopFooter"
 import QuickZoneStrip from "./desktop/QuickZoneStrip"
@@ -152,8 +153,7 @@ const OWN_TOP_BAR = [
   /^(\/quick)?\/product\//,
   /^(\/quick)?\/sellers(\/|$)/,
   /^(\/quick)?\/cart(\/|$)/,
-  /^(\/quick)?\/categories$/,
-  /^(\/quick)?\/order-again$/,
+  /^(\/quick)?\/wishlist$/,
   /^\/orders(\/|$)/,
   /^\/profile(\/|$)/,
 ]
@@ -232,7 +232,8 @@ export default function UserLayout() {
   const showDesktopShell = !/(^|\/)auth(\/|$)/.test(normalizedPath)
   // On phones the floating spin wheel and assistant would cover Quick's cart bar
   // and the pinned Add to Cart / checkout bars.
-  const hideFloatingOnPhone = storeMode === "quick" || /\/product\/|\/cart(\/|$)/.test(normalizedPath)
+  const hideFloatingOnPhone =
+    storeMode === "quick" || /\/product\/|\/cart(\/|$)|^\/orders|\/wishlist$|^\/profile\/favorites|\/sellers(\/|$)/.test(normalizedPath)
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
@@ -268,6 +269,7 @@ export default function UserLayout() {
                   <main className="w-full min-w-0 max-w-full overflow-x-clip pb-[57px] md:pb-0">
                     <Outlet />
                   </main>
+                  <ReorderIntake />
                   {showDesktopShell && <DesktopFooter />}
                   {showDesktopShell && <BottomNav />}
                 </QuickLayoutGate>
@@ -293,7 +295,7 @@ export default function UserLayout() {
                 )}
 
                 {/* Quick (lg+) slide-in cart panel and bottom bar (QUICK_UI_SPEC.md) */}
-                {showDesktopShell && storeMode === "quick" && <QuickCartDock />}
+                {showDesktopShell && storeMode === "quick" && !/\/cart(\/|$)/.test(normalizedPath) && <QuickCartDock />}
                 </QuickCartUIProvider>
               </LocationSelectorProvider>
             </SearchOverlayProvider>

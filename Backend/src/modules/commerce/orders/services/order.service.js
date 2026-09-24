@@ -19,6 +19,7 @@ import { DeliveryCommissionRule } from '../../admin/models/deliveryCommissionRul
 import { SellerCommission } from '../../admin/models/sellerCommission.model.js';
 import { BusinessSettings } from '../../admin/models/businessSettings.model.js';
 import { OrderTransaction } from '../models/orderTransaction.model.js';
+import { ReturnRequest } from '../models/returnRequest.model.js';
 import { SupportTicket } from '../../user/models/supportTicket.model.js';
 import { config } from '../../../../config/env.js';
 import {
@@ -1182,8 +1183,23 @@ export async function listOrdersUser(userId, query) {
       .lean(),
     Order.countDocuments(filter),
   ]);
+  // The latest return on each order, for the customer's "Returns" tab.
+  const returns = docs.length
+    ? await ReturnRequest.find({ orderId: { $in: docs.map((d) => d._id) } })
+        .select("orderId status createdAt")
+        .sort({ createdAt: -1 })
+        .lean()
+    : [];
+  const latestReturn = new Map();
+  for (const r of returns) {
+    const key = String(r.orderId);
+    if (!latestReturn.has(key)) latestReturn.set(key, { status: r.status, requestedAt: r.createdAt });
+  }
   return buildPaginatedResult({
-    docs: docs.map((doc) => normalizeOrderForClient(doc)),
+    docs: docs.map((doc) => ({
+      ...normalizeOrderForClient(doc),
+      latestReturn: latestReturn.get(String(doc._id)) || null,
+    })),
     total,
     page,
     limit,

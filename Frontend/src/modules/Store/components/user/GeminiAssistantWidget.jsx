@@ -164,15 +164,16 @@ export default function GeminiAssistantWidget() {
   return (
     <>
       {/* Floating Pill Button */}
-      <div className="fixed bottom-20 md:bottom-6 right-5 z-40">
+      <div className="fixed bottom-[72px] right-3 lg:bottom-6 lg:right-5 z-40">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-500 text-white font-semibold text-sm shadow-xl hover:shadow-purple-500/25 transition-all border border-white/20 cursor-pointer"
+          aria-label="Ask the assistant"
+          className="flex h-11 w-11 items-center justify-center gap-2 lg:h-auto lg:w-auto lg:px-4 lg:py-2.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-500 text-white font-semibold text-sm shadow-xl hover:shadow-purple-500/25 transition-all border border-white/20 cursor-pointer"
         >
-          <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-          <span>Ask the assistant</span>
+          <Sparkles className="w-5 h-5 lg:w-4 lg:h-4 text-amber-300 animate-pulse" aria-hidden="true" />
+          <span className="hidden lg:inline">Ask the assistant</span>
         </motion.button>
       </div>
 

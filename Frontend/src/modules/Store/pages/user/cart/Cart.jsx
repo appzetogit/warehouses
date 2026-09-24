@@ -51,6 +51,7 @@ import RecommendationRail from "@store/components/user/RecommendationRail"
 import CartSubtotalCard from "@store/components/user/desktop/CartSubtotalCard"
 import SavedForLater, { saveCartLineForLater } from "@store/components/user/cart/SavedForLater"
 import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
+import { formatDeliveryWindow, useQuickEta, useShopDeliveryEstimate } from "@store/components/user/desktop/useDeliveryEstimates"
 import zoopSound from "@store/assets/audio/order-placed.mp3"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -343,8 +344,16 @@ export default function Cart() {
   const [showAddressSheet, setShowAddressSheet] = useState(false)
   const [showNoteSheet, setShowNoteSheet] = useState(false)
   const [showOffersView, setShowOffersView] = useState(false)
-  const [deliverySectionTab, setDeliverySectionTab] = useState("modes")
   const { fulfilmentMode: storeFulfilmentMode, storePath } = useStoreMode()
+  const inQuick = storeFulfilmentMode === "quick"
+  const quickEta = useQuickEta()
+  const shopEstimate = useShopDeliveryEstimate({ enabled: !inQuick })
+  const deliveryBadge = inQuick
+    ? `In ${quickEta} min`
+    : shopEstimate?.maxDays
+      ? `Get by ${shopEstimate.minDays}-${shopEstimate.maxDays} days`
+      : "Get by 2-4 days"
+  const [deliverySectionTab, setDeliverySectionTab] = useState("instructions")
   const [deliveryMode, setDeliveryMode] = useState("basic")
   const [selectedDeliveryInstruction, setSelectedDeliveryInstruction] = useState(null)
   const [deliveryInstructionMode, setDeliveryInstructionMode] = useState("preset")
@@ -483,6 +492,16 @@ export default function Cart() {
   })
 
   const configuredQuickDeliveryFee = getConfiguredQuickDeliveryFee(feeSettings)
+  // Priority is a paid rider option. A Shop order goes by courier and cannot
+  // arrive faster, and without a fee set there is nothing to choose between.
+  const hasDeliveryModes = inQuick && configuredQuickDeliveryFee > 0
+  useEffect(() => {
+    if (hasDeliveryModes) setDeliverySectionTab((tab) => (tab === "instructions" ? "modes" : tab))
+    else {
+      setDeliveryMode("basic")
+      setDeliverySectionTab("instructions")
+    }
+  }, [hasDeliveryModes])
 
   const resetCartPreferences = useCallback(() => {
     setNote("")
@@ -1508,9 +1527,6 @@ export default function Cart() {
   const selectedPaymentLabel =
     selectedPaymentMethod === "wallet" ? "Wallet" : "Online Payment"
 
-  const headerDeliveryTime = deliveryMode === "quick" ? "20-25 mins" : (sellerData?.estimatedDeliveryTime || "35-40 mins")
-  const basicDeliveryTime = sellerData?.estimatedDeliveryTime || "35-40 mins"
-  const quickDeliveryTime = "20-25 mins"
   const headerAddressLabel = defaultAddress ? getDisplayAddressLabel(defaultAddress.label) : "Select address"
   const headerAddressText = defaultAddress
     ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || "Add delivery address")
@@ -2707,7 +2723,7 @@ export default function Cart() {
                           </div>
                         </div>
                         <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 rounded-full shrink-0">
-                          Get by 2-4 days
+                          {deliveryBadge}
                         </span>
                       </div>
 
@@ -2744,7 +2760,7 @@ export default function Cart() {
                             <div className="flex-1 min-w-0">
                               <Link
                                 to={storePath(`/product/${item.productId || item.itemId || item.id}`)}
-                                className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white leading-tight hover:text-orange-600 transition-colors line-clamp-1 block"
+                                className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white leading-tight hover:text-orange-600 transition-colors line-clamp-2"
                               >
                                 {item.name}
                               </Link>
@@ -2756,7 +2772,8 @@ export default function Cart() {
                                     : item.packSize || "Standard Fit")}
                               </p>
 
-                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                              <div className="mt-1.5 flex items-center justify-between gap-2">
+                              <div className="flex min-w-0 items-center gap-x-2 gap-y-0.5 flex-wrap">
                                 <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white tabular-nums">
                                   {RUPEE_SYMBOL}
                                   {Math.round(Number(item.price || 0))}
@@ -2778,10 +2795,8 @@ export default function Cart() {
                                   </>
                                 )}
                               </div>
-                            </div>
-
                             {/* Stepper & Trash Button */}
-                            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                            <div className="flex items-center gap-1 sm:gap-3 shrink-0">
                               <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] shadow-sm">
                                 <button
                                   type="button"
@@ -2813,14 +2828,21 @@ export default function Cart() {
                                 <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
+                              </div>
+                            </div>
+
                           </div>
                         ))}
                       </div>
 
                       {/* Store Free Delivery Milestone */}
                       <div className="mt-3 p-2.5 rounded-xl bg-orange-50/70 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/40 text-xs font-medium text-orange-800 dark:text-orange-300 flex items-center justify-between">
-                        <span>Free delivery on orders above ₹799 from {group.sellerName}</span>
-                        <span className="font-bold text-orange-600 dark:text-orange-400">Standard Courier</span>
+                        <span>
+                          {inQuick
+                            ? `Packed by ${group.sellerName} and brought over by a rider`
+                            : formatDeliveryWindow(shopEstimate, "Delivered in 2-4 days")}
+                        </span>
+                        <span className="font-bold text-orange-600 dark:text-orange-400">{inQuick ? "Quick" : "Courier"}</span>
                       </div>
                     </div>
                   ))}
@@ -2862,6 +2884,7 @@ export default function Cart() {
               <div className="order-3 bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden">
                 <div className="p-3">
                   <div className="flex items-center rounded-full bg-gray-100 dark:bg-[#222222] p-1">
+                    {hasDeliveryModes ? (
                     <button
                       type="button"
                       onClick={() => setDeliverySectionTab("modes")}
@@ -2879,6 +2902,7 @@ export default function Cart() {
                         New
                       </span>
                     </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => setDeliverySectionTab("instructions")}
@@ -2893,7 +2917,7 @@ export default function Cart() {
                   </div>
                 </div>
 
-                {deliverySectionTab === "modes" ? (
+                {hasDeliveryModes && deliverySectionTab === "modes" ? (
                   <div className="px-4 pb-4">
                     <button
                       type="button"
@@ -2908,14 +2932,14 @@ export default function Cart() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            Quick <Zap className="inline h-3.5 w-3.5 text-wh-brand-ink mb-0.5" /> {quickDeliveryTime}
+                            Priority <Zap className="inline h-3.5 w-3.5 text-wh-brand-ink mb-0.5" />
                           </p>
                           <p className={`text-xs font-semibold shrink-0 ${deliveryMode === "quick" ? "text-wh-brand-ink" : "text-gray-500"}`}>
                             +{RUPEE_SYMBOL}{configuredQuickDeliveryFee}
                           </p>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          In a hurry? Get your order up to 15 mins faster
+                          Packed first and handed to the next free rider
                         </p>
                       </div>
                     </button>
@@ -2932,7 +2956,7 @@ export default function Cart() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                          Basic | {basicDeliveryTime}
+                          Standard | about {quickEta} min
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                           Your everyday delivery

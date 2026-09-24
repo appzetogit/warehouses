@@ -46,7 +46,7 @@ export default function FloatingSpinWidget({ onOpenSpin }) {
 
   return (
     <div
-      className="group/spin fixed bottom-20 md:bottom-8 left-4 md:left-8 z-40 select-none animate-float"
+      className="group/spin fixed bottom-[124px] right-3 lg:bottom-8 lg:left-8 lg:right-auto z-40 select-none lg:animate-float"
       onMouseEnter={() => setCollapsed(false)}
       onFocus={() => setCollapsed(false)}
     >
@@ -54,7 +54,7 @@ export default function FloatingSpinWidget({ onOpenSpin }) {
         type="button"
         onClick={dismiss}
         aria-label="Hide Spin & Win"
-        className={`absolute -top-1.5 -right-1.5 z-10 w-5 h-5 rounded-full bg-white text-gray-600 border border-amber-200 shadow-md flex items-center justify-center transition-opacity ${
+        className={`absolute -top-1.5 -right-1.5 z-10 hidden lg:flex w-5 h-5 rounded-full bg-white text-gray-600 border border-amber-200 shadow-md flex items-center justify-center transition-opacity ${
           collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
         }`}
       >
@@ -65,14 +65,14 @@ export default function FloatingSpinWidget({ onOpenSpin }) {
         type="button"
         aria-label="Spin & Win Daily Rewards"
         className={`group relative flex items-center gap-3 rounded-full ${
-          collapsed ? "p-1" : "pl-2 pr-4 py-2"
+          collapsed ? "p-0.5 lg:p-1" : "p-0.5 lg:pl-2 lg:pr-4 lg:py-2"
         } bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-2xl hover:shadow-[0_10px_25px_-5px_rgba(245,158,11,0.6)] border-2 border-amber-300/80 cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95`}
       >
         {/* Pulsing Outer Glow Aura */}
-        <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 opacity-60 blur-md group-hover:opacity-90 animate-pulse transition duration-500 -z-10" />
+        <span className="absolute -inset-1 hidden lg:block rounded-full bg-gradient-to-r from-amber-400 to-orange-500 opacity-60 blur-md group-hover:opacity-90 animate-pulse transition duration-500 -z-10" />
 
         {/* Rotating Wheel Graphics */}
-        <div className="relative flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-br from-amber-300 to-yellow-500 p-0.5 shadow-md">
+        <div className="relative flex items-center justify-center w-9 h-9 lg:w-11 lg:h-11 rounded-full bg-gradient-to-br from-amber-300 to-yellow-500 p-0.5 shadow-md">
           {/* SVG Fortune Wheel with colorful slices */}
           <svg
             viewBox="0 0 100 100"
@@ -112,7 +112,7 @@ export default function FloatingSpinWidget({ onOpenSpin }) {
         </div>
 
         {/* Text and Badges */}
-        <div className={`flex-col text-left leading-none ${collapsed ? "hidden" : "flex"}`}>
+        <div className={`flex-col text-left leading-none ${collapsed ? "hidden" : "hidden lg:flex"}`}>
           <div className="flex items-center gap-1.5">
             <span className="text-[13px] font-black tracking-tight text-white drop-shadow-sm">
               Spin & Win

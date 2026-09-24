@@ -1,8 +1,9 @@
-import { Routes, Route, Navigate } from "react-router-dom"
+import { Routes, Route, Navigate, useParams } from "react-router-dom"
 import UserLayout from "./UserLayout"
 import { Suspense, lazy } from "react"
 import Loader from "@store/components/Loader"
 import ProtectedRoute from "@store/components/ProtectedRoute"
+import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
 
 // Lazy Loading Pages
 
@@ -10,6 +11,10 @@ import ProtectedRoute from "@store/components/ProtectedRoute"
 const Home = lazy(() => import("@store/pages/user/Home"))
 const Categories = lazy(() => import("@store/pages/user/Categories"))
 const OrderAgain = lazy(() => import("@store/pages/user/OrderAgain"))
+const MobileStoreView = lazy(() => import("@store/components/user/mobile/MobileStoreView"))
+const MobileStoresList = lazy(() => import("@store/components/user/mobile/MobileStoresList"))
+const MobileOrders = lazy(() => import("@store/components/user/mobile/MobileOrders"))
+const MobileWishlist = lazy(() => import("@store/components/user/mobile/MobileWishlist"))
 const CategoryPage = lazy(() => import("@store/pages/user/CategoryPage"))
 const Sellers = lazy(() => import("@store/pages/user/sellers/Sellers"))
 const SellerDetails = lazy(() => import("@store/pages/user/sellers/SellerDetails"))
@@ -77,6 +82,21 @@ const Coins = lazy(() => import("@store/pages/user/Coins"))
 // Complaints
 const SubmitComplaint = lazy(() => import("@store/pages/user/complaints/SubmitComplaint"))
 
+/**
+ * Picks a route's layout by screen: the mobile-mockup view on phones, the
+ * existing page from lg. Chosen here so neither one mounts (and fetches) on
+ * the other's screens.
+ */
+function PhoneOr({ phone: Phone, wide: Wide }) {
+  const onWideScreen = useIsDesktop()
+  return onWideScreen ? <Wide /> : <Phone />
+}
+
+function StoreRoutePhone() {
+  const { slug } = useParams()
+  return <MobileStoreView slug={slug} />
+}
+
 export default function UserRouter() {
   return (
     <Suspense fallback={<Loader />}>
@@ -90,11 +110,11 @@ export default function UserRouter() {
               <Route path="categories" element={<Categories />} />
               <Route path="order-again" element={<OrderAgain />} />
               <Route path="category/:category" element={<CategoryPage />} />
-              <Route path="sellers" element={<Sellers />} />
-              <Route path="sellers/:slug" element={<SellerDetails />} />
+              <Route path="sellers" element={<PhoneOr phone={MobileStoresList} wide={Sellers} />} />
+              <Route path="sellers/:slug" element={<PhoneOr phone={StoreRoutePhone} wide={SellerDetails} />} />
               <Route path="stores" element={<Sellers />} />
               <Route path="stores/:slug" element={<SellerDetails />} />
-              <Route path="wishlist" element={<Favorites />} />
+              <Route path="wishlist" element={<PhoneOr phone={MobileWishlist} wide={Favorites} />} />
               <Route path="search" element={<SearchResults />} />
               <Route path="product/:id" element={<ProductDetail />} />
               <Route path="cart" element={<Cart />} />
@@ -108,7 +128,7 @@ export default function UserRouter() {
             path="orders"
             element={
               <ProtectedRoute requiredRole="user" loginPath="/auth/login">
-                <Orders />
+                <PhoneOr phone={MobileOrders} wide={Orders} />
               </ProtectedRoute>
             }
           />
@@ -192,7 +212,7 @@ export default function UserRouter() {
             path="profile/favorites"
             element={
               <ProtectedRoute requiredRole="user" loginPath="/auth/login">
-                <Favorites />
+                <PhoneOr phone={MobileWishlist} wide={Favorites} />
               </ProtectedRoute>
             }
           />
