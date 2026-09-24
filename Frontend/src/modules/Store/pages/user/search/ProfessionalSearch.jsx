@@ -229,6 +229,12 @@ export default function ProfessionalSearch() {
       <DesktopProductListing
         q={searchParams.get("q") || ""}
         smart
+        minDiscount={Number(searchParams.get("minDiscount")) || null}
+        title={
+          !searchParams.get("q") && Number(searchParams.get("minDiscount")) > 0
+            ? `Minimum ${Number(searchParams.get("minDiscount"))}% off`
+            : undefined
+        }
         categoryId={selectedCategoryId}
         onSelectCategory={(cat) => handleCategoryClick(cat ? cat.id : selectedCategoryId)}
         zoneId={zoneId}

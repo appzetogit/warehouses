@@ -14,6 +14,8 @@ const debugError = (...args) => {}
 import SearchOverlay from "./SearchOverlay"
 import DesktopHeader from "./desktop/DesktopHeader"
 import BottomNav from "./storefront/BottomNav"
+import QuickMobileHeader from "./quick-mobile/QuickMobileHeader"
+import { QuickLayoutProvider } from "./quick-mobile/QuickLayoutContext"
 import DesktopFooter from "./desktop/DesktopFooter"
 import QuickZoneStrip from "./desktop/QuickZoneStrip"
 import QuickCartDock, { QuickCartUIProvider } from "./desktop/quick/QuickCartPanel"
@@ -141,6 +143,11 @@ const LocationSelectorContext = createContext({
   closeLocationSelector: () => { }
 })
 
+/** The Quick home layout is only fetched where it is shown. */
+function QuickLayoutGate({ enabled, children }) {
+  return enabled ? <QuickLayoutProvider>{children}</QuickLayoutProvider> : children
+}
+
 export function useLocationSelector() {
   const context = useContext(LocationSelectorContext)
   if (!context) {
@@ -179,6 +186,14 @@ export default function UserLayout() {
   const location = useLocation()
   const [isSpinWheelOpen, setIsSpinWheelOpen] = useState(false)
 
+  // Anything can open the wheel — the Quick rewards banner, say — without a
+  // route of its own: dispatch "wh:open-spin".
+  useEffect(() => {
+    const open = () => setIsSpinWheelOpen(true)
+    window.addEventListener("wh:open-spin", open)
+    return () => window.removeEventListener("wh:open-spin", open)
+  }, [])
+
   useEffect(() => {
     // Reset scroll to top whenever location changes (pathname, search, or hash).
     // Skip when Home has a pending scroll position to restore (in-app back uses PUSH).
@@ -212,19 +227,36 @@ export default function UserLayout() {
                 {/* Quick desktop cart panel state, shared by the header button and the dock */}
                 <QuickCartUIProvider>
                 {/* One responsive header, Quick ETA strip and footer for every
-                    width (DESKTOP_THEME.md). */}
-                {showDesktopShell && <DesktopHeader onOpenSpin={() => setIsSpinWheelOpen(true)} />}
-                {showDesktopShell && storeMode === "quick" && <QuickZoneStrip />}
-                {/* Room for the phone's tab bar, which floats over the page. */}
-                <main className="pb-[57px] md:pb-0">
-                  <Outlet />
-                </main>
-                {showDesktopShell && <DesktopFooter />}
-                {showDesktopShell && <BottomNav />}
+                    width (DESKTOP_THEME.md). On Quick, phones get the ETA-first
+                    header instead (QUICK_MOBILE_SPEC.md). */}
+                <QuickLayoutGate enabled={storeMode === "quick"}>
+                  {showDesktopShell && (
+                    <DesktopHeader
+                      onOpenSpin={() => setIsSpinWheelOpen(true)}
+                      desktopOnly={storeMode === "quick"}
+                    />
+                  )}
+                  {showDesktopShell && storeMode === "quick" && <QuickMobileHeader />}
+                  {showDesktopShell && storeMode === "quick" && (
+                    <div className="hidden lg:block">
+                      <QuickZoneStrip />
+                    </div>
+                  )}
+                  {/* Room for the phone's tab bar, which floats over the page. */}
+                  <main className="pb-[57px] md:pb-0">
+                    <Outlet />
+                  </main>
+                  {showDesktopShell && <DesktopFooter />}
+                  {showDesktopShell && <BottomNav />}
+                </QuickLayoutGate>
 
                 {/* Floating Daily Spin trigger: bottom-left with rich animations (desktop & mobile) */}
+                {/* On Quick phones the cart bar owns the bottom of the screen; the
+                    rewards banner leads to Spin & Win instead. */}
                 {showDesktopShell && (
-                  <FloatingSpinWidget onOpenSpin={() => setIsSpinWheelOpen(true)} />
+                  <div className={storeMode === "quick" ? "hidden lg:block" : ""}>
+                    <FloatingSpinWidget onOpenSpin={() => setIsSpinWheelOpen(true)} />
+                  </div>
                 )}
 
                 {/* Engagement Modals & Widgets */}
@@ -232,7 +264,11 @@ export default function UserLayout() {
                   isOpen={isSpinWheelOpen}
                   onClose={() => setIsSpinWheelOpen(false)}
                 />
-                {showDesktopShell && <GeminiAssistantWidget />}
+                {showDesktopShell && (
+                  <div className={storeMode === "quick" ? "hidden lg:block" : ""}>
+                    <GeminiAssistantWidget />
+                  </div>
+                )}
 
                 {/* Quick (lg+) slide-in cart panel and bottom bar (QUICK_UI_SPEC.md) */}
                 {showDesktopShell && storeMode === "quick" && <QuickCartDock />}

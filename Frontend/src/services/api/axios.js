@@ -85,6 +85,7 @@ const ADMIN_PERMISSION_PATH_MAP = [
   { prefix: "/admin/reports", section: "report_management" },
   { prefix: "/admin/feedback-experiences", section: "report_management" },
   { prefix: "/content/hero-banners", section: "banner_management" },
+  { prefix: "/admin/quick-home-layout", section: "banner_management" },
   { prefix: "/admin/contact-messages", section: "support_management" },
   { prefix: "/admin/safety-emergency-reports", section: "support_management" },
   { prefix: "/admin/feature-settings", section: "system_settings" },

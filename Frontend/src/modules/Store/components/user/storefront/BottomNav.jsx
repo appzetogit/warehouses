@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom"
-import { Home, LayoutGrid, ShoppingCart, User } from "lucide-react"
+import { Home, LayoutGrid, RotateCcw, ShoppingCart, User } from "lucide-react"
 import { useCart } from "@store/context/CartContext"
 import { useStoreMode } from "@store/context/StoreModeContext"
 
@@ -10,17 +10,29 @@ import { useStoreMode } from "@store/context/StoreModeContext"
  */
 export default function BottomNav() {
   const { pathname } = useLocation()
-  const { storePath } = useStoreMode()
+  const { storePath, isQuick } = useStoreMode()
   const { getCartCount } = useCart()
   const count = getCartCount()
 
   const home = storePath("/")
-  const items = [
-    { to: home, label: "Home", icon: Home, match: (p) => p === home || p === "/" || p === "/quick" },
-    { to: storePath("/categories"), label: "Shop", icon: LayoutGrid, match: (p) => /\/(categories|category)/.test(p) },
-    { to: storePath("/cart"), label: "Cart", icon: ShoppingCart, match: (p) => p.endsWith("/cart"), badge: count },
-    { to: "/profile", label: "Account", icon: User, match: (p) => p.startsWith("/profile") },
-  ]
+  const isHome = (p) => p === home || p === "/" || p === "/quick"
+  const account = { to: "/profile", label: "Account", icon: User, match: (p) => p.startsWith("/profile") }
+
+  // Quick follows the instant-delivery apps (QUICK_MOBILE_SPEC.md §1): no Cart
+  // tab — the cart floats above the bar — and a way to buy the usual again.
+  const items = isQuick
+    ? [
+        { to: home, label: "Home", icon: Home, match: isHome },
+        { to: storePath("/order-again"), label: "Order Again", icon: RotateCcw, match: (p) => p.endsWith("/order-again") },
+        { to: storePath("/categories"), label: "Categories", icon: LayoutGrid, match: (p) => /\/(categories|category)/.test(p) },
+        account,
+      ]
+    : [
+        { to: home, label: "Home", icon: Home, match: isHome },
+        { to: storePath("/categories"), label: "Shop", icon: LayoutGrid, match: (p) => /\/(categories|category)/.test(p) },
+        { to: storePath("/cart"), label: "Cart", icon: ShoppingCart, match: (p) => p.endsWith("/cart"), badge: count },
+        account,
+      ]
 
   return (
     <nav

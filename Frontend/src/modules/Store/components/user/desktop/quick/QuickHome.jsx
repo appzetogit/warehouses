@@ -17,6 +17,8 @@ import QuickCategoryTiles from "./QuickCategoryTiles"
 import QuickPromoBanners from "./QuickPromoBanners"
 import { MIN_RAIL_PRODUCTS, QuickProductRail } from "./QuickRail"
 import { productId, productPrice, productMrp } from "./quickHelpers"
+import useIsDesktop from "../useIsDesktop"
+import QuickMobileHome from "../../quick-mobile/QuickMobileHome"
 
 const PRODUCT_LIMIT = 50
 
@@ -32,6 +34,7 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
   const [recommendedLoading, setRecommendedLoading] = useState(true)
   const [orderedIds, setOrderedIds] = useState([])
   const signedIn = isModuleAuthenticated("user")
+  const isDesktop = useIsDesktop()
 
   useEffect(() => {
     if (outOfZone) {
@@ -150,6 +153,23 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
   const bestsellerGroups = groups.filter((g) => g.items.length >= MIN_RAIL_PRODUCTS).slice(0, 2)
   const nothingToShow =
     !productsLoading && !recommendedLoading && deals.length < MIN_RAIL_PRODUCTS && !bestsellerGroups.length && recommended.length < MIN_RAIL_PRODUCTS
+
+  // Phones get the instant-delivery layout (QUICK_MOBILE_SPEC.md); the data
+  // above is shared, so neither layout fetches twice.
+  if (!isDesktop) {
+    return (
+      <QuickMobileHome
+        products={products}
+        productsLoading={productsLoading}
+        deals={deals}
+        groups={groups}
+        orderedIds={orderedIds}
+        categoryLink={categoryLink}
+        outOfZone={outOfZone}
+        areaName={areaName}
+      />
+    )
+  }
 
   return (
     <div className="wh-desktop min-h-screen bg-wh-page pb-16">

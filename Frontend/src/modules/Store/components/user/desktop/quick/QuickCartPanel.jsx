@@ -146,7 +146,7 @@ function QuickCartSlidePanel() {
       <button type="button" aria-label="Close cart" onClick={closePanel} className="absolute inset-0 h-full w-full cursor-default bg-black/50" />
       <div
         ref={panelRef}
-        className="absolute right-0 top-0 flex h-full w-[400px] flex-col bg-wh-surface text-wh-text shadow-2xl"
+        className="wh-slide-in-right absolute right-0 top-0 flex h-full w-full max-w-[400px] flex-col bg-wh-surface text-wh-text shadow-2xl"
       >
         <div className="flex h-[56px] shrink-0 items-center justify-between border-b border-wh-border px-4">
           <h2 className="text-[16px] font-bold">
@@ -234,9 +234,11 @@ function QuickCartBottomBar() {
   return (
     // The strip spans the window, so it must not swallow clicks meant for the
     // buttons that float beside it; only the bar itself takes them.
-    <div className="wh-desktop pointer-events-none fixed inset-x-0 bottom-0 z-[60]">
-      <div className="pointer-events-auto mx-auto mb-4 flex max-w-[520px] items-center gap-3 rounded-[10px] bg-wh-brand-ink px-4 py-3 text-white shadow-2xl">
-        <ShoppingCart className="h-5 w-5 shrink-0" aria-hidden="true" />
+    <div className="wh-desktop pointer-events-none fixed inset-x-0 bottom-[57px] z-[60] md:bottom-0">
+      <div className="wh-slide-up-bar pointer-events-auto mx-3 mb-3 flex max-w-[520px] items-center gap-3 rounded-[12px] bg-wh-brand-ink px-4 py-3 text-white shadow-2xl sm:mx-auto md:mb-4">
+        <span key={itemCount} className="wh-pop flex shrink-0">
+          <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+        </span>
         <p className="min-w-0 flex-1 truncate text-[14px] font-semibold">
           {itemCount} item{itemCount === 1 ? "" : "s"} · ₹{formatMoney(total)}
         </p>

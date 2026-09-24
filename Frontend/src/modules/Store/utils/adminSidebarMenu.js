@@ -244,6 +244,8 @@ const adminSidebarMenuTemplate = [
     label: "BANNER SETTINGS",
     items: [
       { type: "link", label: "Landing Page Management", path: "/hero-banner-management", icon: "Image" },
+      // The Quick phone home's themes, featured cards and campaigns (QUICK_MOBILE_SPEC.md).
+      { type: "link", label: "Quick Home Layout", path: "/quick-home-layout", icon: "LayoutGrid", panels: QUICK },
       { type: "link", label: "Promotional Banners", path: "/promotional-banner", icon: "Megaphone" },
 // { type: "link", label: "General Banners", path: "/banners", icon: "Image" },
     ],

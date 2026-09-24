@@ -12,6 +12,7 @@ DELETE /api/v1/admin/orders/:orderId
 DELETE /api/v1/admin/product-reviews/:id
 DELETE /api/v1/admin/products/:id
 DELETE /api/v1/admin/push-campaigns/:id
+DELETE /api/v1/admin/quick-home-layout
 DELETE /api/v1/admin/safety-emergency-reports/:id
 DELETE /api/v1/admin/seller-app-banners/:id
 DELETE /api/v1/admin/seller-commissions/:id
@@ -110,6 +111,7 @@ GET /api/v1/admin/push-campaigns/
 GET /api/v1/admin/push-campaigns/:id
 GET /api/v1/admin/push-campaigns/settings
 GET /api/v1/admin/queues
+GET /api/v1/admin/quick-home-layout
 GET /api/v1/admin/referral-settings
 GET /api/v1/admin/reports/coin-liability
 GET /api/v1/admin/reports/coin-liability/export
@@ -190,6 +192,7 @@ GET /api/v1/content/hero-banners/landing/settings
 GET /api/v1/content/hero-banners/public
 GET /api/v1/content/landing/settings/public
 GET /api/v1/content/pages/:key
+GET /api/v1/content/quick-home
 GET /api/v1/content/referral-settings
 GET /api/v1/content/top-banners
 GET /api/v1/content/top-banners/public
@@ -532,6 +535,7 @@ PUT /api/v1/admin/fee-settings
 PUT /api/v1/admin/first-order-guard/settings
 PUT /api/v1/admin/pages-social-media/:key
 PUT /api/v1/admin/push-campaigns/settings
+PUT /api/v1/admin/quick-home-layout
 PUT /api/v1/admin/referral-settings
 PUT /api/v1/admin/safety-emergency-reports/:id/priority
 PUT /api/v1/admin/safety-emergency-reports/:id/status

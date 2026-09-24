@@ -220,7 +220,7 @@ function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
  * Desktop (lg+) storefront header: top bar + category bar, sticky.
  * Props: onOpenSpin() opens the existing Spin & Win modal.
  */
-export default function DesktopHeader({ onOpenSpin }) {
+export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { isQuick, storePath, fulfilmentMode } = useStoreMode()
@@ -317,7 +317,8 @@ export default function DesktopHeader({ onOpenSpin }) {
     "flex h-[32px] items-center whitespace-nowrap rounded-[4px] px-2.5 text-[13px] font-medium text-gray-800 hover:text-black hover:bg-gray-100 transition-colors"
 
   return (
-    <header className="wh-desktop sticky top-0 z-50">
+    // desktopOnly: on Quick, phones get QuickMobileHeader instead (QUICK_MOBILE_SPEC.md).
+    <header className={`wh-desktop sticky top-0 z-50 ${desktopOnly ? "hidden lg:block" : ""}`}>
       {/* Top bar (Rich Orange Gradient) */}
       <div className="bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316] shadow-sm">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-1 gap-y-2 px-2.5 py-2 lg:h-[62px] lg:flex-nowrap lg:gap-x-1 lg:px-[20px] lg:py-[6px]">

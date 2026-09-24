@@ -171,7 +171,7 @@ async function facetsFor(match) {
 /**
  * Product search: a grid of things you can buy, across the stores serving a zone.
  *
- * Query: q, categoryId, zoneId, fulfilmentMode (quick|standard), isVeg,
+ * Query: q, categoryId, zoneId, fulfilmentMode (quick|standard), minDiscount, isVeg,
  * inStockOnly, quickOnly, minPrice,
  * maxPrice, brand (comma list), attr[Name]=v1,v2, packSize ("5 kg"), sort, page, limit, facets.
  *
@@ -228,6 +228,25 @@ export async function searchProducts(query = {}) {
     if (brands.length) filters.push({ brand: { $in: brands.map((b) => new RegExp(`^${escapeRegex(b)}$`, 'i')) } });
     const price = priceFilter(toNumber(query.minPrice), toNumber(query.maxPrice));
     if (price) filters.push(price);
+    // "Minimum 35% off" tiles (QUICK_MOBILE_SPEC.md): the saving on the listed
+    // MRP, for products that carry one.
+    const minDiscount = toNumber(query.minDiscount);
+    if (minDiscount && minDiscount > 0 && minDiscount < 100) {
+        filters.push({
+            $expr: {
+                $and: [
+                    { $gt: ['$mrp', 0] },
+                    { $gt: ['$mrp', '$price'] },
+                    {
+                        $gte: [
+                            { $multiply: [{ $divide: [{ $subtract: ['$mrp', '$price'] }, '$mrp'] }, 100] },
+                            minDiscount,
+                        ],
+                    },
+                ],
+            },
+        });
+    }
     const attrs = attributeFilter(query.attr);
     if (attrs) filters.push(attrs);
 

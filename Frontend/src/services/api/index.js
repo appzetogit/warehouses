@@ -62,6 +62,9 @@ export const catalogAPI = {
   /** Shop delivery window `{ minDays, maxDays, fromDate, toDate }`; `{ pincode, fulfilmentMode: "standard" }`. */
   getDeliveryEstimate: (params = {}) =>
     apiClient.get("/catalog/delivery-estimate", { params }),
+  /** The Quick phone home: themes, featured cards, campaigns and category groups. */
+  getQuickHome: (zoneId) =>
+    apiClient.get("/content/quick-home", { params: zoneId ? { zoneId } : {} }),
 };
 
 /** Admin management of attributes and the sets that attach them to categories. */
@@ -1340,6 +1343,14 @@ export const adminAPI = {
       contextModule: "admin",
     });
   },
+
+  /** Quick phone home layout (QUICK_MOBILE_SPEC.md §3); no zoneId = the global layout. */
+  getQuickHomeLayout: (zoneId) =>
+    apiClient.get("/admin/quick-home-layout", { params: zoneId ? { zoneId } : {}, contextModule: "admin" }),
+  saveQuickHomeLayout: (zoneId, layout) =>
+    apiClient.put("/admin/quick-home-layout", layout, { params: zoneId ? { zoneId } : {}, contextModule: "admin" }),
+  resetQuickHomeLayout: (zoneId) =>
+    apiClient.delete("/admin/quick-home-layout", { params: { zoneId }, contextModule: "admin" }),
 };
 
 /** Seller API - OTP login via new backend; no email/password. */

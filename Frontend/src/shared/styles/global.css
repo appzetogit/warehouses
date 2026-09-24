@@ -401,3 +401,48 @@
     transform: none;
   }
 }
+
+/* Quick phone (QUICK_MOBILE_SPEC.md §5): panels slide, bars rise, counts pop,
+ * tiles bob. All off under reduced motion. */
+@keyframes wh-slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes wh-slide-up-bar {
+  from { opacity: 0; transform: translateY(120%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wh-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+@keyframes wh-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes wh-shuffle {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  33% { transform: translateX(3px) rotate(-4deg); }
+  66% { transform: translateX(-3px) rotate(4deg); }
+}
+
+.wh-slide-in-right { animation: wh-slide-in-right 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.wh-slide-up-bar { animation: wh-slide-up-bar 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+.wh-pop { animation: wh-pop 0.45s ease-out; }
+.wh-bob { animation: wh-bob 3.2s ease-in-out infinite; }
+.wh-shuffle { animation: wh-shuffle 2.8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wh-slide-in-right,
+  .wh-slide-up-bar,
+  .wh-pop,
+  .wh-bob,
+  .wh-shuffle {
+    animation: none;
+  }
+}

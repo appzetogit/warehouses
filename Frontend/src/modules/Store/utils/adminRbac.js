@@ -71,6 +71,7 @@ const PATH_PREFIX_TO_SECTION = [
   { prefix: "/low-stock", section: "product_management" },
   { prefix: "/first-order-claims", section: "promotions_management" },
   { prefix: "/hero-banner-management", section: "banner_management" },
+  { prefix: "/quick-home-layout", section: "banner_management" },
   { prefix: "/promotional-banner", section: "banner_management" },
   { prefix: "/feature-settings", section: "system_settings" },
   { prefix: "/power-scanning", section: "system_settings" },

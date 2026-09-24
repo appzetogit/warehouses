@@ -152,6 +152,7 @@ const ReactSite = lazy(() => import("@store/pages/admin/system/ReactSite"));
 const CleanDatabase = lazy(() => import("@store/pages/admin/system/CleanDatabase"));
 const AddonActivation = lazy(() => import("@store/pages/admin/system/AddonActivation"));
 const LandingPageManagement = lazy(() => import("@store/pages/admin/system/LandingPageManagement"));
+const QuickHomeLayout = lazy(() => import("@store/pages/admin/system/QuickHomeLayout"));
 const EditSeller = lazy(() => import("@store/pages/admin/seller/EditSeller"));
 const AdminLogin = lazy(() => import("@store/pages/admin/auth/AdminLogin"));
 const AdminForgotPassword = lazy(() => import("@store/pages/admin/auth/AdminForgotPassword"));
@@ -463,6 +464,7 @@ export default function AdminRouter() {
             <Route path="clean-database" element={<CleanDatabase />} />
             <Route path="addon-activation" element={<AddonActivation />} />
             <Route path="hero-banner-management" element={<LandingPageManagement />} />
+            <Route path="quick-home-layout" element={<QuickHomeLayout />} />
           </Route>
 
           {/* TAXI ADMIN - Placeholder for future implementation */}

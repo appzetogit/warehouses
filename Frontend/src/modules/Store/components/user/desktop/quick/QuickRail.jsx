@@ -100,7 +100,7 @@ export function QuickProductRail({ title, products = [], seeAllTo, etaMinutes, l
               onClick={() => scroll(-1)}
               aria-label={`Scroll ${title} left`}
               className={cx(
-                "absolute -left-3 top-[100px] flex h-9 w-9 items-center justify-center rounded-full border border-wh-border bg-wh-surface shadow-md",
+                "absolute -left-3 top-[100px] hidden h-9 w-9 items-center justify-center rounded-full border border-wh-border bg-wh-surface shadow-md lg:flex",
                 focusRing,
               )}
             >
@@ -111,7 +111,7 @@ export function QuickProductRail({ title, products = [], seeAllTo, etaMinutes, l
               onClick={() => scroll(1)}
               aria-label={`Scroll ${title} right`}
               className={cx(
-                "absolute -right-3 top-[100px] flex h-9 w-9 items-center justify-center rounded-full border border-wh-border bg-wh-surface shadow-md",
+                "absolute -right-3 top-[100px] hidden h-9 w-9 items-center justify-center rounded-full border border-wh-border bg-wh-surface shadow-md lg:flex",
                 focusRing,
               )}
             >

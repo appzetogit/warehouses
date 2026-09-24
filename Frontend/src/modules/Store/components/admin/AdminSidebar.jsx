@@ -15,6 +15,7 @@ import {
   FolderTree,
   Plus,
   Utensils,
+  LayoutGrid,
   Megaphone,
   ChevronDown,
   ChevronRight,
@@ -73,6 +74,7 @@ const debugError = (...args) => {}
 
 // Icon mapping
 const iconMap = {
+  LayoutGrid,
   Star,
   BellRing,
   RotateCcw,

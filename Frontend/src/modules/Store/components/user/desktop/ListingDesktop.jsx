@@ -234,7 +234,7 @@ const EMPTY_FILTERS = { brands: [], attrs: {}, minPrice: null, maxPrice: null, i
  * Props: q, smart (bool, search chips), categoryId (Mongo id) or categorySlug,
  * onSelectCategory(cat|null), zoneId, title, emptyText.
  */
-export function DesktopProductListing({ q = "", smart = false, categoryId = null, categorySlug = null, onSelectCategory, zoneId, title }) {
+export function DesktopProductListing({ q = "", smart = false, categoryId = null, categorySlug = null, onSelectCategory, zoneId, title, minDiscount = null }) {
   const { isQuick, fulfilmentMode } = useStoreMode()
   const channel = isQuick ? "quick" : "shop"
   const addToCart = useDesktopAddToCart()
@@ -276,7 +276,8 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
 
   useEffect(() => {
     if (waitingForCategory) return undefined
-    if (!q && !effectiveCategoryId && !(categorySlug === "all")) {
+    // A discount page ("Minimum 35% off") lists across every category.
+    if (!q && !effectiveCategoryId && !(categorySlug === "all") && !(minDiscount > 0)) {
       setState({ loading: false, products: [], total: 0, facets: null, chips: [] })
       return undefined
     }
@@ -291,6 +292,7 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
       ...(filters.minPrice != null ? { minPrice: filters.minPrice } : {}),
       ...(filters.maxPrice != null ? { maxPrice: filters.maxPrice } : {}),
       ...(filters.inStockOnly ? { inStockOnly: true } : {}),
+      ...(minDiscount > 0 ? { minDiscount } : {}),
       attrs: filters.attrs,
       zoneId,
       fulfilmentMode,
@@ -312,7 +314,7 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
       })
       .catch(() => { if (!cancelled) setState({ loading: false, products: [], total: 0, facets: null, chips: [] }) })
     return () => { cancelled = true }
-  }, [q, smart, removedChips, effectiveCategoryId, categorySlug, waitingForCategory, filters, sort, page, zoneId, fulfilmentMode])
+  }, [q, smart, removedChips, effectiveCategoryId, categorySlug, waitingForCategory, filters, sort, page, zoneId, fulfilmentMode, minDiscount])
 
   const update = (patch) => { setFilters((f) => ({ ...f, ...patch })); setPage(1) }
   const toggleBrand = (b) => update({ brands: filters.brands.includes(b) ? filters.brands.filter((x) => x !== b) : [...filters.brands, b] })

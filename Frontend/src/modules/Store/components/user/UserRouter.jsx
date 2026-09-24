@@ -9,6 +9,7 @@ import ProtectedRoute from "@store/components/ProtectedRoute"
 // Home & Discovery
 const Home = lazy(() => import("@store/pages/user/Home"))
 const Categories = lazy(() => import("@store/pages/user/Categories"))
+const OrderAgain = lazy(() => import("@store/pages/user/OrderAgain"))
 const CategoryPage = lazy(() => import("@store/pages/user/CategoryPage"))
 const Sellers = lazy(() => import("@store/pages/user/sellers/Sellers"))
 const SellerDetails = lazy(() => import("@store/pages/user/sellers/SellerDetails"))
@@ -87,6 +88,7 @@ export default function UserRouter() {
             <Route key={base || "shop"} path={base || undefined}>
               <Route index element={<Home />} />
               <Route path="categories" element={<Categories />} />
+              <Route path="order-again" element={<OrderAgain />} />
               <Route path="category/:category" element={<CategoryPage />} />
               <Route path="sellers" element={<Sellers />} />
               <Route path="sellers/:slug" element={<SellerDetails />} />

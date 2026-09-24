@@ -32,6 +32,11 @@ import { pushCampaignAdminRoutes, firstOrderGuardAdminRoutes } from '../../campa
 import aiAdminRoutes from '../../ai/routes/aiAdmin.routes.js';
 import courierOpsAdminRoutes from '../../orders/routes/courierOps.admin.routes.js';
 import { adminReviewRoutes } from '../../reviews/routes/productReview.routes.js';
+import {
+    getAdminQuickHomeController,
+    resetAdminQuickHomeController,
+    saveAdminQuickHomeController,
+} from '../../landing/controllers/quickHomeLayout.controller.js';
 
 const router = express.Router();
 
@@ -95,6 +100,7 @@ const resolveSectionFromRequest = (path = '', method = '') => {
     if (path.startsWith('/ai/')) return 'system_settings';
     if (path.startsWith('/feature-settings') || path.startsWith('/business-settings') || path.startsWith('/power-scanning') || path.startsWith('/notifications')) return 'system_settings';
     if (path.startsWith('/pages-social-media')) return 'pages_social_media';
+    if (path.startsWith('/quick-home-layout')) return 'banner_management';
     if (path.startsWith('/sidebar-badges') || path.startsWith('/dashboard-stats')) return 'dashboard';
     return null;
 };
@@ -460,6 +466,12 @@ router.get(
     adminController.getZoneById
 );
 router.post('/zones', adminController.createZone);
+
+// Quick phone home layout (QUICK_MOBILE_SPEC.md §3): ?zoneId= targets a zone,
+// none targets the global layout every zone falls back to.
+router.get('/quick-home-layout', getAdminQuickHomeController);
+router.put('/quick-home-layout', saveAdminQuickHomeController);
+router.delete('/quick-home-layout', resetAdminQuickHomeController);
 router.patch('/zones/:id', adminController.updateZone);
 router.delete('/zones/:id', adminController.deleteZone);
 

@@ -46,6 +46,7 @@ import {
 import { detectZonePublicController, listZonesPublicController, listZonesNearbyPublicController } from '../controllers/zonePublic.controller.js';
 import { getPublicPageController } from '../../admin/controllers/pageContent.controller.js';
 import { getPublicReferralSettingsController } from '../controllers/publicReferralSettings.controller.js';
+import { getPublicQuickHomeController } from '../controllers/quickHomeLayout.controller.js';
 
 const router = express.Router();
 
@@ -136,6 +137,8 @@ router.get('/top-banners/public', getPublicTopBannersController);
 router.get('/explore-icons/public', getPublicExploreIconsController);
 router.get('/hero-banners/home-promotion/public', getPublicHomePromotionBannersController);
 router.get('/landing/settings/public', getPublicLandingSettingsController);
+// The Quick phone home's themes, featured cards, campaigns and category groups.
+router.get('/quick-home', getPublicQuickHomeController);
 router.get('/zones/detect', detectZonePublicController);
 router.get('/zones/nearby', listZonesNearbyPublicController);
 router.get('/zones/public', listZonesPublicController);
