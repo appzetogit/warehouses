@@ -82,16 +82,19 @@ export default function UserRouter() {
     <Suspense fallback={<Loader />}>
       <Routes>
         <Route element={<UserLayout />}>
-          {/* Storefronts: e-commerce shop at "/" and quick store at "/quick".
+          {/* Storefronts: e-commerce shop at "/" and "/shop", and quick store at "/quick".
               Same page components; they read the mode from useStoreMode(). */}
-          {["", "quick"].map((base) => (
-            <Route key={base || "shop"} path={base || undefined}>
+          {["", "shop", "quick"].map((base) => (
+            <Route key={base || "shop-root"} path={base || undefined}>
               <Route index element={<Home />} />
               <Route path="categories" element={<Categories />} />
               <Route path="order-again" element={<OrderAgain />} />
               <Route path="category/:category" element={<CategoryPage />} />
               <Route path="sellers" element={<Sellers />} />
               <Route path="sellers/:slug" element={<SellerDetails />} />
+              <Route path="stores" element={<Sellers />} />
+              <Route path="stores/:slug" element={<SellerDetails />} />
+              <Route path="wishlist" element={<Favorites />} />
               <Route path="search" element={<SearchResults />} />
               <Route path="product/:id" element={<ProductDetail />} />
               <Route path="cart" element={<Cart />} />

@@ -1,228 +1,42 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { ArrowLeft, ChevronDown, Coins, Mic, Search, User } from "lucide-react"
-import { catalogAPI, coinsAPI } from "@/services/api"
+import { ArrowLeft, ChevronDown, MapPin, Menu, Mic, Search, ShoppingCart } from "lucide-react"
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { useStoreMode } from "@store/context/StoreModeContext"
-import { isModuleAuthenticated } from "@store/utils/auth"
+import { useCart } from "@store/context/CartContext"
+import { BRAND_LOGO_ON_DARK } from "@/config/brandMark"
 import { useLocationSelector } from "../UserLayout"
-import { useQuickEta } from "../desktop/useDeliveryEstimates"
-import { usePublicCategories } from "../desktop/useDesktopShell"
-import { mediaUrl } from "../desktop/desktopCart"
 import SearchSuggestions, { useSearchSuggestions, useSuggestionKeyboard } from "../desktop/SearchSuggestions"
-import { useQuickLayout } from "./QuickLayoutContext"
-import useTypewriter from "./useTypewriter"
-
-/**
- * The Quick storefront's phone header (QUICK_MOBILE_SPEC.md §1, Q1).
- *
- * On the Quick home: the ETA block ("Delivery in 10 minutes", distance,
- * address, wallet, profile) scrolls away, and the search box and theme tabs
- * stay pinned. On every other Quick page: a back button beside the pinned
- * search. Hidden from `lg`, where the desktop header takes over.
- */
+import { usePublicCategories } from "../desktop/useDesktopShell"
 
 const SpeechRecognition =
   typeof window !== "undefined" ? window.SpeechRecognition || window.webkitSpeechRecognition : null
 
-function EtaBlock() {
-  const eta = useQuickEta()
-  const { effectiveLocation, displayAddressText } = useDeliveryLocation()
-  const { openLocationSelector } = useLocationSelector()
-  const signedIn = isModuleAuthenticated("user")
-  const [distanceKm, setDistanceKm] = useState(null)
-  const [coins, setCoins] = useState(null)
+const FASHION_CHIPS = [
+  { label: "T-shirts", icon: "👕", link: "/quick/category/t-shirts" },
+  { label: "Jeans", icon: "👖", link: "/quick/category/jeans" },
+  { label: "Shoes", icon: "👟", link: "/quick/category/footwear" },
+  { label: "Jackets", icon: "🧥", link: "/quick/category/jackets" },
+  { label: "Kurtas", icon: "👗", link: "/quick/category/kurtas" },
+  { label: "Dresses", icon: "👗", link: "/quick/category/dresses" },
+  { label: "Bags", icon: "👜", link: "/quick/category/bags" },
+]
 
-  const lat = effectiveLocation?.latitude
-  const lng = effectiveLocation?.longitude
-
-  // How far the nearest Quick store is from the address.
-  useEffect(() => {
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setDistanceKm(null)
-      return undefined
-    }
-    let cancelled = false
-    catalogAPI
-      .getNearbyStores({ lat, lng, limit: 1, fulfilmentMode: "quick" })
-      .then((res) => {
-        const km = Number(res?.data?.data?.stores?.[0]?.distanceKm)
-        if (!cancelled) setDistanceKm(Number.isFinite(km) ? km : null)
-      })
-      .catch(() => {
-        if (!cancelled) setDistanceKm(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [lat, lng])
-
-  useEffect(() => {
-    if (!signedIn) {
-      setCoins(null)
-      return undefined
-    }
-    let cancelled = false
-    coinsAPI
-      .getBalance()
-      .then((res) => {
-        const d = res?.data?.data
-        const n = Number(d?.balance ?? d?.coins ?? d)
-        if (!cancelled) setCoins(Number.isFinite(n) ? n : 0)
-      })
-      .catch(() => {
-        if (!cancelled) setCoins(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [signedIn])
-
-  const label = effectiveLocation?.label || effectiveLocation?.deliveryAddress?.label || "Deliver to"
-
-  return (
-    <div className="px-4 pb-3 pt-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[13px] font-bold text-wh-text">Delivery in</p>
-          <div className="mt-0.5 flex flex-wrap items-center gap-2">
-            {/* The number eases in whenever the address (and so the ETA) changes. */}
-            <span key={eta} className="wh-reveal is-visible text-[27px] font-black leading-none tracking-tight text-wh-text">
-              {eta} minutes
-            </span>
-            <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-wh-success opacity-60 motion-reduce:animate-none" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-wh-success" />
-            </span>
-            {distanceKm != null ? (
-              <span className="rounded-full bg-[#E6F4F1] px-2 py-0.5 text-[11px] font-bold text-[#0F766E]">
-                {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`} away
-              </span>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={openLocationSelector}
-            className="mt-1.5 flex max-w-full items-center gap-1 text-left text-[14px] text-wh-text"
-          >
-            <span className="shrink-0 font-black uppercase">{label} -</span>
-            <span className="truncate">{displayAddressText}</span>
-            <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {signedIn ? (
-            <Link
-              to="/coins"
-              aria-label={`Coins: ${coins ?? 0}`}
-              className="flex h-11 w-11 flex-col items-center justify-center rounded-full bg-wh-surface shadow-sm"
-            >
-              <Coins className="h-4 w-4 text-wh-brand-ink" aria-hidden="true" />
-              <span className="text-[10px] font-bold leading-none text-wh-text">{coins ?? 0}</span>
-            </Link>
-          ) : null}
-          <Link
-            to={signedIn ? "/profile" : "/auth/login"}
-            aria-label={signedIn ? "Your account" : "Sign in"}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-wh-surface shadow-sm"
-          >
-            <User className="h-5 w-5 text-wh-text" aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/** Icon tabs, one per theme, with an underline that slides to the chosen one. */
-function ThemeTabs() {
-  const { layout, activeSlug, setActiveSlug } = useQuickLayout()
-  const listRef = useRef(null)
-  const [bar, setBar] = useState({ left: 0, width: 0 })
-
-  useLayoutEffect(() => {
-    const list = listRef.current
-    const active = list?.querySelector(`[data-slug="${activeSlug}"]`)
-    if (!active) return
-    setBar({ left: active.offsetLeft, width: active.offsetWidth })
-    active.scrollIntoView?.({ block: "nearest", inline: "center", behavior: "smooth" })
-  }, [activeSlug, layout.themes.length])
-
-  if (layout.themes.length < 2) return null
-
-  return (
-    <div className="relative border-b border-wh-border">
-      <div
-        ref={listRef}
-        role="tablist"
-        aria-label="Shop by theme"
-        className="relative flex gap-1 overflow-x-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {layout.themes.map((theme) => {
-          const active = theme.slug === activeSlug
-          const icon = mediaUrl(theme.iconUrl)
-          return (
-            <button
-              key={theme.slug}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              data-slug={theme.slug}
-              onClick={() => setActiveSlug(theme.slug)}
-              className={`flex shrink-0 flex-col items-center gap-1 px-3 pb-2 pt-1 text-[12px] transition-colors ${
-                active ? "font-bold text-wh-text" : "text-wh-muted"
-              }`}
-            >
-              {icon ? (
-                <img
-                  src={icon}
-                  alt=""
-                  className={`h-6 w-6 object-contain transition-transform duration-300 ${active ? "scale-110" : "opacity-70"}`}
-                />
-              ) : (
-                <span
-                  aria-hidden="true"
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black transition-colors ${
-                    active ? "bg-wh-brand text-wh-text" : "bg-wh-border text-wh-muted"
-                  }`}
-                >
-                  {theme.label.slice(0, 1)}
-                </span>
-              )}
-              {theme.label}
-            </button>
-          )
-        })}
-        <span
-          aria-hidden="true"
-          className="absolute bottom-0 h-[3px] rounded-t-full transition-all duration-300 ease-out"
-          style={{
-            left: bar.left + 10,
-            width: Math.max(0, bar.width - 20),
-            background: "var(--wh-text)",
-          }}
-        />
-      </div>
-    </div>
-  )
-}
-
-/** The pinned search: typing placeholder, suggestions, and a mic where the browser can listen. */
-function SearchRow({ showBack }) {
+export default function QuickMobileHeader() {
+  const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { storePath, fulfilmentMode } = useStoreMode()
-  const { zoneId } = useDeliveryLocation()
+  const isHome = /^\/quick\/?$/.test(pathname)
+  const { storePath, fulfilmentMode, isQuick } = useStoreMode()
+  const { effectiveLocation, setCommerceMode, zoneId } = useDeliveryLocation()
+  const { openLocationSelector } = useLocationSelector()
+  const { getCartCount } = useCart()
+  const cartCount = getCartCount()
   const { categories } = usePublicCategories(zoneId)
+
   const [q, setQ] = useState("")
   const [listening, setListening] = useState(false)
 
-  // Placeholder words: the zone's own subcategories, so it suggests real things.
-  const words = useMemo(() => {
-    const names = categories.filter((c) => c.parentId).map((c) => c.name.toLowerCase())
-    return (names.length ? names : ["milk", "atta", "chips", "fruits"]).slice(0, 8)
-  }, [categories])
-  const typed = useTypewriter(words)
+  const city = effectiveLocation?.city || "Indore"
 
   const goToSearch = (term) => navigate(`${storePath("/search")}?${new URLSearchParams({ q: term })}`)
 
@@ -233,6 +47,7 @@ function SearchRow({ showBack }) {
     setQ(item.label)
     return goToSearch(item.label)
   }
+
   const search = useSuggestionKeyboard({
     items: suggestions,
     onPick: pick,
@@ -262,98 +77,164 @@ function SearchRow({ showBack }) {
   }
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2">
-      {showBack ? (
+    <header className="wh-desktop sticky top-0 z-50 w-full max-w-full overflow-x-hidden bg-gradient-to-r from-[#ea580c] via-[#f97316] to-[#ea580c] pb-2 pt-2.5 text-white shadow-md lg:hidden">
+      {/* Row 1: Menu / Back, Logo, Delivery Location, Mode Switcher, Cart */}
+      <div className="flex items-center gap-1.5 px-3">
+        {!isHome ? (
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            aria-label="Back"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white hover:bg-black/10"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+        ) : (
+          <Link
+            to="/categories"
+            aria-label="Browse categories"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white hover:bg-black/10"
+          >
+            <Menu className="h-5 w-5" />
+          </Link>
+        )}
+
+        {/* Logo */}
+        <Link to={storePath("/")} className="shrink-0 flex items-center pr-1">
+          <img
+            src={BRAND_LOGO_ON_DARK}
+            alt="The Warehouses"
+            className="h-[28px] w-auto max-w-[80px] object-contain drop-shadow-sm"
+          />
+        </Link>
+
+        {/* Deliver to Indore */}
         <button
           type="button"
-          onClick={() => navigate(-1)}
-          aria-label="Back"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-wh-surface shadow-sm"
+          onClick={openLocationSelector}
+          className="flex min-w-0 max-w-[110px] flex-col text-left leading-tight sm:max-w-[140px]"
         >
-          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+          <span className="flex items-center gap-0.5 truncate text-[12px] font-bold">
+            <MapPin className="h-3 w-3 shrink-0 text-white" />
+            <span className="truncate">{city}</span>
+            <ChevronDown className="h-3 w-3 shrink-0" />
+          </span>
+          <span className="truncate text-[10px] font-medium text-amber-200">
+            Delivery in 30-60 min
+          </span>
         </button>
-      ) : null}
-      <form role="search" onSubmit={search.submit} ref={search.boxRef} className="relative min-w-0 flex-1">
-        <div className="flex h-11 items-center gap-2 rounded-xl border border-wh-border bg-wh-surface px-3 shadow-sm focus-within:border-wh-brand">
-          <Search className="h-5 w-5 shrink-0 text-wh-text" aria-hidden="true" />
-          <label htmlFor="wh-quick-search" className="sr-only">
-            Search Quick
-          </label>
-          <input
-            id="wh-quick-search"
-            type="search"
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value)
-              search.setOpen(true)
-            }}
-            onFocus={() => search.setOpen(true)}
-            onKeyDown={search.handleKeyDown}
-            placeholder={`Search "${typed}"`}
-            autoComplete="off"
-            role="combobox"
-            aria-expanded={search.open && suggestions.length > 0}
-            aria-controls="wh-quick-suggestions"
-            aria-autocomplete="list"
-            className="min-w-0 flex-1 bg-transparent text-[15px] text-wh-text placeholder:text-wh-muted focus:outline-none"
-          />
-          {SpeechRecognition ? (
-            <>
-              <span aria-hidden="true" className="h-5 w-px bg-wh-border" />
+
+        {/* Shop | Quick Pill Toggle */}
+        <div
+          role="group"
+          aria-label="Choose store mode"
+          className="ml-auto flex shrink-0 items-center rounded-full bg-black/25 p-0.5 border border-white/20 shadow-xs"
+        >
+          <button
+            type="button"
+            aria-pressed={!isQuick}
+            onClick={() => setCommerceMode("standard")}
+            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold transition-all ${
+              !isQuick ? "bg-white text-gray-950 shadow-xs" : "text-white/90 hover:text-white"
+            }`}
+          >
+            Shop
+          </button>
+          <button
+            type="button"
+            aria-pressed={isQuick}
+            onClick={() => setCommerceMode("quick")}
+            className={`flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold transition-all ${
+              isQuick ? "bg-white text-gray-950 shadow-xs" : "text-white/90 hover:text-white"
+            }`}
+          >
+            <span className="text-amber-500">⚡</span> Quick
+          </button>
+        </div>
+
+        {/* Cart */}
+        <Link
+          to={storePath("/cart")}
+          aria-label={`Cart: ${cartCount} items`}
+          className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white hover:bg-black/10"
+        >
+          <ShoppingCart className="h-5 w-5" />
+          {cartCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-white px-1 text-[10px] font-black leading-none text-[#ea580c] shadow-xs">
+              {cartCount > 9 ? "9+" : cartCount}
+            </span>
+          )}
+        </Link>
+      </div>
+
+      {/* Row 2: Search Bar */}
+      <div className="mt-2 px-3">
+        <form role="search" onSubmit={search.submit} ref={search.boxRef} className="relative w-full">
+          <div className="flex h-10 w-full items-center gap-2 rounded-xl bg-white px-3 shadow-xs">
+            <Search className="h-4 w-4 shrink-0 text-gray-400" />
+            <label htmlFor="wh-quick-search" className="sr-only">
+              Search
+            </label>
+            <input
+              id="wh-quick-search"
+              type="search"
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value)
+                search.setOpen(true)
+              }}
+              onFocus={() => search.setOpen(true)}
+              onKeyDown={search.handleKeyDown}
+              placeholder="Search for shirts, jackets, shoes, brands, size and more..."
+              autoComplete="off"
+              role="combobox"
+              aria-expanded={search.open && suggestions.length > 0}
+              aria-controls="wh-quick-suggestions"
+              aria-autocomplete="list"
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none"
+            />
+            {SpeechRecognition ? (
               <button
                 type="button"
                 onClick={listen}
-                aria-label={listening ? "Listening" : "Search by voice"}
-                className={`shrink-0 rounded-full p-1 ${listening ? "wh-blink text-wh-brand-ink" : "text-wh-text"}`}
+                aria-label={listening ? "Listening" : "Voice search"}
+                className="shrink-0 p-1 text-[#ea580c]"
               >
-                <Mic className="h-5 w-5" aria-hidden="true" />
+                <Mic className="h-4 w-4" />
               </button>
-            </>
-          ) : null}
-        </div>
-        {search.open ? (
-          <SearchSuggestions
-            listId="wh-quick-suggestions"
-            items={suggestions}
-            activeIndex={search.activeIndex}
-            onPick={(item) => {
-              search.setOpen(false)
-              pick(item)
-            }}
-            onHover={search.setActiveIndex}
-          />
-        ) : null}
-      </form>
-    </div>
-  )
-}
+            ) : null}
+          </div>
 
-export default function QuickMobileHeader() {
-  const { pathname } = useLocation()
-  const isHome = /^\/quick\/?$/.test(pathname)
-  const [stuck, setStuck] = useState(false)
-
-  // Give the pinned part a shadow once the ETA block has scrolled away.
-  useEffect(() => {
-    const onScroll = () => setStuck(window.scrollY > 8)
-    onScroll()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
-
-  return (
-    <div className="wh-desktop lg:hidden">
-      {isHome ? (
-        <div className="bg-wh-brand-50">
-          <EtaBlock />
-        </div>
-      ) : null}
-      <div
-        className={`sticky top-0 z-50 bg-wh-brand-50 transition-shadow duration-300 ${stuck ? "shadow-md" : ""}`}
-      >
-        <SearchRow showBack={!isHome} />
-        {isHome ? <ThemeTabs /> : null}
+          {search.open && (
+            <SearchSuggestions
+              listId="wh-quick-suggestions"
+              items={suggestions}
+              activeIndex={search.activeIndex}
+              onPick={(item) => {
+                search.setOpen(false)
+                pick(item)
+              }}
+              onHover={search.setActiveIndex}
+            />
+          )}
+        </form>
       </div>
-    </div>
+
+      {/* Row 3: Category Chips */}
+      {isHome && (
+        <div className="mt-2 flex gap-1.5 overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {FASHION_CHIPS.map((chip) => (
+            <Link
+              key={chip.label}
+              to={chip.link}
+              className="flex shrink-0 items-center gap-1 rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-gray-800 shadow-2xs hover:bg-white active:scale-95 transition-all"
+            >
+              <span>{chip.icon}</span>
+              <span>{chip.label}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </header>
   )
 }

@@ -7,23 +7,21 @@ import {
   Wallet,
   Tag,
   User,
-  Leaf,
-  Palette,
-  Bookmark,
-  Building2,
+  Package,
+  Heart,
+  Home,
+  CreditCard,
+  Star,
+  RefreshCw,
+  Bell,
+  HelpCircle,
+  Settings as SettingsIcon,
+  LogOut,
   Moon,
   Sun,
   Check,
-  Percent,
-  Info,
-  PenSquare,
-  AlertTriangle,
-  Settings as SettingsIcon,
-  Power,
-  ShoppingCart,
   MapPin,
   Share2,
-  Trash2,
   Coins,
 } from "lucide-react";
 
@@ -354,653 +352,250 @@ export default function Profile() {
 
   return (
     <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a]">
-      <div className="max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 lg:py-10 pb-20 sm:pb-24">
-        {/* Header: Back Arrow */}
-        <div className="flex items-center mb-4">
-          <Link to="/user">
-            <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-              <ArrowLeft className="h-5 w-5 text-black dark:text-white" />
-            </Button>
+      <div className="max-w-xl mx-auto px-4 py-4 pb-24">
+        {/* Header Bar */}
+        <div className="flex items-center justify-between mb-4">
+          <Link to="/" className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Account</h1>
+          <div className="w-8" />
+        </div>
+
+        {/* Profile Card (Matching Screen 7) */}
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <Avatar className="h-14 w-14 rounded-full border-2 border-orange-100 dark:border-orange-950/40 shrink-0">
+              {userProfile?.profileImage && (
+                <AvatarImage
+                  src={resolveMediaUrl(userProfile.profileImage) || undefined}
+                  alt={displayName}
+                />
+              )}
+              <AvatarFallback className="bg-gradient-to-br from-orange-400 to-orange-600 text-white text-xl font-bold">
+                {avatarInitial}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">
+                {displayName}
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                {userProfile?.phone || displayEmail}
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/profile/edit"
+            className="shrink-0 text-xs sm:text-sm font-semibold text-orange-500 hover:text-orange-600 dark:text-orange-400 px-3 py-1.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
+          >
+            Edit Profile
           </Link>
         </div>
 
-        {/* Profile Info Card */}
-        <Card className="bg-white dark:bg-[#1a1a1a] rounded-2xl py-0 pt-1 shadow-sm mb-0 border-0 dark:border-gray-800 overflow-hidden">
-          <CardContent className="p-4 py-0 pt-2">
-            <div className="flex items-start gap-4 mb-4">
-              <motion.div
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                transition={{ duration: 0.3, type: "spring", stiffness: 300 }}>
-                <Avatar className="h-16 w-16 bg-blue-300 border-0">
-                  {userProfile?.profileImage && (
-                    <AvatarImage
-                      src={resolveMediaUrl(userProfile.profileImage) || undefined}
-                      alt={displayName}
-                    />
-                  )}
-                  <AvatarFallback className="bg-blue-300 text-white text-2xl font-semibold">
-                    {avatarInitial}
-                  </AvatarFallback>
-                </Avatar>
-              </motion.div>
-              <div className="flex-1 pt-1">
-                <h2 className="text-xl font-bold text-black dark:text-white mb-1">
-                  {displayName}
-                </h2>
-                {hasValidEmail && (
-                  <p className="text-sm text-black dark:text-gray-300 mb-1">
-                    {userProfile.email}
+        {/* 4 Quick-Action Cards (Matching Screen 7) */}
+        <div className="grid grid-cols-4 gap-2.5 sm:gap-3.5 mb-5">
+          <Link
+            to="/orders"
+            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all text-center group"
+          >
+            <div className="h-11 w-11 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-1.5 text-orange-500 group-hover:scale-110 transition-transform">
+              <Package className="h-5 w-5" />
+            </div>
+            <span className="text-[11px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200">
+              My Orders
+            </span>
+          </Link>
+
+          <Link
+            to="/profile/favorites"
+            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all text-center group"
+          >
+            <div className="h-11 w-11 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-1.5 text-orange-500 group-hover:scale-110 transition-transform">
+              <Heart className="h-5 w-5" />
+            </div>
+            <span className="text-[11px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200">
+              Wishlist
+            </span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={openLocationSelector}
+            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all text-center group"
+          >
+            <div className="h-11 w-11 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-1.5 text-orange-500 group-hover:scale-110 transition-transform">
+              <MapPin className="h-5 w-5" />
+            </div>
+            <span className="text-[11px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200">
+              Addresses
+            </span>
+          </button>
+
+          <Link
+            to="/user/wallet"
+            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all text-center group"
+          >
+            <div className="h-11 w-11 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-1.5 text-orange-500 group-hover:scale-110 transition-transform">
+              <Wallet className="h-5 w-5" />
+            </div>
+            <span className="text-[11px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200">
+              Wallet
+            </span>
+          </Link>
+        </div>
+
+        {/* Menu List (Matching Screen 7) */}
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800/80 overflow-hidden mb-4">
+          <button
+            type="button"
+            onClick={openLocationSelector}
+            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <Home className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <div>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  My Addresses
+                </span>
+                {addresses?.length > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {addresses.length} saved address{addresses.length > 1 ? "es" : ""}
                   </p>
                 )}
-                {userProfile?.phone && (
-                  <p
-                    className={`text-sm ${hasValidEmail ? "text-gray-600 dark:text-gray-400" : "text-black dark:text-white"} mb-3`}>
-                    {userProfile.phone}
-                  </p>
-                )}
-                {!hasValidEmail && !userProfile?.phone && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Not available
-                  </p>
-                )}
-                {/* <Link to="/user/profile/activity" className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                  View activity
-                  <ChevronRight className="h-4 w-4" />
-                </Link> */}
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+          </button>
 
-        {/* Account Options */}
-        <div className="space-y-2 mb-3 mt-3">
-          <Link to="/user/wallet" className="block">
-            <motion.div
-              whileHover={{ x: 4, scale: 1.01 }}
-              transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-              <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                      whileHover={{ rotate: 15, scale: 1.1 }}
-                      transition={{ duration: 0.3 }}>
-                      <Wallet className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                    </motion.div>
-                    <span className="text-base font-medium text-gray-900 dark:text-white">
-                      {companyName} Money
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-semibold text-green-600 dark:text-green-400">
-                      {"\u20B9"}{Number(walletBalance || 0).toFixed(0)}
-                    </span>
-                    <motion.div
-                      whileHover={{ x: 4 }}
-                      transition={{ duration: 0.2 }}>
-                      <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                    </motion.div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </Link>
-          <Link to="/coins" className="block">
-            <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-amber-100 dark:bg-amber-900/30 rounded-full p-2">
-                    <Coins className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <span className="text-base font-medium text-gray-900 dark:text-white">Coins</span>
-                </div>
-                <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-              </CardContent>
-            </Card>
+          <Link
+            to="/profile/payments"
+            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <CreditCard className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                Payment Methods
+              </span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
           </Link>
 
-          <Link to="/user/profile/coupons" className="block">
-            <motion.div
-              whileHover={{ x: 4, scale: 1.01 }}
-              transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-              <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                      whileHover={{ rotate: 15, scale: 1.1 }}
-                      transition={{ duration: 0.3 }}>
-                      <Tag className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                    </motion.div>
-                    <span className="text-base font-medium text-gray-900 dark:text-white">
-                      Your coupons
-                    </span>
-                  </div>
-                  <motion.div
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: 0.2 }}>
-                    <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  </motion.div>
-                </CardContent>
-              </Card>
-            </motion.div>
+          <Link
+            to="/coins"
+            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <Coins className="h-5 w-5 text-amber-500" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                Coins &amp; Rewards
+              </span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
           </Link>
 
-          <Link to="/user/cart" className="block">
-            <motion.div
-              whileHover={{ x: 4, scale: 1.01 }}
-              transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-              <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                      whileHover={{ rotate: 15, scale: 1.1 }}
-                      transition={{ duration: 0.3 }}>
-                      <ShoppingCart className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                    </motion.div>
-                    <span className="text-base font-medium text-gray-900 dark:text-white">
-                      Your cart
-                    </span>
-                  </div>
-                  <motion.div
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: 0.2 }}>
-                    <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  </motion.div>
-                </CardContent>
-              </Card>
-            </motion.div>
+          <Link
+            to="/user/profile/activity"
+            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <Star className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                My Reviews
+              </span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
           </Link>
 
-          <Link to="/user/profile/refer-earn" className="block">
-            <motion.div
-              whileHover={{ x: 4, scale: 1.01 }}
-              transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-            <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                      whileHover={{ rotate: 15, scale: 1.1 }}
-                      transition={{ duration: 0.3 }}>
-                      <Tag className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                    </motion.div>
-                    <span className="text-base font-medium text-gray-900 dark:text-white">
-                      Refer & Earn
-                    </span>
-                  </div>
-                  {referralReward > 0 && (
-                    <span className="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300">
-                      Earn {"\u20B9"}{referralReward}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Invite a friend. Reward is added to your wallet when they
-                    sign up.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleShareReferral();
-                    }}
-                    className="inline-flex items-center gap-1 text-xs text-wh-brand-ink font-medium ml-2 px-2 py-1 rounded-md"
-                    disabled={!referralLink}>
-                    <Share2 className="h-3.5 w-3.5" />
-                    Refer
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-            </motion.div>
+          <Link
+            to="/orders"
+            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <RefreshCw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                Returns &amp; Exchanges
+              </span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
           </Link>
 
-          <motion.div
-            whileHover={{ x: 4, scale: 1.01 }}
-            transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-            <Card
-              className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer"
-              onClick={openLocationSelector}>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <motion.div
-                    className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                    whileHover={{ rotate: 15, scale: 1.1 }}
-                    transition={{ duration: 0.3 }}>
-                    <MapPin className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                  </motion.div>
-                  <div className="min-w-0">
-                    <p className="text-base font-medium text-gray-900 dark:text-white">
-                      Saved addresses
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {savedAddressSummary}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                    {addresses?.length || 0}
-                  </span>
-                  <motion.div
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: 0.2 }}>
-                    <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  </motion.div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <Link to="/user/profile/edit" className="block">
-            <motion.div
-              whileHover={{ x: 4, scale: 1.01 }}
-              transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-              <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                      whileHover={{ rotate: 15, scale: 1.1 }}
-                      transition={{ duration: 0.3 }}>
-                      <User className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                    </motion.div>
-                    <span className="text-base font-medium text-gray-900 dark:text-white">
-                      Your profile
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <motion.span
-                      className={`text-xs font-medium px-2 py-1 rounded ${isComplete
-                          ? "bg-green-100 text-green-700 border border-green-300"
-                          : "bg-orange-100 text-orange-800"
-                        }`}
-                      whileHover={{ scale: 1.1 }}
-                      transition={{ duration: 0.2 }}>
-                      {profileCompletion}% completed
-                    </motion.span>
-                    <motion.div
-                      whileHover={{ x: 4 }}
-                      transition={{ duration: 0.2 }}>
-                      <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                    </motion.div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+          <Link
+            to="/notifications"
+            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <Bell className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                Notifications
+              </span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
           </Link>
 
+          <Link
+            to="/profile/support"
+            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <HelpCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                Help &amp; Support
+              </span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setAppearanceOpen(true)}
+            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <SettingsIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <div>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Settings
+                </span>
+                <p className="text-xs text-gray-400 capitalize">
+                  Appearance: {appearance}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogoutClick}
+            className="w-full flex items-center justify-between p-4 hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-colors text-left group"
+          >
+            <div className="flex items-center gap-3.5 text-red-500 group-hover:text-red-600">
+              <LogOut className="h-5 w-5" />
+              <span className="text-sm font-bold">
+                Log Out
+              </span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-red-400" />
+          </button>
+        </div>
+
+        {/* Marketing toggle & extra settings */}
+        <div className="space-y-3">
           <MarketingPushToggle />
-
-          <motion.div
-            whileHover={{ x: 4, scale: 1.01 }}
-            transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-            <Card
-              className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer"
-              onClick={() => setVegModeOpen(true)}>
-              <CardContent className="p-4  flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <motion.div
-                    className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                    whileHover={{ rotate: 15, scale: 1.1 }}
-                    transition={{ duration: 0.3 }}>
-                    <Leaf className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                  </motion.div>
-                  <span className="text-base font-medium text-gray-900 dark:text-white">
-                    Veg Mode
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <motion.span
-                    className="text-base font-medium text-gray-900 dark:text-white"
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ duration: 0.2 }}>
-                    {vegMode ? "ON" : "OFF"}
-                  </motion.span>
-                  <motion.div
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: 0.2 }}>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </motion.div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ x: 4, scale: 1.01 }}
-            transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-            <Card
-              className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer"
-              onClick={() => setAppearanceOpen(true)}>
-              <CardContent className="p-4  flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <motion.div
-                    className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                    whileHover={{ rotate: 15, scale: 1.1 }}
-                    transition={{ duration: 0.3 }}>
-                    <Palette className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                  </motion.div>
-                  <span className="text-base font-medium text-gray-900 dark:text-white">
-                    Appearance
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <motion.span
-                    className="text-base font-medium text-gray-900 dark:text-white capitalize"
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ duration: 0.2 }}>
-                    {appearance}
-                  </motion.span>
-                  <motion.div
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: 0.2 }}>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </motion.div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-
-        {/* Collections Section */}
-        <div className="mb-3">
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <div className="w-1 h-4 bg-wh-brand rounded"></div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-              Collections
-            </h3>
-          </div>
-          <Link to="/user/profile/favorites">
-            <motion.div
-              whileHover={{ x: 4, scale: 1.01 }}
-              transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-              <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
-                <CardContent className="p-4  flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                      whileHover={{ rotate: 15, scale: 1.1 }}
-                      transition={{ duration: 0.3 }}>
-                      <Bookmark className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                    </motion.div>
-                    <span className="text-base font-medium text-gray-900 dark:text-white">
-                      Your collections
-                    </span>
-                  </div>
-                  <motion.div
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: 0.2 }}>
-                    <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  </motion.div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </Link>
-        </div>
-
-        {/* Food Orders Section */}
-        <div className="mb-3">
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <div className="w-1 h-4 bg-wh-brand rounded"></div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-              Food Orders
-            </h3>
-          </div>
-          <div className="space-y-2">
-            <Link to="/user/orders" className="block">
-              <motion.div
-                whileHover={{ x: 4, scale: 1.01 }}
-                transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-                <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <motion.div
-                        className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                        whileHover={{ rotate: 15, scale: 1.1 }}
-                        transition={{ duration: 0.3 }}>
-                        <Building2 className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                      </motion.div>
-                      <span className="text-base font-medium text-gray-900 dark:text-white">
-                        Your orders
-                      </span>
-                    </div>
-                    <motion.div
-                      whileHover={{ x: 4 }}
-                      transition={{ duration: 0.2 }}>
-                      <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Link>
-          </div>
-        </div>
-
-        {/* More Section */}
-        <div className="mb-8 pb-8">
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <div className="w-1 h-4 bg-wh-brand rounded"></div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-              More
-            </h3>
-          </div>
-          <div className="space-y-2">
-            <Link to="/user/profile/support" className="block">
-              <motion.div
-                whileHover={{ x: 4, scale: 1.01 }}
-                transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-                <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <motion.div
-                        className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                        whileHover={{ rotate: 15, scale: 1.1 }}
-                        transition={{ duration: 0.3 }}>
-                        <SettingsIcon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                      </motion.div>
-                      <span className="text-base font-medium text-gray-900 dark:text-white">
-                        Help & Support
-                      </span>
-                    </div>
-                    <motion.div
-                      whileHover={{ x: 4 }}
-                      transition={{ duration: 0.2 }}>
-                      <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Link>
-
-            <Link to="/user/profile/about" className="block">
-              <motion.div
-                whileHover={{ x: 4, scale: 1.01 }}
-                transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-                <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <motion.div
-                        className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                        whileHover={{ rotate: 15, scale: 1.1 }}
-                        transition={{ duration: 0.3 }}>
-                        <Info className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                      </motion.div>
-                      <span className="text-base font-medium text-gray-900 dark:text-white">
-                        About
-                      </span>
-                    </div>
-                    <motion.div
-                      whileHover={{ x: 4 }}
-                      transition={{ duration: 0.2 }}>
-                      <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Link>
-
-            <Link to="/user/profile/report-safety-emergency" className="block">
-              <motion.div
-                whileHover={{ x: 4, scale: 1.01 }}
-                transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-                <Card className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <motion.div
-                        className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                        whileHover={{ rotate: 15, scale: 1.1 }}
-                        transition={{ duration: 0.3 }}>
-                        <AlertTriangle className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                      </motion.div>
-                      <span className="text-base font-medium text-gray-900 dark:text-white">
-                        Report a safety emergency
-                      </span>
-                    </div>
-                    <motion.div
-                      whileHover={{ x: 4 }}
-                      transition={{ duration: 0.2 }}>
-                      <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Link>
-
-            <motion.div
-              whileHover={{ x: 4, scale: 1.01 }}
-              transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-              <Card
-                className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleLogoutClick}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      className="bg-gray-100 dark:bg-gray-800 rounded-full p-2"
-                      whileHover={{ rotate: 15, scale: 1.1 }}
-                      transition={{ duration: 0.3 }}>
-                      <Power
-                        className={`h-5 w-5 text-gray-700 dark:text-gray-300 ${isLoggingOut ? "animate-pulse" : ""}`}
-                      />
-                    </motion.div>
-                    <span className="text-base font-medium text-gray-900 dark:text-white">
-                      {isLoggingOut ? "Logging out..." : "Log out"}
-                    </span>
-                  </div>
-                  <motion.div
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: 0.2 }}>
-                    <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  </motion.div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ x: 4, scale: 1.01 }}
-              transition={{ duration: 0.2, type: "spring", stiffness: 300 }}>
-              <Card
-                className="bg-white dark:bg-[#1a1a1a] py-0 rounded-xl shadow-sm border-0 dark:border-gray-800 cursor-pointer"
-                onClick={() => setDeleteModalOpen(true)}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      className="bg-red-50 dark:bg-red-900/10 rounded-full p-2"
-                      whileHover={{ rotate: 15, scale: 1.1 }}
-                      transition={{ duration: 0.3 }}>
-                      <Trash2 className="h-5 w-5 text-red-500" />
-                    </motion.div>
-                    <span className="text-base font-medium text-red-600">
-                      Delete Account
-                    </span>
-                  </div>
-                  <motion.div
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: 0.2 }}>
-                    <ChevronRight className="h-5 w-5 text-red-300 dark:text-red-900/30" />
-                  </motion.div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
+          <button
+            type="button"
+            onClick={() => setDeleteModalOpen(true)}
+            className="w-full text-center text-xs text-gray-400 hover:text-red-500 py-2 transition-colors"
+          >
+            Delete Account
+          </button>
         </div>
       </div>
 
-      {/* Veg Mode Popup */}
-      <Dialog open={vegModeOpen} onOpenChange={setVegModeOpen}>
-        <DialogContent className="max-w-sm md:max-w-md lg:max-w-lg w-[calc(100%-2rem)] rounded-2xl p-0 overflow-hidden">
-          <DialogHeader className="p-5 pb-3">
-            <DialogTitle className="text-lg font-bold text-gray-900">
-              Veg Mode
-            </DialogTitle>
-            <DialogDescription className="text-sm text-gray-500">
-              Filter dishes based on your dietary preferences
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 px-5 pb-5">
-            <button
-              onClick={() => {
-                handleVegModeUpdate(true);
-                setVegModeOpen(false);
-              }}
-              className={`w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between ${vegMode
-                  ? "border-green-600 bg-green-50"
-                  : "border-gray-200 bg-white hover:border-gray-300"
-                }`}>
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${vegMode
-                      ? "border-green-600 bg-green-600"
-                      : "border-gray-300"
-                    }`}>
-                  {vegMode && <Check className="h-3 w-3 text-white" />}
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-gray-900 text-sm">
-                    Veg Mode ON
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Show only vegetarian options
-                  </p>
-                </div>
-              </div>
-              <Leaf
-                className={`h-5 w-5 ${vegMode ? "text-green-600" : "text-gray-400"}`}
-              />
-            </button>
-            <button
-              onClick={() => {
-                handleVegModeUpdate(false);
-                setVegModeOpen(false);
-              }}
-              className={`w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between ${!vegMode
-                  ? "border-red-600 bg-red-50"
-                  : "border-gray-200 bg-white hover:border-gray-300"
-                }`}>
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${!vegMode ? "border-red-600 bg-red-600" : "border-gray-300"
-                    }`}>
-                  {!vegMode && <Check className="h-3 w-3 text-white" />}
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-gray-900 text-sm">
-                    Veg Mode OFF
-                  </p>
-                  <p className="text-xs text-gray-500">Show all options</p>
-                </div>
-              </div>
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Logout Confirmation Popup */}
+{/* Logout Confirmation Popup */}
       {logoutConfirmOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#1a1a1a] p-5 shadow-2xl border border-gray-200 dark:border-gray-800">

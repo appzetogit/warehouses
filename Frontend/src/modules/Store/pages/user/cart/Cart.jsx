@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from "react"
 import { createPortal } from "react-dom"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Minus, ArrowLeft, ChevronRight, Clock, MapPin, Phone, FileText, Utensils, Tag, Percent, Share2, ChevronUp, ChevronDown, X, Check, Settings, CreditCard, Wallet, Building2, Sparkles, Banknote, Zap, CheckCircle2, MessageCircle, Send, Mail, Copy, Home, Briefcase, Pencil, Receipt, ShoppingCart, DoorOpen, PhoneOff, BellOff, Coins, Store, Truck, ShieldCheck, Trash2, ShoppingBag } from "lucide-react"
+import { Plus, Minus, ArrowLeft, ChevronRight, Clock, MapPin, Phone, FileText, Utensils, Tag, Percent, Share2, ChevronUp, ChevronDown, X, Check, Settings, CreditCard, Wallet, Building2, Sparkles, Banknote, Zap, CheckCircle2, MessageCircle, Send, Mail, Copy, Home, Briefcase, Pencil, Receipt, ShoppingCart, DoorOpen, PhoneOff, BellOff, Coins, Store, Truck, ShieldCheck, Trash2, ShoppingBag, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
 
@@ -17,6 +17,7 @@ import { useZone } from "@store/hooks/useZone"
 import { orderAPI, sellerAPI, adminAPI, userAPI, coinsAPI, API_ENDPOINTS } from "@store/api"
 import { API_BASE_URL } from "@store/api/config"
 import { catalogAPI } from "@/services/api"
+import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
 import { CHANNEL_COPY, addToOtherStoreCart, channelAvailability, findUnavailableCartItem, otherChannel } from "@store/utils/channelStock"
 import { initRazorpayPayment } from "@store/utils/razorpay"
 import { toast } from "sonner"
@@ -2601,57 +2602,33 @@ export default function Cart() {
 
   return (
     <div className="relative min-h-screen bg-slate-50 dark:bg-[#0a0a0a]">
-      {/* Header (mobile; desktop uses the site header and the subtotal card) */}
-      <div className="sticky top-0 z-20 flex-shrink-0 text-white lg:hidden">
-        <div style={{ backgroundColor: "var(--wh-nav-2)" }}>
-          <div className="max-w-7xl mx-auto px-3 md:px-6 pt-4 pb-4 md:pt-5 md:pb-5">
-            <div className="flex items-start gap-2.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 shrink-0 text-white hover:bg-white/15 mt-0.5"
-                onClick={handleBack}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <button
-                type="button"
-                onClick={() => setShowAddressSheet(true)}
-                className="flex-1 min-w-0 text-left"
-              >
-                <p className="text-[15px] md:text-base font-semibold leading-snug truncate">
-                  {sellerName}
-                </p>
-                <div className="mt-1.5 flex items-center gap-1.5 text-[12px] md:text-[13px] text-white/90">
-                  <Home className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">
-                    {headerDeliveryTime} to <span className="font-semibold">{headerAddressLabel}</span>
-                    {headerAddressText ? ` | ${headerAddressText}` : ""}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-90" />
-                </div>
-              </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 shrink-0 text-white hover:bg-white/15 mt-0.5"
-                onClick={handleShare}
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
+      {/* Header (mobile; clean white matching reference Screen 5) */}
+      <div className="sticky top-0 z-30 flex-shrink-0 bg-white dark:bg-[#141414] border-b border-gray-100 dark:border-gray-800 shadow-sm lg:hidden">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="p-1 -ml-1 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+              onClick={handleBack}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
+                My Cart ({getCartCount()})
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {sellerGroups.length} {sellerGroups.length === 1 ? 'store' : 'stores'} • {RUPEE_SYMBOL}{Math.round(total)}
+              </p>
             </div>
           </div>
-        </div>
-
-        {/* Transition curve: Downward green corners effect */}
-        <div 
-          className="h-5 md:h-6 w-full relative"
-          style={{ backgroundColor: "var(--wh-nav-2)" }}
-        >
-          <div 
-            className="absolute top-0 left-0 w-full bg-slate-50 dark:bg-[#0a0a0a] rounded-t-[1.75rem] md:rounded-t-[2rem]" 
-            style={{ height: 'calc(100% + 2px)' }}
-          />
+          <button
+            type="button"
+            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            onClick={handleShare}
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -2710,149 +2687,141 @@ export default function Cart() {
                 </div>
                 <div className="space-y-4">
                   {sellerGroups.map((group, gIdx) => (
-                    <div key={group.sellerId || gIdx} className={sellerGroups.length > 1 ? "rounded-xl border border-slate-200 dark:border-gray-800 p-3 bg-slate-50/50 dark:bg-black/20 space-y-3" : "space-y-3"}>
-                      {sellerGroups.length > 1 && (
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-gray-800">
-                          <div className="flex items-center gap-2">
-                            <Store className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                            <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                              Package {gIdx + 1}: {group.sellerName}
-                            </span>
+                    <div
+                      key={group.sellerId || gIdx}
+                      className="rounded-2xl border border-gray-100 dark:border-gray-800 p-4 bg-white dark:bg-[#141414] shadow-sm space-y-3"
+                    >
+                      {/* Store Header */}
+                      <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-8 w-8 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 font-bold text-xs uppercase shrink-0">
+                            {group.sellerName?.charAt(0) || "S"}
                           </div>
-                          <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/60 dark:bg-gray-800 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Truck className="w-3 h-3" /> Standard Courier
-                          </span>
+                          <div>
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
+                              {group.sellerName}{" "}
+                              <span className="text-xs font-normal text-gray-500">
+                                ({group.items.length} {group.items.length === 1 ? "item" : "items"})
+                              </span>
+                            </h3>
+                          </div>
                         </div>
-                      )}
-                      {group.items.map((item) => (
-                        <div key={item.id} className="flex items-start gap-3 md:gap-4 lg:gap-5 lg:border-b lg:border-wh-border lg:pb-4 lg:last:border-b-0">
-                          <Link
-                            to={storePath(`/product/${item.productId || item.itemId || item.id}`)}
-                            className="hidden lg:flex h-[180px] w-[180px] shrink-0 items-center justify-center overflow-hidden rounded-[4px] bg-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-wh-brand"
-                          >
-                            {item.image ? (
-                              <img src={item.image} alt={item.name} className="h-full w-full object-contain" loading="lazy" />
-                            ) : (
-                              <ShoppingBag className="h-8 w-8 text-gray-300" aria-hidden="true" />
-                            )}
-                          </Link>
-                          {/* Veg/Non-veg indicator */}
-                          {typeof item.isVeg === "boolean" && (
-                            <div
-                              className="w-4 h-4 md:w-5 md:h-5 border-2 flex items-center justify-center mt-1 flex-shrink-0"
-                              style={{ borderColor: item.isVeg ? "#16a34a" : "#dc2626" }}
-                            >
-                              <div
-                                className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full"
-                                style={{ backgroundColor: item.isVeg ? "#16a34a" : "#dc2626" }}
-                              />
-                            </div>
-                          )}
+                        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 rounded-full shrink-0">
+                          Get by 2-4 days
+                        </span>
+                      </div>
 
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm md:text-base font-medium text-gray-800 dark:text-gray-200 leading-tight lg:text-[18px] lg:font-normal lg:leading-6 lg:text-wh-text">{item.name}</p>
-                            {item.variantName ? (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.variantName}</p>
-                            ) : null}
-                            <button
-                              type="button"
-                              onClick={() => saveCartLineForLater({ item, storeMode: cartContext.storeMode, removeFromCart })}
-                              className="lg:hidden mt-1 text-[12px] font-semibold text-wh-link hover:underline"
+                      {/* Items in this Store */}
+                      <div className="space-y-3">
+                        {group.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 rounded-xl bg-gray-50/60 dark:bg-black/20 border border-gray-100 dark:border-gray-800/80 hover:border-orange-200 transition-colors"
+                          >
+                            {/* Product Thumbnail - ALWAYS visible */}
+                            <Link
+                              to={storePath(`/product/${item.productId || item.itemId || item.id}`)}
+                              className="h-20 w-16 sm:h-24 sm:w-20 shrink-0 overflow-hidden rounded-xl bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 shadow-sm focus-visible:outline-2 focus-visible:outline-orange-500 group"
                             >
-                              Save for later
-                            </button>
-                            <p className="hidden lg:block mt-1 text-[12px] text-wh-success">In stock</p>
-                            {item.sellerName ? (
-                              <p className="hidden lg:block text-[12px] text-wh-muted">Sold by {item.sellerName}</p>
-                            ) : null}
-                            <div className="hidden lg:flex items-center gap-3 mt-3 text-[12px]">
-                              <div className="flex items-center rounded-full border-2 border-wh-cta">
+                              {item.image ? (
+                                <img
+                                  src={resolveMediaUrl(item.image)}
+                                  alt={item.name}
+                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = "none"
+                                  }}
+                                />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400">
+                                  <ShoppingBag className="h-6 w-6" aria-hidden="true" />
+                                </div>
+                              )}
+                            </Link>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <Link
+                                to={storePath(`/product/${item.productId || item.itemId || item.id}`)}
+                                className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white leading-tight hover:text-orange-600 transition-colors line-clamp-1 block"
+                              >
+                                {item.name}
+                              </Link>
+
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                {item.variantName ||
+                                  (item.selectedSize
+                                    ? `${item.selectedColor || ""} • ${item.selectedSize}`
+                                    : item.packSize || "Standard Fit")}
+                              </p>
+
+                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white tabular-nums">
+                                  {RUPEE_SYMBOL}
+                                  {Math.round(Number(item.price || 0))}
+                                </span>
+                                {Number(item.otherPrice || item.mrp) > Number(item.price) && (
+                                  <>
+                                    <span className="text-xs text-gray-400 line-through tabular-nums">
+                                      {RUPEE_SYMBOL}
+                                      {Math.round(Number(item.otherPrice || item.mrp))}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.2 rounded">
+                                      {Math.round(
+                                        ((Number(item.otherPrice || item.mrp) - Number(item.price)) /
+                                          Number(item.otherPrice || item.mrp)) *
+                                          100,
+                                      )}
+                                      % OFF
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Stepper & Trash Button */}
+                            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                              <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] shadow-sm">
                                 <button
                                   type="button"
-                                  aria-label={item.quantity > 1 ? `Decrease quantity of ${item.name}` : `Remove ${item.name}`}
-                                  className="h-7 w-8 flex items-center justify-center rounded-l-full hover:bg-[#FFF8D6] focus-visible:outline-2 focus-visible:outline-wh-brand"
+                                  aria-label={`Decrease quantity of ${item.name}`}
+                                  className="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-l-lg transition-colors"
                                   onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                 >
-                                  {item.quantity > 1 ? <Minus className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                  <Minus className="h-3.5 w-3.5" />
                                 </button>
-                                <span className="min-w-[28px] text-center text-[14px] font-bold tabular-nums">{item.quantity}</span>
+                                <span className="min-w-[24px] text-center text-xs font-bold text-gray-900 dark:text-white tabular-nums">
+                                  {item.quantity}
+                                </span>
                                 <button
                                   type="button"
                                   aria-label={`Increase quantity of ${item.name}`}
-                                  className="h-7 w-8 flex items-center justify-center rounded-r-full hover:bg-[#FFF8D6] focus-visible:outline-2 focus-visible:outline-wh-brand"
+                                  className="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-r-lg transition-colors"
                                   onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                 >
                                   <Plus className="h-3.5 w-3.5" />
                                 </button>
                               </div>
-                              <span className="h-4 w-px bg-wh-border" aria-hidden="true" />
+
                               <button
                                 type="button"
+                                aria-label={`Remove ${item.name} from cart`}
                                 onClick={() => removeFromCart(item.id)}
-                                className="text-wh-link hover:text-wh-link-hover hover:underline focus-visible:outline-2 focus-visible:outline-wh-brand"
+                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
                               >
-                                Delete
-                              </button>
-                              <span className="h-4 w-px bg-wh-border" aria-hidden="true" />
-                              <button
-                                type="button"
-                                onClick={() => saveCartLineForLater({ item, storeMode: cartContext.storeMode, removeFromCart })}
-                                className="text-wh-link hover:text-wh-link-hover hover:underline focus-visible:outline-2 focus-visible:outline-wh-brand"
-                              >
-                                Save for later
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
                           </div>
+                        ))}
+                      </div>
 
-                          <div className="flex items-center gap-3 md:gap-4">
-                            {/* Quantity controls (mobile; desktop stepper is under the title) */}
-                            <div className="lg:hidden flex items-center gap-1 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#141414] px-1 py-0.5">
-                              <button
-                                type="button"
-                                className="h-5 w-5 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:opacity-70"
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="text-sm font-semibold text-gray-900 dark:text-white min-w-[14px] text-center tabular-nums">
-                                {item.quantity}
-                              </span>
-                              <button
-                                type="button"
-                                className="h-5 w-5 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:opacity-70"
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
-                            </div>
-
-                            <div className="min-w-[70px] text-right">
-                              {Number(item.otherPrice) > 0 &&
-                              Number(item.otherPrice) > Number(item.price || 0) ? (
-                                <div className="flex flex-col items-end gap-0.5">
-                                  <span className="text-[11px] text-gray-400 line-through tabular-nums">
-                                    {RUPEE_SYMBOL}
-                                    {Math.round(
-                                      Number(item.otherPrice) * (item.quantity || 1),
-                                    )}
-                                  </span>
-                                  <div className="flex items-center gap-1 justify-end">
-                                    <span className="inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-xs font-bold text-wh-brand-ink tabular-nums">
-                                      {RUPEE_SYMBOL}
-                                      {((item.price || 0) * (item.quantity || 1)).toFixed(0)}
-                                    </span>
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 tabular-nums">
-                                  {RUPEE_SYMBOL}
-                                  {((item.price || 0) * (item.quantity || 1)).toFixed(0)}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                      {/* Store Free Delivery Milestone */}
+                      <div className="mt-3 p-2.5 rounded-xl bg-orange-50/70 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/40 text-xs font-medium text-orange-800 dark:text-orange-300 flex items-center justify-between">
+                        <span>Free delivery on orders above ₹799 from {group.sellerName}</span>
+                        <span className="font-bold text-orange-600 dark:text-orange-400">Standard Courier</span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -3378,56 +3347,52 @@ export default function Cart() {
       </div>
 
       {/* Bottom Sticky - Pay bar */}
+      {/* Bottom Sticky - Pay bar (Matching Screen 5) */}
       <div
-        className="bg-white dark:bg-[#1a1a1a] border-t dark:border-gray-800 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 flex-shrink-0 fixed bottom-0 left-0 right-0 lg:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        className="bg-white/95 dark:bg-[#161616]/95 backdrop-blur-md border-t border-gray-200/80 dark:border-gray-800 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 flex-shrink-0 fixed bottom-0 left-0 right-0 lg:hidden px-4 py-3"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
       >
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3">
-          <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+        <div className="max-w-md mx-auto space-y-2">
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 px-1">
             <button
               type="button"
               onClick={() => setShowPaymentSheet(true)}
-              className="flex-1 min-w-0 text-left bg-slate-50 dark:bg-[#141414] hover:bg-slate-100 dark:hover:bg-[#1c1c1c] border border-slate-200 dark:border-gray-700 rounded-2xl px-3.5 py-2.5 transition-colors"
+              className="flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-200 hover:text-orange-500 transition-colors"
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Payment</span>
-                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Change</span>
-              </div>
-              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                {selectedPaymentLabel}
-              </p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                {selectedPaymentMethod === "wallet"
-                  ? `Balance ${RUPEE_SYMBOL}${walletBalance.toFixed(0)}`
-                  : "UPI, Cards, Netbanking"}
-              </p>
+              <span>{selectedPaymentLabel}</span>
+              <span className="text-orange-500 font-bold text-[11px]">Change</span>
             </button>
-            <button
-              type="button"
-              onClick={handlePlaceOrder}
-              disabled={
-                isPlacingOrder ||
-                loadingSeller ||
-                !canPlaceOrder ||
-                (selectedPaymentMethod === "wallet" && walletBalance < finalPayable)
-              }
-              className="shrink-0 min-w-[132px] px-5 rounded-full text-wh-text font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-              style={{
-                backgroundColor: "var(--module-theme-color, #FD920B)",
-                boxShadow: "0 8px 20px rgba(var(--module-theme-rgb, 253,146,11), 0.28)",
-              }}
-            >
-              {isPlacingOrder
-                ? "Processing..."
-                : loadingSeller
-                  ? "Loading..."
-                  : !canPlaceOrder
-                    ? "Offline"
-                    : !hasSavedAddress
-                      ? "Add Address"
-                      : `Pay ${RUPEE_SYMBOL}${finalPayable.toFixed(0)}`}
-            </button>
+            <span className="font-bold text-gray-900 dark:text-white text-sm">
+              Total: {RUPEE_SYMBOL}{finalPayable.toFixed(0)}
+            </span>
           </div>
+
+          <button
+            type="button"
+            onClick={handlePlaceOrder}
+            disabled={
+              isPlacingOrder ||
+              loadingSeller ||
+              !canPlaceOrder ||
+              (selectedPaymentMethod === "wallet" && walletBalance < finalPayable)
+            }
+            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-base shadow-lg shadow-orange-500/25 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isPlacingOrder ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : loadingSeller ? (
+              <span>Loading...</span>
+            ) : !canPlaceOrder ? (
+              <span>Store Currently Offline</span>
+            ) : !hasSavedAddress ? (
+              <span>Add Delivery Address</span>
+            ) : (
+              <span>Proceed to Checkout</span>
+            )}
+          </button>
         </div>
       </div>
 

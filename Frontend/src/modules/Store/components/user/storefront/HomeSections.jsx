@@ -164,3 +164,174 @@ export function FeatureBand({ title, subtitle, ctaLabel, ctaTo }) {
     </Reveal>
   )
 }
+
+/** Curated style lookbooks and seasonal trend moodboards */
+export function CuratedEditsSection() {
+  const { storePath } = useStoreMode()
+
+  const edits = [
+    {
+      id: "linen-casuals",
+      badge: "Pure Linens",
+      title: "The Linen Studio",
+      desc: "Breathable natural weaves & relaxed shirts",
+      image: "/uploads/seed/banners/hero-the-linen-cotton-stu.webp",
+      to: "/category/shirts",
+      accent: "from-stone-950/85 via-black/40 to-transparent",
+    },
+    {
+      id: "streetwear-oversized",
+      badge: "New Season Drop",
+      title: "Streetwear & Graphic",
+      desc: "Heavyweight 240 GSM drop-shoulder tees & cargos",
+      image: "/uploads/seed/banners/hero-autumn-winter-contem.webp",
+      to: "/category/t-shirts",
+      accent: "from-slate-950/85 via-black/40 to-transparent",
+    },
+    {
+      id: "artisanal-festive",
+      badge: "Heritage Royal",
+      title: "Festive & Ethnic Kurtas",
+      desc: "Chanderi silks, handloom weaves & royal anarkalis",
+      image: "/uploads/quick/fashion/banners/banner-3-festive-ethnic.webp",
+      to: "/category/kurtas",
+      accent: "from-rose-950/85 via-black/40 to-transparent",
+    },
+    {
+      id: "indigo-denim",
+      badge: "Timeless Essentials",
+      title: "Indigo Denim Studio",
+      desc: "Raw selvedge slim-tapered jeans & trucker jackets",
+      image: "/uploads/seed/banners/hero-timeless-indigo-deni.webp",
+      to: "/category/jeans",
+      accent: "from-blue-950/85 via-black/40 to-transparent",
+    },
+  ]
+
+  return (
+    <Reveal as="section" aria-label="Curated Fashion Edits">
+      <SectionHeading
+        title="Curated Style Edits"
+        subtitle="Handpicked seasonal moodboards & trending wardrobes"
+      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {edits.map((item) => (
+          <Link
+            key={item.id}
+            to={storePath(item.to)}
+            className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-neutral-900 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+          >
+            <img
+              src={item.image}
+              alt={item.title}
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+            />
+            <div className={`absolute inset-0 bg-gradient-to-t ${item.accent}`} />
+
+            <div className="absolute inset-0 p-4 sm:p-5 flex flex-col justify-between">
+              <div>
+                <span className="inline-block rounded-full bg-white/20 backdrop-blur-md px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white border border-white/30">
+                  {item.badge}
+                </span>
+              </div>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug drop-shadow-md">
+                  {item.title}
+                </h3>
+                <p className="mt-1 text-xs sm:text-sm text-white/80 line-clamp-2">
+                  {item.desc}
+                </p>
+                <div className="mt-3 flex items-center gap-2 text-xs font-bold text-white group-hover:text-wh-brand transition-colors">
+                  <span>Shop The Edit</span>
+                  <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </Reveal>
+  )
+}
+
+/** Featured verified fashion boutique brands */
+export function BoutiqueStoresSection() {
+  const { storePath } = useStoreMode()
+
+  const boutiques = [
+    {
+      id: "urban-thread",
+      name: "Urban Thread",
+      slug: "urban-thread",
+      specialty: "Contemporary Streetwear & Oversized Fits",
+      rating: "4.9",
+      location: "Bengaluru Central",
+      badge: "Top Rated Boutique",
+      logo: "/uploads/seed/categories/t-shirts.webp",
+    },
+    {
+      id: "kora-basics",
+      name: "Kora Basics",
+      slug: "kora-basics",
+      specialty: "Pure Linen & Organic Heavyweight Cottons",
+      rating: "4.8",
+      location: "Indore",
+      badge: "Sustainable Craft",
+      logo: "/uploads/seed/categories/shirts.webp",
+    },
+    {
+      id: "vogue-craft",
+      name: "Vogue Craft",
+      slug: "vogue-craft",
+      specialty: "Chanderi Silks & Artisanal Ethnic Wear",
+      rating: "4.9",
+      location: "Jaipur",
+      badge: "Heritage Handloom",
+      logo: "/uploads/seed/categories/kurtas.webp",
+    },
+  ]
+
+  return (
+    <Reveal as="section" aria-label="Verified Fashion Boutiques">
+      <SectionHeading
+        title="Featured Fashion Boutiques"
+        subtitle="Discover verified independent fashion designers and apparel houses"
+      />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+        {boutiques.map((b) => (
+          <Link
+            key={b.id}
+            to={storePath(`/sellers/${b.slug}`)}
+            className="group relative rounded-2xl border border-wh-border bg-wh-surface p-5 hover:border-wh-brand/40 hover:shadow-lg transition-all flex flex-col justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 shrink-0 rounded-2xl overflow-hidden bg-neutral-100 border border-wh-border">
+                <img src={b.logo} alt={b.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="text-base font-bold text-wh-text truncate">{b.name}</h4>
+                  <span className="shrink-0 flex items-center gap-1 rounded bg-amber-500/10 px-2 py-0.5 text-xs font-bold text-amber-600">
+                    ★ {b.rating}
+                  </span>
+                </div>
+                <p className="text-xs text-wh-muted mt-0.5 truncate">{b.specialty}</p>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    {b.badge}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-wh-border/60 flex items-center justify-between text-xs font-semibold text-wh-brand group-hover:text-wh-brand-600">
+              <span>Visit Boutique Storefront</span>
+              <ArrowRight className="h-3.5 w-3.5 transform group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+        ))}
+      </div>
+    </Reveal>
+  )
+}
+

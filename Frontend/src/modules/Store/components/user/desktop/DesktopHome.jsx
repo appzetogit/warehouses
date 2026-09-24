@@ -6,7 +6,9 @@ import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
 import HeroCarousel from "./HeroCarousel"
 import { HomeSkeleton } from "./HomeSkeletons"
 import {
+  BoutiqueStoresSection,
   CollectionTiles,
+  CuratedEditsSection,
   FeatureBand,
   Marquee,
   ProductRailSection,
@@ -103,6 +105,24 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
     [products],
   )
 
+  // Dedicated fashion category product rails
+  const tshirtProducts = useMemo(
+    () => products.filter((p) => /t-shirt|tee|polo/i.test(p.categoryName || p.name)),
+    [products],
+  )
+  const jeansProducts = useMemo(
+    () => products.filter((p) => /jean|denim|pant|jogger|trouser/i.test(p.categoryName || p.name)),
+    [products],
+  )
+  const festiveProducts = useMemo(
+    () => products.filter((p) => /kurta|dress|festive|ethnic|silk|top/i.test(p.categoryName || p.name)),
+    [products],
+  )
+  const jacketProducts = useMemo(
+    () => products.filter((p) => /jacket|hoodie|bomber|outerwear|sweatshirt/i.test(p.categoryName || p.name)),
+    [products],
+  )
+
   // Product categories ranked by how many products they have here.
   const productGroups = useMemo(() => {
     const byCat = new Map()
@@ -119,42 +139,6 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
     const match = categories.find((c) => String(c.id) === String(id) || c.name === name)
     return storePath(`/category/${match?.slug || slugify(name)}`)
   }
-  const productLink = (id) => storePath(`/product/${id}`)
-
-  // --- Featured 4-card row ---------------------------------------------
-  // All four cards read the live catalogue: no placeholder names, ratings or
-  // stock photos, so what a shopper clicks is what they saw.
-  const categoryTileImage = (cat) =>
-    cat?.image ? resolveMediaUrl(cat.image) : ""
-
-  // Card 1: shop by category — the categories that actually have products.
-  const featuredCategoryTiles = productGroups.slice(0, 4).map((group) => {
-    const match = categories.find(
-      (c) => String(c.id) === String(group.id) || c.name === group.name,
-    )
-    return {
-      key: `cat-${group.id}`,
-      label: group.name,
-      image: categoryTileImage(match) || firstImage(group.items[0]),
-      to: categoryLink(group.id, group.name),
-    }
-  })
-
-  // Card 2: deal of the day — the deepest discount on offer right now.
-  const featuredDealProduct = deals[0] || products[0] || null
-
-  /** Four products from a category for the 2x2 cards, rating badge only. */
-  const popularTiles = (group, prefix) =>
-    (group?.items || []).slice(0, 4).map((item, idx) => ({
-      key: `${prefix}-${item._id || idx}`,
-      name: item.name,
-      badge: Number(item.rating) > 0 ? Number(item.rating).toFixed(1) : "",
-      image: firstImage(item),
-      to: productLink(item._id),
-    }))
-
-  const featuredTshirts = popularTiles(productGroups[0], "pop-a")
-  const featuredShirts = popularTiles(productGroups[1], "pop-b")
 
   // Collection tiles: every category that actually has products here.
   const collectionTiles = productGroups.slice(0, 12).map((group) => {
@@ -170,25 +154,23 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
   })
 
   const marqueeItems = [
-    isQuick ? `Quick delivery in ${etaMinutes || 10} minutes` : "Free delivery on orders over ₹499",
-    "Every seller verified before they can sell",
-    "Coins on every order, usable at checkout",
-    "Easy returns, per our returns policy",
+    isQuick ? `Quick delivery in ${etaMinutes || 10} minutes` : "Free express delivery on orders over ₹799",
+    "100% Verified Boutique Apparel & Premium Fabrics",
+    "Flat 10% Warehouses Coins on Every Order",
+    "Hassle-free 7-day size exchanges & doorstep returns",
   ]
 
   // Hold the page's shape while the catalogue loads, instead of flashing an
   // empty screen and then pushing everything down.
   if (loading) return <HomeSkeleton />
 
-  const topGroup = productGroups[0]
   const recommendedList = recommended.filter((p) => p?._id)
-  const mode = isQuick ? "quick" : "shop"
 
   return (
     <div className="min-h-screen bg-wh-page pb-12">
       {/* Hero, inset and rounded like the reference (MOBILE_UI_SPEC.md) */}
       <div className="mx-auto max-w-[1500px] px-3 pt-3 sm:px-5">
-        <div className="overflow-hidden rounded-2xl">
+        <div className="overflow-hidden rounded-2xl shadow-sm">
           <HeroCarousel banners={heroBanners} onOpen={onOpenBanner} />
         </div>
       </div>
@@ -199,49 +181,90 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
         <Marquee items={marqueeItems} />
 
         <CollectionTiles
-          title={isQuick ? "Shop essentials by category" : "Our collections"}
-          subtitle="Handpicked from the stores near you"
+          title={isQuick ? "Shop essentials by category" : "Wardrobe Collections"}
+          subtitle="Handpicked pure apparel & fashion collections"
           tiles={collectionTiles}
           seeAllTo="/categories"
         />
 
+        {/* Curated Style Lookbook Grid */}
+        <CuratedEditsSection />
+
+        {/* Today's Fashion Deals */}
         <ProductRailSection
-          title="Today's deals"
-          subtitle="The biggest savings on right now"
+          title="Today's Fashion Deals"
+          subtitle="Top savings on premium contemporary apparel"
           products={deals.slice(0, 20)}
           onAdd={addToCart}
           auto={5200}
         />
 
-        <FeatureBand
-          title="Sell on The Warehouses"
-          subtitle="Reach shoppers nearby in minutes, or across India by courier."
-          ctaLabel="Start selling"
-          ctaTo="/seller/signup"
-        />
-
-        {topGroup && topGroup.items.length >= 4 ? (
+        {/* Trending T-Shirts & Polos Rail */}
+        {tshirtProducts.length >= 3 ? (
           <ProductRailSection
-            title={`Most loved in ${topGroup.name}`}
-            subtitle="What people here keep coming back for"
-            products={topGroup.items.slice(0, 20)}
+            title="Trending T-Shirts & Polos"
+            subtitle="Heavyweight Supima cotton, graphic drop-shoulders & classic piques"
+            products={tshirtProducts}
             onAdd={addToCart}
           />
         ) : null}
 
-        <ProductRailSection
-          title="You may also like"
-          subtitle="Picked from what you have been browsing"
-          products={recommendedList}
-          onAdd={addToCart}
+        {/* Featured Fashion Boutiques */}
+        <BoutiqueStoresSection />
+
+        {/* Indigo Denim & Trousers Rail */}
+        {jeansProducts.length >= 3 ? (
+          <ProductRailSection
+            title="Denim & Trousers Studio"
+            subtitle="Raw selvedge slim-tapered denim, relaxed straight cuts & modern chinos"
+            products={jeansProducts}
+            onAdd={addToCart}
+          />
+        ) : null}
+
+        {/* Artisanal Festive & Ethnic Wear Rail */}
+        {festiveProducts.length >= 3 ? (
+          <ProductRailSection
+            title="Artisanal Festive & Ethnic Glamour"
+            subtitle="Pure Chanderi silks, handloom weaves & regal anarkalis"
+            products={festiveProducts}
+            onAdd={addToCart}
+          />
+        ) : null}
+
+        {/* Jackets & Winterwear Rail */}
+        {jacketProducts.length >= 3 ? (
+          <ProductRailSection
+            title="Jackets & Layering Essentials"
+            subtitle="Vintage trucker denim jackets, minimalist bombers & French Terry hoodies"
+            products={jacketProducts}
+            onAdd={addToCart}
+          />
+        ) : null}
+
+        <FeatureBand
+          title="Sell on The Warehouses"
+          subtitle="Showcase your designer apparel and boutique collections to millions across India."
+          ctaLabel="Start selling"
+          ctaTo="/seller/signup"
         />
+
+        {recommendedList.length > 0 ? (
+          <ProductRailSection
+            title="You may also like"
+            subtitle="Picked from what you have been browsing"
+            products={recommendedList}
+            onAdd={addToCart}
+          />
+        ) : null}
 
         {!deals.length && !recommendedList.length && !products.length ? (
           <section className="rounded-2xl border border-wh-border bg-wh-surface p-8 text-center text-wh-muted">
-            {isQuick ? "Nothing is available for quick delivery here yet." : "New products are on their way. Check back soon."}
+            {isQuick ? "Nothing is available for quick delivery here yet." : "New fashion collections are on their way. Check back soon."}
           </section>
         ) : null}
       </div>
     </div>
   )
 }
+
