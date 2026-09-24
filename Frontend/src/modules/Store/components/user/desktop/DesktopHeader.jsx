@@ -106,7 +106,7 @@ function AccountMenu({ firstName, signedIn, storePath }) {
   )
 }
 
-function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
+export function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
   const panelRef = useRef(null)
   const [expanded, setExpanded] = useState(null)
   const [shown, setShown] = useState(false)

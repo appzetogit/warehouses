@@ -18,7 +18,7 @@ import QuickPromoBanners from "./QuickPromoBanners"
 import { MIN_RAIL_PRODUCTS, QuickProductRail } from "./QuickRail"
 import { productId, productPrice, productMrp } from "./quickHelpers"
 import useIsDesktop from "../useIsDesktop"
-import MobileHome from "../../mobile/MobileHome"
+import QuickMobileHome from "../../quick-mobile/QuickMobileHome"
 
 const PRODUCT_LIMIT = 50
 
@@ -157,7 +157,20 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
   // Phones get the mobile storefront (screen 1 of the mobile mockup), on the
   // same product data as the desktop layout below.
   if (!isDesktop) {
-    return <MobileHome heroBanners={heroBanners} products={products} loading={productsLoading} />
+    // Quick keeps its own instant-delivery phone home (QUICK_MOBILE_SPEC.md),
+    // so it never looks like Shop.
+    return (
+      <QuickMobileHome
+        products={products}
+        productsLoading={productsLoading}
+        deals={deals}
+        groups={groups}
+        orderedIds={orderedIds}
+        categoryLink={categoryLink}
+        outOfZone={outOfZone}
+        areaName={areaName}
+      />
+    )
   }
 
   return (

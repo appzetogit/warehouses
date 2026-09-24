@@ -15,6 +15,7 @@ import SearchOverlay from "./SearchOverlay"
 import DesktopHeader from "./desktop/DesktopHeader"
 import BottomNav from "./storefront/BottomNav"
 import MobileHeader from "./mobile/MobileHeader"
+import QuickMobileHeader from "./quick-mobile/QuickMobileHeader"
 import ReorderIntake from "./mobile/ReorderIntake"
 import { QuickLayoutProvider } from "./quick-mobile/QuickLayoutContext"
 import DesktopFooter from "./desktop/DesktopFooter"
@@ -257,7 +258,8 @@ export default function UserLayout() {
                     />
                   )}
                   {/* Phones: the big header on home and search; other pages draw their own top bar. */}
-                  {showDesktopShell && !hasOwnTopBar(normalizedPath) && <MobileHeader />}
+                  {/* Quick keeps its ETA-first header; Shop gets the orange one. */}
+                  {showDesktopShell && !hasOwnTopBar(normalizedPath) && (storeMode === "quick" ? <QuickMobileHeader /> : <MobileHeader />)}
                   {showDesktopShell && storeMode === "quick" && (
                     <div className="hidden lg:block">
                       <QuickZoneStrip />

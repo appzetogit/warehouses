@@ -8,7 +8,8 @@ import { BRAND_LOGO_ON_DARK } from "@/config/brandMark"
 import { useLocationSelector } from "../UserLayout"
 import SearchSuggestions, { useSearchSuggestions, useSuggestionKeyboard } from "../desktop/SearchSuggestions"
 import { useQuickEta } from "../desktop/useDeliveryEstimates"
-import { usePublicCategories } from "../desktop/useDesktopShell"
+import { useBusinessSettings, usePublicCategories } from "../desktop/useDesktopShell"
+import { CategoryDrawer } from "../desktop/DesktopHeader"
 import useTypewriter from "../quick-mobile/useTypewriter"
 
 /**
@@ -37,7 +38,9 @@ export default function MobileHeader() {
   const { openLocationSelector } = useLocationSelector()
   const { getCartCount } = useCart()
   const cartCount = getCartCount()
-  const { categories } = usePublicCategories(zoneId)
+  const { categories, tree } = usePublicCategories(zoneId)
+  const { brandName } = useBusinessSettings()
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const eta = useQuickEta()
 
   const [q, setQ] = useState("")
@@ -91,16 +94,19 @@ export default function MobileHeader() {
   }
 
   return (
+    <>
     <header className="wh-desktop sticky top-0 z-50 w-full overflow-x-hidden bg-gradient-to-r from-[#EA580C] via-[#F97316] to-[#EA580C] pb-2.5 pt-2.5 text-white shadow-md lg:hidden">
       <div className="flex items-center gap-1.5 px-3">
         {isHome ? (
-          <Link
-            to={storePath("/categories")}
-            aria-label="Browse categories"
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={drawerOpen}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-black/10"
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
-          </Link>
+          </button>
         ) : (
           <button
             type="button"
@@ -232,5 +238,7 @@ export default function MobileHeader() {
         </div>
       ) : null}
     </header>
+    <CategoryDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} tree={tree} storePath={storePath} brandName={brandName} />
+    </>
   )
 }
