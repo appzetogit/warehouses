@@ -44,6 +44,9 @@ export default function BottomNav() {
     },
   ]
 
+  // Pages with their own pinned action bar (Add to Cart, checkout) hide the tabs.
+  if (/\/product\/|\/cart(\/|$)/.test(pathname)) return null
+
   return (
     <nav
       aria-label="Main Navigation"

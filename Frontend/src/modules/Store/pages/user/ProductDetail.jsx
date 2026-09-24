@@ -30,7 +30,8 @@ import ProductReviews from "@store/components/user/reviews/ProductReviews"
 import { useCart } from "@store/context/CartContext"
 import { Button } from "@store/components/ui/button"
 import ProductDetailDesktop from "@store/components/user/desktop/ProductDetailDesktop"
-import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
+import useIsDesktop, { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
+import MobileProductView from "@store/components/user/mobile/MobileProductView"
 import { ProductDetailSkeleton } from "@store/components/user/desktop/HomeSkeletons"
 import { CHANNEL_COPY, channelAvailability, otherChannel, productInChannel, stockLabel, variantInChannel } from "@store/utils/channelStock"
 
@@ -40,6 +41,7 @@ export default function ProductDetail() {
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
   const isDesktop = useStorefrontLayout()
+  const onWideScreen = useIsDesktop()
   const { addToCart, isInCart, getCartItem } = useCart()
 
   const [loading, setLoading] = useState(true)
@@ -229,6 +231,30 @@ export default function ProductDetail() {
           description={product.description || [product.brand, product.name, product.packSize].filter(Boolean).join(" ")}
           ogImage={allImages[0]}
         />
+        {onWideScreen ? null : (
+          // Phones: the product page from the mobile mockup (screen 4).
+          <MobileProductView
+            product={product}
+            seller={seller}
+            storePath={storePath}
+            isQuick={isQuick}
+            altChannel={altChannel}
+            altPath={altPath}
+            avail={avail}
+            isAvailable={isAvailable}
+            notInThisStore={notInThisStore}
+            currentVariant={currentVariant}
+            selectedAttrs={selectedAttrs}
+            onSelectAttribute={handleSelectAttribute}
+            isValueEnabled={isValueEnabled}
+            allImages={allImages}
+            displayPrice={displayPrice}
+            displayMrp={displayMrp}
+            discountPercent={discountPercent}
+            onAddToCart={handleAddToCart}
+          />
+        )}
+        {onWideScreen ? (
         <ProductDetailDesktop
           product={product}
           seller={seller}
@@ -256,6 +282,7 @@ export default function ProductDetail() {
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
         />
+        ) : null}
       </>
     )
   }

@@ -230,6 +230,9 @@ export default function UserLayout() {
 
   // The storefront shell: header/footer on every storefront page except sign-in screens.
   const showDesktopShell = !/(^|\/)auth(\/|$)/.test(normalizedPath)
+  // On phones the floating spin wheel and assistant would cover Quick's cart bar
+  // and the pinned Add to Cart / checkout bars.
+  const hideFloatingOnPhone = storeMode === "quick" || /\/product\/|\/cart(\/|$)/.test(normalizedPath)
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
@@ -273,7 +276,7 @@ export default function UserLayout() {
                 {/* On Quick phones the cart bar owns the bottom of the screen; the
                     rewards banner leads to Spin & Win instead. */}
                 {showDesktopShell && (
-                  <div className={storeMode === "quick" ? "hidden lg:block" : ""}>
+                  <div className={hideFloatingOnPhone ? "hidden lg:block" : ""}>
                     <FloatingSpinWidget onOpenSpin={() => setIsSpinWheelOpen(true)} />
                   </div>
                 )}
@@ -284,7 +287,7 @@ export default function UserLayout() {
                   onClose={() => setIsSpinWheelOpen(false)}
                 />
                 {showDesktopShell && (
-                  <div className={storeMode === "quick" ? "hidden lg:block" : ""}>
+                  <div className={hideFloatingOnPhone ? "hidden lg:block" : ""}>
                     <GeminiAssistantWidget />
                   </div>
                 )}
