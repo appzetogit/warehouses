@@ -82,24 +82,43 @@ function EtaBlock() {
 
   return (
     <div className="px-4 pb-3 pt-3">
-      {/* The same Shop | Quick switch as the Shop header, so there is a way back. */}
-      <div role="group" aria-label="Choose store" className="mb-2 inline-flex items-center rounded-full border border-wh-border bg-wh-surface p-0.5 shadow-sm">
-        <button
-          type="button"
-          aria-pressed="false"
-          onClick={() => setCommerceMode("standard")}
-          className="rounded-full px-3 py-1 text-[12px] font-bold text-wh-muted active:scale-95"
+      {/* Top right: the Shop | Quick switch (the way back to Shop), coins and account. */}
+      <div className="mb-1.5 flex items-center justify-end gap-2">
+        <div role="group" aria-label="Choose store" className="inline-flex items-center rounded-full border border-wh-border bg-wh-surface p-0.5 shadow-sm">
+          <button
+            type="button"
+            aria-pressed="false"
+            onClick={() => setCommerceMode("standard")}
+            className="rounded-full px-3 py-1 text-[12px] font-bold text-wh-muted active:scale-95"
+          >
+            Shop
+          </button>
+          <button
+            type="button"
+            aria-pressed="true"
+            className="flex items-center gap-0.5 rounded-full bg-wh-brand-ink px-3 py-1 text-[12px] font-bold text-white shadow-xs"
+          >
+            <span className="text-amber-300" aria-hidden="true">⚡</span>
+            Quick
+          </button>
+        </div>
+        {signedIn ? (
+          <Link
+            to="/coins"
+            aria-label={`Coins: ${coins ?? 0}`}
+            className="flex h-11 w-11 flex-col items-center justify-center rounded-full bg-wh-surface shadow-sm"
+          >
+            <Coins className="h-4 w-4 text-wh-brand-ink" aria-hidden="true" />
+            <span className="text-[10px] font-bold leading-none text-wh-text">{coins ?? 0}</span>
+          </Link>
+        ) : null}
+        <Link
+          to={signedIn ? "/profile" : "/auth/login"}
+          aria-label={signedIn ? "Your account" : "Sign in"}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-wh-surface shadow-sm"
         >
-          Shop
-        </button>
-        <button
-          type="button"
-          aria-pressed="true"
-          className="flex items-center gap-0.5 rounded-full bg-wh-brand-ink px-3 py-1 text-[12px] font-bold text-white shadow-xs"
-        >
-          <span className="text-amber-300" aria-hidden="true">⚡</span>
-          Quick
-        </button>
+          <User className="h-5 w-5 text-wh-text" aria-hidden="true" />
+        </Link>
       </div>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -130,25 +149,6 @@ function EtaBlock() {
           </button>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          {signedIn ? (
-            <Link
-              to="/coins"
-              aria-label={`Coins: ${coins ?? 0}`}
-              className="flex h-11 w-11 flex-col items-center justify-center rounded-full bg-wh-surface shadow-sm"
-            >
-              <Coins className="h-4 w-4 text-wh-brand-ink" aria-hidden="true" />
-              <span className="text-[10px] font-bold leading-none text-wh-text">{coins ?? 0}</span>
-            </Link>
-          ) : null}
-          <Link
-            to={signedIn ? "/profile" : "/auth/login"}
-            aria-label={signedIn ? "Your account" : "Sign in"}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-wh-surface shadow-sm"
-          >
-            <User className="h-5 w-5 text-wh-text" aria-hidden="true" />
-          </Link>
-        </div>
       </div>
     </div>
   )
