@@ -41,11 +41,22 @@ export default function MobileStoresList() {
         const d = r?.data?.data
         return d?.stores || d?.sellers || (Array.isArray(d) ? d : [])
       }),
-      // What each store sells, for the chips and the tags on each row.
-      searchAPI
-        .searchProducts({ limit: 200, fulfilmentMode, ...(isQuick && zoneId ? { zoneId } : {}) })
-        .then((r) => r?.data?.data?.products || [])
-        .catch(() => []),
+      // What each store sells, for the chips and the tags on each row. Search
+      // pages hold at most 50, so read them all (up to 6).
+      (async () => {
+        const params = { limit: 50, fulfilmentMode, ...(isQuick && zoneId ? { zoneId } : {}) }
+        const all = []
+        for (let page = 1; page <= 6; page++) {
+          const d = await searchAPI
+            .searchProducts({ ...params, page })
+            .then((r) => r?.data?.data || {})
+            .catch(() => ({}))
+          const batch = d.products || []
+          all.push(...batch)
+          if (batch.length < 50 || all.length >= Number(d.total || 0)) break
+        }
+        return all
+      })(),
     ])
       .then(([list, products]) => {
         if (cancelled) return
