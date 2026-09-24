@@ -42,15 +42,16 @@ function PromoTiles({ tiles = [] }) {
             className="group relative flex aspect-[106/102] flex-col overflow-hidden rounded-xl bg-gradient-to-b from-white/80 to-white/40 p-2 shadow-sm ring-1 ring-black/5 backdrop-blur-[2px] transition-transform active:scale-95"
           >
             <span className="text-center text-[13px] font-bold leading-tight text-wh-text">{tile.title}</span>
-            <span className="relative mt-auto flex flex-1 items-end justify-center">
+            <span className="relative mt-1.5 flex min-h-0 flex-1 items-end justify-center">
               {image ? (
+                // Photos fill the tile under the title; the slow zoom keeps the row alive.
                 <img
                   src={image}
                   alt=""
                   loading="lazy"
                   // Out of step with each other, so the row breathes rather than marches.
                   style={{ animationDelay: `${i * 0.6}s` }}
-                  className="wh-bob max-h-[70%] w-auto object-contain drop-shadow-md transition-transform duration-300 group-active:-translate-y-1"
+                  className="wh-kenburns h-full w-full rounded-lg object-cover object-top shadow-sm transition-transform duration-300 group-active:scale-95"
                 />
               ) : (
                 <span aria-hidden="true" className="mb-1 h-10 w-10 rounded-full bg-wh-brand/20" />
