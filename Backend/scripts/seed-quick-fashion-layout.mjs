@@ -1,7 +1,11 @@
 /**
  * Puts clothing on the Quick phone home: the header's theme tabs (All, Men,
- * Women, Activewear, Winterwear), their promo tiles, rewards banner and offer
+ * Women, Kids, Ethnic, Denim, Formal, Party, Activewear, Winterwear,
+ * Streetwear; the row scrolls), their promo tiles, rewards banner and offer
  * strip, the featured cards, campaign banners and category groups.
+ *
+ * Run it after seed-apparel-stores.mjs, which creates Skirts, Suits &
+ * Blazers and the Kids categories this links to.
  *
  * The layout stored before this was a grocery one (Ganeshotsav, Dairy &
  * Breakfast, Fruits & Veggies) left over from the food/grocery days. It is
@@ -23,6 +27,7 @@ import path from 'path';
 import mongoose from 'mongoose';
 
 import { QuickHomeLayout } from '../src/modules/commerce/landing/models/quickHomeLayout.model.js';
+import { Category } from '../src/modules/commerce/admin/models/category.model.js';
 import { saveQuickHomeLayout } from '../src/modules/commerce/landing/services/quickHomeLayout.service.js';
 
 const UPLOAD_ROOT = process.env.UPLOAD_STORAGE_ROOT || '/var/www/warehouses-uploads';
@@ -45,7 +50,17 @@ const CAT = {
     bomber: '6ab373c7f1e99f7c11f9f81c',
     hoodies: '6ab373c7f1e99f7c11f9f81d',
 };
-const cat = (key) => `/quick/category/${CAT[key]}`;
+// Created by seed-apparel-stores.mjs; their ids are looked up by name (and parent) at run time.
+const NAMED = {
+    skirts: ['Skirts', 'Women'],
+    suits: ['Suits & Blazers', 'Men'],
+    kids: ['Kids', null],
+    boys: ['Boys Clothing', 'Kids'],
+    girls: ['Girls Clothing', 'Kids'],
+    baby: ['Baby & Toddler', 'Kids'],
+};
+const rootJeans = '6ab4f682e6bb381f4c39a724';
+const cat = (key) => `/quick/category/${CAT[key] || key}`;
 
 const P = '/uploads/seed/products';
 const S = '/uploads/seed/stores-v1';
@@ -69,6 +84,22 @@ const IMG = {
     puffer: `${P}/${CAT.bomber}/quilted-ultralight-packable-puffer-vest/1.webp`,
     knit: `${S}/dhaaga-house/relaxed-knit-pullover/1.webp`,
     streetCover: `${S}/street-loom/cover.webp`,
+    satinDress: `${S}/dhaaga-house/satin-wrap-midi-dress/1.webp`,
+    sheath: `${S}/dhaaga-house/tailored-sheath-dress/1.webp`,
+    denimDress: `${S}/dhaaga-house/denim-shirt-dress/1.webp`,
+    tennisSkirt: `${S}/dhaaga-house/pleated-tennis-mini-skirt/1.webp`,
+    midiSkirt: `${S}/dhaaga-house/pleated-satin-midi-skirt/1.webp`,
+    denimShorts: '/uploads/quick/fashion/products/shorts.webp',
+    blazer: `${S}/denim-den/windowpane-check-blazer/1.webp`,
+    suit: `${S}/denim-den/three-piece-slim-suit/1.webp`,
+    tuxedo: `${S}/denim-den/classic-black-tuxedo/1.webp`,
+    formalShirt: `${S}/denim-den/slim-fit-formal-shirt/1.webp`,
+    boysTee: `${S}/tiny-threads/boys-classic-crew-tee/1.webp`,
+    partySet: `${S}/tiny-threads/bow-tie-cardigan-party-set/1.webp`,
+    frock: `${S}/tiny-threads/girls-printed-frock/1.webp`,
+    babySet: `${S}/tiny-threads/checked-shirt-denim-set/1.webp`,
+    skeletonTee: '/uploads/quick/fashion/products/oversized.webp',
+    kidsCover: `${S}/tiny-threads/cover.webp`,
 };
 
 // 24px line icons for the tabs; drawn in the header's text colour.
@@ -79,6 +110,12 @@ const ICONS = {
     'fashion-men': svg('<path d="M8.5 3.5 4 5.8 2.8 10l3 1V20.5h12.4V11l3-1L20 5.8l-4.5-2.3a3.5 3.5 0 0 1-7 0Z"/>'),
     'fashion-women': svg('<path d="M9.5 3h5l-1 4.5 5 13h-13l5-13-1-4.5Z"/><path d="M9.2 7.5h5.6"/>'),
     'fashion-active': svg('<path d="M3 16.5c0-1 .8-1.8 1.8-1.8h3.4l2.3-4.2 3 1.9c.9.6 1.9.9 3 .9H18c1.7 0 3 1.3 3 3v1.2H3v-1Z"/><path d="M3 17.5v2h18v-2"/><path d="M11.5 12.7 13 11"/>'),
+    'fashion-kids': svg('<path d="M8 4.5 4.5 6.5 3.5 10l2.5.8V19.5h12V10.8l2.5-.8-1-3.5L16 4.5c-.3 1.4-1.9 2.5-4 2.5s-3.7-1.1-4-2.5Z"/><path d="M9.5 13.5h.01M14.5 13.5h.01"/><path d="M10 16c1.2.8 2.8.8 4 0"/>'),
+    'fashion-ethnic': svg('<path d="M9.5 3h5l.8 2.5 2.7 1.5-.8 5.5-1.7-.5 1.5 8.5h-10l1.5-8.5-1.7.5-.8-5.5 2.7-1.5.8-2.5Z"/><path d="M12 3v6"/><path d="M8.3 17.5h7.4"/>'),
+    'fashion-denim': svg('<path d="M6 3.5h12l.5 17h-4.5L12 10l-2 10.5H5.5L6 3.5Z"/><path d="M6 6.5h12"/><path d="M8.5 6.5c0 1.5.8 2.3 2 2.3M15.5 6.5c0 1.5-.8 2.3-2 2.3"/>'),
+    'fashion-formal': svg('<path d="M8 3.5 12 7l4-3.5 4.5 3v14h-17v-14L8 3.5Z"/><path d="M12 7v13.5"/><path d="M10.8 9.5 12 7l1.2 2.5L12 17l-1.2-7.5Z"/>'),
+    'fashion-party': svg('<path d="M10 3.5h4l-.8 4 4.8 13h-12l4.8-13-.8-4Z"/><path d="M18.5 3v3M17 4.5h3"/><path d="M5 8v2M4 9h2"/>'),
+    'fashion-street': svg('<path d="M4 13.5c0-4.4 3.6-8 8-8s8 3.6 8 8"/><path d="M4 13.5h17.5c.8 0 .8 1.5 0 1.5H4"/><path d="M12 5.5v8"/><path d="M8 7.5c-.5 2-.5 4 0 6M16 7.5c.5 2 .5 4 0 6"/>'),
     'fashion-winter': svg('<path d="M9 3.5h6l1 2 4 2.5-1.5 5-2-.8V20.5h-9v-8.3l-2 .8L4 8l4-2.5 1-2Z"/><path d="M12 5.5v15"/><path d="M9.5 3.5c0 2 1 3 2.5 3s2.5-1 2.5-3"/>'),
 };
 
@@ -132,6 +169,71 @@ const LAYOUT = {
             offerStrip: nearby,
         },
         {
+            slug: 'kids',
+            label: 'Kids',
+            iconUrl: '/uploads/quick/icons/fashion-kids.svg',
+            accent: '#EA580C',
+            promoTiles: [
+                { title: 'Boys', imageUrl: IMG.boysTee, link: cat('boys') },
+                { title: 'Girls', imageUrl: IMG.frock, link: cat('girls') },
+                { title: 'Baby & Toddler', imageUrl: IMG.babySet, link: cat('baby') },
+            ],
+            rewards: rewards([IMG.boysTee, IMG.partySet, IMG.frock]),
+            offerStrip: nearby,
+        },
+        {
+            slug: 'ethnic',
+            label: 'Ethnic',
+            iconUrl: '/uploads/quick/icons/fashion-ethnic.svg',
+            accent: '#B45309',
+            promoTiles: [
+                { title: 'Kurtas', imageUrl: IMG.kurta, link: cat('kurtas') },
+                { title: 'Anarkalis', imageUrl: IMG.anarkali, link: cat('kurtas') },
+                { title: 'Festive Dresses', imageUrl: IMG.satinDress, link: cat('dresses') },
+            ],
+            rewards: rewards([IMG.kurta, IMG.anarkali, IMG.satinDress]),
+            offerStrip: nearby,
+        },
+        {
+            slug: 'denim',
+            label: 'Denim',
+            iconUrl: '/uploads/quick/icons/fashion-denim.svg',
+            accent: '#1E40AF',
+            promoTiles: [
+                { title: 'Jeans', imageUrl: IMG.jeans, link: cat('jeans') },
+                { title: 'Denim Shorts', imageUrl: IMG.denimShorts, link: cat(rootJeans) },
+                { title: 'Denim Jackets', imageUrl: IMG.denimJacket, link: cat('bomber') },
+            ],
+            rewards: rewards([IMG.jeans, IMG.denimDress, IMG.denimJacket]),
+            offerStrip: nearby,
+        },
+        {
+            slug: 'formal',
+            label: 'Formal',
+            iconUrl: '/uploads/quick/icons/fashion-formal.svg',
+            accent: '#334155',
+            promoTiles: [
+                { title: 'Suits & Blazers', imageUrl: IMG.blazer, link: cat('suits') },
+                { title: 'Formal Shirts', imageUrl: IMG.formalShirt, link: cat('shirts') },
+                { title: 'Work Dresses', imageUrl: IMG.sheath, link: cat('dresses') },
+            ],
+            rewards: rewards([IMG.suit, IMG.formalShirt, IMG.sheath]),
+            offerStrip: nearby,
+        },
+        {
+            slug: 'party',
+            label: 'Party',
+            iconUrl: '/uploads/quick/icons/fashion-party.svg',
+            accent: '#9D174D',
+            promoTiles: [
+                { title: 'Party Dresses', imageUrl: IMG.satinDress, link: cat('dresses') },
+                { title: 'Tuxedos & Suits', imageUrl: IMG.tuxedo, link: cat('suits') },
+                { title: 'Skirts', imageUrl: IMG.midiSkirt, link: cat('skirts') },
+            ],
+            rewards: rewards([IMG.satinDress, IMG.tuxedo, IMG.tennisSkirt]),
+            offerStrip: nearby,
+        },
+        {
             slug: 'activewear',
             label: 'Activewear',
             iconUrl: '/uploads/quick/icons/fashion-active.svg',
@@ -157,6 +259,19 @@ const LAYOUT = {
             rewards: rewards([IMG.hoodie, IMG.puffer, IMG.knit]),
             offerStrip: nearby,
         },
+        {
+            slug: 'streetwear',
+            label: 'Streetwear',
+            iconUrl: '/uploads/quick/icons/fashion-street.svg',
+            accent: '#111827',
+            promoTiles: [
+                { title: 'Graphic Tees', imageUrl: IMG.skeletonTee, link: cat('tshirts') },
+                { title: 'Hoodies', imageUrl: IMG.hoodie, link: cat('hoodies') },
+                { title: 'Joggers', imageUrl: IMG.joggers, link: cat('joggers') },
+            ],
+            rewards: rewards([IMG.graphicTee, IMG.hoodie, IMG.joggers]),
+            offerStrip: nearby,
+        },
     ],
     featured: [
         { title: 'Fresh Drops', badge: 'New in', style: 'launch', artUrl: IMG.graphicTee, link: cat('tshirts') },
@@ -164,6 +279,8 @@ const LAYOUT = {
         { title: 'Summer Dresses', badge: 'Featured', style: 'featured', artUrl: IMG.dress, link: cat('dresses') },
         { title: 'Denim Edit', badge: 'Featured', style: 'featured', artUrl: IMG.jeans, link: cat('jeans') },
         { title: 'Ethnic Picks', badge: 'Featured', style: 'featured', artUrl: IMG.kurta, link: cat('kurtas') },
+        { title: 'Suit Up', badge: 'Featured', style: 'featured', artUrl: IMG.suit, link: cat('suits') },
+        { title: 'Little Ones', badge: 'New in', style: 'launch', artUrl: IMG.partySet, link: cat('kids') },
     ],
     campaigns: [
         {
@@ -182,12 +299,21 @@ const LAYOUT = {
             link: cat('kurtas'),
             tint: '#7C2D12',
         },
+        {
+            title: 'Dress the little ones',
+            subtitle: 'Tees, frocks and party sets for kids',
+            artUrl: IMG.kidsCover,
+            ctaText: 'Shop kids',
+            link: cat('kids'),
+            tint: '#9A3412',
+        },
     ],
     categoryGroups: [
         { title: 'Men', parentCategoryId: CAT.men },
         { title: 'Women', parentCategoryId: CAT.women },
         { title: 'Activewear', parentCategoryId: CAT.activewear },
         { title: 'Jackets & Winterwear', parentCategoryId: CAT.jackets },
+        { title: 'Kids', parentCategoryId: 'kids' },
     ],
 };
 
@@ -228,6 +354,28 @@ async function main() {
         fs.chmodSync(file, 0o644);
     }
     console.log(`Wrote ${Object.keys(ICONS).length} tab icons`);
+
+    // Categories made by seed-apparel-stores.mjs.
+    const ids = {};
+    for (const [key, [name, parentName]] of Object.entries(NAMED)) {
+        let parentId = null;
+        if (parentName) {
+            const parent =
+                (await Category.findOne({ name: parentName, parentId: null, seedTag: 'apparel-seed-v1' })) ||
+                (await Category.findOne({ name: parentName, parentId: null, seedTag: 'apparel-stores-v1' }));
+            if (!parent) throw new Error(`Category ${parentName} not found; run seed-apparel-stores.mjs first`);
+            parentId = parent._id;
+        }
+        const found = await Category.findOne({ name, parentId, isActive: true });
+        if (!found) throw new Error(`Category ${name} not found; run seed-apparel-stores.mjs first`);
+        ids[key] = String(found._id);
+    }
+    Object.assign(CAT, ids);
+    const resolve = (link) => link.replace(/\/quick\/category\/([a-z]+)$/, (m, key) => (CAT[key] ? `/quick/category/${CAT[key]}` : m));
+    for (const t of LAYOUT.themes) for (const tile of t.promoTiles) tile.link = resolve(tile.link);
+    for (const f of LAYOUT.featured) f.link = resolve(f.link);
+    for (const c of LAYOUT.campaigns) c.link = resolve(c.link);
+    for (const g of LAYOUT.categoryGroups) g.parentCategoryId = CAT[g.parentCategoryId] || g.parentCategoryId;
 
     // Every picture must exist, or the home would show gaps.
     const missing = [...new Set(Object.values(IMG))].filter((u) => !fs.existsSync(path.join(UPLOAD_ROOT, u.replace(/^\/uploads\//, ''))));

@@ -30,7 +30,7 @@ import mongoose from 'mongoose';
 import { Zone } from '../src/modules/commerce/admin/models/zone.model.js';
 import { Category } from '../src/modules/commerce/admin/models/category.model.js';
 import { Product } from '../src/modules/commerce/admin/models/product.model.js';
-import { Attribute } from '../src/modules/commerce/admin/models/attribute.model.js';
+import { Attribute, AttributeSet } from '../src/modules/commerce/admin/models/attribute.model.js';
 import { Seller } from '../src/modules/commerce/seller/models/seller.model.js';
 import { recomputeProductRating } from '../src/modules/commerce/reviews/services/productReview.service.js';
 
@@ -125,7 +125,7 @@ const STORES = [
         pincode: '452001',
         latitude: 22.7186,
         longitude: 75.8712,
-        quick: false,
+        quick: true,
         profile: '1604176354204-9268737828e4',
         cover: '1560243563-062bfc001d68',
     },
@@ -144,6 +144,31 @@ const STORES = [
         profile: '1605733513597-a8f8341084e6',
         cover: '1591085686350-798c0f9faa7f',
     },
+    {
+        key: 'tiny-threads',
+        ownerPhone: '9826055555',
+        sellerName: 'Tiny Threads',
+        ownerName: 'Meera Dubey',
+        ownerEmail: 'tinythreads@thewarehouses.in',
+        addressLine1: '15 Saket Nagar Main Road',
+        area: 'Saket Nagar',
+        pincode: '452018',
+        latitude: 22.7231,
+        longitude: 75.8993,
+        quick: true,
+        profile: '1519238263530-99bdd11df2ea',
+        cover: '1476234251651-f353703a034d',
+    },
+];
+
+// New subcategories (parent: an apparel parent by name, or a new parent defined here).
+const NEW_CATEGORIES = [
+    { name: 'Skirts', parent: 'Women', image: '1577900232427-18219b9166a0' },
+    { name: 'Suits & Blazers', parent: 'Men', image: '1594938298603-c8148c4dae35' },
+    { name: 'Kids', parent: null, image: '1471286174890-9c112ffca5b4' },
+    { name: 'Boys Clothing', parent: 'Kids', image: '1519238263530-99bdd11df2ea' },
+    { name: 'Girls Clothing', parent: 'Kids', image: '1476234251651-f353703a034d' },
+    { name: 'Baby & Toddler', parent: 'Kids', image: '1514090458221-65bb69cf63e6' },
 ];
 
 // Colours beyond the apparel palette, added to the Colour attribute so their swatches render.
@@ -167,6 +192,8 @@ const WAIST = ['28', '30', '32', '34', '36'];
 const SHOE = ['6', '7', '8', '9', '10'];
 const HEELS = ['36', '37', '38', '39', '40'];
 const ONE = ['Free Size'];
+const KIDS = ['2-3Y', '4-5Y', '6-7Y', '8-9Y'];
+const BABY = ['6-12M', '12-18M', '18-24M'];
 
 // category: apparel subcategory slug, or root:<slug> for the root-only ones (footwear, bags, accessories, jeans)
 // legacyId: one of the stores' existing products, rebuilt in place
@@ -208,15 +235,15 @@ const PRODUCTS = [
         description: 'Vegan leather with a structured frame\nTop handle, twist lock and detachable strap\n26 x 20 x 11 cm', tags: ['bag', 'satchel', 'handbag', 'party'] },
 
     // Denim Den: denim, shirts and jackets
-    { store: 'denim-den', legacyId: '6ab4f683f1e99f7c11f9f8e4', name: 'Ripped Knee Tapered Jeans', category: 'jeans', price: 999, mrp: 1699, colours: ['Light Blue'], sizes: WAIST, photos: ['/uploads/quick/fashion/products/jeans.webp'], shop: 60,
+    { store: 'denim-den', legacyId: '6ab4f683f1e99f7c11f9f8e4', name: 'Ripped Knee Tapered Jeans', category: 'jeans', price: 999, mrp: 1699, colours: ['Light Blue'], sizes: WAIST, photos: ['/uploads/quick/fashion/products/jeans.webp'], quick: 10, shop: 60,
         description: 'Comfort-stretch cotton denim\nRipped knees with a clean tapered leg\nMid-rise; wash inside out', tags: ['jeans', 'ripped', 'tapered', 'denim'] },
-    { store: 'denim-den', name: 'Classic Straight Stonewash Jeans', category: 'jeans', price: 1199, mrp: 1999, colours: ['Light Blue', 'Indigo'], sizes: WAIST, photos: ['1604176354204-9268737828e4'], shop: 60,
+    { store: 'denim-den', name: 'Classic Straight Stonewash Jeans', category: 'jeans', price: 1199, mrp: 1999, colours: ['Light Blue', 'Indigo'], sizes: WAIST, photos: ['1604176354204-9268737828e4'], quick: 10, shop: 60,
         description: 'Rigid cotton denim that softens with wear\nFive pockets, straight leg\nMid-rise', tags: ['jeans', 'straight', 'stonewash', 'denim'] },
-    { store: 'denim-den', name: 'Dark Rinse Slim Jeans', category: 'jeans', price: 1299, mrp: 2199, colours: ['Indigo'], sizes: WAIST, photos: ['1624378439575-d8705ad7ae80'], shop: 50,
+    { store: 'denim-den', name: 'Dark Rinse Slim Jeans', category: 'jeans', price: 1299, mrp: 2199, colours: ['Indigo'], sizes: WAIST, photos: ['1624378439575-d8705ad7ae80'], quick: 10, shop: 50,
         description: 'Deep indigo rinse with 2% stretch\nSlim through the thigh and leg\nMid-rise', tags: ['jeans', 'slim', 'dark wash', 'denim'] },
-    { store: 'denim-den', name: 'Oxford Formal Shirt', category: 'shirts', price: 1099, mrp: 1799, colours: ['Sky Blue'], sizes: TEE, photos: ['1620012253295-c15cc3e65df4'], shop: 50,
+    { store: 'denim-den', name: 'Oxford Formal Shirt', category: 'shirts', price: 1099, mrp: 1799, colours: ['Sky Blue'], sizes: TEE, photos: ['1620012253295-c15cc3e65df4'], quick: 10, shop: 50,
         description: 'Cotton oxford weave, soft and breathable\nSpread collar and single-button cuffs\nTailored fit', tags: ['shirt', 'formal', 'oxford', 'office'] },
-    { store: 'denim-den', name: 'Quilted Bomber Jacket', category: 'bomber-and-denim-jackets', price: 2299, mrp: 3799, colours: ['Black'], sizes: TEE, photos: ['1548126032-079a0fb0099d'], shop: 30,
+    { store: 'denim-den', name: 'Quilted Bomber Jacket', category: 'bomber-and-denim-jackets', price: 2299, mrp: 3799, colours: ['Black'], sizes: TEE, photos: ['1548126032-079a0fb0099d'], quick: 10, shop: 30,
         description: 'Water-resistant shell with light quilted padding\nRib-knit collar, cuffs and hem\nRegular fit', tags: ['jacket', 'bomber', 'winter', 'quilted'] },
 
     // Stride & Co.: footwear, bags and accessories
@@ -230,11 +257,51 @@ const PRODUCTS = [
         description: 'Water-repellent polyester, 22 litres\nPadded 15.6-inch laptop sleeve\nAir-mesh back and straps', tags: ['backpack', 'laptop', 'office', 'travel'] },
     { store: 'stride-and-co', name: 'Round Metal Sunglasses', category: 'root:accessories', price: 799, mrp: 1499, colours: ['Gold'], sizes: ONE, photos: ['1511499767150-a48a237f0083'], shop: 40,
         description: 'Lightweight metal frame with adjustable nose pads\nUV400 tinted lenses\nComes with a hard case', tags: ['sunglasses', 'round', 'uv400', 'summer'] },
+    // Added with the new categories
+    { store: 'street-loom', name: 'Soft Marl Crew Tee', category: 't-shirts', price: 399, mrp: 699, colours: ['Grey Melange'], sizes: TEE, photos: ['1564584217132-2271feaeb3c5'], quick: 25, shop: 80,
+        description: 'Soft marl cotton-poly jersey\nCrew neck with a taped back seam\nRegular fit; machine wash cold', tags: ['tee', 'marl', 'basics', 'grey'] },
+    { store: 'dhaaga-house', name: 'Pleated Satin Midi Skirt', category: 'new:Skirts', price: 1199, mrp: 1999, colours: ['Blush Pink'], sizes: ['XS', 'S', 'M', 'L'], photos: ['1577900232427-18219b9166a0'], quick: 10, shop: 35,
+        description: 'Fluid satin with sunray pleats\nElasticated back waist, midi length\nHand wash cold', tags: ['skirt', 'pleated', 'midi', 'satin'] },
+    { store: 'dhaaga-house', name: 'Pleated Tennis Mini Skirt', category: 'new:Skirts', price: 799, mrp: 1299, colours: ['White'], sizes: ['XS', 'S', 'M', 'L'], photos: ['1582142306909-195724d33ffc'], quick: 12, shop: 40,
+        description: 'Crisp knife pleats, built-in shorts\nSide zip, high rise\nMachine wash cold', tags: ['skirt', 'tennis', 'mini', 'pleated'] },
+    { store: 'dhaaga-house', name: 'Sailor Button High-Waist Skirt', category: 'new:Skirts', price: 999, mrp: 1699, colours: ['Black'], sizes: ['XS', 'S', 'M', 'L'], photos: ['1583846783214-7229a91b20ed'], quick: 10, shop: 30,
+        description: 'Structured crepe with a double-button front\nHigh waist, A-line mini\nDry clean or gentle hand wash', tags: ['skirt', 'sailor', 'high waist', 'workwear'] },
+    { store: 'dhaaga-house', name: 'Denim Shirt Dress', category: 'dresses', price: 1399, mrp: 2299, colours: ['Light Blue'], sizes: ['XS', 'S', 'M', 'L'], photos: ['1591369822096-ffd140ec948f'], quick: 10, shop: 35,
+        description: 'Soft chambray denim, button-through front\nShort sleeves, gathered skirt\nMachine wash cold', tags: ['dress', 'denim', 'shirt dress', 'casual'] },
+    { store: 'dhaaga-house', name: 'Satin Wrap Midi Dress', category: 'dresses', price: 1799, mrp: 2999, colours: ['Mustard'], sizes: ['XS', 'S', 'M', 'L'], photos: ['1612722432474-b971cdcea546'], quick: 8, shop: 25,
+        description: 'Lustrous satin with a true wrap front\nTie waist and flutter sleeves\nHand wash cold', tags: ['dress', 'wrap', 'satin', 'party'] },
+    { store: 'dhaaga-house', name: 'Tailored Sheath Dress', category: 'dresses', price: 1599, mrp: 2699, colours: ['Grey Melange'], sizes: ['XS', 'S', 'M', 'L'], photos: ['1617922001439-4a2e6562f328'], quick: 8, shop: 25,
+        description: 'Stretch suiting fabric, knee length\nConcealed back zip, fully lined\nDry clean recommended', tags: ['dress', 'sheath', 'workwear', 'formal'] },
+    { store: 'dhaaga-house', name: 'Crop Shirt & Trouser Co-ord', category: 'tops', price: 1699, mrp: 2799, colours: ['Navy'], sizes: ['XS', 'S', 'M', 'L'], photos: ['1562572159-4efc207f5aff'], quick: 8, shop: 25,
+        description: 'Two pieces: cropped wrap shirt and wide trousers\nBreathable viscose-linen blend\nRelaxed fit', tags: ['co-ord', 'set', 'workwear', 'summer'] },
+    { store: 'denim-den', name: 'Windowpane Check Blazer', category: 'new:Suits & Blazers', price: 3499, mrp: 5999, colours: ['Navy'], sizes: ['38', '40', '42', '44'], photos: ['1592878904946-b3cd8ae243d0'], quick: 5, shop: 20,
+        description: 'Poly-viscose suiting with a windowpane check\nNotch lapel, two buttons, half lined\nSlim fit', tags: ['blazer', 'formal', 'check', 'office'] },
+    { store: 'denim-den', name: 'Three-Piece Slim Suit', category: 'new:Suits & Blazers', price: 6999, mrp: 11999, colours: ['Navy'], sizes: ['38', '40', '42', '44'], photos: ['1594938298603-c8148c4dae35'], quick: 4, shop: 15,
+        description: 'Jacket, waistcoat and trousers\nFine-weave suiting\nSlim fit; dry clean', tags: ['suit', 'three piece', 'wedding', 'formal'] },
+    { store: 'denim-den', name: 'Classic Black Tuxedo', category: 'new:Suits & Blazers', price: 7999, mrp: 13999, colours: ['Black'], sizes: ['38', '40', '42', '44'], photos: ['1598808503746-f34c53b9323e'], quick: 3, shop: 12,
+        description: 'Satin peak lapels and trouser stripe\nSingle button, fully lined\nSlim fit; dry clean', tags: ['tuxedo', 'party', 'wedding', 'formal'] },
+    { store: 'denim-den', name: 'Slim Fit Formal Shirt', category: 'shirts', price: 999, mrp: 1699, colours: ['Sky Blue'], sizes: TEE, photos: ['1604695573706-53170668f6a6'], quick: 10, shop: 50,
+        description: 'Easy-iron cotton blend\nCutaway collar, single-button cuffs\nSlim fit', tags: ['shirt', 'formal', 'office', 'slim fit'] },
+    { store: 'denim-den', name: 'Relaxed Denim Shorts', category: 'jeans', price: 799, mrp: 1299, colours: ['Light Blue'], sizes: WAIST, photos: ['1602293589930-45aad59ba3ab'], quick: 10, shop: 40,
+        description: 'Washed cotton denim, above-knee length\nFive pockets, raw hem\nRelaxed fit', tags: ['shorts', 'denim', 'summer', 'men'] },
+    { store: 'denim-den', name: 'Full-Grain Leather Belt', category: 'root:accessories', price: 899, mrp: 1499, colours: ['Tan'], sizes: ['32', '34', '36', '38'], photos: ['1624222247344-550fb60583dc'], quick: 10, shop: 40,
+        description: 'Full-grain leather, 35 mm wide\nBrushed metal pin buckle\nSize by waist', tags: ['belt', 'leather', 'accessories', 'formal'] },
+    { store: 'tiny-threads', name: 'Boys Classic Crew Tee', category: 'new:Boys Clothing', price: 299, mrp: 499, colours: ['Red'], sizes: KIDS, photos: ['1471286174890-9c112ffca5b4'], quick: 20, shop: 60,
+        description: '100% soft combed cotton\nTag-free neck, easy on and off\nRegular fit; machine wash', tags: ['kids', 'boys', 'tee', 'cotton'] },
+    { store: 'tiny-threads', name: 'Bow Tie Cardigan Party Set', category: 'new:Boys Clothing', price: 1299, mrp: 2199, colours: ['Navy'], sizes: KIDS, photos: ['1519238263530-99bdd11df2ea'], quick: 8, shop: 25,
+        description: 'Three pieces: cardigan, shirt with bow tie, shorts\nSoft cotton knit cardigan\nMachine wash gentle', tags: ['kids', 'boys', 'party', 'set'] },
+    { store: 'tiny-threads', name: 'Kids Henley Tee', category: 'new:Boys Clothing', price: 349, mrp: 599, colours: ['White'], sizes: KIDS, photos: ['1503944583220-79d8926ad5e2'], quick: 20, shop: 60,
+        description: 'Slub cotton with a three-button placket\nLong sleeves, relaxed fit\nMachine wash', tags: ['kids', 'henley', 'tee', 'casual'] },
+    { store: 'tiny-threads', name: 'Girls Printed Frock', category: 'new:Girls Clothing', price: 699, mrp: 1199, colours: ['Navy'], sizes: KIDS, photos: ['1476234251651-f353703a034d'], quick: 12, shop: 40,
+        description: 'Soft cotton with an all-over print\nButton back, flared skirt\nMachine wash gentle', tags: ['kids', 'girls', 'frock', 'dress'] },
+    { store: 'tiny-threads', name: 'Checked Shirt & Denim Set', category: 'new:Baby & Toddler', price: 899, mrp: 1499, colours: ['Navy'], sizes: BABY, photos: ['1514090458221-65bb69cf63e6'], quick: 10, shop: 30,
+        description: 'Two pieces: checked cotton shirt and soft denim bottoms\nSnap buttons for easy changes\nMachine wash gentle', tags: ['baby', 'toddler', 'set', 'denim'] },
     { store: 'stride-and-co', legacyId: '6ab4ff3df1e99f7c11f9f8ea', name: 'Mesh Trucker Cap', category: 'root:accessories', price: 299, mrp: 599, colours: ['White'], sizes: ONE, photos: ['/uploads/quick/fashion/products/cap.webp'], shop: 60,
         description: 'Structured cotton front with a breathable mesh back\nCurved peak and snapback closure\nOne size fits most', tags: ['cap', 'trucker', 'summer', 'accessories'] },
 ];
 
-async function findCategory(ref) {
+async function findCategory(ref, created) {
+    if (ref.startsWith('new:')) return created.get(ref.slice(4)) || null;
     if (ref.startsWith('root:')) {
         return Category.findOne({ slug: ref.slice(5), parentId: null, seedTag: { $ne: 'apparel-seed-v1' } });
     }
@@ -248,8 +315,12 @@ async function main() {
     console.log(`Connected to ${mongoose.connection.name}`);
 
     if (process.argv.includes('--wipe')) {
-        const [p, s] = await Promise.all([Product.deleteMany({ seedTag: SEED_TAG }), Seller.deleteMany({ seedTag: SEED_TAG })]);
-        console.log(`Deleted ${p.deletedCount} products and ${s.deletedCount} stores tagged ${SEED_TAG}`);
+        const [p, s, c] = await Promise.all([
+            Product.collection.deleteMany({ seedTag: SEED_TAG }),
+            Seller.collection.deleteMany({ seedTag: SEED_TAG }),
+            Category.collection.deleteMany({ seedTag: SEED_TAG }),
+        ]);
+        console.log(`Deleted ${p.deletedCount} products, ${s.deletedCount} stores and ${c.deletedCount} categories tagged ${SEED_TAG}`);
         await mongoose.disconnect();
         return;
     }
@@ -322,10 +393,46 @@ async function main() {
         console.log(`Store: ${doc.sellerName} (${doc._id}) quick=${doc.channels.quick.status} shop=${doc.channels.shop.status}`);
     }
 
+    // New categories, under the apparel parents (or a parent defined above).
+    const apparelSet = await AttributeSet.findOne({ key: 'apparel' });
+    const createdCategories = new Map();
+    for (const c of NEW_CATEGORIES) {
+        let parentId = null;
+        if (c.parent) {
+            const parent =
+                createdCategories.get(c.parent) ||
+                (await Category.findOne({ name: c.parent, parentId: null, seedTag: 'apparel-seed-v1' }));
+            if (!parent) throw new Error(`Parent category ${c.parent} not found`);
+            parentId = parent._id;
+        }
+        const slug = c.name.toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const image = await media(c.image, `categories/${slug}.webp`);
+        // A root of the same name with no products (the old empty "Kids") is reused, not duplicated.
+        const doc = await Category.findOneAndUpdate(
+            parentId ? { name: c.name, parentId } : { name: c.name, parentId: null, sellerId: { $exists: false } },
+            {
+                $set: {
+                    name: c.name,
+                    image,
+                    parentId,
+                    ...(parentId && apparelSet ? { attributeSetId: apparelSet._id, commissionPercent: 10 } : {}),
+                    approvalStatus: 'approved',
+                    isApproved: true,
+                    isActive: true,
+                    requiresFssai: false,
+                },
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true },
+        );
+        await Category.collection.updateOne({ _id: doc._id }, { $set: { seedTag: SEED_TAG } });
+        createdCategories.set(c.name, doc);
+        console.log(`Category: ${c.parent ? `${c.parent} > ` : ''}${doc.name} (${doc._id})`);
+    }
+
     let done = 0;
     for (const p of PRODUCTS) {
         const seller = stores.get(p.store);
-        const category = await findCategory(p.category);
+        const category = await findCategory(p.category, createdCategories);
         if (!category) {
             console.warn(`  skipped ${p.name}: category ${p.category} not found`);
             continue;
