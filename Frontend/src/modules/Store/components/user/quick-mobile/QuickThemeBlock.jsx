@@ -32,30 +32,30 @@ function PoweredBy({ brands = [] }) {
 function PromoTiles({ tiles = [] }) {
   if (!tiles.length) return null
   return (
-    <div className="grid grid-cols-3 gap-2.5">
+    <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
       {tiles.slice(0, 3).map((tile, i) => {
         const image = mediaUrl(tile.imageUrl)
         return (
           <AppLink
             key={`${tile.title}-${i}`}
             to={tile.link}
-            className="group relative flex aspect-[106/102] flex-col overflow-hidden rounded-xl bg-gradient-to-b from-white/80 to-white/40 p-2 shadow-sm ring-1 ring-black/5 backdrop-blur-[2px] transition-transform active:scale-95"
+            className="group relative flex aspect-[106/116] flex-col overflow-hidden rounded-xl bg-white/95 p-2 shadow-sm ring-1 ring-black/5 transition-transform active:scale-95 hover:shadow-md"
           >
-            <span className="text-center text-[13px] font-bold leading-tight text-wh-text">{tile.title}</span>
-            <span className="relative mt-auto flex flex-1 items-end justify-center">
+            <span className="text-center text-[12px] font-bold leading-tight text-wh-text line-clamp-2 h-[28px] flex items-center justify-center">
+              {tile.title}
+            </span>
+            <div className="relative mt-1 flex flex-1 items-center justify-center overflow-hidden p-0.5">
               {image ? (
                 <img
                   src={image}
-                  alt=""
+                  alt={tile.title}
                   loading="lazy"
-                  // Out of step with each other, so the row breathes rather than marches.
-                  style={{ animationDelay: `${i * 0.6}s` }}
-                  className="wh-bob max-h-[70%] w-auto object-contain drop-shadow-md transition-transform duration-300 group-active:-translate-y-1"
+                  className="h-full w-full max-h-[85px] object-contain drop-shadow-sm transition-transform duration-200 group-hover:scale-105"
                 />
               ) : (
-                <span aria-hidden="true" className="mb-1 h-10 w-10 rounded-full bg-wh-brand/20" />
+                <span aria-hidden="true" className="h-10 w-10 rounded-full bg-wh-brand/20" />
               )}
-            </span>
+            </div>
           </AppLink>
         )
       })}
