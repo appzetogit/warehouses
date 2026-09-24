@@ -3,7 +3,8 @@ import { useStoreMode } from "@store/context/StoreModeContext"
 import { channelAvailability } from "@store/utils/channelStock"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
-import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
+import useIsDesktop, { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
+import MobileListing from "@store/components/user/mobile/MobileListing"
 import { DesktopProductListing } from "@store/components/user/desktop/ListingDesktop"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, Star, Clock, Search, SlidersHorizontal, ChevronDown, Bookmark, BadgePercent, MapPin, ArrowDownUp, Timer, IndianRupee, UtensilsCrossed, ShieldCheck, X, Loader2, Grid2x2 } from "lucide-react"
@@ -46,6 +47,7 @@ export default function CategoryPage() {
   const { isQuick, fulfilmentMode, storePath } = useStoreMode()
   const { category } = useParams()
   const isDesktop = useStorefrontLayout()
+  const onWideScreen = useIsDesktop()
   const navigate = useNavigate()
   const { vegMode } = useProfile()
   const { effectiveLocation: location, zoneId, isOutOfService } = useDeliveryLocation()
@@ -891,6 +893,8 @@ export default function CategoryPage() {
 
   // Desktop (lg+): filter rail, results bar and product grid; mobile below is unchanged.
   if (isDesktop) {
+    // Phones: the listing from the mobile mockup (screen 2).
+    if (!onWideScreen) return <MobileListing categorySlug={String(category || "all").toLowerCase()} />
     return (
       <DesktopProductListing
         categorySlug={String(category || "all").toLowerCase()}

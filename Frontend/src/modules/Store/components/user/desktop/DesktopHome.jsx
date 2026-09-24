@@ -16,6 +16,8 @@ import {
 } from "../storefront/HomeSections"
 import { useDesktopAddToCart } from "./desktopCart"
 import { percentOff } from "./ui"
+import useIsDesktop from "./useIsDesktop"
+import MobileHome from "../mobile/MobileHome"
 
 const PRODUCT_LIMIT = 50
 
@@ -35,6 +37,7 @@ const toTile = (p) => ({
 const slugify = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, "-")
 
 export default function DesktopHome({ heroBanners = [], categories = [], zoneId, onOpenBanner, etaMinutes }) {
+  const isDesktop = useIsDesktop()
   const { storePath, fulfilmentMode, isQuick } = useStoreMode()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -162,6 +165,11 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
 
   // Hold the page's shape while the catalogue loads, instead of flashing an
   // empty screen and then pushing everything down.
+  // Phones get the mobile storefront (screen 1 of the mobile mockup).
+  if (!isDesktop) {
+    return <MobileHome heroBanners={heroBanners} products={products} loading={loading} />
+  }
+
   if (loading) return <HomeSkeleton />
 
   const recommendedList = recommended.filter((p) => p?._id)

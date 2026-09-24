@@ -13,7 +13,8 @@ import { useLocation as useGeoLocation } from "@store/hooks/useLocation"
 import { useZone } from "@store/hooks/useZone"
 import { adminAPI, searchAPI } from "@/services/api"
 import { motion, AnimatePresence } from "framer-motion"
-import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
+import useIsDesktop, { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
+import MobileListing from "@store/components/user/mobile/MobileListing"
 import { DesktopProductListing } from "@store/components/user/desktop/ListingDesktop"
 
 // Helper to resolve media URLs consistently
@@ -48,6 +49,7 @@ export default function ProfessionalSearch() {
   const { location: userCoords } = useGeoLocation()
   const { zoneId, zoneStatus } = useZone(userCoords)
   const isDesktop = useStorefrontLayout()
+  const onWideScreen = useIsDesktop()
   
   const [query, setQuery] = useState(initialQuery)
   const debouncedQuery = useDebounce(query, 500)
@@ -225,6 +227,18 @@ export default function ProfessionalSearch() {
 
   // Desktop (lg+): filter rail, results bar and product grid; mobile below is unchanged.
   if (isDesktop) {
+    // Phones: the listing from the mobile mockup (screen 2).
+    if (!onWideScreen) {
+      const discount = Number(searchParams.get("minDiscount")) || null
+      return (
+        <MobileListing
+          withTopBar={false}
+          q={searchParams.get("q") || ""}
+          minDiscount={discount}
+          title={!searchParams.get("q") && discount ? `Minimum ${discount}% off` : undefined}
+        />
+      )
+    }
     return (
       <DesktopProductListing
         q={searchParams.get("q") || ""}

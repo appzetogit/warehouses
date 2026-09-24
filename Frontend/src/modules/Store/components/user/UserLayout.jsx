@@ -14,7 +14,7 @@ const debugError = (...args) => {}
 import SearchOverlay from "./SearchOverlay"
 import DesktopHeader from "./desktop/DesktopHeader"
 import BottomNav from "./storefront/BottomNav"
-import QuickMobileHeader from "./quick-mobile/QuickMobileHeader"
+import MobileHeader from "./mobile/MobileHeader"
 import { QuickLayoutProvider } from "./quick-mobile/QuickLayoutContext"
 import DesktopFooter from "./desktop/DesktopFooter"
 import QuickZoneStrip from "./desktop/QuickZoneStrip"
@@ -143,6 +143,22 @@ const LocationSelectorContext = createContext({
   closeLocationSelector: () => { }
 })
 
+/**
+ * Pages that draw their own phone top bar (back, title, actions) as in the
+ * mobile mockup, so the big home header stays off them.
+ */
+const OWN_TOP_BAR = [
+  /^(\/quick)?\/category\//,
+  /^(\/quick)?\/product\//,
+  /^(\/quick)?\/sellers(\/|$)/,
+  /^(\/quick)?\/cart(\/|$)/,
+  /^(\/quick)?\/categories$/,
+  /^(\/quick)?\/order-again$/,
+  /^\/orders(\/|$)/,
+  /^\/profile(\/|$)/,
+]
+const hasOwnTopBar = (path) => OWN_TOP_BAR.some((re) => re.test(path))
+
 /** The Quick home layout is only fetched where it is shown. */
 function QuickLayoutGate({ enabled, children }) {
   return enabled ? <QuickLayoutProvider>{children}</QuickLayoutProvider> : children
@@ -233,17 +249,20 @@ export default function UserLayout() {
                   {showDesktopShell && (
                     <DesktopHeader
                       onOpenSpin={() => setIsSpinWheelOpen(true)}
-                      desktopOnly={storeMode === "quick"}
+                      desktopOnly
                     />
                   )}
-                  {showDesktopShell && storeMode === "quick" && <QuickMobileHeader />}
+                  {/* Phones: the big header on home and search; other pages draw their own top bar. */}
+                  {showDesktopShell && !hasOwnTopBar(normalizedPath) && <MobileHeader />}
                   {showDesktopShell && storeMode === "quick" && (
                     <div className="hidden lg:block">
                       <QuickZoneStrip />
                     </div>
                   )}
                   {/* Room for the phone's tab bar, which floats over the page. */}
-                  <main className="w-full min-w-0 max-w-full overflow-x-hidden pb-[57px] md:pb-0">
+                  {/* clip, not hidden: hidden makes <main> a scroll container and
+                      every sticky bar inside a page stops sticking. */}
+                  <main className="w-full min-w-0 max-w-full overflow-x-clip pb-[57px] md:pb-0">
                     <Outlet />
                   </main>
                   {showDesktopShell && <DesktopFooter />}
