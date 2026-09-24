@@ -37,7 +37,7 @@ export default function RecommendationRail({ productId, type = "similar", fallba
 
   if (variant === "desktop") {
     return (
-      <section className={`bg-wh-surface py-4 ${className}`} aria-label={title}>
+      <section className={`w-full min-w-0 max-w-full overflow-hidden bg-wh-surface py-4 ${className}`} aria-label={title}>
         <h2 className="mb-3 text-[21px] font-bold leading-7 text-wh-text">{title}</h2>
         <div className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:thin]">
           {products.map((p) => (
@@ -55,7 +55,7 @@ export default function RecommendationRail({ productId, type = "similar", fallba
   }
 
   return (
-    <section className={`pt-4 ${className}`}>
+    <section className={`w-full min-w-0 max-w-full overflow-hidden pt-4 ${className}`}>
       <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 px-1">{title}</h3>
       <div className="flex gap-3 overflow-x-auto pb-2 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {products.map((p) => {

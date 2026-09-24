@@ -163,13 +163,25 @@
 @layer base {
   html {
     scroll-behavior: auto;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground m-0 min-h-screen;
+    overflow-x: hidden;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  #root {
+    overflow-x: hidden;
+    max-width: 100%;
+    width: 100%;
   }
 
   * {
     @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground m-0 min-h-screen;
   }
 }
 

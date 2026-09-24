@@ -99,7 +99,7 @@ export default function ProductDetailDesktop({
   ].filter(Boolean)
 
   return (
-    <div className="min-h-screen bg-wh-surface pb-10 text-[14px] leading-5 text-wh-text">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-wh-surface pb-10 text-[14px] leading-5 text-wh-text">
       <div className="mx-auto max-w-[1500px] px-3 sm:px-5">
         <nav aria-label="Breadcrumb" className="py-3 text-[12px] text-wh-muted">
           <ol className="flex flex-wrap items-center gap-1">
@@ -109,7 +109,7 @@ export default function ProductDetailDesktop({
                 {b.to ? (
                   <Link to={b.to} className="hover:text-wh-link-hover hover:underline">{b.label}</Link>
                 ) : (
-                  <span className={i === breadcrumb.length - 1 ? "line-clamp-1 max-w-[480px]" : ""}>{b.label}</span>
+                  <span className={i === breadcrumb.length - 1 ? "line-clamp-1 max-w-[220px] sm:max-w-[480px]" : ""}>{b.label}</span>
                 )}
               </li>
             ))}
@@ -118,9 +118,9 @@ export default function ProductDetailDesktop({
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,5fr)_260px] lg:gap-6 xl:grid-cols-[minmax(0,6fr)_minmax(0,5fr)_300px]">
           {/* 1. Gallery */}
-          <div className="flex flex-col-reverse gap-3 self-start sm:flex-row lg:sticky lg:top-28">
+          <div className="flex w-full min-w-0 max-w-full flex-col-reverse gap-3 self-start sm:flex-row lg:sticky lg:top-28">
             {allImages.length > 1 && (
-              <div className="flex w-full shrink-0 gap-2 overflow-x-auto sm:max-h-[520px] sm:w-[52px] sm:flex-col sm:overflow-x-visible sm:overflow-y-auto">
+              <div className="flex w-full min-w-0 gap-2 overflow-x-auto sm:max-h-[520px] sm:w-[52px] sm:flex-col sm:overflow-x-visible sm:overflow-y-auto">
                 {allImages.map((img, idx) => (
                   <button
                     key={idx}
@@ -129,7 +129,7 @@ export default function ProductDetailDesktop({
                     onClick={() => setActiveImageIndex(idx)}
                     aria-label={`Show image ${idx + 1}`}
                     aria-pressed={activeImageIndex === idx}
-                    className={`h-[52px] w-[52px] overflow-hidden rounded-[8px] border bg-white focus-visible:outline-2 focus-visible:outline-wh-brand ${
+                    className={`h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[8px] border bg-white focus-visible:outline-2 focus-visible:outline-wh-brand ${
                       activeImageIndex === idx ? "border-wh-brand ring-1 ring-wh-brand" : "border-wh-border"
                     }`}
                   >
@@ -138,7 +138,7 @@ export default function ProductDetailDesktop({
                 ))}
               </div>
             )}
-            <div className="flex aspect-square flex-1 items-center justify-center bg-white">
+            <div className="flex aspect-square w-full max-w-full flex-1 items-center justify-center overflow-hidden bg-white">
               {isRealImage(allImages[activeImageIndex] || allImages[0]) ? (
                 <img
                   src={allImages[activeImageIndex] || allImages[0]}
@@ -335,16 +335,18 @@ export default function ProductDetailDesktop({
         {specs.length > 0 && (
           <section className="border-t border-wh-border py-6" aria-labelledby="pd-specs">
             <h2 id="pd-specs" className="mb-3 text-[21px] font-bold">Product details</h2>
-            <table className="w-full max-w-[640px] border-collapse text-[14px]">
-              <tbody>
-                {specs.map(([k, v]) => (
-                  <tr key={k} className="border-b border-wh-border">
-                    <th scope="row" className="w-1/3 bg-[#F3F3F3] px-3 py-2 text-left font-bold">{k}</th>
-                    <td className="px-3 py-2">{String(v)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="w-full overflow-x-auto">
+              <table className="w-full max-w-[640px] border-collapse text-[14px]">
+                <tbody>
+                  {specs.map(([k, v]) => (
+                    <tr key={k} className="border-b border-wh-border">
+                      <th scope="row" className="w-1/3 bg-[#F3F3F3] px-3 py-2 text-left font-bold">{k}</th>
+                      <td className="px-3 py-2">{String(v)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 

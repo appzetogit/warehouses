@@ -216,7 +216,7 @@ export default function UserLayout() {
   const showDesktopShell = !/(^|\/)auth(\/|$)/.test(normalizedPath)
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
       <CartProvider key={storeMode} mode={storeMode}>
         <AutoCouponController />
         <ProfileProvider>
@@ -243,7 +243,7 @@ export default function UserLayout() {
                     </div>
                   )}
                   {/* Room for the phone's tab bar, which floats over the page. */}
-                  <main className="pb-[57px] md:pb-0">
+                  <main className="w-full min-w-0 max-w-full overflow-x-hidden pb-[57px] md:pb-0">
                     <Outlet />
                   </main>
                   {showDesktopShell && <DesktopFooter />}

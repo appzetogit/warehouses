@@ -191,7 +191,7 @@ export default function ProductReviews({ productId, productName, variant = "mobi
       aria-labelledby={`reviews-${productId}`}
       className={desktop ? "border-t border-wh-border py-6" : "rounded-2xl border border-gray-200 bg-white p-4 text-gray-900"}
     >
-      <div className={desktop ? "grid grid-cols-[300px_minmax(0,1fr)] gap-10" : "space-y-4"}>
+      <div className={desktop ? "grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-10" : "space-y-4"}>
         <div>
           <h2 id={`reviews-${productId}`} className={desktop ? "text-[21px] font-bold" : "text-base font-bold"}>Customer reviews</h2>
           <div className="mt-2 flex items-center gap-2">
