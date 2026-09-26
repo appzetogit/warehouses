@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link, useSearchParams } from "react-router-dom"
-import { AlertCircle, Loader2 } from "lucide-react"
+import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react"
 import AnimatedPage from "@store/components/user/AnimatedPage"
 import { Button } from "@store/components/ui/button"
 import { Input } from "@store/components/ui/input"
@@ -117,6 +117,16 @@ export default function SignIn() {
         className="relative h-[40dvh] w-full overflow-hidden flex flex-col items-center justify-center"
         style={{ background: "linear-gradient(160deg, var(--wh-nav, #131921) 0%, var(--wh-nav-2, #232F3E) 100%)" }}
       >
+        {/* A way out for anyone who only came to look, back to where they were
+            (or home when this page was opened directly). */}
+        <button
+          type="button"
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))}
+          aria-label="Back"
+          className="absolute left-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 active:scale-95"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+        </button>
         {/* Subtle Decorative Elements (No Blur) */}
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-0 right-0 w-64 h-64 border-word border-white/20 rounded-full -mr-20 -mt-20" />

@@ -53,6 +53,7 @@ import SavedForLater, { saveCartLineForLater } from "@store/components/user/cart
 import CartSwitch from "@store/components/user/cart/CartSwitch"
 import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
 import { formatDeliveryWindow, useQuickEta, useShopDeliveryEstimate } from "@store/components/user/desktop/useDeliveryEstimates"
+import { useBusinessSettings } from "@store/components/user/desktop/useDesktopShell"
 import zoopSound from "@store/assets/audio/order-placed.mp3"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
@@ -347,6 +348,7 @@ export default function Cart() {
   const [showOffersView, setShowOffersView] = useState(false)
   const { fulfilmentMode: storeFulfilmentMode, storePath } = useStoreMode()
   const inQuick = storeFulfilmentMode === "quick"
+  const { returnWindowDays } = useBusinessSettings()
   const quickEta = useQuickEta()
   const shopEstimate = useShopDeliveryEstimate({ enabled: !inQuick })
   const deliveryBadge = inQuick
@@ -704,7 +706,8 @@ export default function Cart() {
   )
 
   const hasSavedAddress = Boolean(defaultAddress && formatFullAddress(defaultAddress))
-  const recipientName = String(recipientDetails.name || "").trim() || userProfile?.name || "Your Name"
+  // Empty when nobody is set yet; the card then asks for it instead of showing placeholders.
+  const recipientName = String(recipientDetails.name || "").trim() || userProfile?.name || ""
   const recipientPhone = sanitizeRecipientPhone(recipientDetails.phone || "") || userProfile?.phone || ""
   const selectedAddressCoordinates = defaultAddress?.location?.coordinates
   const zoneLocation = selectedAddressCoordinates?.length === 2
@@ -2321,10 +2324,10 @@ export default function Cart() {
         address: {
           ...pricingAddress,
           phone: recipientPhone || defaultAddress?.phone || "",
-          name: recipientName,
-          fullName: recipientName,
+          name: recipientName || defaultAddress?.name || defaultAddress?.fullName || "",
+          fullName: recipientName || defaultAddress?.fullName || defaultAddress?.name || "",
         },
-        customerName: recipientName,
+        customerName: recipientName || defaultAddress?.fullName || defaultAddress?.name || "",
         customerPhone: recipientPhone || defaultAddress?.phone || "",
         sellerId: finalSellerId,
         sellerName: finalSellerName || undefined,
@@ -3076,10 +3079,18 @@ export default function Cart() {
 
                 {!isEditingRecipient ? (
                   <div className="px-4 py-3.5">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{recipientName}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5 tabular-nums">
-                      {recipientPhone ? `+91 ${recipientPhone}` : "+91 XXXXXXXXXX"}
-                    </p>
+                    {recipientName || recipientPhone ? (
+                      <>
+                        {recipientName ? <p className="text-sm font-medium text-gray-900 dark:text-white">{recipientName}</p> : null}
+                        {recipientPhone ? (
+                          <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5 tabular-nums">+91 {recipientPhone}</p>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {isModuleAuthenticated("user") ? "Add who should receive this order" : "Sign in to add who receives this order"}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="px-4 py-3.5 space-y-3 bg-gray-50/60 dark:bg-[#141414]/60">
@@ -3293,7 +3304,8 @@ export default function Cart() {
                       <div className="min-w-0 flex-1">
                         <span className="text-gray-600 dark:text-gray-400 border-b border-dotted border-gray-300">
                           Delivery Fee
-                          {deliveryFeeBreakdownText
+                          {/* Distance only means something for a Quick rider trip, and only once it's known. */}
+                          {inQuick && deliveryFeeBreakdownText && !/^(Distance:\s*)?0(\.0+)?\s*km$/i.test(deliveryFeeBreakdownText.trim())
                             ? ` | ${deliveryFeeBreakdownText.replace(/^Distance:\s*/i, "")}`
                             : ""}
                         </span>
@@ -3352,7 +3364,10 @@ export default function Cart() {
               </div>
 
               <p className="order-7 text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed px-1">
-                Cancellation policy: Please double-check your order and address details. Orders are non-refundable once placed.
+                You can cancel before your order is packed.{" "}
+                {returnWindowDays
+                  ? `Eligible items can be returned within ${returnWindowDays} days of delivery.`
+                  : "Eligible items can be returned; see our refund policy."}
               </p>
               {isDesktop && cart.length > 0 && (
                 <div className="rounded-[8px] bg-wh-surface px-5 pb-2">

@@ -50,26 +50,64 @@ const Skeleton = ({ n = 12, cols = "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 2x
 )
 
 /** categories: [{ id, name, slug, image }] */
+/**
+ * Main categories as sections (Men, Women, Kids…), each with its own
+ * subcategories; categories with no subcategories share a "More to shop"
+ * section at the end. A search flattens everything into one grid.
+ */
+function groupCategories(categories) {
+  const byId = new Map(categories.map((c) => [c.id, c]))
+  const bySort = (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0) || (a.order || 0) - (b.order || 0)
+  const children = new Map()
+  for (const c of categories) {
+    if (c.parentId && byId.has(c.parentId)) children.set(c.parentId, [...(children.get(c.parentId) || []), c])
+  }
+  const roots = categories.filter((c) => !c.parentId || !byId.has(c.parentId)).sort(bySort)
+  const sections = roots.filter((r) => children.has(r.id)).map((r) => ({ key: r.id, title: r.name, parent: r, items: children.get(r.id).sort(bySort) }))
+  const loose = roots.filter((r) => !children.has(r.id))
+  if (loose.length) sections.push({ key: "more", title: "More to shop", parent: null, items: loose })
+  return sections
+}
+
 export function CategoriesDesktop({ categories = [], loading }) {
   const { storePath } = useStoreMode()
   const [filter, setFilter] = useState("")
-  const rows = categories.filter((c) => (c.name || "").toLowerCase().includes(filter.trim().toLowerCase()))
+  const query = filter.trim().toLowerCase()
+  const rows = categories.filter((c) => (c.name || "").toLowerCase().includes(query))
+  const sections = query ? [{ key: "results", title: "", parent: null, items: rows }] : groupCategories(categories)
+  // By id, so two categories with the same name (a "Jeans" under Men and a
+  // top-level one) each open their own page.
+  const tile = (c) => (
+    <Link
+      key={c.id}
+      to={storePath(`/category/${c.id}`)}
+      className={cx("group flex flex-col rounded-[8px] bg-wh-surface p-3 hover:shadow-md sm:p-4", focusRing)}
+    >
+      <div className="aspect-square overflow-hidden rounded-[4px] bg-[#F7F7F7]">
+        {c.image ? <img src={c.image} alt={c.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : null}
+      </div>
+      <span className="mt-3 line-clamp-2 text-[15px] font-bold leading-5 sm:text-[16px]">{c.name}</span>
+      <span className="mt-1 text-[13px] text-wh-link group-hover:text-wh-link-hover group-hover:underline">Shop now</span>
+    </Link>
+  )
   return (
     <PageShell title="Shop by category" subtitle={loading ? "" : `${categories.length} categories`} filter={filter} setFilter={setFilter} placeholder="Find a category">
       {loading ? <Skeleton /> : rows.length ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 2xl:grid-cols-6">
-          {rows.map((c) => (
-            <Link
-              key={c.id}
-              to={storePath(`/category/${c.slug}`)}
-              className={cx("group flex flex-col rounded-[8px] bg-wh-surface p-4 hover:shadow-md", focusRing)}
-            >
-              <div className="aspect-square overflow-hidden rounded-[4px] bg-[#F7F7F7]">
-                {c.image ? <img src={c.image} alt={c.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : null}
-              </div>
-              <span className="mt-3 line-clamp-2 text-[16px] font-bold leading-5">{c.name}</span>
-              <span className="mt-1 text-[13px] text-wh-link group-hover:text-wh-link-hover group-hover:underline">Shop now</span>
-            </Link>
+        <div className="space-y-7">
+          {sections.map((s) => (
+            <section key={s.key} aria-label={s.title || "Categories"}>
+              {s.title ? (
+                <div className="mb-3 flex items-end justify-between gap-3">
+                  <h2 className="text-[19px] font-bold leading-tight">{s.title}</h2>
+                  {s.parent ? (
+                    <Link to={storePath(`/category/${s.parent.id}`)} className="text-[13px] font-semibold text-wh-link hover:underline">
+                      See all
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 2xl:grid-cols-6">{s.items.map(tile)}</div>
+            </section>
           ))}
         </div>
       ) : (

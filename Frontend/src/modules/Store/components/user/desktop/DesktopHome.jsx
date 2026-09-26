@@ -17,6 +17,7 @@ import {
 import { useDesktopAddToCart } from "./desktopCart"
 import { percentOff } from "./ui"
 import useIsDesktop from "./useIsDesktop"
+import { useBusinessSettings } from "./useDesktopShell"
 import MobileHome from "../mobile/MobileHome"
 
 const PRODUCT_LIMIT = 50
@@ -39,6 +40,7 @@ const slugify = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, "-")
 export default function DesktopHome({ heroBanners = [], categories = [], zoneId, onOpenBanner, etaMinutes }) {
   const isDesktop = useIsDesktop()
   const { storePath, fulfilmentMode, isQuick } = useStoreMode()
+  const business = useBusinessSettings()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [orderItems, setOrderItems] = useState([])
@@ -156,11 +158,16 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
     }
   })
 
+  // Only promises the settings back up: no free-delivery threshold or coin
+  // rate is configured, so none is advertised.
+  const standardDays = business.settings?.standardDeliveryDays
   const marqueeItems = [
-    isQuick ? `Quick delivery in ${etaMinutes || 10} minutes` : "Free express delivery on orders over ₹799",
-    "100% Verified Boutique Apparel & Premium Fabrics",
-    "Flat 10% Warehouses Coins on Every Order",
-    "Hassle-free 7-day size exchanges & doorstep returns",
+    isQuick
+      ? `Quick delivery in ${etaMinutes || 10} minutes`
+      : `Courier delivery in ${standardDays?.min || 2}-${standardDays?.max || 4} days`,
+    "Every store is verified before it can sell",
+    business.returnWindowDays ? `Returns within ${business.returnWindowDays} days of delivery` : "Easy returns on eligible items",
+    "Fashion from local stores near you",
   ]
 
   // Hold the page's shape while the catalogue loads, instead of flashing an

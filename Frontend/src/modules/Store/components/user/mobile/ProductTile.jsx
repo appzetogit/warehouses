@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Heart, Minus, Plus, ShoppingCart, Star, Zap } from "lucide-react"
+import { Heart, Minus, Plus, ShoppingCart, Star, Truck, Zap } from "lucide-react"
 import { toast } from "sonner"
 import { useCart } from "@store/context/CartContext"
 import { useProfile } from "@store/context/ProfileContext"
@@ -57,6 +57,7 @@ export default function ProductTile({ product, showSizes = true }) {
   }, [variants, product, channel])
 
   const [size, setSize] = useState("")
+  const [imageLoaded, setImageLoaded] = useState(false)
   const [nudge, setNudge] = useState(false)
   const chosen = sizes.find((s) => s.size === size)
   const variant = chosen?.variant || (variants.length === 1 ? variants[0] : null)
@@ -156,9 +157,20 @@ export default function ProductTile({ product, showSizes = true }) {
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
-      <Link to={storePath(`/product/${id}`)} className="relative block aspect-[4/5] overflow-hidden bg-[#F5F5F5]">
+      <Link
+        to={storePath(`/product/${id}`)}
+        className={`relative block aspect-[4/5] overflow-hidden bg-[#F5F5F5] ${isRealImage(image) && !imageLoaded ? "animate-pulse" : ""}`}
+      >
         {isRealImage(image) ? (
-          <img src={image} alt={product?.name || ""} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+          // Shimmers until the photo arrives, then fades it in, so a slow photo never reads as a blank card.
+          <img
+            src={image}
+            alt={product?.name || ""}
+            loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageLoaded(true)}
+            className={`h-full w-full object-cover transition-[opacity,transform] duration-500 hover:scale-105 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+          />
         ) : (
           <ImagePlaceholder name={product?.name} />
         )}
@@ -172,7 +184,7 @@ export default function ProductTile({ product, showSizes = true }) {
           <Heart className={`h-4 w-4 ${liked ? "fill-[#E4322B] text-[#E4322B]" : "text-gray-700"}`} aria-hidden="true" />
         </button>
         <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-[#FFC928] px-1.5 py-0.5 text-[10px] font-bold text-gray-900 shadow-sm">
-          <Zap className="h-3 w-3 fill-current" aria-hidden="true" />
+          {isQuick ? <Zap className="h-3 w-3 fill-current" aria-hidden="true" /> : <Truck className="h-3 w-3" aria-hidden="true" />}
           {deliveryChip}
         </span>
         {!stock.inStock ? (

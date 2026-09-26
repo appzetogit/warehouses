@@ -47,11 +47,12 @@ const FLink = ({ to, children }) => (
 /** Desktop (lg+) storefront footer. */
 export default function DesktopFooter() {
   const { storePath } = useStoreMode()
-  const { settings, brandName, logoOnDark } = useBusinessSettings()
+  const { settings, brandName, logoOnDark, supportEmail, supportPhone } = useBusinessSettings()
   const [logoSrc, setLogoSrc] = useState(null)
   const social = socialLinksFrom(settings)
-  const email = settings?.email
-  const phone = settings?.phone?.number ? `${settings.phone.countryCode || ""} ${settings.phone.number}`.trim() : ""
+  // Only real contacts; placeholders such as admin@example.com stay hidden.
+  const email = supportEmail
+  const phone = supportPhone
 
   return (
     <footer className="wh-desktop mt-8">

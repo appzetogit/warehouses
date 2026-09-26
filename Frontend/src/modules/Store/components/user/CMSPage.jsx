@@ -7,10 +7,11 @@ import { Button } from "@store/components/ui/button"
 import api from "@store/api"
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation"
 import { useCompanyName } from "@store/hooks/useCompanyName"
-import { getSupportEmail } from "@store/utils/businessSettings"
+import { useBusinessSettings, supportContact } from "@store/components/user/desktop/useDesktopShell"
 
 export default function CMSPage({ endpoint, title: defaultTitle, module = "USER" }) {
   const companyName = useCompanyName()
+  const business = useBusinessSettings()
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
   const [loading, setLoading] = useState(true)
@@ -112,27 +113,39 @@ export default function CMSPage({ endpoint, title: defaultTitle, module = "USER"
           animate={{ opacity: 1, y: 0 }}
           className="bg-white dark:bg-[#111] rounded-[2rem] p-6 md:p-10 shadow-sm border border-gray-50 dark:border-gray-900"
         >
-          {/* Support Specific Header Cards */}
-          {(endpoint.includes('support') || pageData.title?.toLowerCase().includes('support')) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-              <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 flex flex-col items-center text-center group transition-all hover:border-wh-brand/30">
-                <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                  <Mail className="w-6 h-6 text-wh-brand-ink" />
-                </div>
-                <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider mb-2">Email Us</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">{pageData.email || getSupportEmail()}</p>
-                <a href={`mailto:${pageData.email || getSupportEmail()}`} className="mt-4 text-xs font-black text-wh-brand-ink uppercase tracking-widest hover:underline">Send Message</a>
+          {/* Support Specific Header Cards: only real contacts. A placeholder
+              address or "00000 00000" number is treated as unset. */}
+          {(() => {
+            if (!(endpoint.includes('support') || pageData.title?.toLowerCase().includes('support'))) return null
+            const page = supportContact({ email: pageData.email, phone: pageData.mobile })
+            const email = page.supportEmail || business.supportEmail
+            const phone = page.supportPhone || business.supportPhone
+            if (!email && !phone) return null
+            return (
+              <div className={`grid grid-cols-1 gap-4 mb-10 ${email && phone ? 'md:grid-cols-2' : ''}`}>
+                {email ? (
+                  <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 flex flex-col items-center text-center group transition-all hover:border-wh-brand/30">
+                    <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                      <Mail className="w-6 h-6 text-wh-brand-ink" />
+                    </div>
+                    <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider mb-2">Email Us</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">{email}</p>
+                    <a href={`mailto:${email}`} className="mt-4 text-xs font-black text-wh-brand-ink uppercase tracking-widest hover:underline">Send Message</a>
+                  </div>
+                ) : null}
+                {phone ? (
+                  <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 flex flex-col items-center text-center group transition-all hover:border-wh-brand/30">
+                    <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                      <Phone className="w-6 h-6 text-wh-brand-ink" />
+                    </div>
+                    <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider mb-2">Call Us</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">{phone}</p>
+                    <a href={`tel:${phone.replace(/\s+/g, '')}`} className="mt-4 text-xs font-black text-wh-brand-ink uppercase tracking-widest hover:underline">Call Now</a>
+                  </div>
+                ) : null}
               </div>
-              <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 flex flex-col items-center text-center group transition-all hover:border-wh-brand/30">
-                <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                  <Phone className="w-6 h-6 text-wh-brand-ink" />
-                </div>
-                <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider mb-2">Call Us</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">{pageData.mobile || '+91 00000 00000'}</p>
-                <a href={`tel:${pageData.mobile}`} className="mt-4 text-xs font-black text-wh-brand-ink uppercase tracking-widest hover:underline">Call Now</a>
-              </div>
-            </div>
-          )}
+            )
+          })()}
 
           {pageData.content ? (
             <div

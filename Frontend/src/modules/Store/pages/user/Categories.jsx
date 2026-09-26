@@ -44,6 +44,9 @@ export default function Categories() {
             slug: cat?.slug || String(cat?.name || "").toLowerCase().replace(/\s+/g, "-"),
             image: normalizeImageUrl(cat?.image || cat?.imageUrl) || productImages[idx % productImages.length],
             type: cat?.type || "",
+            parentId: cat?.parentId ? String(cat.parentId?._id || cat.parentId) : null,
+            sortOrder: Number(cat?.sortOrder) || 0,
+            order: idx,
           }));
           setCategories(transformed);
         }

@@ -25,6 +25,26 @@ export function useBusinessSettings() {
     settings,
     brandName: settings?.companyName || APP_CONFIG.NAME,
     logoOnDark: brandLogoOnDark(settings || undefined),
+    ...supportContact(settings),
+    returnWindowDays: Number(settings?.returnWindowDays) > 0 ? Number(settings.returnWindowDays) : null,
+  }
+}
+
+/**
+ * The support email and phone customers may use, or "" when the admin hasn't
+ * set a real one. Placeholders ("admin@example.com", "00000 00000") are
+ * treated as unset, so nobody is told to write to an address that goes nowhere.
+ */
+export function supportContact(settings) {
+  const email = String(settings?.supportEmail || settings?.email || "").trim()
+  const realEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !/@(example|test|localhost)\b|\.(test|invalid|example)$/i.test(email)
+  const raw = settings?.phone
+  const digits = String(typeof raw === "object" ? raw?.number || "" : raw || "").replace(/\D/g, "")
+  const code = typeof raw === "object" && raw?.countryCode ? raw.countryCode : "+91"
+  const realPhone = digits.length >= 8 && !/^0+$/.test(digits)
+  return {
+    supportEmail: realEmail ? email : "",
+    supportPhone: realPhone ? `${code} ${digits}` : "",
   }
 }
 
@@ -61,9 +81,19 @@ export function usePublicCategories(zoneId) {
           sortOrder: Number(c?.sortOrder) || 0,
           order: i,
         })).filter((c) => c.name)
-          // Parents the API adds for grouping come after the listed ones; put
-          // everything back in the admin's sortOrder.
-          .sort((a, b) => a.sortOrder - b.sortOrder || a.order - b.order)
+        // Each main category, in the admin's sortOrder, followed by its own
+        // subcategories in theirs, so lists read Men, T-Shirts, Shirts…, Women…
+        // rather than a new subcategory jumping ahead of everything.
+        const byId = new Map(items.map((c) => [c.id, c]))
+        const rootOf = (c) => (c.parentId && byId.has(c.parentId) ? byId.get(c.parentId) : c)
+        items.sort((a, b) => {
+          const ra = rootOf(a)
+          const rb = rootOf(b)
+          if (ra !== rb) return ra.sortOrder - rb.sortOrder || ra.order - rb.order
+          if (a === ra) return -1
+          if (b === rb) return 1
+          return a.sortOrder - b.sortOrder || a.order - b.order
+        })
         categoriesCache.set(key, items)
         if (alive) {
           setList(items)
