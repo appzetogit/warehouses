@@ -50,6 +50,7 @@ import CartAutoCouponBanner from "@store/components/user/CartAutoCouponBanner"
 import RecommendationRail from "@store/components/user/RecommendationRail"
 import CartSubtotalCard from "@store/components/user/desktop/CartSubtotalCard"
 import SavedForLater, { saveCartLineForLater } from "@store/components/user/cart/SavedForLater"
+import CartSwitch from "@store/components/user/cart/CartSwitch"
 import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
 import { formatDeliveryWindow, useQuickEta, useShopDeliveryEstimate } from "@store/components/user/desktop/useDeliveryEstimates"
 import zoopSound from "@store/assets/audio/order-placed.mp3"
@@ -2596,6 +2597,7 @@ export default function Cart() {
             </Button>
             <span className="font-semibold text-gray-800 dark:text-white">Cart</span>
           </div>
+          <CartSwitch className="mx-auto max-w-md px-4 pb-3" />
         </div>
         <div className="flex flex-col items-center justify-center py-20 px-4">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -2646,6 +2648,7 @@ export default function Cart() {
             <Share2 className="h-4 w-4" />
           </button>
         </div>
+        <CartSwitch className="px-4 pb-3" />
       </div>
 
       {!canPlaceOrder && cart.length > 0 && (
@@ -2697,8 +2700,9 @@ export default function Cart() {
               <div className="contents lg:flex lg:flex-col lg:gap-4 lg:min-w-0">
               {/* Cart Items */}
               <div className="order-1 bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-gray-800 lg:rounded-[8px] lg:border-0 lg:shadow-none lg:px-5 lg:py-5">
-                <div className="hidden lg:flex items-end justify-between border-b border-wh-border pb-2 mb-4">
+                <div className="hidden lg:flex items-end justify-between gap-6 border-b border-wh-border pb-2 mb-4">
                   <h1 className="text-[28px] font-normal leading-9 text-wh-text">Shopping Cart</h1>
+                  <CartSwitch className="w-[340px]" />
                   <span className="text-[14px] text-wh-muted">Price</span>
                 </div>
                 <div className="space-y-4">

@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { ArrowLeft, ChevronDown, Coins, Mic, Search, User } from "lucide-react"
+import { ArrowLeft, ChevronDown, Coins, Mic, Search, ShoppingCart, User } from "lucide-react"
 import { catalogAPI, coinsAPI } from "@/services/api"
+import { useCart } from "@store/context/CartContext"
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { isModuleAuthenticated } from "@store/utils/auth"
@@ -228,6 +229,26 @@ function ThemeTabs() {
 }
 
 /** The pinned search: typing placeholder, suggestions, and a mic where the browser can listen. */
+/** The Quick cart, with its item count; it sits on the pinned search row so it never scrolls away. */
+function CartButton() {
+  const { getCartCount } = useCart()
+  const count = getCartCount()
+  return (
+    <Link
+      to="/quick/cart"
+      aria-label={`Quick cart, ${count} item${count === 1 ? "" : "s"}`}
+      className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-wh-border bg-wh-surface shadow-sm"
+    >
+      <ShoppingCart className="h-5 w-5 text-wh-text" aria-hidden="true" />
+      {count > 0 ? (
+        <span key={count} className="wh-pop absolute -right-1.5 -top-1.5 min-w-[20px] rounded-full bg-[#EA580C] px-1 text-center text-[11px] font-bold leading-5 text-white ring-2 ring-wh-brand-50">
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
+    </Link>
+  )
+}
+
 function SearchRow({ showBack }) {
   const navigate = useNavigate()
   const { storePath, fulfilmentMode } = useStoreMode()
@@ -343,6 +364,7 @@ function SearchRow({ showBack }) {
           />
         ) : null}
       </form>
+      <CartButton />
     </div>
   )
 }
