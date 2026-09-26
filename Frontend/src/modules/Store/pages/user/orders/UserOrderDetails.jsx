@@ -21,6 +21,7 @@ import { getCompanyNameAsync } from "@store/utils/businessSettings"
 import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@store/utils/productVariants"
 import { DualMoney } from "@store/components/user/ProductPriceDisplay"
 import OrderReturnsSection from "./OrderReturnsSection"
+import CancelOrderSheet, { canCancelOrder } from "@store/components/user/orders/CancelOrderSheet"
 import OrderItemsReviewPanel from "@store/components/user/reviews/OrderItemsReviewPanel"
 import CompletePaymentCard from "@store/components/user/CompletePaymentCard"
 import { imagePlaceholder } from "@store/constants/images"
@@ -35,6 +36,15 @@ export default function UserOrderDetails() {
   const { replaceCart } = useCart()
   const { orderId } = useParams()
   const [order, setOrder] = useState(null)
+  const [cancelling, setCancelling] = useState(false)
+
+  // "Return / Replace" from the orders list lands on #returns; the section
+  // only exists once the order has loaded, so scroll to it then.
+  useEffect(() => {
+    if (!order || window.location.hash !== "#returns") return undefined
+    const t = setTimeout(() => document.getElementById("returns")?.scrollIntoView({ behavior: "smooth", block: "start" }), 400)
+    return () => clearTimeout(t)
+  }, [order])
   const [seller, setSeller] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -659,7 +669,8 @@ export default function UserOrderDetails() {
       <div className="fixed bottom-0 w-full bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-zinc-800 p-4 flex gap-3 z-20">
         <button
           type="button"
-          onClick={() => handleReorder(order)}
+          // Same items and sizes back in the right cart, at today's prices.
+          onClick={() => navigate(`${order?.fulfilmentMode === "standard" ? "" : "/quick"}/cart?reorder=${encodeURIComponent(String(order?._id || orderId))}`)}
           className="flex-1 bg-wh-brand text-wh-text py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-wh-brand-600 transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
@@ -675,8 +686,39 @@ export default function UserOrderDetails() {
         </button>
       </div>
 
-      {/* Returns (delivered courier orders) */}
-      {order && <div className="pt-4"><OrderReturnsSection order={order} /></div>}
+      {/* Cancel until the order leaves the store */}
+      {order && canCancelOrder(order) ? (
+        <div className="px-4 pt-4">
+          <button
+            type="button"
+            onClick={() => setCancelling(true)}
+            className="w-full rounded-lg border border-[#CC0C39] py-3 font-semibold text-[#CC0C39] hover:bg-red-50"
+          >
+            Cancel order
+          </button>
+          <p className="mt-1 text-center text-[11px] text-gray-500">You can cancel until your order leaves the store.</p>
+        </div>
+      ) : null}
+      {order && String(order.orderStatus || "").startsWith("cancelled") && order.cancellationReason ? (
+        <p className="px-4 pt-4 text-[13px] text-gray-600 dark:text-gray-300">Cancelled: {order.cancellationReason}</p>
+      ) : null}
+      {cancelling ? (
+        <CancelOrderSheet
+          order={order}
+          onClose={() => setCancelling(false)}
+          onCancelled={(updated) => {
+            setCancelling(false)
+            setOrder((o) => ({ ...o, orderStatus: updated?.orderStatus || "cancelled_by_user", cancellationReason: updated?.cancellationReason || "", payment: updated?.payment || o?.payment }))
+          }}
+        />
+      ) : null}
+
+      {/* Returns and replacements (delivered courier orders) */}
+      {order && (
+        <div id="returns" className="scroll-mt-20 pt-4">
+          <OrderReturnsSection order={order} />
+        </div>
+      )}
 
       {/* Seller Complaint Button - Below Order Details */}
       {order && (

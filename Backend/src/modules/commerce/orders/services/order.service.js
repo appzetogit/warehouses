@@ -1186,14 +1186,14 @@ export async function listOrdersUser(userId, query) {
   // The latest return on each order, for the customer's "Returns" tab.
   const returns = docs.length
     ? await ReturnRequest.find({ orderId: { $in: docs.map((d) => d._id) } })
-        .select("orderId status createdAt")
+        .select("orderId status resolution createdAt")
         .sort({ createdAt: -1 })
         .lean()
     : [];
   const latestReturn = new Map();
   for (const r of returns) {
     const key = String(r.orderId);
-    if (!latestReturn.has(key)) latestReturn.set(key, { status: r.status, requestedAt: r.createdAt });
+    if (!latestReturn.has(key)) latestReturn.set(key, { status: r.status, resolution: r.resolution || "refund", requestedAt: r.createdAt });
   }
   return buildPaginatedResult({
     docs: docs.map((doc) => ({
@@ -1566,29 +1566,88 @@ export async function resyncState(userId, role) {
   return {};
 }
 
+/**
+ * A customer can cancel until the order leaves the store: before the rider
+ * picks it up (Quick) or before it is handed to the courier (Shop). After that
+ * it can only be returned once delivered.
+ */
+export const USER_CANCELLABLE_STATUSES = [
+  "pending_payment",
+  "created",
+  "confirmed",
+  "preparing",
+  "ready_for_pickup",
+  "reached_pickup",
+];
+
 export async function cancelOrder(orderId, userId, reason) {
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError("Order id required");
+  const reasonText = String(reason || "").trim().slice(0, 300);
+  if (!reasonText) throw new ValidationError("Tell us why you are cancelling");
 
-  const order = await Order.findOne({
+  const current = await Order.findOne({
     ...identity,
     userId: new mongoose.Types.ObjectId(userId),
-  });
-  if (!order) throw new NotFoundError("Order not found");
+  })
+    .select("orderStatus shipment")
+    .lean();
+  if (!current) throw new NotFoundError("Order not found");
+  if (String(current.orderStatus).startsWith("cancelled")) {
+    throw new ValidationError("This order is already cancelled");
+  }
+  if (current.orderStatus === "delivered") {
+    throw new ValidationError("This order has been delivered. You can return it instead.");
+  }
+  if (current.shipment?.awb) {
+    throw new ValidationError("This order is already with the courier. Once it arrives you can return it.");
+  }
+  if (!USER_CANCELLABLE_STATUSES.includes(current.orderStatus)) {
+    throw new ValidationError("This order has left the store and can no longer be cancelled.");
+  }
 
-  const allowed = ["created"];
-  if (!allowed.includes(order.orderStatus))
-    throw new ValidationError("Order cannot be cancelled");
-
-  const from = order.orderStatus;
-  order.orderStatus = "cancelled_by_user";
+  // Claimed with a conditional update, so a pickup or courier booking at the
+  // same moment wins or loses cleanly instead of both happening.
+  const from = current.orderStatus;
+  const now = new Date();
+  const order = await Order.findOneAndUpdate(
+    {
+      _id: current._id,
+      orderStatus: from,
+      $or: [{ "shipment.awb": { $exists: false } }, { "shipment.awb": null }, { "shipment.awb": "" }],
+    },
+    { $set: { orderStatus: "cancelled_by_user", cancellationReason: reasonText, cancelledBy: "user", cancelledAt: now } },
+    { new: true },
+  );
+  if (!order) {
+    throw new ValidationError("Your order just moved on and can no longer be cancelled. Please refresh.");
+  }
   pushStatusHistory(order, {
     byRole: "USER",
     byId: userId,
     from,
     to: "cancelled_by_user",
-    note: reason || "",
+    note: reasonText,
   });
+
+  // A rider already on the way is released and told.
+  const riderId = order.dispatch?.deliveryPartnerId ? String(order.dispatch.deliveryPartnerId) : "";
+  if (riderId && ["assigned", "accepted"].includes(order.dispatch?.status)) {
+    order.dispatch.status = "cancelled";
+    try {
+      const io = getIO();
+      if (io) {
+        io.to(rooms.delivery(riderId)).emit("order_status_update", {
+          orderMongoId: String(order._id),
+          orderId: String(order._id),
+          orderStatus: "cancelled_by_user",
+          message: `Order #${order.order_id || order._id} was cancelled by the customer. No pickup needed.`,
+        });
+      }
+    } catch (err) {
+      logger.warn(`cancelOrder rider notify failed: ${err?.message || err}`);
+    }
+  }
 
   await restoreOrderStock(order);
 
@@ -1610,7 +1669,7 @@ export async function cancelOrder(orderId, userId, reason) {
     orderMongoId: order._id?.toString?.(),
     orderId: order._id.toString(),
     userId,
-    reason: reason || "",
+    reason: reasonText,
   });
 
   // Sync transaction status
@@ -1622,7 +1681,7 @@ export async function cancelOrder(orderId, userId, reason) {
       (finalPaymentStatus === "paid" || finalPaymentStatus === "refunded");
     await orderTransactionService.updateTransactionStatus(order._id, 'cancelled_by_user', {
         status: isOnlinePaid ? 'refunded' : 'failed',
-        note: `Order cancelled by user: ${reason || "No reason"}`,
+        note: `Order cancelled by user: ${reasonText}`,
         recordedByRole: 'USER',
         recordedById: userId
     });

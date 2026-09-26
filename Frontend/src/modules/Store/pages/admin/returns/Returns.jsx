@@ -10,6 +10,7 @@ const STATUSES = [
   ["approved", "Approved"],
   ["received", "Received (refund pending)"],
   ["refunded", "Refunded"],
+  ["replaced", "Replaced"],
   ["rejected", "Rejected"],
 ]
 
@@ -18,6 +19,7 @@ const STATUS_CLS = {
   approved: "bg-blue-50 text-blue-700",
   received: "bg-indigo-50 text-indigo-700",
   refunded: "bg-green-50 text-green-700",
+  replaced: "bg-emerald-50 text-emerald-700",
   rejected: "bg-red-50 text-red-700",
 }
 
@@ -108,7 +110,9 @@ export default function Returns() {
                 <td className="px-3 py-2">{r.sellerName || "—"}</td>
                 <td className="px-3 py-2">{(r.items || []).map((i) => `${i.quantity} × ${i.name}`).join(", ")}</td>
                 <td className="px-3 py-2 max-w-[220px] truncate">{r.reason}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{formatCurrency(r.amounts?.refundAmount)}{r.refundTo === "coins" ? " (coins)" : ""}</td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  {r.resolution === "replacement" ? "Replacement" : `${formatCurrency(r.amounts?.refundAmount)}${r.refundTo === "coins" ? " (coins)" : ""}`}
+                </td>
                 <td className="px-3 py-2"><StatusPill status={r.status} /></td>
               </tr>
             ))}
@@ -172,13 +176,22 @@ function ReturnDrawer({ id, onClose, onChanged }) {
               <dt className="text-slate-500">Payment</dt><dd>{String(o.payment?.method || "").toUpperCase()} · {o.payment?.status}</dd>
               <dt className="text-slate-500">Order total</dt><dd>{formatCurrency(o.pricing?.total)}</dd>
               <dt className="text-slate-500">Items value</dt><dd>{formatCurrency(ret.amounts?.itemsValue)}</dd>
+              <dt className="text-slate-500">Customer wants</dt>
+              <dd>{ret.resolution === "replacement" ? "A replacement (refund if it can't be sent)" : "A refund"}</dd>
               <dt className="text-slate-500">Refund</dt><dd>{formatCurrency(ret.amounts?.refundAmount)} to {ret.refundTo === "coins" ? "coins" : "original method"}</dd>
               {ret.amounts?.coinsBack > 0 && (<><dt className="text-slate-500">Coins back</dt><dd>{ret.amounts.coinsBack}</dd></>)}
             </dl>
 
             <section className="text-sm">
               <h3 className="font-medium mb-1">Items</h3>
-              <ul className="space-y-0.5">{(ret.items || []).map((i) => <li key={`${i.itemId}-${i.variantId}`}>{i.quantity} × {i.name} · {formatCurrency(i.price)}</li>)}</ul>
+              <ul className="space-y-0.5">
+                {(ret.items || []).map((i) => (
+                  <li key={`${i.itemId}-${i.variantId}`}>
+                    {i.quantity} × {i.name} · {formatCurrency(i.price)}
+                    {ret.resolution === "replacement" ? ` → send ${i.replacementVariantName || "the same item"}` : ""}
+                  </li>
+                ))}
+              </ul>
             </section>
             <section className="text-sm">
               <h3 className="font-medium mb-1">Reason</h3>
@@ -204,6 +217,11 @@ function ReturnDrawer({ id, onClose, onChanged }) {
             {ret.status === "refunded" && (
               <p className="text-sm text-green-700">Refunded {formatCurrency(ret.refund?.amount)} via {ret.refund?.method || "—"} on {formatDateTime(ret.refundedAt)}</p>
             )}
+            {ret.status === "replaced" && (
+              <p className="text-sm text-emerald-700">
+                Replacement order #{ret.replacementOrder?.orderReadableId} created on {formatDateTime(ret.replacedAt)}; the store ships it like any order.
+              </p>
+            )}
 
             {ret.status === "requested" && (
               <div className="space-y-3 border-t pt-3">
@@ -217,9 +235,15 @@ function ReturnDrawer({ id, onClose, onChanged }) {
             {(ret.status === "approved" || (ret.status === "received" && ret.refund?.status === "failed")) && (
               <div className="border-t pt-3">
                 <button type="button" disabled={busy}
-                  onClick={() => window.confirm(`Mark the items received and refund ${formatCurrency(ret.amounts?.refundAmount)}?`) && act(() => adminAPI.receiveReturn(id), "Received and refunded")}
+                  onClick={() =>
+                    window.confirm(
+                      ret.resolution === "replacement" && ret.status !== "received"
+                        ? "Mark the items received and create the free replacement order? (If it can't be sent, the customer is refunded.)"
+                        : `Mark the items received and refund ${formatCurrency(ret.amounts?.refundAmount)}?`,
+                    ) && act(() => adminAPI.receiveReturn(id), ret.resolution === "replacement" ? "Received" : "Received and refunded")
+                  }
                   className="w-full py-2 rounded-md bg-green-600 text-white text-sm disabled:opacity-60">
-                  {ret.status === "received" ? "Retry refund" : "Mark received & refund"}
+                  {ret.status === "received" ? "Retry refund" : ret.resolution === "replacement" ? "Mark received & send replacement" : "Mark received & refund"}
                 </button>
               </div>
             )}

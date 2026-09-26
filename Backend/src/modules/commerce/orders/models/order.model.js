@@ -329,6 +329,16 @@ const orderSchema = new mongoose.Schema(
             type: paymentSchema,
             required: false
         },
+        /** Why the customer (or seller/admin) cancelled, and who; shown on the order. */
+        cancellationReason: { type: String, default: '', trim: true, maxlength: 300 },
+        cancelledBy: { type: String, default: '', trim: true },
+        cancelledAt: { type: Date, default: null },
+        /** Set on an order created to replace returned items. */
+        replacementOf: {
+            orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
+            orderReadableId: { type: String, default: '' },
+            returnId: { type: mongoose.Schema.Types.ObjectId, default: null },
+        },
         orderStatus: {
             type: String,
             enum: [

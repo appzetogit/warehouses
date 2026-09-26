@@ -10,7 +10,8 @@ import { logger } from '../../../../utils/logger.js';
 import { buildOrderIdentityFilter, notifyOwnerSafely } from './order.helpers.js';
 import { applyCancellationRefund } from './order.service.js';
 import * as userWalletService from '../../user/services/userWallet.service.js';
-import { restockReturnedItems } from './inventory.service.js';
+import { restockReturnedItems, reserveStockForItems, releaseReservations } from './inventory.service.js';
+import { Product } from '../../admin/models/product.model.js';
 import { channelForMode } from '../../shared/channels.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -112,6 +113,126 @@ export function computeReturnAmounts(order, lines) {
     return { itemsValue, refundAmount, coinsBack };
 }
 
+// ---- replacement ------------------------------------------------------------
+
+const variantLabel = (v) =>
+    String(v?.name || '').trim() ||
+    (Array.isArray(v?.attributes) ? v.attributes.map((a) => a?.value).filter(Boolean).join(' / ') : '');
+
+/** Shop (courier) units of a variant, or null when that variant isn't counted separately. */
+function shopUnits(product, variant) {
+    const own = variant?.stock?.shop;
+    if (own !== null && own !== undefined) return Number(own) || 0;
+    const base = product?.stock?.shop;
+    return base === null || base === undefined ? null : Number(base) || 0;
+}
+
+/**
+ * For each returnable line, the variants of the same product it can be
+ * replaced with (the same one first), and whether each is in stock now.
+ */
+async function replacementOptions(lines) {
+    const ids = [...new Set(lines.map((l) => l.itemId))].filter((id) => mongoose.isValidObjectId(id));
+    const products = await Product.find({ _id: { $in: ids.map(oid) } })
+        .select('name isAvailable approvalStatus availableIn variants stock image images')
+        .lean();
+    const byId = new Map(products.map((p) => [String(p._id), p]));
+    const out = new Map();
+    for (const line of lines) {
+        const p = byId.get(line.itemId);
+        if (!p || p.approvalStatus !== 'approved' || p.isAvailable === false) {
+            out.set(lineKey(line.itemId, line.variantId), []);
+            continue;
+        }
+        const variants = (p.variants || []).filter((v) => v?.isActive !== false);
+        const options = variants.length
+            ? variants.map((v) => {
+                  const units = shopUnits(p, v);
+                  return { variantId: String(v._id), name: variantLabel(v), inStock: units === null || units > 0 };
+              })
+            : [{ variantId: '', name: line.variantName || 'Same item', inStock: (() => { const u = shopUnits(p, null); return u === null || u > 0; })() }];
+        options.sort((a, b) => (b.variantId === line.variantId) - (a.variantId === line.variantId));
+        out.set(lineKey(line.itemId, line.variantId), options);
+    }
+    return out;
+}
+
+/**
+ * The free order that sends the replacement: same store, address and
+ * customer, the chosen variants at no charge, stock taken from Shop. It goes
+ * through the store and courier like any order. Throws when something can no
+ * longer be sent (then the return is refunded instead).
+ */
+async function createReplacementOrder(ret) {
+    const original = await Order.findById(ret.orderId).lean();
+    if (!original) throw new Error('The original order is missing');
+    const ids = [...new Set(ret.items.map((i) => i.itemId))].map(oid);
+    const products = await Product.find({ _id: { $in: ids } }).select('name variants image images approvalStatus isAvailable').lean();
+    const byId = new Map(products.map((p) => [String(p._id), p]));
+
+    const lines = ret.items.map((i) => {
+        const p = byId.get(String(i.itemId));
+        if (!p || p.approvalStatus !== 'approved' || p.isAvailable === false) throw new Error(`${i.name} is no longer sold`);
+        const variantId = String(i.replacementVariantId || i.variantId || '');
+        const v = variantId ? (p.variants || []).find((x) => String(x._id) === variantId && x?.isActive !== false) : null;
+        if (variantId && !v) throw new Error(`That option of ${i.name} is no longer sold`);
+        const orig = (original.items || []).find((o) => o.itemId === i.itemId && (o.variantId || '') === (i.variantId || '')) || {};
+        return {
+            ...orig,
+            itemId: String(i.itemId),
+            name: p.name || i.name,
+            variantId,
+            variantName: v ? variantLabel(v) : '',
+            variantAttributes: Array.isArray(v?.attributes)
+                ? v.attributes.map((a) => ({ name: String(a?.name || ''), value: String(a?.value || '') }))
+                : [],
+            sku: v?.sku || '',
+            variantPrice: 0,
+            price: 0,
+            otherPrice: 0,
+            quantity: Number(i.quantity) || 1,
+            image: v?.images?.[0] || p.images?.[0] || p.image || i.image || '',
+        };
+    });
+
+    const channel = channelForMode('standard');
+    const taken = await reserveStockForItems(lines, { channel });
+    try {
+        const now = new Date();
+        const note = `Replacement for order #${ret.orderReadableId}`;
+        const doc = await Order.create({
+            userId: original.userId,
+            sellerId: original.sellerId,
+            zoneId: original.zoneId,
+            fulfilmentMode: 'standard',
+            items: lines,
+            deliveryAddress: original.deliveryAddress,
+            customerName: original.customerName,
+            customerPhone: original.customerPhone,
+            pricing: { subtotal: 0, tax: 0, packagingFee: 0, deliveryFee: 0, platformFee: 0, discount: 0, total: 0, currency: 'INR' },
+            payment: { method: 'wallet', status: 'paid', amountDue: 0 },
+            orderStatus: 'confirmed',
+            note,
+            replacementOf: { orderId: original._id, orderReadableId: ret.orderReadableId, returnId: ret._id },
+            stockReservations: taken.map((t) => ({ itemId: t.itemId, variantId: t.variantId || '', channel: t.channel || channel, qty: t.qty })),
+            stockReservedAt: now,
+            statusHistory: [{ at: now, byRole: 'SYSTEM', from: '', to: 'confirmed', note }],
+        });
+        notifyOwnerSafely(
+            { ownerType: 'SELLER', ownerId: String(original.sellerId) },
+            {
+                title: 'Replacement order to send',
+                body: `Order #${doc.order_id || doc._id} replaces returned items from order #${ret.orderReadableId}. Pack and ship it like any order.`,
+                data: { type: 'new_order', orderId: String(doc._id), orderMongoId: String(doc._id) },
+            }
+        ).catch(() => {});
+        return doc;
+    } catch (err) {
+        await releaseReservations(taken, channel).catch(() => {});
+        throw err;
+    }
+}
+
 async function loadUserOrder(userId, orderId) {
     const order = await Order.findOne({ ...buildOrderIdentityFilter(orderId), userId: oid(userId) });
     if (!order) throw new NotFoundError('Order not found');
@@ -138,7 +259,11 @@ export async function getOrderReturnsUser(userId, orderId) {
         claimedQuantities(order._id),
         ReturnRequest.find({ orderId: order._id }).sort({ createdAt: -1 }).lean(),
     ]);
-    const lines = returnableLines(order, claimed);
+    const options = await replacementOptions(returnableLines(order, claimed));
+    const lines = returnableLines(order, claimed).map((l) => ({
+        ...l,
+        replacementOptions: options.get(lineKey(l.itemId, l.variantId)) || [],
+    }));
     const hasOpen = returns.some((r) => OPEN_RETURN_STATUSES.includes(r.status));
     const anyLeft = lines.some((l) => l.returnable > 0);
     return {
@@ -159,6 +284,7 @@ export async function createReturnUser(userId, orderId, body = {}, now = new Dat
     const reason = String(body.reason || '').trim();
     if (!reason) throw new ValidationError('Tell us why you are returning these items');
     const refundTo = body.refundTo === 'coins' ? 'coins' : 'original';
+    const resolution = body.resolution === 'replacement' ? 'replacement' : 'refund';
     const photos = (Array.isArray(body.photos) ? body.photos : [])
         .map((p) => String(p || '').trim())
         .filter((p) => /^(https?:\/\/|\/(?!\/))/i.test(p))
@@ -167,11 +293,13 @@ export async function createReturnUser(userId, orderId, body = {}, now = new Dat
     const claimed = await claimedQuantities(order._id);
     const available = new Map(returnableLines(order, claimed).map((l) => [lineKey(l.itemId, l.variantId), l]));
     const wanted = new Map();
+    const swapTo = new Map();
     for (const raw of Array.isArray(body.items) ? body.items : []) {
         const k = lineKey(String(raw?.itemId || ''), String(raw?.variantId || ''));
         const qty = Number(raw?.quantity);
         if (!Number.isInteger(qty) || qty <= 0) continue;
         wanted.set(k, (wanted.get(k) || 0) + qty);
+        if (raw?.replacementVariantId) swapTo.set(k, String(raw.replacementVariantId));
     }
     if (!wanted.size) throw new ValidationError('Pick at least one item to return');
 
@@ -181,6 +309,20 @@ export async function createReturnUser(userId, orderId, body = {}, now = new Dat
         if (!line) throw new ValidationError('An item to return is not part of this order');
         if (qty > line.returnable) throw new ValidationError(`Only ${line.returnable} of "${line.name}" can be returned`);
         items.push({ itemId: line.itemId, variantId: line.variantId, name: line.name, image: line.image, price: line.price, quantity: qty });
+    }
+
+    if (resolution === 'replacement') {
+        const options = await replacementOptions([...available.values()]);
+        for (const item of items) {
+            const k = lineKey(item.itemId, item.variantId);
+            const choices = options.get(k) || [];
+            const wantedVariant = swapTo.get(k) ?? item.variantId;
+            const choice = choices.find((c) => c.variantId === wantedVariant);
+            if (!choice) throw new ValidationError(`"${item.name}" can't be replaced; choose a refund instead`);
+            if (!choice.inStock) throw new ValidationError(`${choice.name || item.name} is out of stock right now; pick another option or a refund`);
+            item.replacementVariantId = choice.variantId;
+            item.replacementVariantName = choice.name;
+        }
     }
 
     const amounts = computeReturnAmounts(order, items);
@@ -195,6 +337,7 @@ export async function createReturnUser(userId, orderId, body = {}, now = new Dat
             comment: String(body.comment || '').trim().slice(0, 1000),
             photos,
             refundTo,
+            resolution,
             status: 'requested',
             openKey: String(order._id),
             amounts,
@@ -379,6 +522,42 @@ export async function receiveAndRefundReturnAdmin(id, adminId, { note = '' } = {
         logger.error(`[CRITICAL] return restock failed for ${ret._id}: ${err?.message || err}`);
     }
 
+    // Replacement: send the items again for free. If that can't be done now
+    // (sold out, no longer sold), fall through to a refund so the customer is
+    // never left with neither.
+    let fallbackNote = '';
+    if (ret.resolution === 'replacement') {
+        try {
+            const replacement = await createReplacementOrder(ret);
+            const done = await ReturnRequest.findOneAndUpdate(
+                { _id: ret._id, 'refund.status': 'processing' },
+                {
+                    $set: {
+                        status: 'replaced',
+                        replacedAt: new Date(),
+                        replacementOrder: { orderId: replacement._id, orderReadableId: replacement.order_id || String(replacement._id), createdAt: new Date() },
+                        'refund.status': 'not_applicable',
+                        'refund.amount': 0,
+                        'refund.processedAt': new Date(),
+                    },
+                    $unset: { openKey: 1 },
+                    $push: { history: historyEntry('replaced', adminId, `Replacement order #${replacement.order_id || replacement._id}`) },
+                },
+                { new: true }
+            ).lean();
+            notifyCustomer(
+                done,
+                'Replacement on its way',
+                `We received your return for order #${done.orderReadableId}. Your replacement is order #${done.replacementOrder.orderReadableId}.`
+            );
+            return done;
+        } catch (err) {
+            fallbackNote = `Replacement not possible (${String(err?.message || err)}); refunded instead`;
+            logger.warn(`return ${ret._id}: ${fallbackNote}`);
+            await ReturnRequest.updateOne({ _id: ret._id }, { $push: { history: historyEntry('received', adminId, fallbackNote) } });
+        }
+    }
+
     let outcome;
     try {
         outcome = await refundReturn(ret);
@@ -428,9 +607,10 @@ export async function receiveAndRefundReturnAdmin(id, adminId, { note = '' } = {
     notifyCustomer(
         done,
         'Refund processed',
-        outcome.amount > 0
-            ? `Rs ${outcome.amount} for your return on order #${done.orderReadableId} has been refunded${outcome.method === 'coins' ? ' as coins' : ''}.`
-            : `Your return on order #${done.orderReadableId} is complete.`
+        (fallbackNote ? "We couldn't send a replacement, so we refunded you instead. " : '') +
+            (outcome.amount > 0
+                ? `Rs ${outcome.amount} for your return on order #${done.orderReadableId} has been refunded${outcome.method === 'coins' ? ' as coins' : ''}.`
+                : `Your return on order #${done.orderReadableId} is complete.`)
     );
     return done;
 }

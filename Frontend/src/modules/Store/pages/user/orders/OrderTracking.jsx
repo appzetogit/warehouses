@@ -1,4 +1,5 @@
 import { useParams, Link, useSearchParams } from "react-router-dom"
+import { CANCEL_REASONS, canCancelOrder } from "@store/components/user/orders/CancelOrderSheet"
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
@@ -1055,8 +1056,8 @@ export default function OrderTracking() {
     // Check if order can be cancelled (only Razorpay orders that aren't delivered/cancelled)
     if (!order) return;
 
-    if (isAdminAccepted) {
-      toast.error('Order has already been accepted by the seller and cannot be cancelled.');
+    if (!canCancelOrder({ orderStatus: order?.status, shipment: order?.shipment })) {
+      toast.error('This order has left the store and can no longer be cancelled.');
       return;
     }
 
@@ -1440,8 +1441,8 @@ export default function OrderTracking() {
           </div>
         </div>
 
-        {/* Cancel button visible ONLY until seller accepts (confirmed) */}
-        {!isAdminAccepted && !isCancelledOrder && !isDeliveredOrder && (
+        {/* Cancel until the order leaves the store (rider pickup / courier handover) */}
+        {canCancelOrder({ orderStatus: order?.status, shipment: order?.shipment }) && !isCancelledOrder && !isDeliveredOrder && (
           <motion.div
             className="bg-white dark:bg-zinc-900 rounded-xl p-4 shadow-sm border border-red-50 dark:border-zinc-800"
             initial={{ opacity: 0, y: 20 }}
@@ -1450,7 +1451,7 @@ export default function OrderTracking() {
             <div className="flex items-center justify-between gap-3 mb-3">
               <p className="text-sm font-semibold text-gray-900 dark:text-white">Need to cancel?</p>
               <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
-                Available until accepted
+                Until it leaves the store
               </span>
             </div>
             <Button 
@@ -1639,11 +1640,28 @@ export default function OrderTracking() {
           </DialogHeader>
           <div className="space-y-5 py-6 px-2">
             <div className="space-y-2 w-full">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Why are you cancelling?</p>
+              <div className="flex flex-wrap gap-2">
+                {CANCEL_REASONS.filter((r) => r !== "Other").map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    disabled={isCancelling}
+                    onClick={() => setCancellationReason(r)}
+                    aria-pressed={cancellationReason === r}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                      cancellationReason === r ? "border-red-500 bg-red-50 text-red-700" : "border-gray-200 text-gray-700 dark:border-zinc-700 dark:text-gray-200"
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
               <Textarea
-                value={cancellationReason}
+                value={CANCEL_REASONS.includes(cancellationReason) ? "" : cancellationReason}
                 onChange={(e) => setCancellationReason(e.target.value)}
-                placeholder="e.g., Changed my mind, Wrong address, etc."
-                className="w-full min-h-[100px] resize-none border-2 border-gray-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200 focus:outline-none transition-colors"
+                placeholder="Or tell us in your own words"
+                className="w-full min-h-[70px] resize-none border-2 border-gray-200 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-3 text-sm text-gray-800 dark:text-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200 focus:outline-none transition-colors"
                 disabled={isCancelling}
               />
             </div>

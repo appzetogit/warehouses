@@ -4,10 +4,13 @@ import mongoose from 'mongoose';
  * A customer's request to send back some lines of a delivered, courier-shipped
  * (standard) order. One open request per order at a time (`openKey`).
  *
- * requested -> approved -> received -> refunded
+ * requested -> approved -> received -> refunded   (resolution 'refund')
+ *                                    \-> replaced   (resolution 'replacement': a
+ *                                        free replacement order is created)
  *           \-> rejected
  */
-export const RETURN_STATUSES = ['requested', 'approved', 'rejected', 'received', 'refunded'];
+export const RETURN_STATUSES = ['requested', 'approved', 'rejected', 'received', 'refunded', 'replaced'];
+export const RETURN_RESOLUTIONS = ['refund', 'replacement'];
 export const OPEN_RETURN_STATUSES = ['requested', 'approved', 'received'];
 
 const returnItemSchema = new mongoose.Schema(
@@ -18,6 +21,9 @@ const returnItemSchema = new mongoose.Schema(
         image: { type: String, default: '' },
         price: { type: Number, default: 0, min: 0 },
         quantity: { type: Number, required: true, min: 1 },
+        /** Replacement only: the variant to send instead (same product; another size or colour), else the same one. */
+        replacementVariantId: { type: String, default: '', trim: true },
+        replacementVariantName: { type: String, default: '', trim: true },
     },
     { _id: false }
 );
@@ -32,8 +38,17 @@ const returnRequestSchema = new mongoose.Schema(
         reason: { type: String, required: true, trim: true, maxlength: 500 },
         comment: { type: String, default: '', trim: true, maxlength: 1000 },
         photos: { type: [String], default: [] },
-        /** 'original' (payment method of the order) or 'coins'. */
+        /** 'refund' gives the money back; 'replacement' sends the items (or another size) again. */
+        resolution: { type: String, enum: RETURN_RESOLUTIONS, default: 'refund' },
+        /** 'original' (payment method of the order) or 'coins'. Also used if a replacement can't be sent. */
         refundTo: { type: String, enum: ['original', 'coins'], default: 'original' },
+        /** The free order created for a replacement. */
+        replacementOrder: {
+            orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
+            orderReadableId: { type: String, default: '' },
+            createdAt: { type: Date, default: null },
+        },
+        replacedAt: Date,
         status: { type: String, enum: RETURN_STATUSES, default: 'requested', index: true },
         /** Set to the order id while the request is open; unique, so one open return per order. */
         openKey: { type: String, default: undefined },

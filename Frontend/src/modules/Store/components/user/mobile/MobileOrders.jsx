@@ -4,6 +4,7 @@ import { Check, ChevronRight, Package, RotateCcw, Store, Truck, Zap } from "luci
 import { orderAPI } from "@/services/api"
 import { mediaUrl } from "../desktop/desktopCart"
 import MobileTopBar from "./MobileTopBar"
+import CancelOrderSheet, { canCancelOrder } from "../orders/CancelOrderSheet"
 
 /**
  * "My Orders" from the mobile mockup (screen 6): status tabs, one card per
@@ -47,11 +48,15 @@ const RETURN_LABEL = {
   rejected: "Return declined",
   received: "Return received, refund on its way",
   refunded: "Refunded",
+  replaced: "Replacement on its way",
 }
 
 function headline(o) {
   const s = statusOf(o)
-  if (o?.latestReturn) return RETURN_LABEL[o.latestReturn.status] || "Return in progress"
+  if (o?.latestReturn) {
+    if (o.latestReturn.resolution === "replacement" && o.latestReturn.status === "received") return "Item received, replacement being sent"
+    return RETURN_LABEL[o.latestReturn.status] || "Return in progress"
+  }
   if (s === "pending_payment") return "Waiting for payment"
   if (s === "cancelled_by_user") return "You cancelled this order"
   if (CANCELLED.includes(s)) return "Cancelled"
@@ -92,8 +97,9 @@ function Tracker({ order }) {
   )
 }
 
-function OrderCard({ order }) {
+function OrderCard({ order, onChanged }) {
   const navigate = useNavigate()
+  const [cancelling, setCancelling] = useState(false)
   const seller = order?.sellerId && typeof order.sellerId === "object" ? order.sellerId : {}
   const items = order?.items || []
   const first = items[0] || {}
@@ -146,10 +152,13 @@ function OrderCard({ order }) {
             {items.length > 1 ? ` and ${items.length - 1} more` : ""}
           </span>
           <span className="block text-[12px] text-gray-500">
-            {[first.variantName, `Qty ${items.reduce((n, i) => n + (Number(i.quantity) || 1), 0)}`, `₹${total.toLocaleString("en-IN")}`]
+            {[first.variantName, `Qty ${items.reduce((n, i) => n + (Number(i.quantity) || 1), 0)}`, order?.replacementOf?.orderId ? "Free replacement" : `₹${total.toLocaleString("en-IN")}`]
               .filter(Boolean)
               .join(" · ")}
           </span>
+          {cancelled && order.cancellationReason ? (
+            <span className="mt-0.5 block truncate text-[11px] text-gray-500">Reason: {order.cancellationReason}</span>
+          ) : null}
         </span>
         <ChevronRight className="mt-5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
       </Link>
@@ -157,6 +166,15 @@ function OrderCard({ order }) {
       <div className="px-3">{!cancelled && s !== "pending_payment" && !order.latestReturn ? <Tracker order={order} /> : null}</div>
 
       <div className="mt-3 flex gap-2 border-t border-gray-100 p-3">
+        {canCancelOrder(order) ? (
+          <button
+            type="button"
+            onClick={() => setCancelling(true)}
+            className="flex h-9 flex-1 items-center justify-center rounded-lg border border-[#CC0C39] text-[13px] font-bold text-[#CC0C39] active:bg-red-50"
+          >
+            Cancel
+          </button>
+        ) : null}
         {!cancelled && s !== "delivered" ? (
           <Link
             to={`/orders/${id}`}
@@ -173,13 +191,36 @@ function OrderCard({ order }) {
             <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Buy Again
           </button>
         )}
-        <Link
-          to={`/orders/${id}/details`}
-          className="flex h-9 flex-1 items-center justify-center rounded-lg border border-gray-300 text-[13px] font-bold text-gray-800 active:bg-gray-50"
-        >
-          View Details
-        </Link>
+        {s === "delivered" && courier && !order.latestReturn ? (
+          <Link
+            to={`/orders/${id}/details#returns`}
+            className="flex h-9 flex-1 items-center justify-center rounded-lg border border-gray-300 text-[13px] font-bold text-gray-800 active:bg-gray-50"
+          >
+            Return / Replace
+          </Link>
+        ) : (
+          <Link
+            to={`/orders/${id}/details`}
+            className="flex h-9 flex-1 items-center justify-center rounded-lg border border-gray-300 text-[13px] font-bold text-gray-800 active:bg-gray-50"
+          >
+            View Details
+          </Link>
+        )}
       </div>
+      {cancelling ? (
+        <CancelOrderSheet
+          order={order}
+          onClose={() => setCancelling(false)}
+          onCancelled={(updated) => {
+            setCancelling(false)
+            onChanged?.(id, {
+              orderStatus: updated?.orderStatus || "cancelled_by_user",
+              cancellationReason: updated?.cancellationReason || "",
+              payment: updated?.payment || order.payment,
+            })
+          }}
+        />
+      ) : null}
     </article>
   )
 }
@@ -254,7 +295,13 @@ export default function MobileOrders() {
         ) : failed ? (
           <p className="rounded-2xl bg-white p-8 text-center text-[14px] text-gray-600">Couldn&apos;t load your orders. Pull down or try again in a moment.</p>
         ) : shown.length ? (
-          shown.map((o) => <OrderCard key={o._id || o.id} order={o} />)
+          shown.map((o) => (
+            <OrderCard
+              key={o._id || o.id}
+              order={o}
+              onChanged={(id, patch) => setOrders((list) => list.map((x) => (String(x._id || x.id) === id ? { ...x, ...patch } : x)))}
+            />
+          ))
         ) : (
           <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-10 text-center">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FFF1E7]">

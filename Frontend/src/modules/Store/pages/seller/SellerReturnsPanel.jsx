@@ -8,6 +8,7 @@ const STATUS_CLS = {
   rejected: "bg-red-50 text-red-700",
   received: "bg-indigo-50 text-indigo-700",
   refunded: "bg-green-50 text-green-700",
+  replaced: "bg-emerald-50 text-emerald-700",
 }
 
 /** Read-only list of customer returns on this store's courier orders (reviewed by the admin). */
@@ -47,7 +48,10 @@ export default function SellerReturnsPanel() {
                 <span className={`px-2 py-0.5 rounded-full ${STATUS_CLS[r.status] || "bg-gray-50 text-gray-700"}`}>{r.status}</span>
               </div>
               <p className="text-gray-600 mt-0.5">
-                {(r.items || []).map((i) => `${i.quantity} × ${i.name}`).join(", ")}
+                {(r.items || [])
+                  .map((i) => `${i.quantity} × ${i.name}${r.resolution === "replacement" ? ` → ${i.replacementVariantName || "same item"}` : ""}`)
+                  .join(", ")}
+                {r.resolution === "replacement" ? " (replacement)" : ""}
               </p>
               <p className="text-gray-500">
                 {r.reason} · {new Date(r.createdAt).toLocaleDateString("en-IN")}

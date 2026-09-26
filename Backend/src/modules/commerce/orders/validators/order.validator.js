@@ -136,7 +136,7 @@ export function validateVerifyPaymentDto(body) {
 
 export function validateCancelOrderDto(body) {
     const schema = z.object({
-        reason: z.string().optional()
+        reason: z.string().trim().min(1, 'Tell us why you are cancelling').max(300)
     });
     const result = schema.safeParse(body || {});
     if (!result.success) {
