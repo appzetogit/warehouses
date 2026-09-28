@@ -268,7 +268,7 @@ export default function UserLayout() {
                   {/* Room for the phone's tab bar, which floats over the page. */}
                   {/* clip, not hidden: hidden makes <main> a scroll container and
                       every sticky bar inside a page stops sticking. */}
-                  <main className="w-full min-w-0 max-w-full overflow-x-clip pb-[57px] md:pb-0">
+                  <main className={`w-full min-w-0 max-w-full overflow-x-clip ${normalizedPath.startsWith("/auth/") ? "" : "pb-[57px] md:pb-0"}`}>
                     <Outlet />
                   </main>
                   <ReorderIntake />

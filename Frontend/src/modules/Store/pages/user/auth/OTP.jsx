@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Loader2, AlertCircle, Smartphone } from "lucide-react"
-import AnimatedPage from "@store/components/user/AnimatedPage"
-import { Input } from "@store/components/ui/input"
-import { Button } from "@store/components/ui/button"
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import AuthShell, { secondaryBtn } from "@store/components/user/auth/AuthShell"
 import apiClient, { authAPI } from "@store/api"
 import { setAuthData as setUserAuthData } from "@store/utils/auth"
 import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@store/utils/firebaseMessaging"
@@ -56,7 +54,10 @@ export default function OTP() {
       setContactType("phone")
       const phoneMatch = data.phone?.match(/(\+\d+)\s*(.+)/)
       if (phoneMatch) {
-        setContactInfo(`${phoneMatch[1]}-${phoneMatch[2].replace(/\D/g, "")}`)
+        // "+91 90000 00000", with non-breaking spaces so it never splits across lines.
+        const digits = phoneMatch[2].replace(/\D/g, "")
+        const nbsp = String.fromCharCode(160)
+        setContactInfo(`${phoneMatch[1]}${nbsp}${digits.slice(0, 5)}${nbsp}${digits.slice(5)}`)
       } else {
         setContactInfo(data.phone || "")
       }
@@ -286,180 +287,120 @@ export default function OTP() {
 
   if (!authData) return null
 
+  const box =
+    "h-16 w-14 rounded-2xl border-2 bg-white text-center text-[28px] font-bold text-gray-900 shadow-[0_8px_20px_rgba(0,0,0,0.15)] outline-none transition focus:border-[#7C2D12] disabled:opacity-60"
+
   return (
-    <AnimatedPage className="min-h-[100dvh] bg-white dark:bg-[#0A0A0B] flex flex-col font-sans overflow-hidden">
-      {/* Top Branding Section - 35% height */}
-      <div className="relative h-[35dvh] w-full bg-wh-nav overflow-hidden flex flex-col items-center justify-center">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 left-0 w-64 h-64 border border-white/20 rounded-full -ml-20 -mt-20" />
-          <div className="absolute bottom-10 right-0 w-32 h-32 border border-white/10 rounded-full -mr-16" />
-        </div>
+    <AuthShell
+      title={showNameInput ? "One Last Step" : "Verify Your Number"}
+      subtitle={showNameInput ? "Tell us what to call you" : `Enter the 4-digit code sent to ${contactInfo}`}
+      onBack={() => navigate("/auth/login")}
+      footer={<p className="text-[11px] text-white/75">{companyName} keeps your number private.</p>}
+    >
+      <AnimatePresence mode="wait">
+        {!showNameInput ? (
+          <motion.div
+            key="otp-view"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="mt-auto space-y-5 pb-2"
+          >
+            <div className="flex justify-center gap-3" role="group" aria-label="Verification code">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(el) => (inputRefs.current[index] = el)}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete={index === 0 ? "one-time-code" : "off"}
+                  aria-label={`Digit ${index + 1}`}
+                  maxLength={1}
+                  value={digit}
+                  onFocus={() => {
+                    void ensureNotificationPermission()
+                  }}
+                  onChange={(e) => handleChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  onPaste={index === 0 ? handlePaste : undefined}
+                  disabled={isLoading || success}
+                  className={`${box} ${digit ? "border-white" : "border-transparent"}`}
+                />
+              ))}
+            </div>
 
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          className="relative z-10 flex flex-col items-center gap-4 px-6 text-center"
-        >
-          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 shadow-lg mb-2">
-            <Smartphone className="w-8 h-8 text-white" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-white font-black text-3xl tracking-tight italic">
-              {showNameInput ? "ONE LAST STEP" : "VERIFICATION"}
-            </h1>
-            <p className="text-white/70 text-xs font-bold uppercase tracking-[0.2em]">
-              {showNameInput ? "Tell us your name" : `Sent to ${contactInfo}`}
-            </p>
-          </div>
-        </motion.div>
-      </div>
+            {error ? (
+              <p role="alert" className="flex items-center justify-center gap-1.5 rounded-xl bg-black/20 px-3 py-2 text-[13px] font-semibold">
+                <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {error}
+              </p>
+            ) : null}
 
-      {/* Bottom Content Section - 65% height */}
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="flex-1 bg-white dark:bg-[#0A0A0B] rounded-t-[40px] -mt-10 relative z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.05)] px-6 pt-12 pb-6 flex flex-col"
-      >
-        <div className="max-w-md mx-auto w-full flex flex-col h-full">
-          <AnimatePresence mode="wait">
-            {!showNameInput ? (
-              <motion.div
-                key="otp-view"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-10"
-              >
-                <div className="flex justify-center gap-4">
-                  {otp.map((digit, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.1 * index }}
-                      className="relative"
-                    >
-                      <input
-                        ref={(el) => (inputRefs.current[index] = el)}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onFocus={() => { void ensureNotificationPermission() }}
-                        onChange={(e) => handleChange(index, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(index, e)}
-                        onPaste={index === 0 ? handlePaste : undefined}
-                        disabled={isLoading}
-                        className="w-16 h-20 text-center text-3xl font-black bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-wh-brand rounded-2xl text-zinc-900 dark:text-white transition-all outline-none shadow-sm"
-                      />
-                      {digit && (
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-wh-brand rounded-full" />
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
+            <button
+              type="button"
+              onClick={() => handleVerify()}
+              disabled={isLoading || success || otp.some((d) => !d)}
+              className={secondaryBtn}
+            >
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : success ? <CheckCircle2 className="h-5 w-5 text-green-600" aria-hidden="true" /> : null}
+              {success ? "Verified" : isLoading ? "Verifying…" : "Verify"}
+            </button>
 
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-center gap-2 text-xs font-bold text-wh-brand-ink bg-wh-brand/5 py-4 px-4 rounded-2xl border border-wh-brand/10"
-                  >
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>{error}</span>
-                  </motion.div>
-                )}
-
-                <div className="text-center space-y-6">
-                  {resendTimer > 0 ? (
-                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                      Resend code in <span className="text-zinc-900 dark:text-white">{resendTimer}s</span>
-                    </p>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleResend}
-                      disabled={isLoading}
-                      className="text-xs font-black text-wh-brand-ink uppercase tracking-[0.2em] px-6 py-2 rounded-full bg-wh-brand/5 hover:bg-wh-brand/10 transition-colors"
-                    >
-                      Resend Now
-                    </button>
-                  )}
-
-                  <Button
-                    onClick={() => navigate("/auth/login")}
-                    variant="ghost"
-                    className="text-zinc-400 dark:text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:bg-transparent hover:text-zinc-900"
-                  >
-                    Edit Phone Number
-                  </Button>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="name-view"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="space-y-8"
-              >
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] ml-1">
-                      Full Name
-                    </label>
-                    <div className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl focus-within:border-wh-brand/50 focus-within:ring-4 focus-within:ring-wh-brand/5 transition-all overflow-hidden">
-                      <Input
-                        type="text"
-                        value={name}
-                        onChange={(e) => {
-                          const sanitized = e.target.value.replace(/[^A-Za-z ]/g, "")
-                          setName(sanitized)
-                          if (nameError) setNameError("")
-                        }}
-                        disabled={isLoading}
-                        placeholder="e.g. Aman Kuril"
-                        className="h-16 bg-transparent border-0 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-xl font-black placeholder:text-zinc-300 dark:placeholder:text-zinc-700 px-6"
-                      />
-                    </div>
-                  </div>
-                  {nameError && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-xs font-bold text-wh-brand-ink pl-2"
-                    >
-                      {nameError}
-                    </motion.p>
-                  )}
-                </div>
-
-                <Button
-                  onClick={handleSubmitName}
-                  disabled={isLoading || name.trim().length < 2}
-                  className="w-full h-16 bg-wh-brand hover:bg-wh-brand-600 text-wh-text font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-[0_12px_24px_rgba(253,146,11,0.3)] active:scale-[0.98]"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Saving Profile...</span>
-                    </div>
-                  ) : (
-                    "Complete Setup"
-                  )}
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <footer className="mt-auto pt-10 text-center">
-            <p className="text-[9px] text-zinc-300 dark:text-zinc-700 font-black uppercase tracking-[0.4em]">
-              {companyName} Secure Network
-            </p>
-          </footer>
-        </div>
-      </motion.div>
-    </AnimatedPage>
+            <div className="flex items-center justify-between text-[14px]">
+              <button type="button" onClick={() => navigate("/auth/login")} className="font-semibold text-white/95 underline-offset-2 hover:underline">
+                Edit Number
+              </button>
+              {resendTimer > 0 ? (
+                <span className="text-white/85">
+                  Resend Code in <span className="font-bold tabular-nums">{resendTimer}s</span>
+                </span>
+              ) : (
+                <button type="button" onClick={handleResend} disabled={isLoading} className="font-bold text-white underline-offset-2 hover:underline">
+                  Resend Code
+                </button>
+              )}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.form
+            key="name-view"
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSubmitName()
+            }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-auto space-y-4 pb-2"
+          >
+            <label className="flex h-14 items-center overflow-hidden rounded-2xl bg-white text-gray-900 shadow-[0_8px_20px_rgba(0,0,0,0.15)] focus-within:ring-4 focus-within:ring-white/40">
+              <span className="sr-only">Your name</span>
+              <input
+                type="text"
+                autoFocus
+                autoComplete="name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value.replace(/[^A-Za-z ]/g, ""))
+                  if (nameError) setNameError("")
+                }}
+                disabled={isLoading}
+                placeholder="Your Name"
+                className="h-full w-full bg-transparent px-4 text-[16px] font-semibold placeholder:font-medium placeholder:text-gray-400 focus:outline-none"
+              />
+            </label>
+            {nameError || error ? (
+              <p role="alert" className="flex items-center justify-center gap-1.5 rounded-xl bg-black/20 px-3 py-2 text-[13px] font-semibold">
+                <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {nameError || error}
+              </p>
+            ) : null}
+            <button type="submit" disabled={isLoading || name.trim().length < 2} className={secondaryBtn}>
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : null}
+              {isLoading ? "Saving…" : "Start Shopping"}
+            </button>
+          </motion.form>
+        )}
+      </AnimatePresence>
+    </AuthShell>
   )
 }

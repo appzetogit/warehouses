@@ -1,226 +1,218 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link, useSearchParams } from "react-router-dom"
-import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react"
-import AnimatedPage from "@store/components/user/AnimatedPage"
-import { Button } from "@store/components/ui/button"
-import { Input } from "@store/components/ui/input"
+import { AlertCircle, Loader2 } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
 import { authAPI } from "@store/api"
-import { motion } from "framer-motion"
-import { brandLogoOnDark } from "@/config/brandMark"
-import { APP_CONFIG } from "@/config/constants"
-const debugLog = (...args) => { }
-const debugWarn = (...args) => { }
-const debugError = (...args) => { }
+import AuthShell, { primaryBtn, secondaryBtn } from "@store/components/user/auth/AuthShell"
 
+const NAME_REGEX = /^[A-Za-z ]+$/
 
+/**
+ * Customer sign-in: a welcome with Login / Create Account, then the mobile
+ * number (and the name, for a new account). Both go on to the OTP page;
+ * signing in with a number that has no account yet creates one there.
+ */
 export default function SignIn() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const [formData, setFormData] = useState({
-    phone: "",
-    countryCode: "+91", // required; default +91 for India
-  })
-
+  // welcome -> login | signup
+  const [step, setStep] = useState("welcome")
+  const [phone, setPhone] = useState("")
+  const [name, setName] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const submittingRef = useRef(false)
 
+  // Back from the OTP page ("Edit Number"): straight to the number, filled in.
   useEffect(() => {
     const stored = sessionStorage.getItem("userAuthData")
     if (!stored) return
-
     try {
       const data = JSON.parse(stored)
-      const fullPhone = String(data.phone || "").trim()
-      const phoneDigits = fullPhone.replace(/^\+91\s*/, "").replace(/\D/g, "").slice(0, 10)
-
-      setFormData((prev) => ({
-        ...prev,
-        phone: phoneDigits || prev.phone,
-      }))
-    } catch (err) {
-      debugError("Error parsing stored auth data:", err)
+      const digits = String(data.phone || "").replace(/^\+91\s*/, "").replace(/\D/g, "").slice(0, 10)
+      if (digits) setPhone(digits)
+      if (data.name) setName(data.name)
+      setStep(data.isSignUp ? "signup" : "login")
+    } catch {
+      /* ignore a bad stored value */
     }
   }, [])
 
-  const validatePhone = (phone) => {
-    if (!phone.trim()) return "Phone number is required"
-    const cleanPhone = phone.replace(/\D/g, "")
-    if (!/^\d{10}$/.test(cleanPhone)) return "Phone number must be exactly 10 digits"
+  const phoneError = (value) => {
+    if (!value.trim()) return "Enter your mobile number"
+    if (!/^\d{10}$/.test(value)) return "Mobile number must be 10 digits"
     return ""
   }
 
-  const handleChange = (e) => {
-    const { name } = e.target
-    let { value } = e.target
-
-    if (name === "phone") {
-      value = value.replace(/\D/g, "").slice(0, 10)
-      setError(validatePhone(value))
-    }
-
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault()
-    const phoneError = validatePhone(formData.phone)
-    setError(phoneError)
-    if (phoneError) return
+    const isSignUp = step === "signup"
+    const cleanName = name.replace(/\s+/g, " ").trim()
+    if (isSignUp && (cleanName.length < 2 || !NAME_REGEX.test(cleanName))) {
+      setError("Enter your name (letters and spaces only)")
+      return
+    }
+    const pErr = phoneError(phone)
+    if (pErr) {
+      setError(pErr)
+      return
+    }
     if (submittingRef.current) return
     submittingRef.current = true
     setIsLoading(true)
     setError("")
 
     try {
-      const countryCode = formData.countryCode?.trim() || "+91"
-      const phoneDigits = String(formData.phone ?? "").replace(/\D/g, "").slice(0, 10)
-      if (phoneDigits.length !== 10) {
-        setError("Phone number must be exactly 10 digits")
-        setIsLoading(false)
-        submittingRef.current = false
-        return
-      }
-      const fullPhone = `${countryCode} ${phoneDigits}`
-      await authAPI.sendOTP(fullPhone, "login", null)
-
+      const fullPhone = `+91 ${phone}`
+      await authAPI.sendOTP(fullPhone, isSignUp ? "register" : "login", null)
       const ref = String(searchParams.get("ref") || "").trim()
-      const authData = {
-        method: "phone",
-        phone: fullPhone,
-        email: null,
-        name: null,
-        referralCode: ref || null,
-        isSignUp: false,
-        module: "user",
-      }
-
-      sessionStorage.setItem("userAuthData", JSON.stringify(authData))
+      sessionStorage.setItem(
+        "userAuthData",
+        JSON.stringify({
+          method: "phone",
+          phone: fullPhone,
+          email: null,
+          name: isSignUp ? cleanName : null,
+          referralCode: ref || null,
+          isSignUp,
+          module: "user",
+        }),
+      )
       navigate("/auth/otp")
     } catch (apiError) {
-      const message =
-        apiError?.response?.data?.message ||
-        apiError?.response?.data?.error ||
-        "Failed to send OTP. Please try again."
-      setError(message)
+      setError(apiError?.response?.data?.message || apiError?.response?.data?.error || "Couldn't send the code. Please try again.")
     } finally {
       setIsLoading(false)
       submittingRef.current = false
     }
   }
 
+  const goTo = (next) => {
+    setError("")
+    setStep(next)
+  }
+
+  const inputBox =
+    "flex h-14 items-center overflow-hidden rounded-2xl bg-white text-gray-900 shadow-[0_8px_20px_rgba(0,0,0,0.15)] focus-within:ring-4 focus-within:ring-white/40"
+
   return (
-    <AnimatedPage className="min-h-[100dvh] bg-white dark:bg-[#0A0A0B] flex flex-col font-sans overflow-hidden">
-      {/* Top Branding Section - 40% height */}
-      <div
-        className="relative h-[40dvh] w-full overflow-hidden flex flex-col items-center justify-center"
-        style={{ background: "linear-gradient(160deg, var(--wh-nav, #131921) 0%, var(--wh-nav-2, #232F3E) 100%)" }}
-      >
-        {/* A way out for anyone who only came to look, back to where they were
-            (or home when this page was opened directly). */}
-        <button
-          type="button"
-          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))}
-          aria-label="Back"
-          className="absolute left-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 active:scale-95"
-        >
-          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </button>
-        {/* Subtle Decorative Elements (No Blur) */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 right-0 w-64 h-64 border-word border-white/20 rounded-full -mr-20 -mt-20" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 border border-white/10 rounded-full -ml-16 -mb-16" />
-        </div>
+    <AuthShell
+      title="Fashion Near You"
+      subtitle="Shop Local Stores • Delivered Fast"
+      tagline="Courier in Days or Quick in Minutes"
+      onBack={step === "welcome" ? undefined : () => goTo("welcome")}
+      footer={
+        <>
+          <p>
+            Are you a seller?{" "}
+            <Link to="/seller/login" className="font-bold text-white underline-offset-2 hover:underline">
+              Open Seller App
+            </Link>
+          </p>
+          <p className="mt-3 text-[11px] text-white/75">
+            By continuing, you agree to our{" "}
+            <Link to="/profile/terms" className="underline">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link to="/profile/privacy" className="underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </>
+      }
+    >
+      <AnimatePresence mode="wait">
+        {step === "welcome" ? (
+          <motion.div
+            key="welcome"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="mt-auto space-y-4 pb-2"
+          >
+            <button type="button" className={primaryBtn} onClick={() => goTo("login")}>
+              Login
+            </button>
+            <button type="button" className={secondaryBtn} onClick={() => goTo("signup")}>
+              Create Account
+            </button>
+            <button type="button" onClick={() => navigate("/")} className="mx-auto block pt-1 text-[14px] font-semibold text-white/90 underline-offset-2 hover:underline">
+              Continue as Guest
+            </button>
+          </motion.div>
+        ) : (
+          <motion.form
+            key={step}
+            onSubmit={submit}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="mt-auto space-y-4 pb-2"
+            noValidate
+          >
+            <h2 className="text-center text-[18px] font-bold">{step === "signup" ? "Create Your Account" : "Welcome Back"}</h2>
 
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="relative z-10 flex flex-col items-center gap-4"
-        >
-          <img src={brandLogoOnDark()} alt="" className="h-24 w-auto object-contain" />
-          <h1 className="sr-only">{APP_CONFIG.NAME}</h1>
-          <div className="h-0.5 w-12 rounded-full" style={{ backgroundColor: "var(--wh-brand, #FD920B)" }} />
-        </motion.div>
-      </div>
+            {step === "signup" ? (
+              <label className={inputBox}>
+                <span className="sr-only">Your name</span>
+                <input
+                  type="text"
+                  autoComplete="name"
+                  autoFocus
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value.replace(/[^A-Za-z ]/g, ""))
+                    setError("")
+                  }}
+                  placeholder="Your Name"
+                  className="h-full w-full bg-transparent px-4 text-[16px] font-semibold placeholder:font-medium placeholder:text-gray-400 focus:outline-none"
+                />
+              </label>
+            ) : null}
 
-      {/* Bottom Form Section - 60% height, slightly overlapping */}
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="flex-1 bg-white dark:bg-[#0A0A0B] rounded-t-[40px] -mt-10 relative z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.05)] px-6 pt-10 pb-6 flex flex-col"
-      >
-        <div className="max-w-md mx-auto w-full flex flex-col h-full">
-          <div className="space-y-2 mb-10">
-            <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
-              Get Started
-            </h2>
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Enter your mobile number to continue.
+            <label className={inputBox}>
+              <span className="sr-only">Mobile number</span>
+              <span className="flex h-full items-center border-r border-gray-200 px-4 text-[16px] font-bold text-gray-800">+91</span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                autoFocus={step === "login"}
+                maxLength={10}
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+                  setError("")
+                }}
+                placeholder="Mobile Number"
+                className="h-full w-full bg-transparent px-4 text-[17px] font-bold tracking-wider placeholder:font-medium placeholder:tracking-normal placeholder:text-gray-400 focus:outline-none"
+              />
+            </label>
+
+            {error ? (
+              <p role="alert" className="flex items-center justify-center gap-1.5 rounded-xl bg-black/20 px-3 py-2 text-[13px] font-semibold">
+                <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {error}
+              </p>
+            ) : null}
+
+            <button type="submit" className={secondaryBtn} disabled={isLoading || phone.length !== 10 || (step === "signup" && name.trim().length < 2)}>
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : null}
+              {isLoading ? "Sending Code…" : "Get OTP"}
+            </button>
+
+            <p className="text-center text-[14px] text-white/90">
+              {step === "signup" ? "Already have an account? " : "New here? "}
+              <button type="button" onClick={() => goTo(step === "signup" ? "login" : "signup")} className="font-bold text-white underline-offset-2 hover:underline">
+                {step === "signup" ? "Login" : "Create Account"}
+              </button>
             </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="space-y-4">
-              <div className="relative group transition-all duration-300">
-                <div className="flex items-center gap-0 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl focus-within:border-[#FD920B] focus-within:ring-4 focus-within:ring-[#FD920B]/20 transition-all overflow-hidden">
-                  <div className="flex items-center px-4 h-16 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white font-black text-lg border-r border-zinc-200 dark:border-zinc-800">
-                    <span>+91</span>
-                  </div>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={10}
-                    placeholder="Mobile Number"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="flex-1 h-16 text-lg bg-transparent text-zinc-900 dark:text-white border-0 outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 font-black placeholder:text-zinc-300 dark:placeholder:text-zinc-700 tracking-widest px-5"
-                  />
-                </div>
-              </div>
-
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-1.5 text-xs font-bold text-[#B45309] pl-2"
-                >
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  <span>{error}</span>
-                </motion.div>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading || formData.phone.length !== 10}
-              className="w-full h-16 bg-[#FD920B] hover:bg-wh-brand-600 text-[#0F1111] font-black text-base uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-[0_12px_24px_rgba(253,146,11,0.3)] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Verifying...</span>
-                </div>
-              ) : (
-                "Continue"
-              )}
-            </Button>
-          </form>
-
-          <footer className="mt-auto pt-10 text-center">
-            <p className="text-[10px] text-zinc-400 dark:text-zinc-600 font-medium tracking-wide uppercase">
-              By joining, you agree to our policies
-            </p>
-            <p className="text-[10px] text-zinc-300 dark:text-zinc-700 font-bold mt-2 uppercase tracking-widest">
-              <Link to="/profile/terms" className="hover:text-[#B45309]">Terms</Link> • <Link to="/profile/privacy" className="hover:text-[#B45309]">Privacy</Link> • <Link to="/profile/help-content" className="hover:text-[#B45309]">Support</Link>
-            </p>
-          </footer>
-        </div>
-      </motion.div>
-    </AnimatedPage>
+          </motion.form>
+        )}
+      </AnimatePresence>
+    </AuthShell>
   )
 }
