@@ -93,7 +93,7 @@ export default function MobileStoreView({ slug }) {
       <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center lg:hidden">
         <p className="text-[16px] font-bold text-gray-900">This store isn&apos;t available</p>
         <button type="button" onClick={() => navigate(-1)} className="mt-3 rounded-lg bg-[#EA580C] px-4 py-2 text-[14px] font-bold text-white">
-          Go back
+          Go Back
         </button>
       </div>
     )
@@ -143,7 +143,7 @@ export default function MobileStoreView({ slug }) {
                   {Number(store.totalRatings) ? <span className="font-normal text-gray-500">({store.totalRatings})</span> : null}
                 </span>
               ) : (
-                <span className="text-gray-500">New store</span>
+                <span className="text-gray-500">New Store</span>
               )}
               <span className="flex items-center gap-0.5">
                 <MapPin className="h-3 w-3" aria-hidden="true" />

@@ -95,7 +95,7 @@ export default function MobileWishlist() {
             <p className="mt-3 text-[16px] font-bold text-gray-900">Your wishlist is empty</p>
             <p className="mt-1 text-[13px] text-gray-500">Tap the heart on anything you like to keep it here.</p>
             <Link to={storePath("/")} className="mt-4 rounded-xl bg-[#EA580C] px-5 py-2.5 text-[14px] font-bold text-white">
-              Start shopping
+              Start Shopping
             </Link>
           </div>
         )}
@@ -117,7 +117,7 @@ export default function MobileWishlist() {
 
         {stores.length ? (
           <section className="mt-5" aria-label="Saved stores">
-            <h2 className="mb-2 px-1 text-[16px] font-bold text-gray-900">Saved stores</h2>
+            <h2 className="mb-2 px-1 text-[16px] font-bold text-gray-900">Saved Stores</h2>
             <div className="space-y-2">
               {stores.map((s) => (
                 <Link

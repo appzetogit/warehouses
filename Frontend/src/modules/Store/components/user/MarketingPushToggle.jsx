@@ -47,7 +47,7 @@ export default function MarketingPushToggle() {
             <BellRing className="h-5 w-5 text-gray-700 dark:text-gray-300" />
           </div>
           <div className="min-w-0">
-            <p className="text-base font-medium text-gray-900 dark:text-white">Offers & promotions</p>
+            <p className="text-base font-medium text-gray-900 dark:text-white">Offers & Promotions</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Push notifications about deals. Order updates always arrive.</p>
           </div>
         </div>

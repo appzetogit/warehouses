@@ -10,7 +10,7 @@ const HOLD_MS = 30 * 60 * 1000
 const pad = (n) => String(n).padStart(2, "0")
 
 /**
- * "Complete payment" for an online order whose payment failed or was closed.
+ * "Complete Payment" for an online order whose payment failed or was closed.
  * Shown only while the order is pending_payment and part of a checkout; the
  * countdown runs to the end of the 30-minute hold, after which the items are
  * released and the order is gone.
@@ -91,7 +91,7 @@ export default function CompletePaymentCard({ order, onPaid }) {
         </p>
       ) : (
         <>
-          <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Payment not completed</p>
+          <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Payment Not Completed</p>
           <p className="text-xs text-amber-800 dark:text-amber-300">
             We are holding your items for{" "}
             <strong>
@@ -105,7 +105,7 @@ export default function CompletePaymentCard({ order, onPaid }) {
             onClick={pay}
             className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold disabled:opacity-60"
           >
-            {busy ? "Opening payment..." : "Complete payment"}
+            {busy ? "Opening payment..." : "Complete Payment"}
           </button>
         </>
       )}

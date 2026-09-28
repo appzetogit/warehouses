@@ -61,16 +61,16 @@ export default function DesktopFooter() {
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         className="block h-[50px] w-full bg-wh-nav-3 text-[13px] text-white hover:bg-[#485769]"
       >
-        Back to top
+        Back to Top
       </button>
 
       <div className="bg-wh-nav-2">
         <div className="mx-auto grid max-w-[1000px] grid-cols-2 gap-x-6 gap-y-8 px-4 py-8 sm:grid-cols-4 sm:gap-10 sm:px-[20px] sm:py-10">
           <Column title="Get to Know Us">
             <FLink to="/profile/about">About {brandName}</FLink>
-            <FLink to={storePath("/sellers")}>Our stores</FLink>
-            <FLink to="/offers">Offers &amp; deals</FLink>
-            <FLink to="/profile/refer-earn">Refer &amp; earn</FLink>
+            <FLink to={storePath("/sellers")}>Our Stores</FLink>
+            <FLink to="/offers">Offers &amp; Deals</FLink>
+            <FLink to="/profile/refer-earn">Refer &amp; Earn</FLink>
           </Column>
           <Column title="Connect with Us">
             {social.length ? (
@@ -107,21 +107,21 @@ export default function DesktopFooter() {
                 </a>
               </li>
             ) : null}
-            {!social.length && !email && !phone ? <FLink to="/help">Contact us</FLink> : null}
+            {!social.length && !email && !phone ? <FLink to="/help">Contact Us</FLink> : null}
           </Column>
           <Column title="Make Money with Us">
             <FLink to="/seller/signup">Sell on {brandName}</FLink>
-            <FLink to="/food/delivery/login">Become a delivery partner</FLink>
+            <FLink to="/food/delivery/login">Become a Delivery Partner</FLink>
           </Column>
           <Column title="Let Us Help You">
-            <FLink to="/profile">Your account</FLink>
-            <FLink to="/orders">Returns &amp; orders</FLink>
+            <FLink to="/profile">Your Account</FLink>
+            <FLink to="/orders">Returns &amp; Orders</FLink>
             <FLink to="/help">Help</FLink>
-            <FLink to="/profile/shipping">Shipping policy</FLink>
-            <FLink to="/profile/refund">Refund policy</FLink>
-            <FLink to="/profile/cancellation">Cancellation policy</FLink>
-            <FLink to="/profile/terms">Terms of use</FLink>
-            <FLink to="/profile/privacy">Privacy policy</FLink>
+            <FLink to="/profile/shipping">Shipping Policy</FLink>
+            <FLink to="/profile/refund">Refund Policy</FLink>
+            <FLink to="/profile/cancellation">Cancellation Policy</FLink>
+            <FLink to="/profile/terms">Terms of Use</FLink>
+            <FLink to="/profile/privacy">Privacy Policy</FLink>
           </Column>
         </div>
       </div>

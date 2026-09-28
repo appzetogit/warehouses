@@ -66,7 +66,7 @@ export default function VariantSelector({
                     {isBestValue && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                         <Sparkles className="h-3 w-3" />
-                        Best value
+                        Best Value
                       </span>
                     )}
 
@@ -89,7 +89,7 @@ export default function VariantSelector({
                     )}
                     {priceDiff === 0 && variants.length > 1 && (
                       <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                        Lowest price
+                        Lowest Price
                       </span>
                     )}
                   </div>

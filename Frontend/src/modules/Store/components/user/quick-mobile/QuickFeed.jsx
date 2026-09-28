@@ -63,7 +63,7 @@ export function FrequentlyBought({ title, groups = [], seeAllTo }) {
               ))}
             </span>
           ) : null}
-          See all products
+          See All Products
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       ) : null}
@@ -76,8 +76,8 @@ export function FeaturedRail({ items = [] }) {
   if (!items.length) return null
   return (
     <Reveal as="section" aria-label="Featured this week" className="px-4">
-      <h2 className={`${heading} mb-3`}>Featured this week</h2>
-      <Rail rows={1} ariaLabel="Featured this week" auto={4200} cols="auto-cols-[30%] sm:auto-cols-[22%] lg:auto-cols-[160px]">
+      <h2 className={`${heading} mb-3`}>Featured This Week</h2>
+      <Rail rows={1} ariaLabel="Featured This Week" auto={4200} cols="auto-cols-[30%] sm:auto-cols-[22%] lg:auto-cols-[160px]">
         {items.map((item) => {
           const art = mediaUrl(item.artUrl)
           const launch = item.style === "launch"
@@ -148,7 +148,7 @@ export function CampaignBanner({ campaign }) {
             </span>
           ) : null}
           <span className="wh-sheen relative mt-2 w-fit overflow-hidden rounded-lg bg-white px-4 py-1.5 text-[14px] font-bold text-wh-text">
-            {campaign.ctaText || "Shop now"}
+            {campaign.ctaText || "Shop Now"}
           </span>
         </span>
       </AppLink>

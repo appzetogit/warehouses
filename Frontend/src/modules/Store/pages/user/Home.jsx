@@ -426,7 +426,7 @@ const SellerImageCarousel = React.memo(
 
         {isImageUnavailable && (
           <div className="absolute inset-0 z-[2] flex items-center justify-center bg-gray-100">
-            <span className="text-xs text-gray-500">Image unavailable</span>
+            <span className="text-xs text-gray-500">Image Unavailable</span>
           </div>
         )}
 
@@ -613,8 +613,8 @@ const SellerCard = React.memo(({
               }}
               aria-label={
                 favorite
-                  ? "Remove from favorites"
-                  : "Add to favorites"
+                  ? "Remove from Favorites"
+                  : "Add to Favorites"
               }
               className={`h-11 w-11 rounded-[20px] shadow-xl flex items-center justify-center transition-all duration-300 ${
                 favorite
@@ -3196,7 +3196,7 @@ export default function Home() {
             transition={{ duration: 0.5 }}>
             <div className="px-4 flex items-center justify-between">
               <h2 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                Recommended for you
+                Recommended for You
               </h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 px-4 pb-2">
@@ -3277,7 +3277,7 @@ export default function Home() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.25 }}>
-                    <LoadingSkeletonRegion label="Loading sellers" className="h-full p-1 sm:p-2">
+                    <LoadingSkeletonRegion label="Loading Sellers" className="h-full p-1 sm:p-2">
                       <SellerGridSkeleton
                         count={3}
                         className="grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
@@ -3358,7 +3358,7 @@ export default function Home() {
                   variant="outline"
                   onClick={loadMoreSellers}
                   className="text-sm font-medium border-gray-300 hover:border-gray-400">
-                  Load more sellers
+                  Load More Sellers
                 </Button>
               )}
               <div
@@ -3400,7 +3400,7 @@ export default function Home() {
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-4 border-b dark:border-gray-800">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                    Filters and sorting
+                    Filters and Sorting
                   </h2>
                   <button
                     onClick={() => {
@@ -3408,7 +3408,7 @@ export default function Home() {
                       setSortBy(null);
                     }}
                     className="text-wh-brand-ink font-medium text-sm">
-                    Clear all
+                    Clear All
                   </button>
                 </div>
 
@@ -3518,7 +3518,7 @@ export default function Home() {
                           />
                           <span
                             className={`text-sm font-medium ${activeFilters.has("delivery-under-30") ? "text-wh-brand-ink" : "text-gray-700 dark:text-gray-300"}`}>
-                            Under 30 mins
+                            Under 30 Mins
                           </span>
                         </button>
                         <button
@@ -3534,7 +3534,7 @@ export default function Home() {
                           />
                           <span
                             className={`text-sm font-medium ${activeFilters.has("delivery-under-45") ? "text-wh-brand-ink" : "text-gray-700 dark:text-gray-300"}`}>
-                            Under 45 mins
+                            Under 45 Mins
                           </span>
                         </button>
                       </div>
@@ -3733,7 +3733,7 @@ export default function Home() {
                           }`}>
                           <span
                             className={`text-sm font-medium ${activeFilters.has("has-offers") ? "text-wh-brand-ink" : "text-gray-700 dark:text-gray-300"}`}>
-                            Sellers with offers
+                            Sellers with Offers
                           </span>
                         </button>
                       </div>
@@ -3765,8 +3765,8 @@ export default function Home() {
                     {isLoadingFilterResults
                       ? "Loading..."
                       : activeFilters.size > 0 || sortBy
-                        ? `Show results`
-                        : "Show results"}
+                        ? `Show Results`
+                        : "Show Results"}
                   </button>
                 </div>
               </motion.div>
@@ -3843,7 +3843,7 @@ export default function Home() {
                         }, 2000);
                       }}
                       className="w-full bg-transparent text-red-600 font-normal py-1 text-normal rounded-xl hover:bg-red-50 transition-colors text-base">
-                      Switch off
+                      Switch Off
                     </button>
 
                     <button
@@ -4206,7 +4206,7 @@ export default function Home() {
                 exit={{ y: 100, opacity: 0 }}
                 transition={{ duration: 0.3, type: "spring", damping: 25 }}
                 className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[10001] bg-black text-white px-6 py-3 rounded-lg shadow-2xl">
-                <p className="text-sm font-medium">Added to bookmark</p>
+                <p className="text-sm font-medium">Added to Bookmark</p>
               </motion.div>
             )}
           </AnimatePresence>,
@@ -4307,7 +4307,7 @@ export default function Home() {
                       </div>
                       <div className="flex-1 text-left">
                         <span className="text-base font-medium text-gray-900">
-                          Create new Collection
+                          Create New Collection
                         </span>
                       </div>
                     </button>

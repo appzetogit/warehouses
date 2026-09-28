@@ -98,7 +98,7 @@ export default function OrderAgain() {
               to={storePath("/")}
               className="mt-3 inline-block rounded-lg bg-wh-brand px-4 py-2 text-[14px] font-bold text-wh-text"
             >
-              Start shopping
+              Start Shopping
             </Link>
           </div>
         )}

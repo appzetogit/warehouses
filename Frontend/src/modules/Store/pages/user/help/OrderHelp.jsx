@@ -27,7 +27,7 @@ import { getSupportEmail } from "@store/utils/businessSettings"
 const commonIssues = [
   {
     id: "late-delivery",
-    title: "Order is Late",
+    title: "Order Is Late",
     icon: Clock,
     description: "Your order hasn't arrived within the estimated time",
     solutions: [
@@ -362,7 +362,7 @@ export default function OrderHelp() {
                     <Truck className="h-4 w-4" />
                     <div className="text-left">
                       <div className="font-semibold">Track Order</div>
-                      <div className="text-xs text-muted-foreground">View real-time status</div>
+                      <div className="text-xs text-muted-foreground">View Real-Time Status</div>
                     </div>
                   </Button>
                 </Link>
@@ -374,7 +374,7 @@ export default function OrderHelp() {
                     <FileText className="h-4 w-4" />
                     <div className="text-left">
                       <div className="font-semibold">View Invoice</div>
-                      <div className="text-xs text-muted-foreground">Download receipt</div>
+                      <div className="text-xs text-muted-foreground">Download Receipt</div>
                     </div>
                   </Button>
                 </Link>
@@ -386,7 +386,7 @@ export default function OrderHelp() {
                   <MessageCircle className="h-4 w-4" />
                   <div className="text-left">
                     <div className="font-semibold">Contact Support</div>
-                    <div className="text-xs text-muted-foreground">Get help now</div>
+                    <div className="text-xs text-muted-foreground">Get Help Now</div>
                   </div>
                 </Button>
               </div>

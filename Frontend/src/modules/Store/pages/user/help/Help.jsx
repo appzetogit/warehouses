@@ -248,7 +248,7 @@ export default function Help() {
                   </div>
                   <div>
                     <h3 className="text-sm md:text-base font-semibold">Track Your Order</h3>
-                    <p className="text-xs md:text-sm text-muted-foreground">View order status</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">View Order Status</p>
                   </div>
                 </div>
               </CardContent>
@@ -261,7 +261,7 @@ export default function Help() {
                   </div>
                   <div>
                     <h3 className="text-sm md:text-base font-semibold">Manage Account</h3>
-                    <p className="text-xs md:text-sm text-muted-foreground">Update profile & settings</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Update Profile & Settings</p>
                   </div>
                 </div>
               </CardContent>

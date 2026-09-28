@@ -124,9 +124,9 @@ const RECIPIENT_NAME_REGEX = /^[A-Za-z ]+$/
 const INDIAN_MOBILE_REGEX = /^[6-9]\d{9}$/
 
 const PREDEFINED_DELIVERY_INSTRUCTIONS = [
-  { id: "leave_at_door", label: "Leave at the door", Icon: DoorOpen },
-  { id: "avoid_calling", label: "Avoid calling", Icon: PhoneOff },
-  { id: "avoid_bell", label: "Avoid ringing bell", Icon: BellOff },
+  { id: "leave_at_door", label: "Leave at the Door", Icon: DoorOpen },
+  { id: "avoid_calling", label: "Avoid Calling", Icon: PhoneOff },
+  { id: "avoid_bell", label: "Avoid Ringing Bell", Icon: BellOff },
 ]
 
 const getConfiguredQuickDeliveryFee = (feeSettings = {}) => {
@@ -355,7 +355,7 @@ export default function Cart() {
     ? `In ${quickEta} min`
     : shopEstimate?.maxDays
       ? `Get by ${shopEstimate.minDays}-${shopEstimate.maxDays} days`
-      : "Get by 2-4 days"
+      : "Get by 2-4 Days"
   const [deliverySectionTab, setDeliverySectionTab] = useState("instructions")
   const [deliveryMode, setDeliveryMode] = useState("basic")
   const [selectedDeliveryInstruction, setSelectedDeliveryInstruction] = useState(null)
@@ -633,7 +633,7 @@ export default function Cart() {
     if (normalized === "office") return "Work"
     if (normalized === "home") return "Home"
     if (normalized === "other") return "Other"
-    return label || "Saved address"
+    return label || "Saved Address"
   }
   const sanitizeRecipientName = (value) => String(value || "").replace(/[^A-Za-z ]/g, "").replace(/\s+/g, " ")
   const sanitizeRecipientPhone = (value) => String(value || "").replace(/\D/g, "").slice(0, 10)
@@ -1531,10 +1531,10 @@ export default function Cart() {
   const selectedPaymentLabel =
     selectedPaymentMethod === "wallet" ? "Wallet" : "Online Payment"
 
-  const headerAddressLabel = defaultAddress ? getDisplayAddressLabel(defaultAddress.label) : "Select address"
+  const headerAddressLabel = defaultAddress ? getDisplayAddressLabel(defaultAddress.label) : "Select Address"
   const headerAddressText = defaultAddress
-    ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || "Add delivery address")
-    : "Add delivery address"
+    ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || "Add Delivery Address")
+    : "Add Delivery Address"
 
   const formatAddressDistanceLabel = (address) => {
     const addressId = getAddressId(address)
@@ -2104,7 +2104,7 @@ export default function Cart() {
             }
           },
           // Closing the sheet keeps the order held for 30 minutes; the order
-          // page offers "Complete payment" until then, after which the server
+          // page offers "Complete Payment" until then, after which the server
           // releases the stock and coins.
           onClose: () => {
             const heldOrderId = checkoutRes?.data?.data?.childOrders?.[0]?._id;
@@ -2610,7 +2610,7 @@ export default function Cart() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Find something you like and it will show up here</p>
           <Link to={storePath("/")}>
             <Button className="border-0 bg-[#FD920B] text-[#0F1111] hover:bg-wh-brand-600">
-              Start shopping
+              Start Shopping
             </Button>
           </Link>
         </div>
@@ -2671,13 +2671,13 @@ export default function Cart() {
           savings={itemDiscountAmount}
         />
 
-        {/* "You may also like": co-purchases of the first item, minus what is already in the cart */}
+        {/* "You May Also Like": co-purchases of the first item, minus what is already in the cart */}
         {cart.length > 0 && !isDesktop && (
           <div className="px-4 md:px-6 max-w-7xl mx-auto">
             <RecommendationRail
               productId={cart[0].productId || cart[0].itemId || cart[0].id}
               type="frequently_bought"
-              title="You may also like"
+              title="You May Also Like"
               excludeIds={cart.map((item) => item.productId || item.itemId || item.id)}
               limit={10}
             />
@@ -2874,7 +2874,7 @@ export default function Cart() {
                     }`}
                   >
                     <Pencil className="h-3.5 w-3.5" />
-                    {note.trim() ? "Edit order note" : "Add order note"}
+                    {note.trim() ? "Edit Order Note" : "Add Order Note"}
                   </button>
                 </div>
                 {note.trim() ? (
@@ -3029,7 +3029,7 @@ export default function Cart() {
                       >
                         <Pencil className={`h-5 w-5 mx-auto mb-2 ${deliveryInstructionMode === "custom" ? "text-emerald-600" : "text-gray-600 dark:text-gray-300"}`} />
                         <p className={`text-[10px] font-semibold leading-tight ${deliveryInstructionMode === "custom" ? "text-emerald-700 dark:text-emerald-300" : "text-gray-700 dark:text-gray-300"}`}>
-                          Add custom
+                          Add Custom
                         </p>
                       </button>
                     </div>
@@ -3063,8 +3063,8 @@ export default function Cart() {
                       <Phone className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Order recipient</p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400">Delivery contact details</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Order Recipient</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">Delivery Contact Details</p>
                     </div>
                   </div>
                   <button
@@ -3096,7 +3096,7 @@ export default function Cart() {
                   <div className="px-4 py-3.5 space-y-3 bg-gray-50/60 dark:bg-[#141414]/60">
                     <div>
                       <label className="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
-                        Recipient name
+                        Recipient Name
                       </label>
                       <input
                         type="text"
@@ -3113,7 +3113,7 @@ export default function Cart() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
-                        Phone number
+                        Phone Number
                       </label>
                       <div className="flex items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] overflow-hidden focus-within:border-wh-brand">
                         <span className="px-3 text-sm text-gray-500 border-r border-gray-200 dark:border-gray-700">+91</span>
@@ -3167,9 +3167,9 @@ export default function Cart() {
                       : loadingSeller
                         ? "Loading..."
                         : !canPlaceOrder
-                          ? "Store offline"
+                          ? "Store Offline"
                           : !hasSavedAddress
-                            ? "Add delivery address"
+                            ? "Add Delivery Address"
                             : "Proceed to Buy"
                   }
                 />
@@ -3345,7 +3345,7 @@ export default function Cart() {
                       <div className="flex justify-between text-sm font-semibold text-amber-600 dark:text-amber-400">
                         <span className="flex items-center gap-1.5 border-b border-dotted border-amber-300">
                           <Coins className="w-4 h-4 text-amber-500 shrink-0" />
-                          Coins redeemed
+                          Coins Redeemed
                         </span>
                         <span>-{RUPEE_SYMBOL}{coinDiscount.toFixed(2)}</span>
                       </div>
@@ -3376,7 +3376,7 @@ export default function Cart() {
                     productId={cart[0].productId || cart[0].itemId || cart[0].id}
                     type="frequently_bought"
                     fallbackType="similar"
-                    title="You may also like"
+                    title="You May Also Like"
                     excludeIds={cart.map((item) => item.productId || item.itemId || item.id)}
                     limit={10}
                   />
@@ -3452,7 +3452,7 @@ export default function Cart() {
               >
                 <div className="px-6 py-8">
                   {/* Title */}
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Placing your order</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Placing Your Order</h2>
 
                   {/* Payment Info */}
                   <div className="flex items-center gap-4 mb-5">
@@ -3465,7 +3465,7 @@ export default function Cart() {
                           ? `Pay ${RUPEE_SYMBOL}${total.toFixed(2)} online (Razorpay)`
                           : selectedPaymentMethod === "wallet"
                             ? `Pay ${RUPEE_SYMBOL}${total.toFixed(2)} from Wallet`
-                            : `Pay on delivery (COD)`}
+                            : `Pay on Delivery (COD)`}
                       </p>
                     </div>
                   </div>
@@ -3481,7 +3481,7 @@ export default function Cart() {
                     <div>
                       <p className="text-lg font-semibold text-gray-900">Delivering to Location</p>
                       <p className="text-sm text-gray-600 mt-1">
-                        {defaultAddress ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || "Address") : "Add address"}
+                        {defaultAddress ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || "Address") : "Add Address"}
                       </p>
                       <p className="text-sm text-gray-500">
                         {defaultAddress ? (formatFullAddress(defaultAddress) || "Address") : "Address"}
@@ -3660,7 +3660,7 @@ export default function Cart() {
                   <div className="p-5 flex flex-col min-h-0">
                     <div className="w-10 h-1 bg-gray-200 dark:bg-gray-800 rounded-full mx-auto mb-4" />
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">Choose a delivery address</h2>
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">Choose a Delivery Address</h2>
                       <button
                         type="button"
                         onClick={() => setShowAddressSheet(false)}
@@ -3678,7 +3678,7 @@ export default function Cart() {
                       <div className="h-10 w-10 rounded-lg border-2 border-dashed border-emerald-500 flex items-center justify-center shrink-0">
                         <Plus className="h-4 w-4 text-emerald-600" />
                       </div>
-                      <span className="text-sm font-semibold text-emerald-600">Add new Address</span>
+                      <span className="text-sm font-semibold text-emerald-600">Add New Address</span>
                     </button>
 
                     <div className="space-y-2 overflow-y-auto pr-1 pb-2">
@@ -3762,7 +3762,7 @@ export default function Cart() {
                   <div className="p-5">
                     <div className="w-10 h-1 bg-gray-200 dark:bg-gray-800 rounded-full mx-auto mb-4" />
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">Order note</h2>
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">Order Note</h2>
                       <button
                         type="button"
                         onClick={() => setShowNoteSheet(false)}
@@ -3836,7 +3836,7 @@ export default function Cart() {
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div>
-                      <p className="text-base font-semibold">Payment offers & more</p>
+                      <p className="text-base font-semibold">Payment Offers & More</p>
                       <p className="text-xs text-white/80">Coupons and bank offers for this order</p>
                     </div>
                   </div>
@@ -3955,12 +3955,12 @@ export default function Cart() {
                       <div className="mt-5 grid grid-cols-2 gap-2 text-left">
                         <div className="rounded-xl bg-slate-50 dark:bg-[#141414] p-3">
                           <Tag className="h-4 w-4 text-emerald-600 mb-2" />
-                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Bank offers</p>
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Bank Offers</p>
                           <p className="text-[11px] text-gray-500 mt-1">Check at payment step</p>
                         </div>
                         <div className="rounded-xl bg-slate-50 dark:bg-[#141414] p-3">
                           <Percent className="h-4 w-4 text-wh-brand-ink mb-2" />
-                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Seller deals</p>
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Seller Deals</p>
                           <p className="text-[11px] text-gray-500 mt-1">Add more items to unlock</p>
                         </div>
                       </div>
@@ -4021,7 +4021,7 @@ export default function Cart() {
                         {
                           id: 'wallet',
                           name: 'Quick Wallet',
-                          description: 'Pay from your wallet',
+                          description: 'Pay from Your Wallet',
                           icon: <Wallet className="w-5 h-5" />,
                           color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
                           selectedColor: 'bg-blue-500 text-white',
@@ -4242,7 +4242,7 @@ export default function Cart() {
                         onClick={handleSystemShareFromModal}
                       >
                         <Share2 className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">Share via system apps</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">Share via System Apps</span>
                       </button>
                     )}
                     <button
@@ -4271,7 +4271,7 @@ export default function Cart() {
                       onClick={copyShareLink}
                     >
                       <Copy className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">Copy link</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">Copy Link</span>
                     </button>
                   </div>
                 </motion.div>
@@ -4315,7 +4315,7 @@ export default function Cart() {
                   </Button>
                 )}
                 <Button variant="outline" className="w-full" onClick={() => { removeFromCart(line.id); close() }}>
-                  Remove from cart
+                  Remove from Cart
                 </Button>
                 <button type="button" className="text-xs text-gray-500 py-1" onClick={close}>Cancel</button>
               </div>

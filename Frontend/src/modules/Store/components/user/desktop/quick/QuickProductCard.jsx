@@ -23,7 +23,7 @@ import {
   productPrice,
 } from "./quickHelpers"
 
-/** 66×32 control: ADD, the stepper, "Options", or a disabled "Out of stock". */
+/** 66×32 control: ADD, the stepper, "Options", or a disabled "Out of Stock". */
 const BOX = "h-[32px] w-[66px] shrink-0 rounded-[6px] text-[13px] font-semibold"
 
 function QuickAddControl({ product, name, to }) {
@@ -40,7 +40,7 @@ function QuickAddControl({ product, name, to }) {
           "border border-wh-border bg-[#F7F7F7] px-1 text-[9px] font-bold uppercase leading-[11px] tracking-tight text-wh-muted",
         )}
       >
-        Out of stock
+        Out of Stock
       </button>
     )
   }

@@ -18,7 +18,7 @@ export default function QuickZoneStrip() {
         <div className="mx-auto flex h-[32px] max-w-[1500px] items-center gap-2 px-[20px] text-[13px] text-wh-text">
           <span>Quick delivery isn&apos;t available at {area} yet.</span>
           <button type="button" onClick={openLocationSelector} className="font-medium text-wh-link hover:text-wh-link-hover hover:underline">
-            Change location
+            Change Location
           </button>
         </div>
       </div>

@@ -60,7 +60,7 @@ export default function Coupons() {
               <ArrowLeft className="h-5 w-5 text-black dark:text-white" />
             </Button>
           </Link>
-          <h1 className="text-xl font-bold text-black dark:text-white">Your coupons</h1>
+          <h1 className="text-xl font-bold text-black dark:text-white">Your Coupons</h1>
         </div>
 
         {loading ? (

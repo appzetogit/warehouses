@@ -71,7 +71,7 @@ export default function ProductDetailDesktop({
 
   const specs = [
     ["Brand", product.brand],
-    ["Pack size", product.packSize],
+    ["Pack Size", product.packSize],
     ["Category", product.categoryName || product.category?.name],
     ...Object.entries(selectedAttrs || {}),
     ["SKU", currentVariant?.sku || product.sku],
@@ -89,7 +89,7 @@ export default function ProductDetailDesktop({
   ) : avail.low ? (
     <p className="text-[14px] font-medium text-wh-deal">Only {avail.qty} left in stock</p>
   ) : (
-    <p className="text-[18px] text-wh-success">In stock</p>
+    <p className="text-[18px] text-wh-success">In Stock</p>
   )
 
   const breadcrumb = [
@@ -180,7 +180,7 @@ export default function ProductDetailDesktop({
             {displayMrp > displayPrice && (
               <p className="mt-1 text-[12px] text-wh-muted">M.R.P.: <s>₹{Number(displayMrp).toLocaleString("en-IN")}</s></p>
             )}
-            <p className="text-[12px] text-wh-muted">Inclusive of all taxes</p>
+            <p className="text-[12px] text-wh-muted">Inclusive of All Taxes</p>
 
             <div className="mt-3 flex flex-wrap gap-2">
               {discountPercent > 0 && (
@@ -256,7 +256,7 @@ export default function ProductDetailDesktop({
             {bullets.length > 0 && (
               <>
                 <hr className="my-4 border-wh-border" />
-                <h2 className="mb-2 text-[16px] font-bold">About this item</h2>
+                <h2 className="mb-2 text-[16px] font-bold">About This Item</h2>
                 <ul className="list-disc space-y-1 pl-5">
                   {bullets.map((b, i) => <li key={i}>{b}</li>)}
                 </ul>
@@ -302,13 +302,13 @@ export default function ProductDetailDesktop({
             )}
 
             <div className="mt-3 space-y-2">
-              <CtaButton onClick={onAddToCart} disabled={disabled}>Add to cart</CtaButton>
-              <CtaButton variant="secondary" onClick={onBuyNow} disabled={disabled}>Buy now</CtaButton>
+              <CtaButton onClick={onAddToCart} disabled={disabled}>Add to Cart</CtaButton>
+              <CtaButton variant="secondary" onClick={onBuyNow} disabled={disabled}>Buy Now</CtaButton>
             </div>
 
             <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
               <dt className="text-wh-muted">Ships via</dt>
-              <dd>{isQuick ? "Quick rider" : "Courier"}</dd>
+              <dd>{isQuick ? "Quick Rider" : "Courier"}</dd>
               {seller && (
                 <>
                   <dt className="text-wh-muted">Sold by</dt>
@@ -329,12 +329,12 @@ export default function ProductDetailDesktop({
         </div>
 
         <hr className="mt-8 border-wh-border" />
-        <RecommendationRail variant="desktop" productId={product._id} type="frequently_bought" title="Frequently bought together" limit={8} />
-        <RecommendationRail variant="desktop" productId={product._id} type="similar" title="You may also like" limit={12} />
+        <RecommendationRail variant="desktop" productId={product._id} type="frequently_bought" title="Frequently Bought Together" limit={8} />
+        <RecommendationRail variant="desktop" productId={product._id} type="similar" title="You May Also Like" limit={12} />
 
         {specs.length > 0 && (
           <section className="border-t border-wh-border py-6" aria-labelledby="pd-specs">
-            <h2 id="pd-specs" className="mb-3 text-[21px] font-bold">Product details</h2>
+            <h2 id="pd-specs" className="mb-3 text-[21px] font-bold">Product Details</h2>
             <div className="w-full overflow-x-auto">
               <table className="w-full max-w-[640px] border-collapse text-[14px]">
                 <tbody>

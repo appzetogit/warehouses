@@ -72,7 +72,7 @@ export default function QuickMobileHome({
   const { openLocationSelector } = useLocationSelector()
   const { layout, loading: layoutLoading, activeTheme } = useQuickLayout()
 
-  // "Frequently bought": what this customer ordered, grouped by category; for
+  // "Frequently Bought": what this customer ordered, grouped by category; for
   // a guest (or a first order) the categories selling most here.
   const frequent = useMemo(() => {
     const byId = new Map(products.map((p) => [String(p._id || p.id), p]))
@@ -91,7 +91,7 @@ export default function QuickMobileHome({
       .filter((g) => g.items.length >= (source ? 1 : 3))
       .slice(0, 6)
       .map((g) => ({ ...g, to: categoryLink ? categoryLink(g.id, g.name) : storePath("/categories") }))
-    return { title: source ? "Frequently bought" : "Popular right now", groups: list }
+    return { title: source ? "Frequently Bought" : "Popular Right Now", groups: list }
   }, [products, orderedIds, categoryLink, storePath])
 
   if (layoutLoading || (productsLoading && !products.length && !outOfZone)) {
@@ -116,7 +116,7 @@ export default function QuickMobileHome({
               onClick={openLocationSelector}
               className="mt-2 rounded-lg border border-wh-brand-ink px-3 py-1.5 text-[13px] font-semibold text-wh-brand-ink"
             >
-              Change location
+              Change Location
             </button>
           </section>
         ) : null}
@@ -128,7 +128,7 @@ export default function QuickMobileHome({
         <FeaturedRail items={layout.featured} />
 
         {!outOfZone && deals.length >= MIN_RAIL_PRODUCTS ? (
-          <QuickProductRail title="Deals of the day" products={deals.slice(0, 20)} seeAllTo={storePath("/search?minDiscount=10")} />
+          <QuickProductRail title="Deals of the Day" products={deals.slice(0, 20)} seeAllTo={storePath("/search?minDiscount=10")} />
         ) : null}
 
         <CampaignBanner campaign={firstCampaign} />

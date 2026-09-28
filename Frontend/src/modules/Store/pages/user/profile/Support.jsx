@@ -257,7 +257,7 @@ export default function Support() {
 
             {step === "choose_order" && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Select an order</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">Select an Order</h3>
                 {orders.length > 0 ? (
                   <div className="space-y-2">
                     <Input
@@ -284,7 +284,7 @@ export default function Support() {
 
             {step === "order_issue" && selectedOrder && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Issue type</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">Issue Type</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {orderIssues.map((it) => (
                     <Button key={it} variant={issueType === it ? "default" : "outline"} onClick={() => setIssueType(it)}>{it}</Button>
@@ -302,7 +302,7 @@ export default function Support() {
 
             {step === "choose_seller" && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Select a seller</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">Select a Seller</h3>
                 {sellers.length > 0 ? (
                   <div className="space-y-2">
                     <Input
@@ -329,7 +329,7 @@ export default function Support() {
 
             {step === "seller_issue" && selectedSeller && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Issue type</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">Issue Type</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {sellerIssues.map((it) => (
                     <Button key={it} variant={issueType === it ? "default" : "outline"} onClick={() => setIssueType(it)}>{it}</Button>

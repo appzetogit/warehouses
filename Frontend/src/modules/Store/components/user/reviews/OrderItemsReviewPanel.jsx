@@ -1,5 +1,5 @@
 /**
- * On a delivered order: one row per product with "Write a review" (or "Edit
+ * On a delivered order: one row per product with "Write a Review" (or "Edit
  * your review" once written). Renders nothing for orders not yet delivered.
  */
 import { useEffect, useMemo, useState } from "react"
@@ -44,7 +44,7 @@ export default function OrderItemsReviewPanel({ order }) {
     <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <div className="mb-3 flex items-center gap-2">
         <Star className="h-5 w-5 text-wh-brand-ink" aria-hidden="true" />
-        <h3 className="font-semibold text-gray-800 dark:text-white">Rate your items</h3>
+        <h3 className="font-semibold text-gray-800 dark:text-white">Rate Your Items</h3>
       </div>
       <ul className="space-y-3">
         {products.map((p) => {
@@ -60,7 +60,7 @@ export default function OrderItemsReviewPanel({ order }) {
                 onClick={() => setTarget(p)}
                 className="shrink-0 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-800 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-wh-brand dark:border-zinc-700 dark:bg-zinc-800 dark:text-gray-100"
               >
-                {review ? "Edit your review" : "Write a review"}
+                {review ? "Edit Your Review" : "Write a Review"}
               </button>
             </li>
           )

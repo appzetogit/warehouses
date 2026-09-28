@@ -88,7 +88,7 @@ export default function EditPayment() {
         <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto">
           <Card>
             <CardContent className="py-8 text-center">
-              <p className="text-muted-foreground">Payment method not found</p>
+              <p className="text-muted-foreground">Payment Method Not Found</p>
               <Button onClick={() => navigate("/user/profile/payments")} className="mt-4">
                 Back to Payment Methods
               </Button>

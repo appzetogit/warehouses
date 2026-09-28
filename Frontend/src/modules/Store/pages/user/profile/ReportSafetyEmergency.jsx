@@ -138,7 +138,7 @@ export default function ReportSafetyEmergency() {
               <ArrowLeft className="h-4 w-4 md:h-5 md:w-5 text-black dark:text-white" />
             </Button>
           </Link>
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-black dark:text-white">Report a safety emergency</h1>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-black dark:text-white">Report a Safety Emergency</h1>
         </div>
 
         {/* Emergency Contact Card */}
@@ -227,7 +227,7 @@ export default function ReportSafetyEmergency() {
               <CardContent className="p-4 md:p-5 lg:p-6">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
-                    Your report history
+                    Your Report History
                   </h3>
                   <Button
                     variant="outline"
@@ -352,7 +352,7 @@ export default function ReportSafetyEmergency() {
                     onClick={() => setIsHistoryDialogOpen(false)}
                     className="rounded-xl px-8 bg-black text-white hover:bg-gray-900 transition-all active:scale-95"
                   >
-                    Got it
+                    Got It
                   </Button>
                 </div>
               </DialogContent>

@@ -3,7 +3,7 @@
  * product rails built with the new Quick card. Data comes from the endpoints
  * the storefront already uses — searchAPI.searchProducts with
  * fulfilmentMode "quick", the public categories, the hero banners the page
- * fetched, and catalogAPI.getProductRecommendations for "You may also like".
+ * fetched, and catalogAPI.getProductRecommendations for "You May Also Like".
  */
 import { useEffect, useMemo, useState } from "react"
 import { catalogAPI, orderAPI, searchAPI } from "@store/api"
@@ -187,22 +187,22 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
               onClick={openLocationSelector}
               className="mt-3 rounded-[8px] border border-wh-brand-ink bg-wh-brand-50 px-4 py-2 text-[13px] font-semibold text-wh-brand-ink hover:bg-wh-brand hover:text-wh-text"
             >
-              Change location
+              Change Location
             </button>
           </section>
         ) : null}
 
-        <QuickCategoryTiles tree={tree} loading={categoriesLoading} title="Shop essentials by category" />
+        <QuickCategoryTiles tree={tree} loading={categoriesLoading} title="Shop Essentials by Category" />
 
         {!outOfZone ? <QuickPromoBanners banners={heroBanners} onOpen={onOpenBanner} /> : null}
 
         {!outOfZone ? (
           <>
             {productsLoading ? (
-              <QuickProductRail title="Deals of the day" loading />
+              <QuickProductRail title="Deals of the Day" loading />
             ) : (
               <QuickProductRail
-                title="Deals of the day"
+                title="Deals of the Day"
                 products={deals.slice(0, 20)}
                 seeAllTo={storePath("/offers")}
                 etaMinutes={eta}
@@ -220,9 +220,9 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
             ))}
 
             {recommendedLoading && !recommended.length ? (
-              <QuickProductRail title="You may also like" loading />
+              <QuickProductRail title="You May Also Like" loading />
             ) : (
-              <QuickProductRail title="You may also like" products={recommended} etaMinutes={eta} />
+              <QuickProductRail title="You May Also Like" products={recommended} etaMinutes={eta} />
             )}
 
             {nothingToShow ? (

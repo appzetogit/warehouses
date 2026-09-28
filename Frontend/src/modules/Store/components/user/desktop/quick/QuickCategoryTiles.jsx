@@ -27,7 +27,7 @@ export function categoryTilesFromTree(tree = [], limit = 24) {
   return tiles.slice(0, limit)
 }
 
-export default function QuickCategoryTiles({ tree = [], loading = false, title = "Shop by category" }) {
+export default function QuickCategoryTiles({ tree = [], loading = false, title = "Shop by Category" }) {
   const { storePath } = useStoreMode()
   const tiles = categoryTilesFromTree(tree)
 

@@ -73,7 +73,7 @@ export default function AutoCouponCelebration() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] sm:text-[11px] font-semibold text-wh-brand-ink leading-none">
-                    Offer applied
+                    Offer Applied
                   </p>
                   <p className="mt-0.5 text-[13px] sm:text-[15px] font-bold text-slate-900 leading-tight truncate">
                     {celebration.savings > 0

@@ -55,7 +55,7 @@ export default function CartSubtotalCard({
       </button>
 
       <p className="mt-3 flex justify-between text-[14px]">
-        <span>Order total</span>
+        <span>Order Total</span>
         <span className="font-bold">{money(finalPayable)}</span>
       </p>
 

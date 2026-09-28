@@ -847,14 +847,14 @@ Order again from this seller in the ${companyName} app.`
                       onClick={() => handleShareSeller(order)}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-800"
                     >
-                      Share seller
+                      Share Seller
                     </button>
                     <button
                       type="button"
                       onClick={() => handleViewOrderDetails(order)}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-800"
                     >
-                      Order details
+                      Order Details
                     </button>
                   </div>
                 )}
@@ -1011,7 +1011,7 @@ Order again from this seller in the ${companyName} app.`
                       <p className="text-xs font-medium text-red-500 mt-1">Seller Cancelled</p>
                     )}
                     {isUserCancelled && (
-                      <p className="text-xs font-medium text-gray-500 mt-1">Cancelled by you</p>
+                      <p className="text-xs font-medium text-gray-500 mt-1">Cancelled by You</p>
                     )}
                     {isCancelled && !isSellerCancelled && !isUserCancelled && (
                       <p className="text-xs font-medium text-gray-500 mt-1">Cancelled</p>
@@ -1048,12 +1048,12 @@ Order again from this seller in the ${companyName} app.`
                       <div className="bg-red-100 p-1 rounded-full">
                         <AlertCircle className="w-4 h-4 text-red-500" />
                       </div>
-                      <span className="text-xs font-semibold text-red-500">Payment failed</span>
+                      <span className="text-xs font-semibold text-red-500">Payment Failed</span>
                     </div>
                   ) : isDelivered && order.sellerRating && (!order.deliveryPartnerId || order.deliveryPartnerRating) ? (
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm text-gray-800">You rated</span>
+                        <span className="text-sm text-gray-800">You Rated</span>
                         <div className="flex bg-yellow-400 text-white px-1 rounded text-[10px] items-center gap-0.5 h-4">
                           R {order.sellerRating}<Star className="w-2 h-2 fill-current" />
                         </div>
@@ -1066,7 +1066,7 @@ Order again from this seller in the ${companyName} app.`
                     </div>
                   ) : isDelivered ? (
                     <div>
-                      <p className="text-xs text-gray-500">Order delivered</p>
+                      <p className="text-xs text-gray-500">Order Delivered</p>
                       <button
                         type="button"
                         onClick={() => handleOpenRating(order)}
@@ -1077,7 +1077,7 @@ Order again from this seller in the ${companyName} app.`
                     </div>
                   ) : (
                     <div>
-                      <p className="text-xs text-gray-500">{order.status === 'pending_payment' ? 'Payment pending — tap to complete' : order.status === 'preparing' ? 'Preparing' : order.status === 'outForDelivery' ? 'Out for delivery' : order.status === 'confirmed' ? 'Order confirmed' : ''}</p>
+                      <p className="text-xs text-gray-500">{order.status === 'pending_payment' ? 'Payment pending — tap to complete' : order.status === 'preparing' ? 'Preparing' : order.status === 'outForDelivery' ? 'Out for Delivery' : order.status === 'confirmed' ? 'Order confirmed' : ''}</p>
                       {/* Countdown Timer */}
                       {countdowns[order.id] && countdowns[order.id] > 0 && (
                         <div className="flex items-center gap-1 mt-1 text-xs text-wh-brand-ink font-medium">
@@ -1246,7 +1246,7 @@ Order again from this seller in the ${companyName} app.`
           >
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 px-5 py-4">
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Share seller</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Share Seller</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Native share available ho to sab supported apps wahan dikhenge</p>
               </div>
               <button
@@ -1267,7 +1267,7 @@ Order again from this seller in the ${companyName} app.`
                   className="w-full rounded-2xl bg-wh-brand px-4 py-3 text-sm font-semibold text-wh-text flex items-center justify-center gap-2 hover:bg-wh-brand-600 transition-colors"
                 >
                   <Share2 className="w-4 h-4" />
-                  Share via apps
+                  Share via Apps
                 </button>
               )}
 
@@ -1334,7 +1334,7 @@ Order again from this seller in the ${companyName} app.`
                   className="rounded-2xl border border-gray-200 dark:border-zinc-800 px-3 py-4 text-xs font-medium text-gray-700 dark:text-gray-300 flex flex-col items-center gap-2 hover:bg-gray-50 dark:hover:bg-zinc-800"
                 >
                   <Copy className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  Copy link
+                  Copy Link
                 </button>
               </div>
             </div>

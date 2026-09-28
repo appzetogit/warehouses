@@ -111,7 +111,7 @@ export default function StoreDesktop({ seller, sections = [], coverImage, isOpen
         <aside className="w-[240px] shrink-0" aria-label="Store categories">
           <h2 className="mb-2 text-[14px] font-bold">Category</h2>
           <ul className="space-y-0.5">
-            {[{ id: "all", name: "All products", items: groups.flatMap((g) => g.items) }, ...groups].map((g) => (
+            {[{ id: "all", name: "All Products", items: groups.flatMap((g) => g.items) }, ...groups].map((g) => (
               <li key={g.id}>
                 <button
                   type="button"

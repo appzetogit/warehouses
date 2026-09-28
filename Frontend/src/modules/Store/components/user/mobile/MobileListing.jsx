@@ -18,10 +18,10 @@ import ProductTile from "./ProductTile"
 const PAGE = 20
 const SORTS = [
   ["relevance", "Relevance"],
-  ["price_asc", "Price: low to high"],
-  ["price_desc", "Price: high to low"],
-  ["rating", "Customer rating"],
-  ["newest", "Newest first"],
+  ["price_asc", "Price: Low to High"],
+  ["price_desc", "Price: High to Low"],
+  ["rating", "Customer Rating"],
+  ["newest", "Newest First"],
 ]
 
 const slugify = (name) =>
@@ -164,7 +164,7 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
     [baseParams],
   )
 
-  const heading = title || current?.name || (q ? `"${q}"` : /^[a-f0-9]{24}$/i.test(String(categorySlug)) ? "Products" : "All products")
+  const heading = title || current?.name || (q ? `"${q}"` : /^[a-f0-9]{24}$/i.test(String(categorySlug)) ? "Products" : "All Products")
   const nFilters = activeFilterCount(filters)
   const chip = (on) =>
     `flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors ${
@@ -270,7 +270,7 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
                 onClick={() => setPage((n) => n + 1)}
                 className="mx-auto mt-4 block rounded-full border border-[#EA580C] px-6 py-2 text-[13px] font-bold text-[#EA580C] disabled:opacity-50"
               >
-                {state.loading ? "Loading…" : "Show more"}
+                {state.loading ? "Loading…" : "Show More"}
               </button>
             ) : null}
           </>

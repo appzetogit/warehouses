@@ -15,7 +15,7 @@ import { mediaUrl } from "../desktop/desktopCart"
  */
 export default function ProductCard({
   product,
-  actionLabel = "Add to cart",
+  actionLabel = "Add to Cart",
   onAction,
   disabled = false,
   badge = null,

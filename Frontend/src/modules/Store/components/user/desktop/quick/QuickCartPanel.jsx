@@ -173,7 +173,7 @@ function QuickCartSlidePanel() {
               onClick={closePanel}
               className={cx("mt-1 rounded-[6px] border border-wh-brand-ink bg-wh-brand-50 px-4 py-2 text-[13px] font-semibold text-wh-brand-ink hover:bg-wh-brand hover:text-wh-text", focusRing)}
             >
-              Start shopping
+              Start Shopping
             </button>
           </div>
         ) : (
@@ -187,10 +187,10 @@ function QuickCartSlidePanel() {
               ))}
             </ul>
             <div className="shrink-0 border-t border-wh-border p-4">
-              <h3 className="mb-2 text-[13px] font-bold">Bill summary</h3>
+              <h3 className="mb-2 text-[13px] font-bold">Bill Summary</h3>
               <dl className="space-y-1 text-[13px]">
                 <div className="flex justify-between">
-                  <dt className="text-wh-muted">Items total</dt>
+                  <dt className="text-wh-muted">Items Total</dt>
                   <dd>₹{formatMoney(total)}</dd>
                 </div>
                 <div className="flex justify-between">
@@ -209,7 +209,7 @@ function QuickCartSlidePanel() {
                   focusRing,
                 )}
               >
-                Proceed to checkout
+                Proceed to Checkout
               </button>
             </div>
           </>
@@ -247,7 +247,7 @@ function QuickCartBottomBar() {
           onClick={openPanel}
           className={cx("shrink-0 rounded-[6px] bg-white px-4 py-1.5 text-[13px] font-bold text-wh-brand-ink hover:bg-wh-brand-50", focusRing)}
         >
-          View cart
+          View Cart
         </button>
         <button
           type="button"

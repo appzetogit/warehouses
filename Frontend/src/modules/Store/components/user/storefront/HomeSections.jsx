@@ -16,9 +16,9 @@ import SectionHeading from "./SectionHeading"
 
 const TRUST = [
   { icon: BadgeCheck, title: "Every seller checked", note: "Approved stores only" },
-  { icon: Gift, title: "Gift-ready packing", note: "Notes and boxes" },
+  { icon: Gift, title: "Gift-Ready Packing", note: "Notes and boxes" },
   { icon: Truck, title: "Delivered across India", note: "Courier or 10-minute rider" },
-  { icon: RotateCcw, title: "Easy returns", note: "Per our returns policy" },
+  { icon: RotateCcw, title: "Easy Returns", note: "Per our returns policy" },
 ]
 
 /** The four promises under the hero: icon chip, title, one-line note. */

@@ -593,12 +593,12 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* Ratings, reviews and "Write a review" (when the customer received it) */}
+            {/* Ratings, reviews and "Write a Review" (when the customer received it) */}
             <ProductReviews productId={product._id} productName={product.name} variant="mobile" />
 
             {/* Recommendations: co-purchases, then similar products */}
-            <RecommendationRail productId={product._id} type="frequently_bought" title="Frequently bought together" limit={8} />
-            <RecommendationRail productId={product._id} type="similar" title="You may also like" limit={10} />
+            <RecommendationRail productId={product._id} type="frequently_bought" title="Frequently Bought Together" limit={8} />
+            <RecommendationRail productId={product._id} type="similar" title="You May Also Like" limit={10} />
           </div>
         </div>
       </div>

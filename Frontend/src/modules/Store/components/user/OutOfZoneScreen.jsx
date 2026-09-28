@@ -56,7 +56,7 @@ const OutOfZoneScreen = ({ location }) => {
                   <ChevronDown className="h-3.5 w-3.5 text-white/90 shrink-0" />
                 </div>
                 <span className="text-[12px] font-bold text-white/90 truncate leading-tight drop-shadow-sm">
-                  {location?.city || "Pinpoint location"}
+                  {location?.city || "Pinpoint Location"}
                 </span>
               </div>
             </Link>

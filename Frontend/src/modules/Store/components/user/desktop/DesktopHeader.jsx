@@ -44,12 +44,12 @@ function AccountMenu({ firstName, signedIn, storePath }) {
 
   const items = signedIn
     ? [
-        ["Your profile", "/profile"],
-        ["Your orders", "/orders"],
+        ["Your Profile", "/profile"],
+        ["Your Orders", "/orders"],
         ["Coins", "/coins"],
         ["Wallet", "/wallet"],
         ["Wishlist", "/profile/favorites"],
-        ["Sign out", "/profile/logout"],
+        ["Sign Out", "/profile/logout"],
       ]
     : [["Sign in", "/auth/login"]]
 
@@ -98,7 +98,7 @@ function AccountMenu({ firstName, signedIn, storePath }) {
           ))}
           <div className="my-1 border-t border-wh-border" />
           <Link role="menuitem" to={storePath("/cart")} onClick={() => setOpen(false)} className="block rounded-[4px] px-3 py-1.5 text-[13px] hover:bg-[#F3F3F3]">
-            Your cart
+            Your Cart
           </Link>
         </div>
       ) : null}
@@ -163,7 +163,7 @@ export function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto py-2">
-          <h2 className="px-5 pb-1 pt-3 text-[16px] font-bold">Shop by category</h2>
+          <h2 className="px-5 pb-1 pt-3 text-[16px] font-bold">Shop by Category</h2>
           <ul>
             {tree.map((c) => (
               <li key={c.id}>
@@ -204,7 +204,7 @@ export function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
           </ul>
           <div className="mt-2 border-t border-wh-border pt-2">
             <Link to={storePath("/categories")} onClick={onClose} className="block px-5 py-3 text-[14px] hover:bg-[#EAEDED]">
-              See all categories
+              See All Categories
             </Link>
             <Link to="/help" onClick={onClose} className="block px-5 py-3 text-[14px] hover:bg-[#EAEDED]">
               Help
@@ -348,7 +348,7 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
           <button type="button" onClick={openLocationSelector} className={`${navItem} flex min-w-0 shrink items-center gap-1 pb-0 text-left lg:shrink-0 lg:items-end lg:gap-1.5 lg:pb-1`}>
             <MapPin className="h-4 w-4 shrink-0 text-white lg:mb-0.5" aria-hidden />
             <span className="flex flex-col leading-tight">
-              <span className="hidden text-[11px] font-medium text-white/80 lg:inline">Deliver to you</span>
+              <span className="hidden text-[11px] font-medium text-white/80 lg:inline">Deliver to You</span>
               <span className="flex items-center gap-0.5 truncate text-[13px] font-bold text-white lg:text-[14px]">
                 {effectiveLocation?.city || area || "Indore"} <ChevronDown className="h-3 w-3 shrink-0" aria-hidden />
               </span>

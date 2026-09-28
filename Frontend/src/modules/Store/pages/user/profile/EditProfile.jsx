@@ -42,7 +42,7 @@ const genderOptions = [
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
   { value: "other", label: "Other" },
-  { value: "prefer-not-to-say", label: "Prefer not to say" },
+  { value: "prefer-not-to-say", label: "Prefer Not to Say" },
 ]
 
 // Load profile data from localStorage (legacy + current keys)
@@ -642,7 +642,7 @@ export default function EditProfile() {
             {/* Date of Birth Field */}
             <div className="space-y-1.5">
               <Label htmlFor="dateOfBirth" className="text-sm font-medium text-gray-700 dark:text-white">
-                Date of birth
+                Date of Birth
               </Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -715,7 +715,7 @@ export default function EditProfile() {
               Saving...
             </>
           ) : (
-            'Update profile'
+            'Update Profile'
           )}
         </Button>
 
@@ -723,7 +723,7 @@ export default function EditProfile() {
           isOpen={photoPickerOpen}
           onClose={() => setPhotoPickerOpen(false)}
           onFileSelect={processProfileImageFile}
-          title="Update profile photo"
+          title="Update Profile Photo"
           description="Choose how you want to upload your profile photo."
           fileNamePrefix="profile-photo"
           galleryInputRef={fileInputRef}

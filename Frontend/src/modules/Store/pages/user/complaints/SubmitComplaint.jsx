@@ -211,7 +211,7 @@ export default function SubmitComplaint() {
             className="w-full px-4 py-3 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-wh-brand focus:border-transparent text-gray-800 dark:text-white"
             required
           >
-            <option value="" className="dark:bg-zinc-900">Select complaint type</option>
+            <option value="" className="dark:bg-zinc-900">Select Complaint Type</option>
             {COMPLAINT_TYPES.map((type) => (
               <option key={type.value} value={type.value} className="dark:bg-zinc-900 dark:text-white">
                 {type.label}

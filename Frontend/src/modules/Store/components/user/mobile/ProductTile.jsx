@@ -114,7 +114,7 @@ export default function ProductTile({ product, showSizes = true }) {
       return
     }
     if (!stock.inStock) {
-      toast.error("Out of stock")
+      toast.error("Out of Stock")
       return
     }
     const result = addToCart({
@@ -189,7 +189,7 @@ export default function ProductTile({ product, showSizes = true }) {
         </span>
         {!stock.inStock ? (
           <span className="absolute inset-0 flex items-center justify-center bg-white/60 text-[12px] font-bold text-gray-700">
-            Out of stock
+            Out of Stock
           </span>
         ) : null}
       </Link>

@@ -31,7 +31,7 @@ const debugError = (...args) => {}
 
 // Filter options
 const filterOptions = [
-  { id: 'under-30-mins', label: 'Under 30 mins' },
+  { id: 'under-30-mins', label: 'Under 30 Mins' },
   { id: 'price-match', label: 'Price Match', hasIcon: true },
   { id: 'flat-50-off', label: 'Flat 50% OFF', hasIcon: true },
   { id: 'rating-4-plus', label: 'Rating 4.0+' },
@@ -1014,8 +1014,8 @@ export default function CategoryPage() {
                 <span className="text-xs md:text-sm font-bold text-black dark:text-white">Filters</span>
               </Button>
               {[
-                { id: 'under-30-mins', label: 'Under 30 mins' },
-                { id: 'delivery-under-45', label: 'Under 45 mins' },
+                { id: 'under-30-mins', label: 'Under 30 Mins' },
+                { id: 'delivery-under-45', label: 'Under 45 Mins' },
                 { id: 'rating-4-plus', label: 'Rating 4.0+' },
                 { id: 'rating-45-plus', label: 'Rating 4.5+' },
               ].map((filter) => {
@@ -1187,7 +1187,7 @@ export default function CategoryPage() {
             {/* Loading Overlay */}
             {showSellerSkeleton && (
               <div className="absolute inset-0 z-10 rounded-lg bg-white/92 backdrop-blur-sm dark:bg-[#1a1a1a]/92">
-                <LoadingSkeletonRegion label="Loading sellers" className="h-full p-1 sm:p-2">
+                <LoadingSkeletonRegion label="Loading Sellers" className="h-full p-1 sm:p-2">
                   <SellerGridSkeleton count={4} compact />
                 </LoadingSkeletonRegion>
               </div>
@@ -1353,7 +1353,7 @@ export default function CategoryPage() {
                     setTimeout(() => setIsLoadingFilterResults(false), 500)
                   }}
                 >
-                  Clear all filters
+                  Clear All Filters
                 </Button>
               </div>
             )}
@@ -1377,7 +1377,7 @@ export default function CategoryPage() {
                 <div className="absolute bottom-0 left-0 right-0 md:left-1/2 md:right-auto md:-translate-x-1/2 md:max-w-4xl bg-white dark:bg-[#1a1a1a] rounded-t-3xl md:rounded-3xl max-h-[85vh] md:max-h-[90vh] flex flex-col animate-[slideUp_0.3s_ease-out]">
                   {/* Header */}
                   <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-                    <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Filters and sorting</h2>
+                    <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Filters and Sorting</h2>
                     <button
                       onClick={() => {
                         setIsLoadingFilterResults(true)
@@ -1387,7 +1387,7 @@ export default function CategoryPage() {
                       }}
                       className="text-wh-brand-ink font-medium text-sm md:text-base hover:underline"
                     >
-                      Clear all
+                      Clear All
                     </button>
                   </div>
 
@@ -1478,7 +1478,7 @@ export default function CategoryPage() {
                               }`}
                           >
                             <Timer className={`h-6 w-6 md:h-7 md:w-7 ${activeFilters.has('under-30-mins') ? 'text-wh-brand-ink' : 'text-gray-600 dark:text-gray-400'}`} strokeWidth={1.5} />
-                            <span className={`text-sm md:text-base font-medium ${activeFilters.has('under-30-mins') ? 'text-wh-brand-ink' : 'text-gray-700 dark:text-gray-300'}`}>Under 30 mins</span>
+                            <span className={`text-sm md:text-base font-medium ${activeFilters.has('under-30-mins') ? 'text-wh-brand-ink' : 'text-gray-700 dark:text-gray-300'}`}>Under 30 Mins</span>
                           </button>
                           <button
                             onClick={() => toggleFilter('delivery-under-45')}
@@ -1488,7 +1488,7 @@ export default function CategoryPage() {
                               }`}
                           >
                             <Timer className={`h-6 w-6 md:h-7 md:w-7 ${activeFilters.has('delivery-under-45') ? 'text-wh-brand-ink' : 'text-gray-600 dark:text-gray-400'}`} strokeWidth={1.5} />
-                            <span className={`text-sm md:text-base font-medium ${activeFilters.has('delivery-under-45') ? 'text-wh-brand-ink' : 'text-gray-700 dark:text-gray-300'}`}>Under 45 mins</span>
+                            <span className={`text-sm md:text-base font-medium ${activeFilters.has('delivery-under-45') ? 'text-wh-brand-ink' : 'text-gray-700 dark:text-gray-300'}`}>Under 45 Mins</span>
                           </button>
                         </div>
                       </div>
@@ -1665,8 +1665,8 @@ export default function CategoryPage() {
                         }`}
                     >
                       {activeFilters.size > 0 || sortBy
-                        ? 'Show results'
-                        : 'Show results'}
+                        ? 'Show Results'
+                        : 'Show Results'}
                     </button>
                   </div>
                 </div>

@@ -65,7 +65,7 @@ function groupCategories(categories) {
   const roots = categories.filter((c) => !c.parentId || !byId.has(c.parentId)).sort(bySort)
   const sections = roots.filter((r) => children.has(r.id)).map((r) => ({ key: r.id, title: r.name, parent: r, items: children.get(r.id).sort(bySort) }))
   const loose = roots.filter((r) => !children.has(r.id))
-  if (loose.length) sections.push({ key: "more", title: "More to shop", parent: null, items: loose })
+  if (loose.length) sections.push({ key: "more", title: "More to Shop", parent: null, items: loose })
   return sections
 }
 
@@ -87,11 +87,11 @@ export function CategoriesDesktop({ categories = [], loading }) {
         {c.image ? <img src={c.image} alt={c.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : null}
       </div>
       <span className="mt-3 line-clamp-2 text-[15px] font-bold leading-5 sm:text-[16px]">{c.name}</span>
-      <span className="mt-1 text-[13px] text-wh-link group-hover:text-wh-link-hover group-hover:underline">Shop now</span>
+      <span className="mt-1 text-[13px] text-wh-link group-hover:text-wh-link-hover group-hover:underline">Shop Now</span>
     </Link>
   )
   return (
-    <PageShell title="Shop by category" subtitle={loading ? "" : `${categories.length} categories`} filter={filter} setFilter={setFilter} placeholder="Find a category">
+    <PageShell title="Shop by Category" subtitle={loading ? "" : `${categories.length} categories`} filter={filter} setFilter={setFilter} placeholder="Find a category">
       {loading ? <Skeleton /> : rows.length ? (
         <div className="space-y-7">
           {sections.map((s) => (
@@ -101,7 +101,7 @@ export function CategoriesDesktop({ categories = [], loading }) {
                   <h2 className="text-[19px] font-bold leading-tight">{s.title}</h2>
                   {s.parent ? (
                     <Link to={storePath(`/category/${s.parent.id}`)} className="text-[13px] font-semibold text-wh-link hover:underline">
-                      See all
+                      See All
                     </Link>
                   ) : null}
                 </div>
@@ -123,7 +123,7 @@ export function StoresDesktop({ stores = [], loading }) {
   const [filter, setFilter] = useState("")
   const rows = stores.filter((s) => (s.name || "").toLowerCase().includes(filter.trim().toLowerCase()))
   return (
-    <PageShell title="All stores" subtitle={loading ? "" : `${stores.length} stores`} filter={filter} setFilter={setFilter} placeholder="Find a store">
+    <PageShell title="All Stores" subtitle={loading ? "" : `${stores.length} stores`} filter={filter} setFilter={setFilter} placeholder="Find a store">
       {loading ? <Skeleton n={8} cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5" /> : rows.length ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 2xl:grid-cols-5">
           {rows.map((s) => (

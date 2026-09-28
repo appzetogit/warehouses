@@ -1,7 +1,7 @@
 /**
  * Product page reviews: average + star histogram, sort (newest / most
  * helpful), filter by star, the list with photos and seller replies, one
- * "Helpful" vote per customer, and "Write a review" when the server says the
+ * "Helpful" vote per customer, and "Write a Review" when the server says the
  * signed-in customer received this product. Used by the mobile and desktop pages.
  */
 import { useCallback, useEffect, useState } from "react"
@@ -115,7 +115,7 @@ function ReviewItem({ review, signedIn, onVote, onReport }) {
             </button>
           </>
         ) : null}
-        {review.isMine ? <span className="font-medium text-wh-brand-ink">Your review</span> : null}
+        {review.isMine ? <span className="font-medium text-wh-brand-ink">Your Review</span> : null}
       </div>
     </li>
   )
@@ -193,7 +193,7 @@ export default function ProductReviews({ productId, productName, variant = "mobi
     >
       <div className={desktop ? "grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-10" : "space-y-4"}>
         <div>
-          <h2 id={`reviews-${productId}`} className={desktop ? "text-[21px] font-bold" : "text-base font-bold"}>Customer reviews</h2>
+          <h2 id={`reviews-${productId}`} className={desktop ? "text-[21px] font-bold" : "text-base font-bold"}>Customer Reviews</h2>
           <div className="mt-2 flex items-center gap-2">
             <StarDisplay rating={summary.averageRating} size="h-5 w-5" />
             <span className="text-[15px] font-medium">{total ? `${Number(summary.averageRating).toFixed(1)} out of 5` : "No ratings yet"}</span>
@@ -210,7 +210,7 @@ export default function ProductReviews({ productId, productName, variant = "mobi
                 onClick={() => setFormOpen(true)}
                 className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-full border border-gray-300 bg-white text-[13px] font-medium text-gray-900 shadow-sm hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-wh-brand"
               >
-                {myReview ? "Edit your review" : "Write a review"}
+                {myReview ? "Edit Your Review" : "Write a Review"}
               </button>
             </div>
           ) : !signedIn ? (
@@ -223,9 +223,9 @@ export default function ProductReviews({ productId, productName, variant = "mobi
         <div className="min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-[14px] font-bold">
-              {star ? `${star}-star reviews` : "Top reviews"}
+              {star ? `${star}-star reviews` : "Top Reviews"}
               {star ? (
-                <button type="button" onClick={() => setStar(null)} className="ml-2 text-[12px] font-normal text-wh-link hover:underline">Show all</button>
+                <button type="button" onClick={() => setStar(null)} className="ml-2 text-[12px] font-normal text-wh-link hover:underline">Show All</button>
               ) : null}
             </p>
             <label className="inline-flex items-center gap-2 text-[13px]">
@@ -236,7 +236,7 @@ export default function ProductReviews({ productId, productName, variant = "mobi
                 className="rounded-lg border border-gray-300 bg-gray-50 px-2 py-1 focus-visible:outline-2 focus-visible:outline-wh-brand"
               >
                 <option value="newest">Newest</option>
-                <option value="helpful">Most helpful</option>
+                <option value="helpful">Most Helpful</option>
               </select>
             </label>
           </div>
@@ -258,7 +258,7 @@ export default function ProductReviews({ productId, productName, variant = "mobi
               onClick={() => load(page + 1)}
               className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-gray-300 bg-white px-5 text-[13px] font-medium hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-wh-brand"
             >
-              {loading ? "Loading…" : "More reviews"}
+              {loading ? "Loading…" : "More Reviews"}
             </button>
           ) : null}
         </div>

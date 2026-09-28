@@ -120,7 +120,7 @@ export default function UserOrderDetails() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-3">
-          <p className="text-gray-700 text-sm font-medium">Order not found</p>
+          <p className="text-gray-700 text-sm font-medium">Order Not Found</p>
           <button
             onClick={() => navigate("/user/orders")}
             className="px-4 py-2 rounded-lg bg-wh-brand text-wh-text text-sm font-semibold"
@@ -524,7 +524,7 @@ export default function UserOrderDetails() {
 
           <div className="p-4 space-y-2 text-sm">
             <div className="flex justify-between items-start gap-3">
-              <span className="text-gray-500 dark:text-gray-400 shrink-0">Item total</span>
+              <span className="text-gray-500 dark:text-gray-400 shrink-0">Item Total</span>
               <DualMoney
                 amount={itemSubtotal}
                 compareAmount={displayCompareItemTotal}
@@ -540,7 +540,7 @@ export default function UserOrderDetails() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400 dark:text-gray-500 font-medium">Delivery fee</span>
+              <span className="text-gray-400 dark:text-gray-500 font-medium">Delivery Fee</span>
               {pricing.deliveryFee === 0 && (
                 <span className="text-wh-brand-ink text-[10px] font-bold border border-wh-brand px-1 rounded ml-1">
                   FREE
@@ -559,7 +559,7 @@ export default function UserOrderDetails() {
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Platform fee</span>
+              <span className="text-gray-500 dark:text-gray-400">Platform Fee</span>
               <span className="text-gray-800 dark:text-gray-200">
                 ₹{Math.max(0, Number(pricing.platformFee || 0) - Number(pricing.quickDeliveryFee || 0)).toFixed(2)}
               </span>
@@ -627,7 +627,7 @@ export default function UserOrderDetails() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
-                Payment method
+                Payment Method
               </h4>
               <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">
                 Paid via: {paymentMethod.toUpperCase()}
@@ -642,7 +642,7 @@ export default function UserOrderDetails() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
-                Payment date
+                Payment Date
               </h4>
               <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">{paymentDate}</p>
             </div>
@@ -655,7 +655,7 @@ export default function UserOrderDetails() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
-                Delivery address
+                Delivery Address
               </h4>
               <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5 leading-relaxed">
                 {addressText || "Address not available"}
@@ -694,7 +694,7 @@ export default function UserOrderDetails() {
             onClick={() => setCancelling(true)}
             className="w-full rounded-lg border border-[#CC0C39] py-3 font-semibold text-[#CC0C39] hover:bg-red-50"
           >
-            Cancel order
+            Cancel Order
           </button>
           <p className="mt-1 text-center text-[11px] text-gray-500">You can cancel until your order leaves the store.</p>
         </div>

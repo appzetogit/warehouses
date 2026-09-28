@@ -764,7 +764,7 @@ export default function AddressSelectorPage() {
           <Button variant="ghost" size="icon" onClick={handleCancelAddressForm} className="rounded-full">
             <ChevronLeft className="h-6 w-6" />
           </Button>
-          <h1 className="text-lg font-bold">Add delivery location</h1>
+          <h1 className="text-lg font-bold">Add Delivery Location</h1>
         </div>
 
         <div
@@ -943,7 +943,7 @@ export default function AddressSelectorPage() {
             </div>
 
             <div>
-               <Label className="text-sm font-bold mb-2 block">Save address as</Label>
+               <Label className="text-sm font-bold mb-2 block">Save Address as</Label>
                <div className="flex gap-2">
                  {["Home", "Work", "Other"].map(l => (
                    <Button 

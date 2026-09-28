@@ -154,7 +154,7 @@ export default function SavedForLater({ variant = "mobile", className = "" }) {
                   <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">Qty {row.qty}</span>
                 </p>
                 {row.available ? (
-                  <p className="text-[12px] text-wh-success">In stock</p>
+                  <p className="text-[12px] text-wh-success">In Stock</p>
                 ) : (
                   <p className="text-[12px] font-medium text-wh-deal">{row.message || "Currently unavailable"}</p>
                 )}
@@ -165,7 +165,7 @@ export default function SavedForLater({ variant = "mobile", className = "" }) {
                     onClick={() => moveToCart(row)}
                     className="rounded-full border border-[#FCD200] bg-wh-cta px-3 py-1 font-medium text-wh-text hover:bg-wh-cta-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-wh-brand"
                   >
-                    Move to cart
+                    Move to Cart
                   </button>
                   <button
                     type="button"

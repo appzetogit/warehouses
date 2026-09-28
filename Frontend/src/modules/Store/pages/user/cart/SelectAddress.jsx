@@ -145,7 +145,7 @@ export default function SelectAddress() {
             </Button>
             <div className="min-w-0">
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold dark:text-white truncate">
-                Select address
+                Select Address
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Pick from saved addresses or add manually.
@@ -267,11 +267,11 @@ export default function SelectAddress() {
           <ScrollReveal delay={0.15}>
             <Card>
               <CardHeader>
-                <CardTitle>Manual address fields</CardTitle>
+                <CardTitle>Manual Address Fields</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="additionalDetails">Address details*</Label>
+                  <Label htmlFor="additionalDetails">Address Details*</Label>
                   <Input
                     id="additionalDetails"
                     name="additionalDetails"
@@ -352,7 +352,7 @@ export default function SelectAddress() {
               style={{ backgroundColor: ORANGE }}
               disabled={isSaving}
             >
-              {isSaving ? "Saving..." : "Save address"}
+              {isSaving ? "Saving..." : "Save Address"}
             </Button>
           </div>
         </form>

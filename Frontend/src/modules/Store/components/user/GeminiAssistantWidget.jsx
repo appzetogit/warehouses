@@ -173,7 +173,7 @@ export default function GeminiAssistantWidget() {
           className="flex h-11 w-11 items-center justify-center gap-2 lg:h-auto lg:w-auto lg:px-4 lg:py-2.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-500 text-white font-semibold text-sm shadow-xl hover:shadow-purple-500/25 transition-all border border-white/20 cursor-pointer"
         >
           <Sparkles className="w-5 h-5 lg:w-4 lg:h-4 text-amber-300 animate-pulse" aria-hidden="true" />
-          <span className="hidden lg:inline">Ask the assistant</span>
+          <span className="hidden lg:inline">Ask the Assistant</span>
         </motion.button>
       </div>
 
@@ -195,7 +195,7 @@ export default function GeminiAssistantWidget() {
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h3 className="font-bold text-sm text-white">Shopping assistant</h3>
+                    <h3 className="font-bold text-sm text-white">Shopping Assistant</h3>
                     <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                       Gemini
                     </span>
@@ -208,11 +208,11 @@ export default function GeminiAssistantWidget() {
               <button
                 onClick={handleTalkToSupport}
                 disabled={handingOff || Boolean(ticketId) || messages.length < 2}
-                title={ticketId ? "Sent to support" : "Talk to support"}
+                title={ticketId ? "Sent to support" : "Talk to Support"}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/10 hover:bg-white/20 text-slate-200 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <LifeBuoy className="w-3.5 h-3.5" />
-                {ticketId ? "Sent" : handingOff ? "Sending…" : "Talk to support"}
+                {ticketId ? "Sent" : handingOff ? "Sending…" : "Talk to Support"}
               </button>
               <button
                 onClick={() => setIsOpen(false)}
@@ -322,7 +322,7 @@ export default function GeminiAssistantWidget() {
                         disabled={handingOff}
                         className="mt-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-200 text-[10px] font-semibold transition cursor-pointer disabled:opacity-50"
                       >
-                        <LifeBuoy className="w-3 h-3" /> Talk to support
+                        <LifeBuoy className="w-3 h-3" /> Talk to Support
                       </button>
                     )}
 

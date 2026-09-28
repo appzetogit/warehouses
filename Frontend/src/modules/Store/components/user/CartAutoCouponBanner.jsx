@@ -84,7 +84,7 @@ export default function CartAutoCouponBanner({ appliedCoupon, savings = 0 }) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
-                    Coupon applied
+                    Coupon Applied
                   </p>
                   <p className="mt-0.5 text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
                     {displaySavings > 0

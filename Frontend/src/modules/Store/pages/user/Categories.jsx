@@ -148,7 +148,7 @@ export default function Categories() {
               onClick={() => setSearchQuery("")}
               className="mt-8 px-8 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-2xl text-sm font-bold active:scale-95 transition-all shadow-lg"
             >
-              Show all categories
+              Show All Categories
             </button>
           </div>
         )}

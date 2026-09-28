@@ -46,7 +46,7 @@ export default function MobileHeader() {
   const [q, setQ] = useState("")
   const [listening, setListening] = useState(false)
 
-  const place = effectiveLocation?.area || effectiveLocation?.city || "Set location"
+  const place = effectiveLocation?.area || effectiveLocation?.city || "Set Location"
 
   // The placeholder types real category names, so it suggests things you can buy.
   const words = useMemo(() => {
@@ -133,7 +133,7 @@ export default function MobileHeader() {
             <ChevronDown className="h-3 w-3 shrink-0" aria-hidden="true" />
           </span>
           <span className="truncate text-[10px] font-medium text-amber-100">
-            {isQuick ? `Delivery in ${eta} min` : "Delivery in 2-4 days"}
+            {isQuick ? `Delivery in ${eta} min` : "Delivery in 2-4 Days"}
           </span>
         </button>
 

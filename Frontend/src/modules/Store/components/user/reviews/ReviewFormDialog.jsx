@@ -92,7 +92,7 @@ export default function ReviewFormDialog({ open, onOpenChange, productId, produc
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto bg-white p-5 text-gray-900">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit your review" : "Write a review"}</DialogTitle>
+          <DialogTitle>{editing ? "Edit Your Review" : "Write a Review"}</DialogTitle>
           {productName ? <DialogDescription className="line-clamp-2 text-gray-600">{productName}</DialogDescription> : null}
         </DialogHeader>
 
@@ -103,13 +103,13 @@ export default function ReviewFormDialog({ open, onOpenChange, productId, produc
         ) : (
           <form onSubmit={submit} className="mt-2 space-y-4">
             <div>
-              <p className="mb-1 text-sm font-semibold">Overall rating</p>
+              <p className="mb-1 text-sm font-semibold">Overall Rating</p>
               <StarInput value={rating} onChange={setRating} />
             </div>
 
             {variants.length > 1 ? (
               <label className="block text-sm">
-                <span className="mb-1 block font-semibold">Option you received</span>
+                <span className="mb-1 block font-semibold">Option You Received</span>
                 <select
                   value={variantId}
                   onChange={(e) => setVariantId(e.target.value)}
@@ -183,7 +183,7 @@ export default function ReviewFormDialog({ open, onOpenChange, productId, produc
               disabled={saving || uploading}
               className="inline-flex h-10 w-full items-center justify-center rounded-full border border-[#FCD200] bg-wh-cta text-sm font-medium text-wh-text hover:bg-wh-cta-hover disabled:opacity-50"
             >
-              {saving ? "Saving…" : editing ? "Update review" : "Submit review"}
+              {saving ? "Saving…" : editing ? "Update Review" : "Submit Review"}
             </button>
           </form>
         )}

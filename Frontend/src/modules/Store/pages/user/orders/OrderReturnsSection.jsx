@@ -16,11 +16,11 @@ const REASONS = [
 
 const STATUS_LABEL = {
   requested: { text: "Requested", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-  approved: { text: "Approved, pickup soon", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  approved: { text: "Approved, Pickup Soon", cls: "bg-blue-50 text-blue-700 border-blue-200" },
   rejected: { text: "Not accepted", cls: "bg-red-50 text-red-700 border-red-200" },
-  received: { text: "Items received", cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  received: { text: "Items Received", cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
   refunded: { text: "Refunded", cls: "bg-green-50 text-green-700 border-green-200" },
-  replaced: { text: "Replacement sent", cls: "bg-green-50 text-green-700 border-green-200" },
+  replaced: { text: "Replacement Sent", cls: "bg-green-50 text-green-700 border-green-200" },
 }
 
 const money = (n) => `₹${(Number(n) || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
@@ -116,7 +116,7 @@ export default function OrderReturnsSection({ order }) {
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-wh-brand bg-white py-3 font-semibold text-wh-brand-ink hover:bg-orange-50 dark:bg-zinc-900 dark:hover:bg-orange-900/20"
         >
           <PackageX className="h-4 w-4" />
-          Return or replace items
+          Return or Replace Items
         </button>
       ) : (
         <p className="text-xs text-gray-500 dark:text-gray-400">{info.reason}</p>
@@ -208,7 +208,7 @@ function ReturnRequestSheet({ orderId, info, onClose, onDone }) {
     setSubmitting(true)
     try {
       await userAPI.requestOrderReturn(orderId, { items, reason, comment, photos, refundTo, resolution })
-      toast.success(resolution === "replacement" ? "Replacement requested" : "Return requested")
+      toast.success(resolution === "replacement" ? "Replacement requested" : "Return Requested")
       onDone()
     } catch (err) {
       toast.error(err?.response?.data?.message || "Could not send the request")
@@ -240,7 +240,7 @@ function ReturnRequestSheet({ orderId, info, onClose, onDone }) {
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/40 sm:items-center" role="dialog" aria-modal="true" aria-label="Return or replace items">
       <div className="max-h-[92vh] w-full space-y-5 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(16px,env(safe-area-inset-bottom))] dark:bg-zinc-900 sm:max-w-md sm:rounded-2xl">
         <div className="flex items-center justify-between">
-          <h3 className="text-[17px] font-bold text-gray-900 dark:text-white">Return or replace</h3>
+          <h3 className="text-[17px] font-bold text-gray-900 dark:text-white">Return or Replace</h3>
           <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-1 hover:bg-gray-100">
             <X className="h-5 w-5 text-gray-500" />
           </button>
@@ -345,7 +345,7 @@ function ReturnRequestSheet({ orderId, info, onClose, onDone }) {
                           }`}
                         >
                           {current === o.variantId ? <Check className="h-3 w-3" aria-hidden="true" /> : null}
-                          {o.name || "Same item"}
+                          {o.name || "Same Item"}
                           {o.variantId === l.variantId ? <span className="font-normal text-gray-500"> (same)</span> : null}
                         </button>
                       ))}
@@ -362,7 +362,7 @@ function ReturnRequestSheet({ orderId, info, onClose, onDone }) {
             </legend>
             <label className="flex items-center gap-2">
               <input type="radio" name="refundTo" className="accent-[#EA580C]" checked={refundTo === "original"} onChange={() => setRefundTo("original")} />
-              {cash ? "Wallet (paid in cash)" : "Original payment method"}
+              {cash ? "Wallet (Paid in Cash)" : "Original Payment Method"}
             </label>
             <label className="flex items-center gap-2">
               <input type="radio" name="refundTo" className="accent-[#EA580C]" checked={refundTo === "coins"} onChange={() => setRefundTo("coins")} />
@@ -382,7 +382,7 @@ function ReturnRequestSheet({ orderId, info, onClose, onDone }) {
           className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#EA580C] font-bold text-white disabled:opacity-50"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {resolution === "replacement" ? "Request replacement" : "Request return"}
+          {resolution === "replacement" ? "Request Replacement" : "Request Return"}
         </button>
       </div>
     </div>

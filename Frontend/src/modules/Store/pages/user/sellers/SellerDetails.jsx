@@ -851,7 +851,7 @@ function SellerDetailsContent() {
                   const matchedItem = allItemsInMenu.find(item => String(item.id || item._id || "").trim() === targetDishId)
                   if (matchedItem) {
                     searchedDishSection = { 
-                      name: "Result for your search", 
+                      name: "Result for Your Search", 
                       items: [matchedItem], 
                       subsections: [],
                       isSearchResult: true 
@@ -861,7 +861,7 @@ function SellerDetailsContent() {
 
                 let finalMenuSections = [...menuSections]
                 if (hasPreviousOrderForSeller) {
-                  finalMenuSections = [{ name: "Recommended for you", items: recommendedItems, subsections: [] }, ...finalMenuSections]
+                  finalMenuSections = [{ name: "Recommended for You", items: recommendedItems, subsections: [] }, ...finalMenuSections]
                 }
                 if (searchedDishSection) {
                   finalMenuSections = [searchedDishSection, ...finalMenuSections]
@@ -1259,7 +1259,7 @@ function SellerDetailsContent() {
 
   const getSectionDisplayName = (section) => {
     if (isRecommendedSection(section)) {
-      return "Recommended for you"
+      return "Recommended for You"
     }
     if (section?.name && typeof section.name === "string" && section.name.trim()) {
       return section.name.trim()
@@ -1943,7 +1943,7 @@ function SellerDetailsContent() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <AlertCircle className="h-12 w-12 text-red-500" />
-            <span className="text-sm text-gray-600">Seller not found</span>
+            <span className="text-sm text-gray-600">Seller Not Found</span>
             <Button onClick={goBack} variant="outline">
               Go Back
             </Button>
@@ -2367,7 +2367,7 @@ function SellerDetailsContent() {
                   {isRecommended && (
                     <div className="flex items-center justify-between">
                       <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                        Recommended for you
+                        Recommended for You
                       </h2>
                       <button
                         onClick={(e) => {
@@ -2505,7 +2505,7 @@ function SellerDetailsContent() {
                                   <div className="h-1.5 w-16 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                     <div className="h-full bg-wh-brand w-3/4"></div>
                                   </div>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Highly reordered</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Highly Reordered</span>
                                 </div>
                               )}
 
@@ -2734,7 +2734,7 @@ function SellerDetailsContent() {
                                             <div className="h-1.5 w-16 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                               <div className="h-full bg-wh-brand w-3/4"></div>
                                             </div>
-                                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Highly reordered</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Highly Reordered</span>
                                           </div>
                                         )}
 
@@ -3152,7 +3152,7 @@ function SellerDetailsContent() {
                           }`}
                       >
                         <RotateCcw className="h-4 w-4" />
-                        <span className="font-medium">Highly reordered</span>
+                        <span className="font-medium">Highly Reordered</span>
                       </button>
                     </div>
 
@@ -3255,7 +3255,7 @@ function SellerDetailsContent() {
                               <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-[#FFF2EB] dark:bg-wh-brand/20 rounded-md">
                                 <Zap className="h-3.5 w-3.5 text-wh-brand-ink dark:text-wh-brand fill-wh-brand dark:fill-wh-brand" />
                                 <span className="text-xs font-semibold text-wh-brand-ink dark:text-wh-brand">
-                                  Nearest available outlet
+                                  Nearest Available Outlet
                                 </span>
                               </div>
                             )}
@@ -3398,7 +3398,7 @@ function SellerDetailsContent() {
                       </div>
                       <div className="flex-1 text-left">
                         <span className="text-base font-medium text-gray-900 dark:text-white">
-                          Create new Collection
+                          Create New Collection
                         </span>
                       </div>
                     </button>
@@ -3553,7 +3553,7 @@ function SellerDetailsContent() {
                     {hasProductVariants(selectedItem) && (
                       <div className="mb-3 flex items-center justify-between rounded-xl bg-gray-50 dark:bg-[#222222] px-3 py-2">
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                          Adding to cart
+                          Adding to Cart
                         </span>
                         <span className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[65%] text-right">
                           {getVariantForDish(selectedItem, selectedVariantId)?.name || "Selected portion"}
@@ -3633,7 +3633,7 @@ function SellerDetailsContent() {
                         }}
                         disabled={shouldShowGrayscale}
                       >
-                        <span>{hasProductVariants(selectedItem) ? "Add to cart" : "Add item"}</span>
+                        <span>{hasProductVariants(selectedItem) ? "Add to Cart" : "Add Item"}</span>
                         <div className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2 py-0.5">
                           {(() => {
                             const sellPrice = hasProductVariants(selectedItem)
@@ -3718,7 +3718,7 @@ function SellerDetailsContent() {
                   <div className="flex-1 overflow-y-auto px-4 pt-10 pb-4">
                     {/* Title */}
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 text-center">
-                      Select your delivery time
+                      Select Your Delivery Time
                     </h2>
 
                     {/* Date Selection */}
@@ -3867,7 +3867,7 @@ function SellerDetailsContent() {
                     {seller?.sellerOffers?.coupons && Array.isArray(seller.sellerOffers.coupons) && seller.sellerOffers.coupons.length > 0 && (
                       <div>
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                          Seller coupons
+                          Seller Coupons
                         </h3>
                         <div className="space-y-3">
                           {seller.sellerOffers.coupons.map((coupon, couponIndex) => {
@@ -4006,7 +4006,7 @@ function SellerDetailsContent() {
                         onClick={handleShareSeller}
                       >
                         <Share2 className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                        <span className="text-base text-gray-900 dark:text-white">Share this seller</span>
+                        <span className="text-base text-gray-900 dark:text-white">Share This Seller</span>
                       </button>
 
                     </div>
@@ -4090,7 +4090,7 @@ function SellerDetailsContent() {
                         onClick={handleSystemShareFromModal}
                       >
                         <Share2 className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">Share via system apps</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">Share via System Apps</span>
                       </button>
                     )}
                     <button
@@ -4119,7 +4119,7 @@ function SellerDetailsContent() {
                       onClick={copyShareLink}
                     >
                       <Copy className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">Copy link</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">Copy Link</span>
                     </button>
                   </div>
                 </motion.div>

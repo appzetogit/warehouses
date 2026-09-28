@@ -136,11 +136,11 @@ export default function ReferEarn() {
             </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-3">
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">Reward per invite</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">Reward per Invite</p>
                 <p className="text-lg font-bold text-wh-brand-ink">{"\u20B9"}{stats.rewardAmount}</p>
               </div>
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-3">
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">Referral earnings</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">Referral Earnings</p>
                 <p className="text-lg font-bold text-green-600 dark:text-green-400">
                   {"\u20B9"}{stats.totalReferralEarnings}
                 </p>

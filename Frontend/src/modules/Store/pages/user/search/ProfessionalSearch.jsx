@@ -365,7 +365,7 @@ export default function ProfessionalSearch() {
                     key={chip.id}
                     onClick={() => setRemovedChips((prev) => [...prev, chip.id])}
                     className="flex items-center gap-1 px-3 py-1 rounded-full bg-wh-brand-50 dark:bg-wh-brand/10 border border-wh-brand/40 dark:border-wh-brand/30 text-wh-brand-ink dark:text-wh-brand text-xs font-medium hover:bg-wh-brand-50 transition-colors"
-                    title="Remove filter"
+                    title="Remove Filter"
                   >
                     {chip.label}
                     <X className="w-3 h-3" />
@@ -404,7 +404,7 @@ export default function ProfessionalSearch() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                    <div className="w-1 h-5 bg-orange-500 rounded-full" />
-                   <h2 className="text-lg font-bold dark:text-white">Stores with this item</h2>
+                   <h2 className="text-lg font-bold dark:text-white">Stores with This Item</h2>
                 </div>
                 <div className="grid gap-4">
                   {results.dishes.map((r) => (
@@ -497,7 +497,7 @@ export default function ProfessionalSearch() {
                  <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">We couldn't find any results</h2>
                  <p className="text-slate-500 text-sm max-w-xs">Maybe try searching for something else or check your spelling</p>
                  <Button variant="outline" onClick={handleClear} className="mt-6 rounded-xl border-wh-brand text-wh-brand-ink hover:bg-wh-brand-50">
-                    Clear all filters
+                    Clear All Filters
                  </Button>
               </div>
             )}

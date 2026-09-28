@@ -157,7 +157,7 @@ export default function Wallet() {
             </button>
             <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Wallet</h1>
             <Link to="/coins" className="ml-auto text-sm font-semibold text-amber-600 dark:text-amber-400 hover:underline">
-              My coins
+              My Coins
             </Link>
           </div>
         </div>
@@ -226,7 +226,7 @@ export default function Wallet() {
                   onClick={() => setAddMoneyModalOpen(true)}
                 >
                   <Plus className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
-                  Add money
+                  Add Money
                 </Button>
               </div>
             </div>
@@ -285,7 +285,7 @@ export default function Wallet() {
                               {(transaction?.metadata?.source === "referral_signup" ||
                                 String(transaction.description || "").toLowerCase().startsWith("referral reward")) && (
                                 <p className="text-[11px] md:text-xs text-green-600 dark:text-green-400 font-medium mb-1">
-                                  Referral reward
+                                  Referral Reward
                                 </p>
                               )}
                               <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm lg:text-base">

@@ -186,7 +186,7 @@ export default function FilterSheet({ open, onClose, value, onApply, facets, swa
             <Section title="Brand">
               <label className="mb-3 flex h-10 items-center gap-2 rounded-lg border border-gray-200 px-3">
                 <Search className="h-4 w-4 text-gray-400" aria-hidden="true" />
-                <span className="sr-only">Search brand</span>
+                <span className="sr-only">Search Brand</span>
                 <input
                   value={brandQuery}
                   onChange={(e) => setBrandQuery(e.target.value)}
@@ -224,7 +224,7 @@ export default function FilterSheet({ open, onClose, value, onApply, facets, swa
             }}
             className="h-12 w-full rounded-xl bg-[#EA580C] text-[15px] font-bold text-white shadow-md active:scale-[0.99]"
           >
-            {count == null ? "Show products" : count ? `Show ${count.toLocaleString("en-IN")} Products` : "No products match"}
+            {count == null ? "Show Products" : count ? `Show ${count.toLocaleString("en-IN")} Products` : "No products match"}
           </button>
         </div>
       </div>

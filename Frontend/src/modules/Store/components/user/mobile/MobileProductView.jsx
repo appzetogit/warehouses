@@ -176,7 +176,7 @@ export default function MobileProductView({
             ) : null}
             {discountPercent > 0 ? <span className="text-[14px] font-bold text-[#1E9E48]">{discountPercent}% OFF</span> : null}
           </p>
-          <p className="text-[12px] text-gray-500">Inclusive of all taxes</p>
+          <p className="text-[12px] text-gray-500">Inclusive of All Taxes</p>
         </div>
 
         {/* Delivery */}
@@ -278,7 +278,7 @@ export default function MobileProductView({
       </div>
 
       <div className="mt-6 space-y-6">
-        <RecommendationRail productId={product._id} type="similar" title="You may also like" limit={10} />
+        <RecommendationRail productId={product._id} type="similar" title="You May Also Like" limit={10} />
         <div id="pd-reviews" className="px-4">
           <ProductReviews productId={product._id} productName={product.name} variant="mobile" />
         </div>
@@ -289,7 +289,7 @@ export default function MobileProductView({
         {justAdded ? (
           <div className="flex gap-2">
             <button type="button" onClick={add} className="h-12 flex-1 rounded-xl border-2 border-[#EA580C] text-[14px] font-bold text-[#EA580C]">
-              Add one more
+              Add One More
             </button>
             <Link
               to={storePath("/cart")}
@@ -306,7 +306,7 @@ export default function MobileProductView({
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#EA580C] text-[15px] font-bold text-white shadow-md active:scale-[0.99] disabled:bg-gray-300"
           >
             <ShoppingCart className="h-5 w-5" aria-hidden="true" />
-            {notInThisStore ? "Not sold here" : !isAvailable ? (currentVariant ? "Out of stock" : "Select options") : "Add to Cart"}
+            {notInThisStore ? "Not sold here" : !isAvailable ? (currentVariant ? "Out of Stock" : "Select Options") : "Add to Cart"}
           </button>
         )}
       </div>

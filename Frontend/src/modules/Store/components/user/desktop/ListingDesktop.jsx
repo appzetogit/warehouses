@@ -28,10 +28,10 @@ export { mediaUrl, useDesktopAddToCart }
 
 export const SORT_OPTIONS = [
   { value: "relevance", label: "Featured" },
-  { value: "price_asc", label: "Price: low to high" },
-  { value: "price_desc", label: "Price: high to low" },
-  { value: "rating", label: "Customer rating" },
-  { value: "newest", label: "Newest arrivals" },
+  { value: "price_asc", label: "Price: Low to High" },
+  { value: "price_desc", label: "Price: High to Low" },
+  { value: "rating", label: "Customer Rating" },
+  { value: "newest", label: "Newest Arrivals" },
 ]
 
 const firstImage = (p) => mediaUrl(p?.imageUrl || p?.image || (Array.isArray(p?.images) ? p.images[0] : ""))
@@ -112,7 +112,7 @@ export function ListingTile({ product, channel, etaMinutes, onAddToCart }) {
                 focusRing,
               )}
             >
-              {hasOptions ? "See options" : "Add to cart"}
+              {hasOptions ? "See Options" : "Add to Cart"}
             </button>
           </div>
         ) : null}
@@ -340,7 +340,7 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
   const from = total ? (page - 1) * PAGE_SIZE + 1 : 0
   const to = Math.min(page * PAGE_SIZE, total)
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const heading = title || selectedCat?.name || (q ? `Results for "${q}"` : "All products")
+  const heading = title || selectedCat?.name || (q ? `Results for "${q}"` : "All Products")
 
   return (
     <div className="min-h-screen bg-wh-surface text-wh-text">
@@ -387,11 +387,11 @@ export function DesktopProductListing({ q = "", smart = false, categoryId = null
             </RailSection>
           ))}
           <RailSection title="Availability">
-            <Check checked={filters.inStockOnly} onChange={() => update({ inStockOnly: !filters.inStockOnly })}>In stock</Check>
+            <Check checked={filters.inStockOnly} onChange={() => update({ inStockOnly: !filters.inStockOnly })}>In Stock</Check>
           </RailSection>
           {anyFilter ? (
             <button type="button" onClick={() => update(EMPTY_FILTERS)} className={cx("mt-2 text-[14px] text-wh-link hover:text-wh-link-hover hover:underline", focusRing)}>
-              Clear all filters
+              Clear All Filters
             </button>
           ) : null}
         </aside>

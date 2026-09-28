@@ -56,7 +56,7 @@ export default function QuickRateNudge() {
 
   const id = String(order._id || order.orderId)
   const items = Array.isArray(order.items) ? order.items : []
-  const lead = items[0]?.name || "Your order"
+  const lead = items[0]?.name || "Your Order"
   const more = items.length > 1 ? ` +${items.length - 1} more item${items.length > 2 ? "s" : ""}` : ""
 
   const dismiss = () => {
@@ -82,7 +82,7 @@ export default function QuickRateNudge() {
           <Star className="h-5 w-5 fill-amber-400 text-amber-400" aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[14px] font-bold text-wh-text">Rate your order experience</span>
+          <span className="block text-[14px] font-bold text-wh-text">Rate Your Order Experience</span>
           <span className="block truncate text-[12px] text-wh-muted">
             {lead}
             {more}

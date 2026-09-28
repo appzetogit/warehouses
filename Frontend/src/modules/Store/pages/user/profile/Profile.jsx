@@ -695,7 +695,7 @@ export default function Profile() {
                   Dark
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Dark theme
+                  Dark Theme
                 </p>
               </div>
             </button>

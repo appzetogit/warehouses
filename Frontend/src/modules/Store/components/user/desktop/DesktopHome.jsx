@@ -85,7 +85,7 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
 
   const productById = useMemo(() => new Map(products.map((p) => [String(p._id), p])), [products])
 
-  // Seed "You may also like" from the most recent ordered product this store sells, else the top product.
+  // Seed "You May Also Like" from the most recent ordered product this store sells, else the top product.
   const seedId = useMemo(() => {
     const ordered = orderItems.find((it) => productById.has(it.id))
     return ordered?.id || (products[0]?._id ? String(products[0]._id) : null)
@@ -196,7 +196,7 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
         <Marquee items={marqueeItems} />
 
         <CollectionTiles
-          title={isQuick ? "Shop essentials by category" : "Wardrobe Collections"}
+          title={isQuick ? "Shop Essentials by Category" : "Wardrobe Collections"}
           subtitle="Handpicked pure apparel & fashion collections"
           tiles={collectionTiles}
           seeAllTo="/categories"
@@ -260,13 +260,13 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
         <FeatureBand
           title="Sell on The Warehouses"
           subtitle="Showcase your designer apparel and boutique collections to millions across India."
-          ctaLabel="Start selling"
+          ctaLabel="Start Selling"
           ctaTo="/seller/signup"
         />
 
         {recommendedList.length > 0 ? (
           <ProductRailSection
-            title="You may also like"
+            title="You May Also Like"
             subtitle="Picked from what you have been browsing"
             products={recommendedList}
             onAdd={addToCart}

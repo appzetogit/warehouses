@@ -91,7 +91,7 @@ export default function CancelOrderSheet({ order, onClose, onCancelled }) {
         </p>
         <div className="flex gap-2">
           <button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl border border-gray-300 text-[14px] font-bold text-gray-800 dark:text-gray-100">
-            Keep order
+            Keep Order
           </button>
           <button
             type="button"
@@ -100,7 +100,7 @@ export default function CancelOrderSheet({ order, onClose, onCancelled }) {
             className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#CC0C39] text-[14px] font-bold text-white disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Cancel order
+            Cancel Order
           </button>
         </div>
       </div>

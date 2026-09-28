@@ -120,7 +120,7 @@ const ICONS = {
 };
 
 const rewards = (thumbs) => ({
-    title: 'Spin & win coins',
+    title: 'Spin & Win Coins',
     subtitle: 'One free spin every day',
     thumbs,
     link: '/spin',
@@ -284,15 +284,15 @@ const LAYOUT = {
     ],
     campaigns: [
         {
-            title: 'Layer up for winter',
+            title: 'Layer Up for Winter',
             subtitle: 'Hoodies, sweatshirts and jackets in minutes',
             artUrl: IMG.streetCover,
-            ctaText: 'Shop now',
+            ctaText: 'Shop Now',
             link: cat('hoodies'),
             tint: '#1F2937',
         },
         {
-            title: 'Festive ethnic wear',
+            title: 'Festive Ethnic Wear',
             subtitle: 'Kurtas and anarkalis from stores near you',
             artUrl: IMG.anarkali,
             ctaText: 'Explore',
@@ -300,10 +300,10 @@ const LAYOUT = {
             tint: '#7C2D12',
         },
         {
-            title: 'Dress the little ones',
+            title: 'Dress the Little Ones',
             subtitle: 'Tees, frocks and party sets for kids',
             artUrl: IMG.kidsCover,
-            ctaText: 'Shop kids',
+            ctaText: 'Shop Kids',
             link: cat('kids'),
             tint: '#9A3412',
         },

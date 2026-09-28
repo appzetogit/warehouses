@@ -258,7 +258,7 @@ const getSellerAddressFromOrder = (apiOrder, previousOrder = null, explicitSelle
 
   if (parts.length > 0) return parts.join(', ')
 
-  return previousOrder?.sellerAddress || apiOrder?.sellerAddress || apiOrder?.seller?.address || 'Seller location'
+  return previousOrder?.sellerAddress || apiOrder?.sellerAddress || apiOrder?.seller?.address || 'Seller Location'
 }
 
 const getCustomerCoordsFromApiOrder = (apiOrder, previousOrder = null) => {
@@ -1231,7 +1231,7 @@ export default function OrderTracking() {
     },
     preparing: {
       title: "Your order is being packed",
-      subtitle: typeof estimatedTime === 'number' ? `Arriving in ${estimatedTime} mins` : "Cooking your meal",
+      subtitle: typeof estimatedTime === 'number' ? `Arriving in ${estimatedTime} mins` : "Packing your order",
       color: "bg-green-600",
       iconType: 'food'
     },
@@ -1242,7 +1242,7 @@ export default function OrderTracking() {
       iconType: 'rider'
     },
     at_pickup: {
-      title: "Rider at seller",
+      title: "Rider at Seller",
       subtitle: "Rider is waiting for your order",
       color: "bg-green-600",
       iconType: 'rider'
@@ -1254,25 +1254,25 @@ export default function OrderTracking() {
       iconType: 'rider'
     },
     on_way: {
-      title: "Out for delivery",
+      title: "Out for Delivery",
       subtitle: typeof estimatedTime === 'number' ? `Arriving in ${estimatedTime} mins` : "Rider is out for delivery",
       color: "bg-green-600",
       iconType: 'rider'
     },
     at_drop: {
-      title: "Arrived at location",
+      title: "Arrived at Location",
       subtitle: "Please come to the door",
       color: "bg-green-600",
       iconType: 'rider'
     },
     delivered: {
-      title: "Order delivered",
+      title: "Order Delivered",
       subtitle: "Enjoy your meal!",
       color: "bg-green-600",
       iconType: 'delivered'
     },
     cancelled: {
-      title: "Order cancelled",
+      title: "Order Cancelled",
       subtitle: "This order has been cancelled",
       color: "bg-red-600",
       iconType: 'cancelled'
@@ -1536,7 +1536,7 @@ export default function OrderTracking() {
                 <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
                   <FileText className="w-4 h-4 text-purple-500" />
                 </div>
-                <span className="text-sm font-bold text-gray-800 dark:text-white">Add delivery instructions</span>
+                <span className="text-sm font-bold text-gray-800 dark:text-white">Add Delivery Instructions</span>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-400" />
             </div>

@@ -511,7 +511,7 @@ export default function AddToCartAnimation({
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1, duration: 0.3 }}
                   >
-                    <span className="text-xs font-semibold leading-tight tracking-[0.01em]">View cart</span>
+                    <span className="text-xs font-semibold leading-tight tracking-[0.01em]">View Cart</span>
                     <span className="text-[10px] opacity-90 leading-tight font-medium">
                       {itemCount} {itemCount === 1 ? 'item' : 'items'}
                     </span>

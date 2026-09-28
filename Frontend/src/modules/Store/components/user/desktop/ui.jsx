@@ -159,7 +159,7 @@ export function ProductTile({ product, onAddToCart, href, mode, etaMinutes, deli
         {off ? (
           <div className="flex items-center gap-2">
             <DealBadge percent={off} />
-            <span className="text-[12px] font-bold text-wh-deal">Limited time deal</span>
+            <span className="text-[12px] font-bold text-wh-deal">Limited Time Deal</span>
           </div>
         ) : null}
         <Link to={to} className="line-clamp-2 text-[14px] leading-5 hover:text-wh-link-hover">
@@ -174,7 +174,7 @@ export function ProductTile({ product, onAddToCart, href, mode, etaMinutes, deli
         {mode ? <DeliveryPromise mode={mode} etaMinutes={etaMinutes} date={deliveryDate} /> : null}
         {!compact && onAddToCart ? (
           <div className="mt-auto pt-2">
-            <CtaButton onClick={() => onAddToCart(product)}>Add to cart</CtaButton>
+            <CtaButton onClick={() => onAddToCart(product)}>Add to Cart</CtaButton>
           </div>
         ) : null}
       </div>

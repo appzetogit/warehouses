@@ -11,7 +11,7 @@ const SOURCE_LABEL = {
   admin: "Added by support",
   campaign: "Promotion",
   spin: "Spin reward",
-  referral: "Referral reward",
+  referral: "Referral Reward",
   reversal: "Returned",
 }
 

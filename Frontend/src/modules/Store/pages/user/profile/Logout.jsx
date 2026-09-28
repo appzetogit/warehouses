@@ -52,7 +52,7 @@ export default function Logout() {
               <ArrowLeft className="h-4 w-4 md:h-5 md:w-5 text-black dark:text-white" />
             </Button>
           </Link>
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-black dark:text-white">Log out</h1>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-black dark:text-white">Log Out</h1>
         </div>
 
         {!isLoggingOut ? (
@@ -79,7 +79,7 @@ export default function Logout() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-base md:text-lg lg:text-xl font-semibold text-yellow-900 dark:text-yellow-200 mb-1 md:mb-2">
-                      Before you go
+                      Before You Go
                     </h3>
                     <p className="text-sm md:text-base text-yellow-700 dark:text-yellow-300">
                       Make sure you've saved any important information. Your cart and preferences will be saved for next time.
@@ -95,7 +95,7 @@ export default function Logout() {
                 onClick={handleLogout}
                 className="w-full bg-red-600 hover:bg-red-700 text-white text-sm md:text-base h-10 md:h-12"
               >
-                Yes, Log out
+                Yes, Log Out
               </Button>
               <Link to="/user/profile">
                 <Button

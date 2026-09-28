@@ -40,22 +40,22 @@ function stepOf(o) {
   return 0
 }
 
-const stepsFor = (o) => (isCourier(o) ? ["Ordered", "Shipped", "Out for delivery", "Delivered"] : ["Placed", "Packed", "On the way", "Delivered"])
+const stepsFor = (o) => (isCourier(o) ? ["Ordered", "Shipped", "Out for Delivery", "Delivered"] : ["Placed", "Packed", "On the Way", "Delivered"])
 
 const RETURN_LABEL = {
-  requested: "Return requested",
-  approved: "Return approved, pickup soon",
-  rejected: "Return declined",
+  requested: "Return Requested",
+  approved: "Return Approved, Pickup Soon",
+  rejected: "Return Declined",
   received: "Return received, refund on its way",
   refunded: "Refunded",
-  replaced: "Replacement on its way",
+  replaced: "Replacement on Its Way",
 }
 
 function headline(o) {
   const s = statusOf(o)
   if (o?.latestReturn) {
     if (o.latestReturn.resolution === "replacement" && o.latestReturn.status === "received") return "Item received, replacement being sent"
-    return RETURN_LABEL[o.latestReturn.status] || "Return in progress"
+    return RETURN_LABEL[o.latestReturn.status] || "Return in Progress"
   }
   if (s === "pending_payment") return "Waiting for payment"
   if (s === "cancelled_by_user") return "You cancelled this order"
@@ -65,8 +65,8 @@ function headline(o) {
     return at ? `Delivered on ${new Date(at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : "Delivered"
   }
   const step = stepOf(o)
-  if (isCourier(o)) return step >= 2 ? "Out for delivery" : step >= 1.5 ? "Shipped" : "Ordered, packing soon"
-  return step >= 2 ? "On the way" : step >= 1 ? "Being packed" : "Order placed"
+  if (isCourier(o)) return step >= 2 ? "Out for Delivery" : step >= 1.5 ? "Shipped" : "Ordered, packing soon"
+  return step >= 2 ? "On the Way" : step >= 1 ? "Being Packed" : "Order Placed"
 }
 
 function Tracker({ order }) {
@@ -152,7 +152,7 @@ function OrderCard({ order, onChanged }) {
             {items.length > 1 ? ` and ${items.length - 1} more` : ""}
           </span>
           <span className="block text-[12px] text-gray-500">
-            {[first.variantName, `Qty ${items.reduce((n, i) => n + (Number(i.quantity) || 1), 0)}`, order?.replacementOf?.orderId ? "Free replacement" : `₹${total.toLocaleString("en-IN")}`]
+            {[first.variantName, `Qty ${items.reduce((n, i) => n + (Number(i.quantity) || 1), 0)}`, order?.replacementOf?.orderId ? "Free Replacement" : `₹${total.toLocaleString("en-IN")}`]
               .filter(Boolean)
               .join(" · ")}
           </span>
@@ -312,7 +312,7 @@ export default function MobileOrders() {
             </p>
             {tab === "All" ? (
               <Link to="/" className="mt-4 rounded-xl bg-[#EA580C] px-5 py-2.5 text-[14px] font-bold text-white">
-                Start shopping
+                Start Shopping
               </Link>
             ) : null}
           </div>

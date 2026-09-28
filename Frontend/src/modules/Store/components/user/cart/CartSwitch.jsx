@@ -69,8 +69,8 @@ export default function CartSwitch({ className = "" }) {
   return (
     <div className={className}>
       <div role="tablist" aria-label="Which cart" className="flex rounded-full bg-gray-100 p-1 dark:bg-[#222]">
-        {tab("shop", "Shop cart")}
-        {tab("quick", "Quick cart")}
+        {tab("shop", "Shop Cart")}
+        {tab("quick", "Quick Cart")}
       </div>
       <p className="mt-1.5 text-center text-[11px] text-gray-500 dark:text-gray-400">
         {isQuick ? "Quick orders come by rider in minutes." : "Shop orders come by courier in a few days."} Each cart checks out on its own.
