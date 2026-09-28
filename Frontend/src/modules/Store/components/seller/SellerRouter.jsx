@@ -52,7 +52,6 @@ const SellerTerms = lazy(() => import("@store/pages/seller/Terms"))
 const SellerCMSHelpSupport = lazy(() => import("@store/pages/seller/CMSHelpSupport"))
 const OrderDetailPage = lazy(() => import("@store/pages/seller/OrderDetailPage"))
 
-const Welcome = lazy(() => import("@store/pages/seller/auth/Welcome"))
 const Login = lazy(() => import("@store/pages/seller/auth/Login"))
 const OTP = lazy(() => import("@store/pages/seller/auth/OTP"))
 const Signup = lazy(() => import("@store/pages/seller/auth/Signup"))
@@ -92,7 +91,8 @@ export default function SellerRouter() {
     <Suspense fallback={<Loader />}>
       <Routes>
         {/* Auth Routes */}
-        <Route path="welcome" element={<AuthRedirect module="seller"><Welcome /></AuthRedirect>} />
+        {/* The login page opens on Login / Create Account, so the welcome is the same page. */}
+        <Route path="welcome" element={<AuthRedirect module="seller"><Login /></AuthRedirect>} />
         <Route path="login" element={<AuthRedirect module="seller"><Login /></AuthRedirect>} />
         <Route path="otp" element={<AuthRedirect module="seller"><OTP /></AuthRedirect>} />
         <Route path="signup" element={<AuthRedirect module="seller"><Signup /></AuthRedirect>} />

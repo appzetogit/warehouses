@@ -139,9 +139,6 @@ export default function SignIn() {
             <button type="button" className={secondaryBtn} onClick={() => goTo("signup")}>
               Create Account
             </button>
-            <button type="button" onClick={() => navigate("/")} className="mx-auto block pt-1 text-[14px] font-semibold text-white/90 underline-offset-2 hover:underline">
-              Continue as Guest
-            </button>
           </motion.div>
         ) : (
           <motion.form

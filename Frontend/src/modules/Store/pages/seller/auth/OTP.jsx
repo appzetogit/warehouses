@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion, useReducedMotion } from "framer-motion"
-import { Shield, Loader2, Timer, RefreshCw, ArrowLeft } from "lucide-react"
-import { Button } from "@store/components/ui/button"
+import { AlertCircle, Loader2 } from "lucide-react"
+import AuthShell, { secondaryBtn } from "@store/components/user/auth/AuthShell"
 import { sellerAPI } from "@store/api"
 import {
   setAuthData as setSellerAuthData,
@@ -11,7 +11,6 @@ import {
 import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@store/utils/firebaseMessaging"
 import { useCompanyName } from "@store/hooks/useCompanyName"
 import { loadBusinessSettings, getModuleLogoUrl } from "@store/utils/businessSettings"
-import SellerPartnerHero from "@store/components/seller/auth/SellerPartnerHero"
 import brandMark from "@/config/brandMark"
 
 const THEME = "#FD920B"
@@ -64,7 +63,14 @@ export default function SellerOTP() {
       } else if (data.phone) {
         const phoneMatch = data.phone?.match(/(\+\d+)\s*(.+)/)
         setContactInfo(
-          phoneMatch ? `${phoneMatch[1]} ${phoneMatch[2].replace(/\D/g, "")}` : data.phone || ""
+          // "+91 90000 00000", with non-breaking spaces so it never splits.
+          phoneMatch
+            ? (() => {
+                const d = phoneMatch[2].replace(/\D/g, "")
+                const nbsp = String.fromCharCode(160)
+                return `${phoneMatch[1]}${nbsp}${d.slice(0, 5)}${nbsp}${d.slice(5)}`
+              })()
+            : data.phone || ""
         )
       }
     } else {
@@ -267,152 +273,71 @@ export default function SellerOTP() {
 
   if (!authData) return null
 
+  const box =
+    "h-16 w-14 rounded-2xl border-2 bg-white text-center text-[28px] font-bold text-gray-900 shadow-[0_8px_20px_rgba(0,0,0,0.15)] outline-none transition focus:border-[#7C2D12] disabled:opacity-60"
+
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-white">
-      <div className="hidden h-full lg:block lg:w-1/2">
-        <SellerPartnerHero themeColor={THEME} />
-      </div>
+    <AuthShell
+      title="Verify Your Number"
+      subtitle={`Enter the 4-digit code sent to ${contactInfo}`}
+      onBack={() => navigate("/seller/login")}
+      footer={<p className="text-[11px] text-white/75">{companyName} Vendor App</p>}
+    >
+      <motion.div
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mt-auto space-y-5 pb-2"
+        style={{ paddingBottom: keyboardInset ? `${keyboardInset}px` : undefined }}
+      >
+        <div className="flex justify-center gap-3" role="group" aria-label="Verification code">
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => (inputRefs.current[index] = el)}
+              type="text"
+              inputMode="numeric"
+              autoComplete={index === 0 ? "one-time-code" : "off"}
+              aria-label={`Digit ${index + 1}`}
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              onPaste={(e) => handlePaste(index, e)}
+              onFocus={() => setFocusedIndex(index)}
+              onBlur={() => setFocusedIndex(null)}
+              disabled={isLoading}
+              className={`${box} ${digit || focusedIndex === index ? "border-white" : "border-transparent"}`}
+            />
+          ))}
+        </div>
 
-      <div className="flex h-full w-full flex-col bg-[#F0F2F5] lg:w-1/2">
-        <div className="relative shrink-0 overflow-hidden px-6 py-5 lg:hidden" style={{ backgroundColor: "#141018" }}>
-          <button
-            type="button"
-            onClick={() => navigate("/seller/login")}
-            className="absolute left-5 top-5 flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
+        {error ? (
+          <p role="alert" className="flex items-center justify-center gap-1.5 rounded-xl bg-black/20 px-3 py-2 text-[13px] font-semibold">
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {error}
+          </p>
+        ) : null}
+
+        <button type="button" onClick={() => handleVerify()} disabled={isLoading || !isOtpComplete} className={secondaryBtn}>
+          {isLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : null}
+          {isLoading ? "Verifying…" : "Verify"}
+        </button>
+
+        <div className="flex items-center justify-between text-[14px]">
+          <button type="button" onClick={() => navigate("/seller/login")} className="font-semibold text-white/95 underline-offset-2 hover:underline">
+            Edit Number
           </button>
-          <div className="relative flex items-center justify-center gap-2.5 pt-6">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ backgroundColor: `${THEME}20` }}
-            >
-              <Shield className="h-3.5 w-3.5" style={{ color: THEME }} aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-white/50">Verification</p>
-              <p className="text-sm font-semibold text-white">{companyName}</p>
-            </div>
-          </div>
+          {resendTimer > 0 ? (
+            <span className="text-white/85">
+              Resend Code in <span className="font-bold tabular-nums">{resendTimer}s</span>
+            </span>
+          ) : (
+            <button type="button" onClick={handleResend} disabled={isLoading} className="font-bold text-white underline-offset-2 hover:underline">
+              Resend Code
+            </button>
+          )}
         </div>
-
-        <div className="hidden shrink-0 px-8 pt-6 lg:block">
-          <button
-            type="button"
-            onClick={() => navigate("/seller/login")}
-            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div
-          className="flex flex-1 items-center justify-center overflow-y-auto px-5 py-8 sm:px-10"
-          style={{ paddingBottom: keyboardInset ? `${keyboardInset + 24}px` : undefined }}
-        >
-          <motion.div {...formMotion} className="my-auto w-full max-w-[380px]">
-            <div className="mb-7 text-center lg:text-left">
-              <div className="mb-5 flex justify-center lg:justify-start">
-                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
-                  <img
-                    src={logoUrl}
-                    alt={`${companyName} logo`}
-                    className="h-full w-full scale-[1.65] object-contain"
-                    loading="lazy"
-                    onError={(e) => {
-                      if (e.target.src !== brandMark) e.target.src = brandMark
-                    }}
-                  />
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold tracking-tight text-gray-900">Verify OTP</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Enter the 4-digit code sent to{" "}
-                <span className="font-semibold" style={{ color: THEME_INK }}>
-                  {contactInfo}
-                </span>
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_4px_24px_rgba(0,0,0,0.08)] sm:p-7">
-              <div className="space-y-5">
-                {error && (
-                  <div role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-                    {error}
-                  </div>
-                )}
-
-                <div className="flex justify-center gap-3">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => (inputRefs.current[index] = el)}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleChange(index, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(index, e)}
-                      onPaste={(e) => handlePaste(index, e)}
-                      onFocus={() => setFocusedIndex(index)}
-                      onBlur={() => setFocusedIndex(null)}
-                      disabled={isLoading}
-                      className={`h-14 w-12 rounded-xl border-2 bg-white text-center text-xl font-bold text-gray-900 shadow-sm transition-all focus:outline-none sm:h-16 sm:w-14 sm:text-2xl ${
-                        error
-                          ? "border-red-300 bg-red-50"
-                          : focusedIndex === index
-                            ? "border-wh-brand ring-4 ring-wh-brand/15"
-                            : "border-gray-200"
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                <Button
-                  onClick={() => handleVerify()}
-                  disabled={isLoading || !isOtpComplete}
-                  variant="ghost"
-                  className="h-12 w-full cursor-pointer rounded-xl border-0 text-sm font-semibold text-wh-text shadow-sm transition-all hover:opacity-90 disabled:opacity-50"
-                  style={{ backgroundColor: THEME }}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    "Verify & continue"
-                  )}
-                </Button>
-
-                <div className="flex flex-col items-center gap-3 pt-1">
-                  {resendTimer > 0 ? (
-                    <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-                      <Timer className="h-3.5 w-3.5" style={{ color: THEME_INK }} />
-                      Resend in <span style={{ color: THEME_INK }}>{resendTimer}s</span>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleResend}
-                      disabled={isLoading}
-                      className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
-                      style={{ color: THEME_INK }}
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                      Resend code
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <p className="mt-5 text-center text-xs text-gray-400">
-              Secure verification &middot; {companyName}
-            </p>
-          </motion.div>
-        </div>
-      </div>
-    </div>
+      </motion.div>
+    </AuthShell>
   )
 }
