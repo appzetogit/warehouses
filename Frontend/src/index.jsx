@@ -86,6 +86,20 @@ if (isEmbeddedShell) {
 const cleanupSmoothScroll = setupSmoothScroll({ disabled: isEmbeddedShell })
 window.addEventListener('beforeunload', cleanupSmoothScroll)
 
+// ─── A new deploy replaced this tab's page files ─────────────────────────────
+// A tab opened before a deploy still asks for the old file names, which no
+// longer exist. Reload once to pick up the new build; the guard stops a loop
+// if the file is missing for some other reason.
+const CHUNK_RELOAD_KEY = 'chunk_reload_at'
+window.addEventListener('vite:preloadError', (event) => {
+  let last = 0
+  try { last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY)) || 0 } catch { /* storage blocked */ }
+  if (Date.now() - last < 30000) return
+  event.preventDefault()
+  try { sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now())) } catch { /* storage blocked */ }
+  window.location.reload()
+})
+
 // ─── Suppress known non-critical errors ──────────────────────────────────────
 
 const originalError = console.error
