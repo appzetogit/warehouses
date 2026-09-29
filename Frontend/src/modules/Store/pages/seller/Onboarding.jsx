@@ -938,14 +938,14 @@ export default function SellerOnboarding() {
       await sellerAPI.updateProfile({
         menuImages: toPersistedMenuImagesPayload(nextMenuImages),
       })
-      toast.success("Menu image removed")
+      toast.success("Photo removed")
     } catch (error) {
       setStep2((prev) => ({
         ...prev,
         menuImages: currentMenuImages,
       }))
       await persistMenuImagesToDB(currentMenuImages)
-      toast.error(error?.response?.data?.message || "Failed to remove menu image")
+      toast.error(error?.response?.data?.message || "Couldn't remove the photo")
     }
   }
 
@@ -1460,7 +1460,7 @@ export default function SellerOnboarding() {
     // Check menu images - must have at least one File or existing URL
     const hasMenuImages = step2.menuImages && step2.menuImages.length > 0
     if (!hasMenuImages) {
-      errors.push("At least one menu image is required")
+      errors.push("Add at least one store photo")
     } else {
       // Verify that menu images are either File objects or have valid URLs
       const validMenuImages = step2.menuImages.filter(img => {
@@ -1470,7 +1470,7 @@ export default function SellerOnboarding() {
         return false
       })
       if (validMenuImages.length === 0) {
-        errors.push("Please upload at least one valid menu image")
+        errors.push("Upload at least one valid store photo")
       }
     }
 
@@ -1660,7 +1660,7 @@ export default function SellerOnboarding() {
     const menuFiles = menuImages.filter((f) => isUploadableFile(f))
     const menuUrls = menuImages.map((f) => (typeof f === 'string' ? f : (f?.url || null))).filter(Boolean)
     if (menuFiles.length === 0 && menuUrls.length === 0) {
-      throw new Error('At least one menu image must be uploaded')
+      throw new Error('Add at least one store photo')
     }
     menuFiles.forEach((file) => formData.append('menuImages', file))
     if (menuUrls.length > 0) {
@@ -2298,7 +2298,7 @@ export default function SellerOnboarding() {
             />
           </div>
           <p className={ONBOARDING_HINT}>
-            Please ensure that this address is the same as mentioned on your FSSAI license.
+            Use the address on your GST or shop registration.
             {(step1.channels || []).includes("shop") ? " This is also your pickup address for Shop (courier) orders." : ""}
           </p>
         </div>
@@ -2597,24 +2597,24 @@ export default function SellerOnboarding() {
     <div className="space-y-6">
       {/* Images section */}
       <section className={ONBOARDING_SECTION_FULL}>
-        <h2 className={ONBOARDING_SECTION_TITLE}>Menu & photos</h2>
+        <h2 className={ONBOARDING_SECTION_TITLE}>Store Photos</h2>
         <p className={ONBOARDING_SECTION_DESC}>
-          Add clear photos of your printed menu and a primary profile image. This helps customers
-          understand what you serve.
+          Add clear photos of your store and what you stock, plus a profile image. This helps customers
+          see your collection.
         </p>
 
         {/* Menu images */}
         <div className="space-y-2">
-          <Label className={ONBOARDING_LABEL}>Menu images</Label>
+          <Label className={ONBOARDING_LABEL}>Store & Collection Photos</Label>
           <div className={`${ONBOARDING_UPLOAD_BOX} flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center`}>
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <ImageIcon className="w-5 h-5 text-gray-700" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-900">Upload menu images</span>
+                <span className="text-sm font-medium text-gray-900">Upload store photos</span>
                 <span className="text-[11px] text-gray-500">
-                  JPG, PNG, WebP ? You can select multiple files
+                  JPG, PNG, WebP · You can select multiple files
                 </span>
               </div>
             </div>
@@ -2624,7 +2624,7 @@ export default function SellerOnboarding() {
               className={`w-full sm:w-auto ${ONBOARDING_UPLOAD_BTN}`}
               onClick={() =>
                 openImageSourcePicker({
-                  title: "Add menu image",
+                  title: "Add store photo",
                   fileNamePrefix: "menu-image",
                   fallbackInputRef: menuImagesInputRef,
                   onSelectFile: (file) => handleMenuImagesSelected(file ? [file] : []),
@@ -2811,7 +2811,7 @@ export default function SellerOnboarding() {
       <section className={ONBOARDING_SECTION_FULL}>
         {/* Timings with popover time selectors */}
         <div className="space-y-3">
-          <Label className={ONBOARDING_LABEL}>Outlet timings</Label>
+          <Label className={ONBOARDING_LABEL}>Store Timings</Label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <TimeSelector
               label="Opening time"
@@ -2862,7 +2862,7 @@ export default function SellerOnboarding() {
                 setStep2((prev) => ({ ...prev, estimatedDeliveryTime: e.target.value }))
               }
               className="mt-1 bg-white text-sm"
-              placeholder="e.g., 25-30 mins"
+              placeholder="e.g., 30-45 mins"
             />
           </div>
         </div>
@@ -2874,7 +2874,7 @@ export default function SellerOnboarding() {
             <span>Open days</span>
           </Label>
           <p className="text-[11px] text-gray-500">
-            Select the days your seller accepts delivery orders.
+            Select the days your store takes orders.
           </p>
           <div className="mt-1 grid grid-cols-7 gap-1.5 sm:gap-2">
             {daysOfWeek.map((day) => {
@@ -3104,7 +3104,7 @@ export default function SellerOnboarding() {
       </section>
 
       <section className={ONBOARDING_SECTION_FULL}>
-        <h2 className={ONBOARDING_SECTION_TITLE}>FSSAI details</h2>
+        <h2 className={ONBOARDING_SECTION_TITLE}>FSSAI Details (Only If You Sell Packaged Food)</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label className={ONBOARDING_LABEL}>FSSAI number</Label>

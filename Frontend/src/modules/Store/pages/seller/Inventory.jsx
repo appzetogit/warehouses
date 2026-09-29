@@ -1631,7 +1631,7 @@ export default function Inventory() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-950">
-                  Search and manage menu inventory
+                  Search and manage your products
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   {`${listToRender.length} categor${listToRender.length !== 1 ? "ies" : "y"} and ${activeFilterCount} item${activeFilterCount !== 1 ? "s" : ""} in focus`}

@@ -39,6 +39,19 @@ export const productChannels = (p) => ({
 const numOrNull = (v) => (v === null || v === undefined || v === "" || !Number.isFinite(Number(v)) ? null : Number(v))
 
 export const channelStock = (entity, channel) => numOrNull(entity?.stock?.[channel])
+
+/**
+ * What a product has to sell on a channel. With variants the stock lives on
+ * them, so add theirs up; a variant with no count draws on the product's, so
+ * then the product's count (or "not counted") is what limits it.
+ */
+export const productChannelStock = (product, channel) => {
+  const variants = (Array.isArray(product?.variants) ? product.variants : []).filter((v) => v?.isActive !== false)
+  if (!variants.length) return channelStock(product, channel)
+  const counts = variants.map((v) => channelStock(v, channel))
+  if (counts.some((n) => n === null)) return channelStock(product, channel)
+  return counts.reduce((sum, n) => sum + n, 0)
+}
 export const channelThreshold = (entity, channel) => numOrNull(entity?.lowStockThreshold?.[channel])
 
 /** Form input value -> contract number|null (empty = null = not counted / inherit product stock). */
@@ -55,7 +68,7 @@ export function ChannelBadges({ product, showStock = false, className = "" }) {
   return (
     <span className={`inline-flex flex-wrap gap-1 ${className}`}>
       {CHANNELS.filter((c) => ch[c]).map((c) => {
-        const s = channelStock(product, c)
+        const s = productChannelStock(product, c)
         return (
           <span
             key={c}

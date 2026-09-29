@@ -34,11 +34,20 @@ const centre = (path) => ({
   lng: path.reduce((s, p) => s + p.lng, 0) / (path.length || 1),
 })
 
-function addressFrom(result) {
-  const comps = Array.isArray(result?.address_components) ? result.address_components : []
+/**
+ * Google returns several matches for a point, most specific first; the first
+ * can be a "plus code" (JXG3+R6) and may lack a pincode. Use the first real
+ * address for the text, and take each part from the first match that has it.
+ */
+function addressFrom(results) {
+  const list = (Array.isArray(results) ? results : []).filter((r) => !r?.types?.includes("plus_code"))
+  const main = list[0] || results?.[0] || null
+  const comps = list.flatMap((r) => (Array.isArray(r?.address_components) ? r.address_components : []))
   const get = (types) => comps.find((c) => types.some((t) => c.types?.includes(t)))?.long_name || ""
+  // Even a real address can open with a plus code ("JVV7+GV Maru Farms, …").
+  const text = String(main?.formatted_address || "").replace(/^[23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]{0,3},?\s*/i, "")
   return {
-    formattedAddress: result?.formatted_address || "",
+    formattedAddress: text,
     area: get(["sublocality_level_1", "sublocality", "neighborhood"]) || get(["locality"]),
     city: get(["locality"]) || get(["administrative_area_level_2"]),
     state: get(["administrative_area_level_1"]),
@@ -74,7 +83,7 @@ export default function ZonePinPicker({ zones = [], zoneId = "", value = null, o
       onPick?.({ latitude: Number(lat.toFixed(6)), longitude: Number(lng.toFixed(6)), ...address })
     if (!geocoder.current) return done({})
     geocoder.current.geocode({ location: point }, (results, status) => {
-      done(status === "OK" && results?.[0] ? addressFrom(results[0]) : {})
+      done(status === "OK" && results?.length ? addressFrom(results) : {})
     })
   }
 

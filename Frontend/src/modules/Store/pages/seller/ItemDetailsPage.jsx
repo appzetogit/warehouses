@@ -1056,7 +1056,7 @@ export default function ItemDetailsPage() {
                 onChange={(e) => setItemDescription(e.target.value)}
                 maxLength={maxDescriptionLength}
                 rows={4}
-                placeholder="Eg: Yummy veg paneer burger with a soft patty, veggies, cheese, and special sauce"
+                placeholder="Eg: Soft cotton tee with a regular fit and ribbed crew neck. Machine wash cold."
                 className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               />
               <button className="absolute right-3 top-3 p-1 rounded-full hover:bg-gray-100">
@@ -1070,40 +1070,6 @@ export default function ItemDetailsPage() {
               <span className="text-xs text-gray-500">
                 {descriptionLength} / {maxDescriptionLength}
               </span>
-            </div>
-            {/* Dietary Options */}
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={() => setFoodType("Veg")}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${foodType === "Veg"
-                  ? "border-2"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                style={foodType === "Veg" ? { borderColor: "#16A34A", color: "#16A34A", backgroundColor: "#F0FDF4" } : undefined}
-              >
-                {foodType === "Veg" && <Check className="w-4 h-4" style={{ color: "#16A34A" }} />}
-                <span>Veg</span>
-              </button>
-              <button
-                onClick={() => setFoodType("Non-Veg")}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${foodType === "Non-Veg"
-                  ? "border-red-600 border-2 text-red-600"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-              >
-                {foodType === "Non-Veg" && <Check className="w-4 h-4" />}
-                <span>Non-Veg</span>
-              </button>
-              <button
-                onClick={() => setFoodType(null)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${foodType !== "Veg" && foodType !== "Non-Veg"
-                  ? "border-gray-900 border-2 text-gray-900"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-              >
-                {foodType !== "Veg" && foodType !== "Non-Veg" && <Check className="w-4 h-4" />}
-                <span>Not applicable</span>
-              </button>
             </div>
           </div>
 
@@ -1197,24 +1163,6 @@ export default function ItemDetailsPage() {
                 />
               </div>
 
-              {/* Preparation Time */}
-              <div className="relative">
-                <label className="block text-xs text-gray-600 mb-1">Preparation Time</label>
-                <div className="relative">
-                  <select
-                    value={preparationTime}
-                    onChange={(e) => setPreparationTime(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                  >
-                    <option value="">Select timing</option>
-                    <option value="10-20 mins">10-20 mins</option>
-                    <option value="20-25 mins">20-25 mins</option>
-                    <option value="25-35 mins">25-35 mins</option>
-                    <option value="35-45 mins">35-45 mins</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
-                </div>
-              </div>
               {/* <div>
                 <label className="block text-xs text-gray-600 mb-1">GST</label>
                 <button
