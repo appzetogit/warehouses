@@ -258,6 +258,8 @@ router.patch('/sellers/:id/location', adminController.updateSellerLocation);
 router.patch('/sellers/:id/approve', adminController.approveSeller);
 router.patch('/sellers/:id/reject', adminController.rejectSeller);
 router.patch('/sellers/:id/channels/:channel', adminController.decideSellerChannel);
+router.get('/sellers/:id/quick-zone', adminController.getSellerQuickZone);
+router.patch('/sellers/:id/zone', adminController.assignSellerZone);
 router.delete('/sellers/:id', adminController.deleteSeller);
 
 

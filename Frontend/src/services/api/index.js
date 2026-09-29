@@ -424,6 +424,12 @@ export const adminAPI = {
       { contextModule: "admin" },
     ),
   /** Approve or reject one sales channel. action: 'approve'|'reject'; reject needs a reason. */
+  /** Can this store sell on Quick, and the fix if not (assign / create a zone, set location). */
+  getSellerQuickZone: (id) =>
+    apiClient.get(`/admin/sellers/${String(id)}/quick-zone`, { contextModule: "admin" }),
+  /** Assigns a service zone; the server only accepts one that contains the store. */
+  assignSellerZone: (id, zoneId) =>
+    apiClient.patch(`/admin/sellers/${String(id)}/zone`, { zoneId: String(zoneId || "") }, { contextModule: "admin" }),
   setSellerChannelStatus: (id, channel, action, reason) =>
     apiClient.patch(
       `/admin/sellers/${String(id)}/channels/${channel}`,

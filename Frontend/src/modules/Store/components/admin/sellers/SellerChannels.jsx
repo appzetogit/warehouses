@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { adminAPI } from "@store/api"
 import { toast } from "sonner"
 
@@ -53,6 +54,115 @@ const fmtDate = (d) => {
 }
 
 /**
+ * Quick needs the store inside a delivery zone. Shows where the store is,
+ * which zone covers it, and the one-click fix: assign the covering zone, or
+ * create a zone when none covers that area yet.
+ */
+export function QuickZoneCheck({ sellerId, onStatus }) {
+  const [check, setCheck] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [assigning, setAssigning] = useState(false)
+
+  const load = useCallback(() => {
+    if (!sellerId) return
+    setLoading(true)
+    adminAPI
+      .getSellerQuickZone(sellerId)
+      .then((res) => {
+        const data = res?.data?.data || null
+        setCheck(data)
+        onStatus?.(data)
+      })
+      .catch(() => {
+        setCheck(null)
+        onStatus?.(null)
+      })
+      .finally(() => setLoading(false))
+  }, [sellerId, onStatus])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const assign = async () => {
+    if (!check?.zoneForLocation?.id) return
+    setAssigning(true)
+    try {
+      const res = await adminAPI.assignSellerZone(sellerId, check.zoneForLocation.id)
+      const data = res?.data?.data || null
+      setCheck(data)
+      onStatus?.(data)
+      toast.success(`Assigned ${check.zoneForLocation.name}`)
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Couldn't assign the zone")
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  if (loading) return <p className="mt-2 text-xs text-slate-500">Checking the store's delivery zone…</p>
+  if (!check) return <p className="mt-2 text-xs text-rose-600">Couldn't check the delivery zone.</p>
+
+  const place = [check.store?.area, check.store?.city, check.store?.pincode].filter(Boolean).join(", ") || "the store's location"
+  const box = "mt-2 rounded-md px-3 py-2 text-xs"
+
+  if (check.action === "none") {
+    return (
+      <p className={`${box} bg-emerald-50 text-emerald-800`}>
+        ✓ Inside <strong>{check.assignedZone?.name}</strong> · {place}
+      </p>
+    )
+  }
+  if (check.action === "set_location") {
+    return (
+      <p className={`${box} bg-amber-50 text-amber-800`}>
+        The store has no location on the map, so its delivery zone can't be checked. Set it with <strong>Edit Location</strong>.
+      </p>
+    )
+  }
+  if (check.action === "assign_zone") {
+    return (
+      <div className={`${box} flex flex-wrap items-center justify-between gap-2 bg-amber-50 text-amber-800`}>
+        <span>
+          {check.assignedZone
+            ? <>Assigned to <strong>{check.assignedZone.name}</strong>{check.assignedZone.isActive ? ", but the store is outside it." : ", which is switched off."}</>
+            : "No zone assigned."}{" "}
+          The store ({place}) is inside <strong>{check.zoneForLocation?.name}</strong>.
+        </span>
+        <button
+          type="button"
+          onClick={assign}
+          disabled={assigning}
+          className="rounded-md bg-amber-600 px-3 py-1.5 font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+        >
+          {assigning ? "Assigning…" : `Assign ${check.zoneForLocation?.name}`}
+        </button>
+      </div>
+    )
+  }
+  // create_zone
+  return (
+    <div className={`${box} space-y-1.5 bg-rose-50 text-rose-800`}>
+      <p>
+        No delivery zone covers <strong>{place}</strong> yet, so this store can't take Quick orders. Create a zone around it, or keep
+        the store on Shop only.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Link to="/admin/zone-setup/add" className="rounded-md bg-rose-600 px-3 py-1.5 font-semibold text-white hover:bg-rose-700">
+          Create a Zone
+        </Link>
+        <Link to="/admin/zone-setup/map" className="rounded-md border border-rose-300 px-3 py-1.5 font-semibold text-rose-700 hover:bg-rose-100">
+          See All Zones on Map
+        </Link>
+        <button type="button" onClick={load} className="rounded-md border border-rose-300 px-3 py-1.5 font-semibold text-rose-700 hover:bg-rose-100">
+          Check Again
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/**
  * Per-channel approve / reject-with-reason controls.
  * `onUpdated(seller)` gets the updated seller (or a locally patched copy).
  * `only` limits the panel to one channel (e.g. the current admin panel's).
@@ -61,6 +171,7 @@ export function SellerChannelsPanel({ seller, onUpdated, only }) {
   const [busy, setBusy] = useState(null)
   const [rejecting, setRejecting] = useState(null)
   const [reason, setReason] = useState("")
+  const [quickCheck, setQuickCheck] = useState(null)
   const sellerId = seller?._id || seller?.id
   const keys = only ? [only] : CHANNEL_KEYS
 
@@ -105,6 +216,8 @@ export function SellerChannelsPanel({ seller, onUpdated, only }) {
     <div className="space-y-3">
       {keys.map((channel) => {
         const info = getChannelInfo(seller, channel)
+        // Quick can only be approved once the store is inside a delivery zone.
+        const zoneBlocked = channel === "quick" && !quickCheck?.ready
         const canApprove = info.status !== "approved"
         const canReject = info.status === "pending" || info.status === "approved"
         return (
@@ -124,7 +237,8 @@ export function SellerChannelsPanel({ seller, onUpdated, only }) {
                 {canApprove && (
                   <button
                     type="button"
-                    disabled={!!busy}
+                    disabled={!!busy || zoneBlocked}
+                    title={zoneBlocked ? "Fix the delivery zone first" : undefined}
                     onClick={() => act(channel, "approve")}
                     className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                   >
@@ -143,6 +257,7 @@ export function SellerChannelsPanel({ seller, onUpdated, only }) {
                 )}
               </div>
             </div>
+            {channel === "quick" ? <QuickZoneCheck sellerId={sellerId} onStatus={setQuickCheck} /> : null}
             {rejecting === channel && (
               <div className="mt-2 flex flex-col gap-2">
                 <textarea

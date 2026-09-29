@@ -143,6 +143,7 @@ GET /api/v1/admin/seller-subscriptions/summary
 GET /api/v1/admin/sellers
 GET /api/v1/admin/sellers/:id
 GET /api/v1/admin/sellers/:id/analytics
+GET /api/v1/admin/sellers/:id/quick-zone
 GET /api/v1/admin/sellers/complaints
 GET /api/v1/admin/sellers/complaints/stats
 GET /api/v1/admin/sellers/pending
@@ -345,6 +346,7 @@ PATCH /api/v1/admin/sellers/:id/channels/:channel
 PATCH /api/v1/admin/sellers/:id/location
 PATCH /api/v1/admin/sellers/:id/reject
 PATCH /api/v1/admin/sellers/:id/status
+PATCH /api/v1/admin/sellers/:id/zone
 PATCH /api/v1/admin/sellers/complaints/:id
 PATCH /api/v1/admin/spin/campaigns/:id
 PATCH /api/v1/admin/spin/campaigns/:id/active

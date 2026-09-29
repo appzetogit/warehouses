@@ -1747,6 +1747,28 @@ export async function updateFeatureSetting(req, res, next) {
     }
 }
 
+/** GET /admin/sellers/:id/quick-zone — whether the store can sell on Quick, and the fix if not. */
+export async function getSellerQuickZone(req, res, next) {
+    try {
+        const { quickZoneCheck } = await import('../../seller/services/sellerChannels.service.js');
+        const data = await quickZoneCheck(req.params.id);
+        return res.status(200).json({ success: true, message: 'Quick zone check', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
+/** PATCH /admin/sellers/:id/zone — { zoneId }: assigns a zone that contains the store. */
+export async function assignSellerZone(req, res, next) {
+    try {
+        const { assignSellerZone: assign } = await import('../../seller/services/sellerChannels.service.js');
+        const data = await assign(req.params.id, req.body?.zoneId);
+        return res.status(200).json({ success: true, message: 'Zone assigned', data });
+    } catch (error) {
+        next(error);
+    }
+}
+
 /** PATCH /admin/sellers/:id/channels/:channel — { action: 'approve'|'reject', reason? }. */
 export async function decideSellerChannel(req, res, next) {
     try {

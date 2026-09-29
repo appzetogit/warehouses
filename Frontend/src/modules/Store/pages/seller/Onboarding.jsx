@@ -657,6 +657,11 @@ export default function SellerOnboarding() {
   const [isFssaiCalendarOpen, setIsFssaiCalendarOpen] = useState(false)
   const [zones, setZones] = useState([])
   const [zonesLoading, setZonesLoading] = useState(false)
+  // Names of the zones Quick runs in, shown next to the Quick option.
+  const servedZoneNames = zones
+    .filter((z) => z?.isActive !== false)
+    .map((z) => z?.name || z?.zoneName || z?.serviceLocation)
+    .filter(Boolean)
   const [isOnboardingHydrated, setIsOnboardingHydrated] = useState(false)
   const isRestoringOnboardingRef = useRef(true)
 
@@ -1886,6 +1891,15 @@ export default function SellerOnboarding() {
                 <span>
                   <span className="block text-sm font-semibold text-gray-900">{opt.title}</span>
                   <span className="block text-xs text-gray-500">{opt.desc}</span>
+                  {opt.id === "quick" ? (
+                    <span className="mt-1 block text-xs font-medium text-gray-700">
+                      {zonesLoading
+                        ? "Checking where Quick runs…"
+                        : servedZoneNames.length
+                          ? `Quick runs in: ${servedZoneNames.join(", ")}`
+                          : "Quick isn't running in any city yet."}
+                    </span>
+                  ) : null}
                 </span>
               </label>
             )
@@ -2150,7 +2164,9 @@ export default function SellerOnboarding() {
             )}
             {zoneDetectionState.status === "out_of_zone" && (
               <p className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
-                No active zone found at this location.
+                Quick doesn't deliver at this location yet
+                {servedZoneNames.length ? ` (it runs in ${servedZoneNames.join(", ")})` : ""}. You can still sell on Shop,
+                and apply for Quick later when it reaches your area.
               </p>
             )}
             {zoneDetectionState.status === "failed" && (
