@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@store/components/ui/select"
 import { sellerAPI, zoneAPI, uploadAPI, api } from "@store/api"
+import ZonePinPicker from "@store/components/seller/ZonePinPicker"
 import { MobileTimePicker } from "@mui/x-date-pickers/MobileTimePicker"
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
@@ -2020,6 +2021,41 @@ export default function SellerOnboarding() {
           <p className="text-sm text-gray-700">
             Add your seller's location for order pick-up.
           </p>
+          {(step1.channels || []).includes("quick") ? (
+            <ZonePinPicker
+              zones={zones}
+              zoneId={step1.zoneId}
+              value={step1.location}
+              disabled={!isEditing}
+              onZoneChange={(z) => {
+                const name = z?.name || z?.zoneName || z?.serviceLocation || ""
+                setStep1((prev) => ({ ...prev, zoneId: String(z?._id || z?.id || "") }))
+                setZoneDetectionState({ status: "idle", message: "", zoneName: name })
+              }}
+              onPick={(pin) => {
+                setStep1((prev) => ({
+                  ...prev,
+                  location: {
+                    ...prev.location,
+                    latitude: pin.latitude,
+                    longitude: pin.longitude,
+                    ...(pin.formattedAddress ? { formattedAddress: pin.formattedAddress, addressLine1: pin.formattedAddress } : {}),
+                    area: pin.area || prev.location.area,
+                    city: pin.city || prev.location.city,
+                    state: pin.state || prev.location.state,
+                    pincode: pin.pincode || prev.location.pincode,
+                  },
+                }))
+                if (pin.formattedAddress) {
+                  suppressSuggestionFetchRef.current = true
+                  setLocationSearchValue(pin.formattedAddress)
+                }
+                const zone = zones.find((z) => String(z?._id || z?.id) === String(step1.zoneId))
+                const name = zone?.name || zone?.zoneName || ""
+                setZoneDetectionState({ status: "matched", message: name ? `Pinned inside ${name}` : "Pinned inside your zone", zoneName: name })
+              }}
+            />
+          ) : null}
           <div className="relative">
             <Label className={ONBOARDING_LABEL}>Search location</Label>
             <p className="text-[12px] text-gray-600 mt-1">
