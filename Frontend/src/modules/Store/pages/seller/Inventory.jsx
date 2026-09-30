@@ -43,8 +43,6 @@ const MENU_FILTER_OPTIONS = [
   { value: "in-stock", label: "In stock" },
   { value: "out-of-stock", label: "Out of stock" },
   { value: "recommended", label: "Recommended" },
-  { value: "veg", label: "Veg" },
-  { value: "non-veg", label: "Non-veg" },
 ]
 
 
@@ -951,7 +949,6 @@ export default function Inventory() {
                 categoryId: section.categoryId || section.id || "",
                 inStock: item.isAvailable !== undefined ? item.isAvailable : true,
                 isAvailable: item.isAvailable !== undefined ? item.isAvailable : true,
-                isVeg: item.foodType === "Veg" ? true : item.foodType === "Non-Veg" ? false : null,
                 foodType: item.foodType ?? null,
                 approvalStatus: String(item.approvalStatus || "approved").toLowerCase(),
                 rejectionReason: item.rejectionReason || "",
@@ -981,7 +978,6 @@ export default function Inventory() {
                     categoryId: section.categoryId || section.id || "",
                     inStock: item.isAvailable !== undefined ? item.isAvailable : true,
                     isAvailable: item.isAvailable !== undefined ? item.isAvailable : true,
-                    isVeg: item.foodType === "Veg" ? true : item.foodType === "Non-Veg" ? false : null,
                     foodType: item.foodType ?? null,
                     approvalStatus: String(item.approvalStatus || "approved").toLowerCase(),
                     rejectionReason: item.rejectionReason || "",
@@ -1136,8 +1132,6 @@ export default function Inventory() {
     if (filterValue === "in-stock") return items.filter((item) => item.inStock)
     if (filterValue === "out-of-stock") return items.filter((item) => !item.inStock)
     if (filterValue === "recommended") return items.filter((item) => item.isRecommended)
-    if (filterValue === "veg") return items.filter((item) => item.isVeg === true)
-    if (filterValue === "non-veg") return items.filter((item) => item.isVeg === false)
     return items
   }
 
@@ -1788,7 +1782,6 @@ export default function Inventory() {
                           <thead className="bg-slate-50 border-b border-slate-200">
                             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                               <th className="px-4 py-3">Item</th>
-                              <th className="px-4 py-3">Type</th>
                               <th className="px-4 py-3">Price</th>
                               <th className="px-4 py-3">Approval</th>
                               <th className="px-4 py-3">Stock</th>
@@ -1822,13 +1815,6 @@ export default function Inventory() {
                                         <ChannelBadges product={item} showStock className="mt-1" />
                                       </div>
                                     </div>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    {typeof item.isVeg === "boolean" && (
-                                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${item.isVeg ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
-                                        {item.isVeg ? "VEG" : "NON-VEG"}
-                                      </span>
-                                    )}
                                   </td>
                                   <td className="px-4 py-3 font-semibold text-slate-900">₹{item.price}</td>
                                   <td className="px-4 py-3">
@@ -2029,25 +2015,6 @@ export default function Inventory() {
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
-                                    {typeof item.isVeg === "boolean" && (
-                                      <>
-                                        <div
-                                          className={`h-4 w-4 rounded-sm border-2 flex items-center justify-center ${item.isVeg ? '' : 'border-red-500'}`}
-                                          style={item.isVeg ? { borderColor: "#16A34A", backgroundColor: "#F0FDF4" } : undefined}
-                                        >
-                                          <div
-                                            className={`h-2 w-2 rounded-full ${item.isVeg ? '' : 'bg-red-500'}`}
-                                            style={item.isVeg ? { backgroundColor: "#16A34A" } : undefined}
-                                          />
-                                        </div>
-                                        <span
-                                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${item.isVeg ? "" : "bg-rose-50 text-rose-700"}`}
-                                          style={item.isVeg ? { backgroundColor: "#ECFDF3", color: "#15803D" } : undefined}
-                                        >
-                                          {item.isVeg ? "Veg" : "Non-veg"}
-                                        </span>
-                                      </>
-                                    )}
                                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${approvalMeta.className}`}>
                                       {approvalMeta.label}
                                     </span>
