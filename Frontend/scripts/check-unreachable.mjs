@@ -74,7 +74,18 @@ while (queue.length) {
   }
 }
 
-const dead = all.filter((f) => !seen.has(f)).map((f) => path.relative(root, f).split(path.sep).join('/')).sort();
+// Switched off on purpose and kept for later: not dead, just unrouted.
+const PARKED = new Set([
+  // Seller subscription (commented out in the admin panel).
+  'src/modules/Store/pages/admin/seller/SubscriptionHistory.jsx',
+  'src/modules/Store/pages/admin/seller/SubscriptionSettings.jsx',
+]);
+
+const dead = all
+  .filter((f) => !seen.has(f))
+  .map((f) => path.relative(root, f).split(path.sep).join('/'))
+  .filter((f) => !PARKED.has(f))
+  .sort();
 const out = process.argv.indexOf('--json');
 if (out > 0) fs.writeFileSync(process.argv[out + 1], JSON.stringify({ reachable: [...seen].map((f) => path.relative(root, f).split(path.sep).join('/')), dead }, null, 1));
 console.log(`files ${all.length}, reachable ${seen.size}, unreachable ${dead.length}, unresolved imports ${unresolved.length}`);
