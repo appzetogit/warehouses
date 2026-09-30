@@ -78,8 +78,9 @@ const adminSidebarMenuTemplate = [
           { label: "Seller Reviews", path: "/sellers/reviews" },
           { label: "Seller Complaints", path: "/sellers/complaints" },
           { label: "Seller Settings", path: "/sellers/settings" },
-          { label: "Subscription Settings", path: "/sellers/subscription-settings" },
-          { label: "Subscription Billing", path: "/sellers/subscription-history" },
+          // Seller subscription is switched off for now.
+          // { label: "Subscription Settings", path: "/sellers/subscription-settings" },
+          // { label: "Subscription Billing", path: "/sellers/subscription-history" },
         ],
       },
     ],

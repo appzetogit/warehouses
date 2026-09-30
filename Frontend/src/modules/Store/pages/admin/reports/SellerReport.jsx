@@ -220,7 +220,7 @@ export default function SellerReport() {
                 >
                   <option value="All types">All types</option>
                   <option value="Commission">Commission</option>
-                  <option value="Subscription">Subscription</option>
+                  {/* Seller subscription is switched off for now. <option value="Subscription">Subscription</option> */}
                 </select>
                 <ChevronDown className="absolute right-2 bottom-2.5 w-4 h-4 text-slate-500 pointer-events-none" />
               </div>

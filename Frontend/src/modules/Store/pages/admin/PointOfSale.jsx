@@ -432,7 +432,7 @@ export default function PointOfSale() {
         {/* Header Section */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-[#334257] mb-2">Seller POS Analytics & Benefits</h1>
-          <p className="text-sm text-[#8a94aa]">Track seller performance, order earnings, and subscription billing</p>
+          <p className="text-sm text-[#8a94aa]">Track seller performance and order earnings</p>
                 </div>
 
         {/* Seller Selection Card */}
@@ -693,7 +693,8 @@ export default function PointOfSale() {
                 <p className="text-xs text-[#8a94aa] mt-2">From {formatNumber(analyticsData.totalRatings)} reviews</p>
               </div>
 
-              {/* Subscription Plan */}
+              {/* Seller subscription is switched off for now.
+{/ * Subscription Plan * /}
               <div className="bg-white rounded-lg shadow-sm border border-[#e3e6ef] p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-3 bg-purple-100 rounded-lg">
@@ -716,6 +717,7 @@ export default function PointOfSale() {
                     : ''}
                 </p>
               </div>
+*/}
                   </div>
 
             {/* Profit & Revenue Section */}

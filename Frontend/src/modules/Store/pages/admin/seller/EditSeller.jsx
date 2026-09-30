@@ -548,7 +548,8 @@ export default function EditSeller() {
                   <Label>Primary Email</Label>
                   <Input value={detailsForm.email} onChange={(e) => setDetailsForm((p) => ({ ...p, email: e.target.value }))} />
                 </div>
-                <div>
+                {/* Seller subscription is switched off for now.
+<div>
                   <Label>Exempt from Subscription Billing</Label>
                   <div className="mt-2 flex items-center gap-2">
                     <button
@@ -579,6 +580,7 @@ export default function EditSeller() {
                     stores, trials and bespoke arrangements — it does not stop them trading.
                   </p>
                 </div>
+*/}
                 <div>
                   <Label>Owner Name</Label>
                   <Input value={detailsForm.ownerName} onChange={(e) => setDetailsForm((p) => ({ ...p, ownerName: e.target.value }))} />

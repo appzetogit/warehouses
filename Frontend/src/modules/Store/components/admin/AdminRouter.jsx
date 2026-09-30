@@ -35,8 +35,9 @@ const SellerComplaints = lazy(() => import("@store/pages/admin/seller/SellerComp
 const SellerReviews = lazy(() => import("@store/pages/admin/seller/SellerReviews"));
 const SellersBulkImport = lazy(() => import("@store/pages/admin/seller/SellersBulkImport"));
 const SellersBulkExport = lazy(() => import("@store/pages/admin/seller/SellersBulkExport"));
-const SubscriptionSettings = lazy(() => import("@store/pages/admin/seller/SubscriptionSettings"));
-const SubscriptionHistory = lazy(() => import("@store/pages/admin/seller/SubscriptionHistory"));
+// Seller subscription is switched off for now.
+// const SubscriptionSettings = lazy(() => import("@store/pages/admin/seller/SubscriptionSettings"));
+// const SubscriptionHistory = lazy(() => import("@store/pages/admin/seller/SubscriptionHistory"));
 const SellerSettings = lazy(() => import("@store/pages/admin/seller/SellerSettings"));
 // Food Management
 const ProductsList = lazy(() => import("@store/pages/admin/products/ProductsList"));
@@ -338,10 +339,12 @@ export default function AdminRouter() {
             <Route path="sellers/bulk-export" element={<SellersBulkExport />} />
             <Route path="sellers/settings" element={<SellerSettings />} />
             <Route path="sellers/settings" element={<SellerSettings />} />
+            {/* Seller subscription is switched off for now.
             <Route path="sellers/subscription-settings" element={<SubscriptionSettings />} />
             <Route path="sellers/subscription-settings" element={<SubscriptionSettings />} />
             <Route path="sellers/subscription-history" element={<SubscriptionHistory />} />
             <Route path="sellers/subscription-history" element={<SubscriptionHistory />} />
+            */}
 
             {/* FOOD & CATEGORY MANAGEMENT */}
             <Route path="categories" element={<Category />} />

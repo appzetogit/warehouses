@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 import { Input } from "@store/components/ui/input"
 import { Button } from "@store/components/ui/button"
 import { Label } from "@store/components/ui/label"
-import { Image as ImageIcon, Upload, Clock, Calendar as CalendarIcon, Award, BadgeCheck, Wallet, Info, X } from "lucide-react"
+import { Image as ImageIcon, Upload, Clock, Calendar as CalendarIcon, X } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@store/components/ui/popover"
 import { Calendar } from "@store/components/ui/calendar"
 import {
@@ -26,8 +26,7 @@ import { clearModuleAuth } from "@store/utils/auth"
 import { logoutSellerSession } from "@store/utils/sellerLogout"
 import { ImageSourcePicker } from "@store/components/ImageSourcePicker"
 import { resolveMediaUrl } from "@store/utils/common"
-import { initRazorpayPayment } from "@store/utils/razorpay"
-import { getCompanyNameAsync, loadBusinessSettings, getModuleLogoUrl } from "@store/utils/businessSettings"
+import { loadBusinessSettings, getModuleLogoUrl } from "@store/utils/businessSettings"
 import SellerOnboardingShell from "@store/components/seller/SellerOnboardingShell"
 import {
   ONBOARDING_SECTION_FULL,
@@ -38,8 +37,6 @@ import {
   ONBOARDING_INPUT,
   ONBOARDING_UPLOAD_BOX,
   ONBOARDING_UPLOAD_BTN,
-  ONBOARDING_INFO_BOX,
-  ONBOARDING_PLAN_CARD,
   ONBOARDING_DOC_PREVIEW,
   ONBOARDING_DAY_ACTIVE,
   ONBOARDING_DAY_INACTIVE,
@@ -47,9 +44,6 @@ import {
 } from "@store/components/seller/onboardingStyles"
 
 const SELLER_THEME = "#FD920B"
-
-const formatMoney = (value) =>
-  `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -253,7 +247,7 @@ const hasSuspiciousEmailTld = (emailValue) => {
 }
 
 // Helper functions for localStorage
-const saveOnboardingToLocalStorage = (step1, step2, step3, currentStep, step4State) => {
+const saveOnboardingToLocalStorage = (step1, step2, step3, currentStep) => {
   try {
     // Persist only stable URL-based values. File/Blob objects are not serializable and
     // restoring metadata-only placeholders breaks preview/upload flows.
@@ -292,7 +286,6 @@ const saveOnboardingToLocalStorage = (step1, step2, step3, currentStep, step4Sta
       step1,
       step2: serializableStep2,
       step3: serializableStep3,
-      step4: step4State,
       currentStep,
       timestamp: Date.now(),
     }
@@ -542,20 +535,8 @@ export default function SellerOnboarding() {
   }, [])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [paymentProcessing, setPaymentProcessing] = useState(false)
   const [error, setError] = useState("")
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [step4State, setStep4State] = useState({
-    onboardingFeePaid: false,
-    onboardingFeeAmount: 0,
-    razorpayOrderId: "",
-    razorpayPaymentId: "",
-    razorpaySignature: "",
-    paymentType: "razorpay",
-    errors: [],
-  })
-  const [subscriptionSettings, setSubscriptionSettings] = useState(null)
-  const [loadingSubscriptionSettings, setLoadingSubscriptionSettings] = useState(true)
   const [registrationProcessing, setRegistrationProcessing] = useState(false)
   const [uploadingAttachments, setUploadingAttachments] = useState({})
 
@@ -565,37 +546,6 @@ export default function SellerOnboarding() {
     navigate(`?step=${n}`, { replace: false })
     window.scrollTo({ top: 0, behavior: "instant" })
   }
-
-  const planCatalog = subscriptionSettings?.planCatalog?.plans || []
-  const gstRate = Number(subscriptionSettings?.gstRate ?? 0.18)
-  const onboardingFeeAmount = Math.max(0, Number(subscriptionSettings?.onboardingFee) || 0)
-  const onboardingFeeGst =
-    onboardingFeeAmount > 0 ? Math.round(onboardingFeeAmount * gstRate * 100) / 100 : 0
-  const onboardingFeeTotal = onboardingFeeAmount + onboardingFeeGst
-  const requiresOnboardingFee = onboardingFeeAmount > 0
-
-  useEffect(() => {
-    let cancelled = false
-    const loadSubscriptionSettings = async () => {
-      try {
-        setLoadingSubscriptionSettings(true)
-        const res = await sellerAPI.getSubscriptionSettings()
-        const data = res?.data?.data || res?.data || null
-        if (!cancelled && data) {
-          setSubscriptionSettings(data)
-        }
-      } catch (err) {
-        debugWarn("Failed to load subscription settings:", err)
-      } finally {
-        if (!cancelled) setLoadingSubscriptionSettings(false)
-      }
-    }
-    loadSubscriptionSettings()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
 
   const triggerBackgroundUpload = async (file, folder, fieldName, isArray = false, arrayIndex = -1) => {
     if (!file || !isUploadableFile(file)) return;
@@ -1121,14 +1071,6 @@ export default function SellerOnboarding() {
             }))
           }
 
-          if (localData.step4) {
-            setStep4State((prev) => ({
-              ...prev,
-              ...localData.step4,
-              errors: [] // Clear previous errors
-            }))
-          }
-
           // Only set step from localStorage if URL doesn't have a step parameter
           if (localData.currentStep && !stepParam) {
             const restoredStep = Number(localData.currentStep) || 1
@@ -1175,7 +1117,7 @@ export default function SellerOnboarding() {
   useEffect(() => {
     if (!isOnboardingHydrated) return
     if (isRestoringOnboardingRef.current) return
-    saveOnboardingToLocalStorage(step1, step2, step3, step, step4State)
+    saveOnboardingToLocalStorage(step1, step2, step3, step)
     
     // Save images to IndexedDB
     const saveFiles = async () => {
@@ -1197,7 +1139,7 @@ export default function SellerOnboarding() {
       await persistMenuImagesToDB(step2.menuImages || [])
     }
     saveFiles()
-  }, [isOnboardingHydrated, step1, step2, step3, step, step4State])
+  }, [isOnboardingHydrated, step1, step2, step3, step])
 
   useEffect(() => {
     syncOnboardingFileCache(step2, step3)
@@ -1631,10 +1573,6 @@ export default function SellerOnboarding() {
 
 
   const handleFinalSubmit = async () => {
-    if (requiresOnboardingFee && !step4State.onboardingFeePaid) {
-      throw new Error("Please pay the onboarding fee before submitting")
-    }
-
     const formData = new FormData()
     formData.append('sellerName', step1.sellerName || '')
     formData.append('ownerName', step1.ownerName || '')
@@ -1698,16 +1636,6 @@ export default function SellerOnboarding() {
     formData.append('ifscCode', (step3.ifscCode || '').toUpperCase())
     formData.append('accountHolderName', step3.accountHolderName || '')
     formData.append('accountType', step3.accountType || '')
-    formData.append('subscriptionPlan', 'starter')
-
-    if (requiresOnboardingFee) {
-      formData.append('onboardingFeeAmount', String(step4State.onboardingFeeAmount || onboardingFeeTotal))
-      formData.append('onboardingFeePaid', 'true')
-      formData.append('paymentType', step4State.paymentType || 'razorpay')
-      formData.append('razorpayOrderId', step4State.razorpayOrderId || '')
-      formData.append('razorpayPaymentId', step4State.razorpayPaymentId || '')
-      formData.append('razorpaySignature', step4State.razorpaySignature || '')
-    }
 
     setRegistrationProcessing(true)
     const loadingToast = toast.loading('Submitting onboarding request...')
@@ -1726,74 +1654,6 @@ export default function SellerOnboarding() {
       })
     } finally {
       setRegistrationProcessing(false)
-    }
-  }
-
-  const handlePayOnboardingFee = async () => {
-    if (!requiresOnboardingFee || step4State.onboardingFeePaid) return
-
-    const phone = normalizePhoneDigits(step1.ownerPhone)
-    if (!phone) {
-      toast.error("Owner phone is required for payment")
-      return
-    }
-
-    setPaymentProcessing(true)
-    try {
-      const orderResponse = await sellerAPI.createOnboardingFeeOrder(phone)
-      const payload = orderResponse?.data?.data || orderResponse?.data || {}
-      const razorpay = payload?.razorpay
-      const feeTotal =
-        Number(payload?.onboardingFeeTotal) ||
-        Number(payload?.onboardingFeeAmount ?? onboardingFeeTotal) ||
-        onboardingFeeTotal
-
-      if (!razorpay?.orderId || !razorpay?.key) {
-        throw new Error("Failed to initialize payment gateway")
-      }
-
-      const company = await getCompanyNameAsync()
-
-      await initRazorpayPayment({
-        key: razorpay.key,
-        amount: razorpay.amount,
-        currency: razorpay.currency || "INR",
-        order_id: razorpay.orderId,
-        name: company || companyName,
-        description: "Store onboarding fee",
-        prefill: {
-          name: step1.ownerName || "",
-          email: (step1.ownerEmail || "").trim(),
-          contact: phone,
-        },
-        handler: (response) => {
-          setStep4State((prev) => ({
-            ...prev,
-            onboardingFeePaid: true,
-            onboardingFeeAmount: feeTotal,
-            razorpayOrderId: response.razorpay_order_id,
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpaySignature: response.razorpay_signature,
-            paymentType: "razorpay",
-          }))
-          toast.success("Onboarding fee paid successfully")
-        },
-        onClose: () => {
-          toast.info("Payment cancelled")
-        },
-        onError: (err) => {
-          toast.error(err?.message || "Payment failed")
-        },
-      })
-    } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        err?.message ||
-        "Failed to start onboarding fee payment"
-      toast.error(msg)
-    } finally {
-      setPaymentProcessing(false)
     }
   }
 
@@ -3280,149 +3140,6 @@ export default function SellerOnboarding() {
     </div>
   )
 
-  const formatGmvRange = (plan) => {
-    const min = Number(plan?.gmvMin ?? 0)
-    const max = plan?.gmvMax
-    if (max == null) return `≥ ${formatMoney(min)}`
-    return `${formatMoney(min)} – ${formatMoney(max)}`
-  }
-
-  const renderStep4 = () => (
-    <div className="space-y-5">
-      <section className={ONBOARDING_INFO_BOX}>
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-wh-brand/10">
-            <Info className="h-5 w-5 text-wh-brand-ink" />
-          </div>
-          <div>
-            <h2 className={ONBOARDING_SECTION_TITLE}>How subscription billing works</h2>
-            <p className={`${ONBOARDING_SECTION_DESC} mt-2`}>
-              Your monthly plan is assigned automatically from your seller&apos;s calendar-month GMV
-              (net earnings from delivered orders). Invoices are generated at month end with plan amount
-              plus {(gstRate * 100).toFixed(0)}% GST. No upfront subscription purchase is required today.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {loadingSubscriptionSettings ? (
-        <section className={`${ONBOARDING_SECTION_FULL} text-sm text-gray-500`}>
-          Loading subscription plans...
-        </section>
-      ) : (
-        <section className={ONBOARDING_SECTION_FULL}>
-          <div className="mb-5">
-            <h3 className={ONBOARDING_SECTION_TITLE}>Monthly plans by GMV slab</h3>
-            <p className={`${ONBOARDING_SECTION_DESC} mt-1`}>
-              Your plan is assigned automatically based on your seller&apos;s monthly order volume.
-            </p>
-          </div>
-
-          {planCatalog.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {planCatalog.map((plan) => {
-                const gstAmount = Math.round(Number(plan.basePrice || 0) * gstRate * 100) / 100
-                const totalWithGst = Number(plan.basePrice || 0) + gstAmount
-                return (
-                  <div key={plan.id} className={ONBOARDING_PLAN_CARD}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-wh-brand/10">
-                        <Award className="h-5 w-5 text-wh-brand-ink" />
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xl font-bold text-gray-900">{formatMoney(plan.basePrice)}</p>
-                        <p className="text-[11px] font-medium text-gray-500">/ month + GST</p>
-                      </div>
-                    </div>
-
-                    <p className="mt-4 text-base font-semibold text-gray-900">{plan.label} Plan</p>
-
-                    <div className="mt-3 rounded-xl bg-gray-50 px-3 py-2.5">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                        Monthly GMV slab
-                      </p>
-                      <p className="mt-0.5 text-sm font-medium text-gray-800">{formatGmvRange(plan)}</p>
-                    </div>
-
-                    <div className="mt-auto border-t border-gray-100 pt-4">
-                      <p className="text-xs text-gray-500">
-                        Estimated invoice:{" "}
-                        <span className="font-semibold text-gray-800">{formatMoney(totalWithGst)}</span>
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-gray-400">
-                        Includes GST ({formatMoney(gstAmount)})
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
-              Subscription plan details are not available right now.
-            </div>
-          )}
-        </section>
-      )}
-
-      {requiresOnboardingFee ? (
-        <section className={`${ONBOARDING_SECTION_FULL} border-wh-brand/20`}>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-wh-brand/10">
-                <Wallet className="h-5 w-5 text-wh-brand-ink" />
-              </div>
-              <div className="max-w-xl">
-                <h3 className={ONBOARDING_SECTION_TITLE}>One-time onboarding fee</h3>
-                <p className={`${ONBOARDING_SECTION_DESC} mt-1`}>
-                  A one-time onboarding fee is required before your application can be submitted
-                  for approval.
-                </p>
-                <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-3 text-sm">
-                  <div className="flex justify-between text-gray-600">
-                    <span>Onboarding fee</span>
-                    <span className="font-medium text-gray-800">{formatMoney(onboardingFeeAmount)}</span>
-                  </div>
-                  <div className="mt-2 flex justify-between text-gray-600">
-                    <span>GST ({(gstRate * 100).toFixed(0)}%)</span>
-                    <span className="font-medium text-gray-800">{formatMoney(onboardingFeeGst)}</span>
-                  </div>
-                  <div className="mt-2 flex justify-between border-t border-dashed border-gray-200 pt-2 font-semibold text-gray-900">
-                    <span>Total payable</span>
-                    <span>{formatMoney(onboardingFeeTotal)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {step4State.onboardingFeePaid ? (
-              <span className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
-                <BadgeCheck className="h-4 w-4" />
-                Paid
-              </span>
-            ) : null}
-          </div>
-
-          {!step4State.onboardingFeePaid ? (
-            <Button
-              type="button"
-              onClick={handlePayOnboardingFee}
-              disabled={paymentProcessing || !isEditing}
-              className="mt-5 w-full rounded-xl text-wh-text hover:opacity-90 sm:w-auto sm:min-w-[220px]"
-              style={{ backgroundColor: SELLER_THEME }}
-            >
-              {paymentProcessing ? "Processing payment..." : `Pay ${formatMoney(onboardingFeeTotal)}`}
-            </Button>
-          ) : (
-            <p className="mt-4 rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">
-              Payment received. You can now submit your onboarding application for approval.
-            </p>
-          )}
-        </section>
-      ) : null}
-    </div>
-  )
-
   const renderStep = () => {
     if (step === 1) return renderStep1()
     if (step === 2) return renderStep2()
@@ -3432,7 +3149,6 @@ export default function SellerOnboarding() {
 
   const isNextDisabled =
     saving ||
-    paymentProcessing ||
     registrationProcessing ||
     (step === 3 && !isEditing) ||
     Object.values(uploadingAttachments).some(Boolean)
@@ -3480,7 +3196,7 @@ export default function SellerOnboarding() {
         companyName={companyName}
         logoUrl={logoUrl}
         loading={loading}
-        saving={saving || paymentProcessing || registrationProcessing}
+        saving={saving || registrationProcessing}
         error={error}
         keyboardInset={keyboardInset}
         isEditing={isEditing}

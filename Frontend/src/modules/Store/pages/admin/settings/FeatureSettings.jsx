@@ -99,7 +99,8 @@ export default function FeatureSettings() {
                 <p className="text-sm text-gray-500 mt-1">Enable or disable platform features safely from one place.</p>
             </div>
 
-            <Card className="border-slate-200">
+            {/* Seller subscription is switched off for now.
+<Card className="border-slate-200">
                 <CardHeader>
                     <CardTitle className="text-lg">Seller Subscription</CardTitle>
                     <CardDescription>
@@ -118,6 +119,7 @@ export default function FeatureSettings() {
                     />
                 </CardContent>
             </Card>
+*/}
 
             <Card className="border-slate-200">
                 <CardHeader>
