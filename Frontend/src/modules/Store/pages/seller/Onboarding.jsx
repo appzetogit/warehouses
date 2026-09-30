@@ -62,6 +62,8 @@ const ONBOARDING_STORAGE_KEY = "seller_onboarding_data"
 const PAN_NUMBER_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
 const GST_NUMBER_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
 const FSSAI_NUMBER_REGEX = /^\d{14}$/
+// Seller info, photos & hours, legal documents; submitting the last one sends it for approval.
+const LAST_STEP = 3
 const BANK_ACCOUNT_NUMBER_REGEX = /^\d{9,18}$/
 const IFSC_CODE_REGEX = /^[A-Z0-9]{11}$/
 const OWNER_NAME_REGEX = /^[A-Za-z ]+$/
@@ -521,8 +523,8 @@ export default function SellerOnboarding() {
 
   useEffect(() => {
     const s = parseInt(searchParams.get('step'))
-    if (s >= 1 && s <= 4 && s !== step) {
-      setStep(s)
+    if (s >= 1 && s !== step) {
+      setStep(Math.min(LAST_STEP, s))
     }
   }, [searchParams, step])
 
@@ -558,7 +560,7 @@ export default function SellerOnboarding() {
   const [uploadingAttachments, setUploadingAttachments] = useState({})
 
   const goToStep = (targetStep) => {
-    const n = Math.min(4, Math.max(1, targetStep))
+    const n = Math.min(LAST_STEP, Math.max(1, targetStep))
     setStep(n)
     navigate(`?step=${n}`, { replace: false })
     window.scrollTo({ top: 0, behavior: "instant" })
@@ -1130,7 +1132,7 @@ export default function SellerOnboarding() {
           // Only set step from localStorage if URL doesn't have a step parameter
           if (localData.currentStep && !stepParam) {
             const restoredStep = Number(localData.currentStep) || 1
-            setStep(Math.min(4, Math.max(1, restoredStep)))
+            setStep(Math.min(LAST_STEP, Math.max(1, restoredStep)))
           }
         }
       } finally {
@@ -1806,10 +1808,6 @@ export default function SellerOnboarding() {
       validationErrors = validateStep2()
     } else if (step === 3) {
       validationErrors = validateStep3()
-    } else if (step === 4) {
-      if (requiresOnboardingFee && !step4State.onboardingFeePaid) {
-        validationErrors = ["Please pay the onboarding fee to complete onboarding"]
-      }
     }
 
     if (validationErrors.length > 0) {
@@ -1827,9 +1825,7 @@ export default function SellerOnboarding() {
         goToStep(2)
       } else if (step === 2) {
         goToStep(3)
-      } else if (step === 3) {
-        goToStep(4)
-      } else if (step === 4) {
+      } else if (step === LAST_STEP) {
         await handleFinalSubmit()
       }
     } catch (err) {
@@ -3431,7 +3427,6 @@ export default function SellerOnboarding() {
     if (step === 1) return renderStep1()
     if (step === 2) return renderStep2()
     if (step === 3) return renderStep3()
-    if (step === 4) return renderStep4()
     return renderStep1()
   }
 
@@ -3439,21 +3434,16 @@ export default function SellerOnboarding() {
     saving ||
     paymentProcessing ||
     registrationProcessing ||
-    ((step === 3 || step === 4) && !isEditing) ||
-    Object.values(uploadingAttachments).some(Boolean) ||
-    (step === 4 && requiresOnboardingFee && !step4State.onboardingFeePaid)
+    (step === 3 && !isEditing) ||
+    Object.values(uploadingAttachments).some(Boolean)
 
   const continueLabel = Object.values(uploadingAttachments).some(Boolean)
     ? "Uploading..."
-    : step === 4
+    : step === LAST_STEP
       ? saving || registrationProcessing
         ? "Submitting..."
         : "Submit for approval"
-      : step === 3
-        ? saving
-          ? "Saving..."
-          : "Continue"
-        : saving
+      : saving
           ? "Saving..."
           : "Continue"
 

@@ -8,9 +8,8 @@ export const ONBOARDING_FONT =
 
 export const ONBOARDING_STEPS = [
   { id: 1, title: "Seller Info", subtitle: "Name, owner & location" },
-  { id: 2, title: "Menu & Hours", subtitle: "Photos & delivery timings" },
-  { id: 3, title: "Legal Documents", subtitle: "PAN, GST, FSSAI & bank" },
-  { id: 4, title: "Subscription", subtitle: "Plans & onboarding fee" },
+  { id: 2, title: "Photos & Hours", subtitle: "Store photos & timings" },
+  { id: 3, title: "Legal Documents", subtitle: "PAN, GST & bank" },
 ]
 
 export const ONBOARDING_SECTION =
