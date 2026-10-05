@@ -6,6 +6,7 @@ import { useQuickLayout } from "./QuickLayoutContext"
 import QuickThemeBlock from "./QuickThemeBlock"
 import { CampaignBanner, CategoryGroup, FeaturedRail, FrequentlyBought } from "./QuickFeed"
 import QuickRateNudge from "./QuickRateNudge"
+import OfferBannerStrip from "../home/OfferBannerStrip"
 
 /**
  * The Quick storefront's home on a phone (QUICK_MOBILE_SPEC.md), laid out like
@@ -124,6 +125,8 @@ export default function QuickMobileHome({
         {!outOfZone ? (
           <FrequentlyBought title={frequent.title} groups={frequent.groups} seeAllTo="/categories" />
         ) : null}
+
+        {!outOfZone ? <OfferBannerStrip /> : null}
 
         <FeaturedRail items={layout.featured} />
 

@@ -43,6 +43,15 @@ export async function call(method, path, { as, body } = {}) {
     return { status: res.status, body: json };
 }
 
+/** Multipart request (file uploads); `form` is a FormData. */
+export async function callForm(method, path, { as, form } = {}) {
+    const headers = {};
+    if (as) headers.authorization = `Bearer ${as}`;
+    const res = await fetch(`${base}${path}`, { method, headers, body: form });
+    const json = await res.json().catch(() => null);
+    return { status: res.status, body: json };
+}
+
 /** Fails with the server's message rather than a bare status mismatch. */
 export function ok(res, what, status = 200) {
     assert.equal(res.status, status, `${what}: ${res.status} ${JSON.stringify(res.body)}`);

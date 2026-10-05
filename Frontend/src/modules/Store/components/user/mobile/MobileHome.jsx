@@ -13,6 +13,7 @@ import ProductTile from "./ProductTile"
 import { useQuickLayout } from "../quick-mobile/QuickLayoutContext"
 import { CampaignBanner, FeaturedRail } from "../quick-mobile/QuickFeed"
 import QuickRateNudge from "../quick-mobile/QuickRateNudge"
+import OfferBannerStrip from "../home/OfferBannerStrip"
 
 /**
  * The phone home from the mobile mockup (screen 1), for Shop and Quick alike:
@@ -373,6 +374,7 @@ export default function MobileHome({ heroBanners = [], products = [], loading = 
     <div className="space-y-6 bg-[#F7F7F8] pb-8 pt-3 lg:hidden">
       <BannerCarousel banners={heroBanners} />
       <Promises storeCount={featuredStores.length} />
+      <OfferBannerStrip />
       <CategoryRow categories={categoryRow} />
       <ProductRail
         title={isQuick ? "Trending Near You" : "Trending Now"}

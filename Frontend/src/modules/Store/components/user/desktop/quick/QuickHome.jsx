@@ -15,6 +15,7 @@ import { useQuickEta } from "../useDeliveryEstimates"
 import { usePublicCategories } from "../useDesktopShell"
 import QuickCategoryTiles from "./QuickCategoryTiles"
 import QuickPromoBanners from "./QuickPromoBanners"
+import OfferBannerStrip from "../../home/OfferBannerStrip"
 import { MIN_RAIL_PRODUCTS, QuickProductRail } from "./QuickRail"
 import { productId, productPrice, productMrp } from "./quickHelpers"
 import useIsDesktop from "../useIsDesktop"
@@ -195,6 +196,7 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
         <QuickCategoryTiles tree={tree} loading={categoriesLoading} title="Shop Essentials by Category" />
 
         {!outOfZone ? <QuickPromoBanners banners={heroBanners} onOpen={onOpenBanner} /> : null}
+        {!outOfZone ? <OfferBannerStrip /> : null}
 
         {!outOfZone ? (
           <>

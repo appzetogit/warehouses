@@ -1095,6 +1095,22 @@ export const adminAPI = {
       contextModule: "admin",
     }),
 
+  /** Offer banners (admin): storefront banners for Quick and/or Shop. Body is a FormData (field "file" for the image). */
+  getOfferBanners: (params = {}) =>
+    apiClient.get("/admin/offer-banners", { params, contextModule: "admin" }),
+  createOfferBanner: (formData) =>
+    apiClient.post("/admin/offer-banners", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      contextModule: "admin",
+    }),
+  updateOfferBanner: (id, formData) =>
+    apiClient.patch(`/admin/offer-banners/${String(id)}`, formData, {
+      headers: formData instanceof FormData ? { "Content-Type": "multipart/form-data" } : undefined,
+      contextModule: "admin",
+    }),
+  deleteOfferBanner: (id) =>
+    apiClient.delete(`/admin/offer-banners/${String(id)}`, { contextModule: "admin" }),
+
   /** Delivery Partner Bonus (admin) */
   getDeliveryPartnerBonusTransactions: (params = {}) =>
     apiClient.get("/admin/delivery/bonus-transactions", {
@@ -1514,6 +1530,9 @@ export const sellerAPI = {
   updateMyOfferStatus: (id, status) => apiClient.patch(`/seller/my-offers/${id}/status`, { status }, { contextModule: "seller" }),
   /** Public Offers for users (global/selected seller) */
   getPublicOffers: (params = {}) => apiClient.get("/catalog/offers", { params }),
+  /** Public: live offer banners for a storefront (mode "quick" or "shop"). */
+  getOfferBannersPublic: (mode = "shop", config = {}) =>
+    apiClient.get("/catalog/offer-banners", { params: { mode }, ...config }),
   /** Backward-compat helper used by Cart: returns coupons array for an item by adapting public offers */
   getCouponsByItemIdPublic: (sellerId, _itemId, subtotal) =>
     apiClient.get("/catalog/offers", { params: { sellerId, subtotal } }).then((res) => {

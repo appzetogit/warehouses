@@ -23,6 +23,7 @@ import { requireAdminPermission, requireAnyAdminPermission } from '../../../../c
 import * as driverRegField from '../../delivery/controllers/driverRegistrationField.controller.js';
 import * as cashbackSettings from '../controllers/cashbackSettings.controller.js';
 import * as sellerAppBanner from '../controllers/sellerAppBanner.controller.js';
+import * as offerBanner from '../controllers/offerBanner.controller.js';
 import * as coinController from '../../coins/controllers/coin.controller.js';
 import * as spinController from '../../spin/controllers/spin.controller.js';
 import * as dailyMetricsController from '../controllers/dailyMetrics.controller.js';
@@ -89,7 +90,7 @@ const resolveSectionFromRequest = (path = '', method = '') => {
         path.startsWith('/product-reviews') ||
         path.startsWith('/inventory')
     ) return 'product_management';
-    if (path.startsWith('/offers') || path.startsWith('/spin') || path.startsWith('/push-campaigns') || path.startsWith('/first-order-guard')) return 'promotions_management';
+    if (path.startsWith('/offers') || path.startsWith('/offer-banners') || path.startsWith('/spin') || path.startsWith('/push-campaigns') || path.startsWith('/first-order-guard')) return 'promotions_management';
     if (path.startsWith('/orders') || path.startsWith('/order-detect-delivery')) return 'order_management';
     if (path.startsWith('/shipments') || path.startsWith('/returns') || path.startsWith('/checkouts')) return 'order_management';
     if (path.startsWith('/cod-remittances')) return 'report_management';
@@ -136,6 +137,7 @@ router.use('/seller-subscriptions', requireAdminPermission('seller_management', 
 router.use('/categories', requireAdminPermission('product_management', 'view'));
 router.use('/products', requireAdminPermission('product_management', 'view'));
 router.use('/offers', requireAdminPermission('promotions_management', 'view'));
+router.use('/offer-banners', requireAdminPermission('promotions_management', 'view'));
 router.use('/delivery', requireAdminPermission('delivery_management', 'view'));
 router.use('/withdrawals', requireAdminPermission('transaction_management', 'view'));
 router.use('/reports', requireAdminPermission('report_management', 'view'));
@@ -334,6 +336,12 @@ router.get('/offers', adminController.getAllOffers);
 router.post('/offers', adminController.createAdminOffer);
 router.patch('/offers/:id/cart-visibility', adminController.updateAdminOfferCartVisibility);
 router.delete('/offers/:id', adminController.deleteAdminOffer);
+
+// ----- Offer banners (storefront coupon/offer banners for Quick and/or Shop) -----
+router.get('/offer-banners', offerBanner.listOfferBannersAdminController);
+router.post('/offer-banners', upload.single('file'), offerBanner.createOfferBannerController);
+router.patch('/offer-banners/:id', upload.single('file'), offerBanner.updateOfferBannerController);
+router.delete('/offer-banners/:id', offerBanner.deleteOfferBannerController);
 
 // ----- Feedback Experience (Admin) -----
 router.get('/feedback-experiences', feedbackExperienceController.getFeedbackExperiences);

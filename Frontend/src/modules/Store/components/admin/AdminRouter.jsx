@@ -45,6 +45,7 @@ const ProductsList = lazy(() => import("@store/pages/admin/products/ProductsList
 const BasicCampaign = lazy(() => import("@store/pages/admin/campaigns/BasicCampaign"));
 const ProductCampaign = lazy(() => import("@store/pages/admin/campaigns/ProductCampaign"));
 const Coupons = lazy(() => import("@store/pages/admin/Coupons"));
+const OfferBanners = lazy(() => import("@store/pages/admin/OfferBanners"));
 const Cashback = lazy(() => import("@store/pages/admin/Cashback"));
 const Banners = lazy(() => import("@store/pages/admin/Banners"));
 const PromotionalBanner = lazy(() => import("@store/pages/admin/PromotionalBanner"));
@@ -380,6 +381,7 @@ export default function AdminRouter() {
             <Route path="campaigns/basic" element={<BasicCampaign />} />
             <Route path="campaigns/food" element={<ProductCampaign />} />
             <Route path="coupons" element={<Coupons />} />
+            <Route path="offer-banners" element={<OfferBanners />} />
             <Route path="cashback" element={<Cashback />} />
             <Route path="banners" element={<Banners />} />
             <Route path="promotional-banner" element={<PromotionalBanner />} />

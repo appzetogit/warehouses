@@ -4,6 +4,7 @@ import { useStoreMode } from "@store/context/StoreModeContext"
 import { isModuleAuthenticated } from "@store/utils/auth"
 import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
 import HeroCarousel from "./HeroCarousel"
+import OfferBannerStrip from "../home/OfferBannerStrip"
 import { HomeSkeleton } from "./HomeSkeletons"
 import {
   BoutiqueStoresSection,
@@ -192,6 +193,8 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
 
       <div className="mx-auto max-w-[1500px] space-y-6 px-3 py-4 sm:px-5 sm:space-y-8">
         <TrustStrip />
+
+        <OfferBannerStrip />
 
         <Marquee items={marqueeItems} />
 

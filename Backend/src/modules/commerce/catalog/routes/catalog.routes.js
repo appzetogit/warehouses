@@ -13,6 +13,7 @@ import { getOutletTimingsBySellerIdController } from '../../seller/controllers/o
 import { listPublicAttributesController, getCategoryAttributesController } from '../../admin/controllers/attribute.controller.js';
 import { nearbyStoresController } from '../../search/controllers/search.controller.js';
 import searchRoutes from '../../search/routes/search.routes.js';
+import { listOfferBannersPublicController } from '../../admin/controllers/offerBanner.controller.js';
 import { getProductRecommendationsController } from '../../recommendations/controllers/recommendation.controller.js';
 import { listProductReviewsController } from '../../reviews/routes/productReview.routes.js';
 import { deliveryEstimateController } from '../controllers/deliveryEstimate.controller.js';
@@ -43,6 +44,8 @@ router.get('/attributes', listPublicAttributesController);
 // Shop (courier) delivery window for a pincode; the courier's answer is cached per pincode.
 router.get('/delivery-estimate', deliveryEstimateController);
 router.get('/offers', optionalAuth, listPublicOffersController);
+// Offer banners for the Quick or Shop storefront (?mode=quick|shop).
+router.get('/offer-banners', listOfferBannersPublicController);
 router.use('/search', searchRoutes);
 
 export default router;

@@ -132,6 +132,7 @@ const adminSidebarMenuTemplate = [
         path: "/coupons",
         icon: "Gift",
       },
+      { type: "link", label: "Offer Banners", path: "/offer-banners", icon: "Megaphone" },
     ],
   },
   {

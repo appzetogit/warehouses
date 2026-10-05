@@ -11,6 +11,7 @@ import { useDelayedLoading } from "@store/hooks/useDelayedLoading"
 
 // Import banner image
 import offerBanner from "@store/assets/offerpagebanner.png"
+import OfferBannerStrip from "@store/components/user/home/OfferBannerStrip"
 import { imagePlaceholder } from "@store/constants/images"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -78,6 +79,7 @@ export default function Offers() {
       {/* Content */}
       <div className="px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-8 lg:py-10 space-y-6 md:space-y-8">
         <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
+        <OfferBannerStrip title="Coupons & Offers" layout="grid" padded={false} />
         {/* Loading State */}
         {showOffersSkeleton && <SellerGridSkeleton count={4} compact />}
 

@@ -7,6 +7,7 @@ DELETE /api/v1/admin/delivery/earning-addons/:id
 DELETE /api/v1/admin/driver-registration-fields/:id
 DELETE /api/v1/admin/feedback-experiences/:id
 DELETE /api/v1/admin/notifications/broadcast/:id
+DELETE /api/v1/admin/offer-banners/:id
 DELETE /api/v1/admin/offers/:id
 DELETE /api/v1/admin/orders/:orderId
 DELETE /api/v1/admin/product-reviews/:id
@@ -96,6 +97,7 @@ GET /api/v1/admin/global-search
 GET /api/v1/admin/inventory/low-stock
 GET /api/v1/admin/notifications/broadcast
 GET /api/v1/admin/notifications/fssai-expired
+GET /api/v1/admin/offer-banners
 GET /api/v1/admin/offers
 GET /api/v1/admin/orders
 GET /api/v1/admin/orders/:orderId
@@ -169,6 +171,7 @@ GET /api/v1/catalog/attributes
 GET /api/v1/catalog/categories
 GET /api/v1/catalog/categories/:id/attributes
 GET /api/v1/catalog/delivery-estimate
+GET /api/v1/catalog/offer-banners
 GET /api/v1/catalog/offers
 GET /api/v1/catalog/products
 GET /api/v1/catalog/products/:id
@@ -320,6 +323,7 @@ PATCH /api/v1/admin/delivery/wallets
 PATCH /api/v1/admin/delivery/withdrawals/:id
 PATCH /api/v1/admin/driver-registration-fields/:id
 PATCH /api/v1/admin/feature-settings/:key
+PATCH /api/v1/admin/offer-banners/:id
 PATCH /api/v1/admin/offers/:id/cart-visibility
 PATCH /api/v1/admin/orders/:orderId/accept
 PATCH /api/v1/admin/orders/:orderId/deassign-resend
@@ -415,6 +419,7 @@ POST /api/v1/admin/delivery/earning-addons
 POST /api/v1/admin/driver-registration-fields
 POST /api/v1/admin/first-order-guard/claims/:id/release
 POST /api/v1/admin/notifications/broadcast
+POST /api/v1/admin/offer-banners
 POST /api/v1/admin/offers
 POST /api/v1/admin/orders/:orderId/refund
 POST /api/v1/admin/orders/:orderId/resend-notification
