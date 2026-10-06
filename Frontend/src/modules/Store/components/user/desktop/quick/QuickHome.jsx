@@ -17,11 +17,13 @@ import QuickCategoryTiles from "./QuickCategoryTiles"
 import QuickPromoBanners from "./QuickPromoBanners"
 import OfferBannerStrip from "../../home/OfferBannerStrip"
 import { MIN_RAIL_PRODUCTS, QuickProductRail } from "./QuickRail"
+import QuickProductCard from "./QuickProductCard"
 import { productId, productPrice, productMrp } from "./quickHelpers"
 import useIsDesktop from "../useIsDesktop"
 import QuickMobileHome from "../../quick-mobile/QuickMobileHome"
 
 const PRODUCT_LIMIT = 50
+const NEWEST_LIMIT = 24
 
 export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outOfZone = false, areaName = "" }) {
   const { storePath, fulfilmentMode } = useStoreMode()
@@ -31,6 +33,7 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
 
   const [products, setProducts] = useState([])
   const [productsLoading, setProductsLoading] = useState(true)
+  const [newest, setNewest] = useState([])
   const [recommended, setRecommended] = useState([])
   const [recommendedLoading, setRecommendedLoading] = useState(true)
   const [orderedIds, setOrderedIds] = useState([])
@@ -56,6 +59,27 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
         if (cancelled) return
         setProducts([])
         setProductsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [fulfilmentMode, zoneId, outOfZone])
+
+  // Newest first, for "More to Explore": every Quick product reaches the home,
+  // not only those in a deal, a bestseller row or an admin-curated group.
+  useEffect(() => {
+    if (outOfZone) {
+      setNewest([])
+      return undefined
+    }
+    let cancelled = false
+    searchAPI
+      .searchProducts({ limit: NEWEST_LIMIT, sort: "newest", fulfilmentMode, ...(zoneId ? { zoneId } : {}) })
+      .then((res) => {
+        if (!cancelled) setNewest(res?.data?.data?.products || [])
+      })
+      .catch(() => {
+        if (!cancelled) setNewest([])
       })
     return () => {
       cancelled = true
@@ -163,6 +187,7 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
     return (
       <QuickMobileHome
         products={products}
+        newest={newest}
         productsLoading={productsLoading}
         deals={deals}
         groups={groups}
@@ -227,7 +252,18 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
               <QuickProductRail title="You May Also Like" products={recommended} etaMinutes={eta} />
             )}
 
-            {nothingToShow ? (
+            {newest.length ? (
+              <section aria-label="More to Explore">
+                <h2 className="mb-3 text-[20px] font-bold text-wh-text">More to Explore</h2>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                  {newest.map((p) => (
+                    <QuickProductCard key={productId(p)} product={p} etaMinutes={eta} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {nothingToShow && !newest.length ? (
               <section className="rounded-[8px] bg-wh-surface p-8 text-center text-[14px] text-wh-muted">
                 Nothing is available for quick delivery here yet.
               </section>

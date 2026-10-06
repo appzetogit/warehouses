@@ -7,6 +7,8 @@ import QuickThemeBlock from "./QuickThemeBlock"
 import { CampaignBanner, CategoryGroup, FeaturedRail, FrequentlyBought } from "./QuickFeed"
 import QuickRateNudge from "./QuickRateNudge"
 import OfferBannerStrip from "../home/OfferBannerStrip"
+import QuickProductCard from "../desktop/quick/QuickProductCard"
+import { productId } from "../desktop/quick/quickHelpers"
 
 /**
  * The Quick storefront's home on a phone (QUICK_MOBILE_SPEC.md), laid out like
@@ -68,6 +70,7 @@ export default function QuickMobileHome({
   categoryLink,
   outOfZone = false,
   areaName = "",
+  newest = [],
 }) {
   const { storePath } = useStoreMode()
   const { openLocationSelector } = useLocationSelector()
@@ -154,6 +157,17 @@ export default function QuickMobileHome({
         {otherCampaigns.map((c) => (
           <CampaignBanner key={c._id || c.title} campaign={c} />
         ))}
+
+        {!outOfZone && newest.length ? (
+          <section aria-label="More to Explore" className="px-4">
+            <h2 className="mb-3 text-[17px] font-bold text-wh-text">More to Explore</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {newest.map((p) => (
+                <QuickProductCard key={productId(p)} product={p} />
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
 
       <QuickRateNudge />
