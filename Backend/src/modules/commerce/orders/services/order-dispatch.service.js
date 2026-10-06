@@ -112,7 +112,7 @@ export function buildIncomingOrderPushData(order, payload, acceptanceDeadlineAt)
     payload?.sellerName ? `Pickup: ${s(payload.sellerName)}` : '',
     payload?.customerAddress ? `Drop: ${s(payload.customerAddress)}` : '',
     distance ? `${distance} km` : '',
-    `Earning: Rs.${earning}`,
+    `Earning: ₹${earning}`,
   ].filter(Boolean);
 
   return {
@@ -596,8 +596,8 @@ export async function tryAutoAssign(orderId, options = {}) {
         await notifyOwnersSafely(
           [{ ownerType: 'ADMIN', ownerId: 'GLOBAL' }], // Use GLOBAL or specific admin group if defined
           {
-            title: 'Unassigned Order Crisis!',
-            body: `Order #${order.order_id || order._id} has not been picked up for 5+ minutes. Manual intervention required!`,
+            title: 'Order still without a rider',
+            body: `Order ${order.order_id || order._id} has had no rider for over 5 minutes. Assign one in Assign Orders.`,
             data: { type: 'admin_alert_unassigned', orderId: order._id.toString() }
           }
         );

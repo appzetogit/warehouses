@@ -13,7 +13,7 @@ const DEFAULT_NOTIFICATIONS = [
     id: "1",
     type: "order",
     title: "Order Confirmed",
-    message: "Your order #12345 has been confirmed and is being prepared",
+    message: "Your order #12345 has been accepted and is being packed",
     time: "2 minutes ago",
     timestamp: Date.now() - 120000,
     read: false,

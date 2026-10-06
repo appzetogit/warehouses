@@ -1,31 +1,17 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight, ShoppingBag, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { getOrderKey, getOrderStatusText } from "@store/hooks/useActiveOrderTracking";
 
-const CookingAnimation = memo(() => (
-  <div className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-orange-50 border border-orange-100 overflow-visible shadow-[0_4px_12px_rgba(253,146,11,0.12)] shrink-0">
-    <div className="absolute -top-2.5 flex gap-1">
-      <motion.div animate={{ opacity: [0, 0.8, 0], y: [0, -6, -10], scale: [0.8, 1.1, 1] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0, ease: "easeOut" }} className="w-1 h-2.5 bg-orange-400/60 rounded-full blur-[1px]" />
-      <motion.div animate={{ opacity: [0, 0.8, 0], y: [0, -8, -12], scale: [0.8, 1.1, 1] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.5, ease: "easeOut" }} className="w-1 h-2.5 bg-orange-400/60 rounded-full blur-[1px]" />
-      <motion.div animate={{ opacity: [0, 0.8, 0], y: [0, -6, -10], scale: [0.8, 1.1, 1] }} transition={{ duration: 1.5, repeat: Infinity, delay: 1, ease: "easeOut" }} className="w-1 h-2.5 bg-orange-400/60 rounded-full blur-[1px]" />
-    </div>
-    <motion.div animate={{ rotate: [-2, 2, -2] }} transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }} className="relative z-10 mt-0.5">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500">
-        <path d="M6 10h12v6a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4v-6z" />
-        <rect x="5" y="8" width="14" height="2" rx="1" />
-        <path d="M12 8V5" />
-        <path d="M11 5h2v2h-2z" fill="currentColor" />
-        <path d="M19 9l3-1v2l-3 1" fill="currentColor" strokeWidth="1" />
-        <path d="M5 10H3v2h2" />
-      </svg>
-    </motion.div>
-    <motion.div animate={{ opacity: [0.4, 0.8, 0.4], scaleX: [0.8, 1.2, 0.8] }} transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-0 w-full flex justify-center z-0">
-      <div className="w-3.5 h-0.5 bg-orange-500 blur-[2px] rounded-full" />
+/** A gently bobbing shopping bag while the order is on its way. */
+const PackingAnimation = memo(() => (
+  <div className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-orange-50 border border-orange-100 shadow-[0_4px_12px_rgba(253,146,11,0.12)] shrink-0">
+    <motion.div animate={{ y: [0, -2, 0] }} transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}>
+      <ShoppingBag className="w-[22px] h-[22px] text-orange-500" strokeWidth={2} aria-hidden="true" />
     </motion.div>
   </div>
-));
+))
 
 function OrderTrackingRowInner({ order, timeRemaining, onDismiss, compact = false }) {
   const navigate = useNavigate();
@@ -81,7 +67,7 @@ function OrderTrackingRowInner({ order, timeRemaining, onDismiss, compact = fals
       </span>
 
       <div className="flex items-center gap-3 relative z-10 w-full pr-6">
-        <CookingAnimation />
+        <PackingAnimation />
 
         <div className="flex-1 min-w-0">
           <p className="text-gray-900 font-bold text-sm truncate tracking-tight">{sellerName}</p>

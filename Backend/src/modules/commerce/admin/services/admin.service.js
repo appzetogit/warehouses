@@ -4211,7 +4211,7 @@ export async function rejectSeller(id, reason) {
             await notifyOwnersSafely(
                 [{ ownerType: 'SELLER', ownerId: updated._id }],
                 {
-                    title: 'Update on Registration ðŸ“‹',
+                    title: 'Update on your registration',
                     body: `Your seller registration for "${updated.sellerName}" has been rejected. Reason: ${reason || 'Incomplete documents'}.`,
                     image: config.brand.notificationImage,
                     data: {
@@ -4319,7 +4319,7 @@ export async function createAdminOffer(body) {
             await notifyOwnersSafely(
                 selectedSellerIds.map((ownerId) => ({ ownerType: 'SELLER', ownerId })),
                 {
-                    title: 'New Campaign Invitation! ðŸ“¢',
+                    title: 'New campaign invitation',
                     body: `You have been invited to join a new campaign: "${doc.couponCode}". Check it out now!`,
                     image: config.brand.notificationImage,
                     data: {
@@ -5288,7 +5288,7 @@ export async function creditEarningAddonHistory(historyId, notes) {
         await notifyOwnerSafely(
             { ownerType: 'DELIVERY_PARTNER', ownerId: doc.deliveryPartnerId },
             {
-                title: 'Incentive Credited! ðŸŽ¯',
+                title: 'Incentive credited',
                 body: `Your incentive for "${doc.offerId?.title || 'Earning Addon'}" has been approved and moved to your pocket.`,
                 image: config.brand.notificationImage,
                 data: {
@@ -5320,7 +5320,7 @@ export async function cancelEarningAddonHistory(historyId, reason) {
         await notifyOwnerSafely(
             { ownerType: 'DELIVERY_PARTNER', ownerId: doc.deliveryPartnerId },
             {
-                title: 'Incentive Update ðŸ“‹',
+                title: 'Incentive update',
                 body: `Your incentive request for "${doc.offerId?.title || 'Earning Addon'}" was not approved. Reason: ${doc.cancelReason || 'Ineligible'}`,
                 image: config.brand.notificationImage,
                 data: {
@@ -5569,7 +5569,7 @@ export async function rejectDeliveryPartner(id, reason) {
             await notifyOwnerSafely(
                 { ownerType: 'DELIVERY_PARTNER', ownerId: updated._id },
                 {
-                    title: 'Onboarding Update ðŸ“‹',
+                    title: 'Update on your application',
                     body: `Your application to join as a delivery partner was rejected. Reason: ${reason || 'Incomplete documents'}.`,
                     image: config.brand.notificationImage,
                     data: {

@@ -727,7 +727,7 @@ export default function AllOrdersPage() {
             {order.note?.trim() ? (
               <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-0.5">
-                  Cooking Requests
+                  Customer Note
                 </p>
                 <p className="text-xs text-blue-900 italic line-clamp-2">"{order.note.trim()}"</p>
               </div>

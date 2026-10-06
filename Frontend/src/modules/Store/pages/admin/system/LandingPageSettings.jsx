@@ -14,10 +14,10 @@ export default function LandingPageSettings({ type = "admin" }) {
   const [adminActiveLanguage, setAdminActiveLanguage] = useState("default");
   const [adminHeaderContent, setAdminHeaderContent] = useState({
     enabled: true,
-    title: "Why stay Hungry!",
-    subtitle: "when you can order always form",
+    title: "Fashion Near You",
+    subtitle: "Shop local stores, delivered fast",
     tagline: "Start Your Business or Download the App",
-    buttonName: "Order Now",
+    buttonName: "Shop Now",
     redirectLink: "",
     redirectLinkEnabled: true,
   });
@@ -104,10 +104,10 @@ export default function LandingPageSettings({ type = "admin" }) {
     if (isAdmin) {
       setAdminHeaderContent({
         enabled: true,
-        title: "Why stay Hungry!",
-        subtitle: "when you can order always form",
+        title: "Fashion Near You",
+        subtitle: "Shop local stores, delivered fast",
         tagline: "Start Your Business or Download the App",
-        buttonName: "Order Now",
+        buttonName: "Shop Now",
         redirectLink: "",
         redirectLinkEnabled: true,
       });

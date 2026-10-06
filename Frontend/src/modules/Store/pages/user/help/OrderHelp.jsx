@@ -113,7 +113,7 @@ const commonIssues = [
     solutions: [
       "Orders can be cancelled within 5 minutes of placement",
       "After 5 minutes, contact support for cancellation",
-      "If the order is already being prepared, cancellation may not be possible",
+      "Once the order has left the store, it can no longer be cancelled",
       "Refunds are processed automatically for cancelled orders"
     ],
     actions: [

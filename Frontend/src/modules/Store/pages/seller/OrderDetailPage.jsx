@@ -522,7 +522,7 @@ export default function OrderDetailPage({
         {/* Notes/Instructions if any */}
         {cookingNote ? (
           <div className="bg-blue-50/50 border border-blue-100 rounded-3xl p-5 space-y-2">
-            <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Cooking Requests</h3>
+            <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Customer Note</h3>
             <p className="text-sm font-bold text-blue-700 italic">"{cookingNote}"</p>
           </div>
         ) : null}

@@ -325,7 +325,7 @@ export default function NewOrderAcceptCard({
           {cookingNote ? (
             <div className="mt-3 rounded-[16px] border border-blue-100 bg-blue-50/80 px-3.5 py-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-1">
-                Cooking Requests
+                Customer Note
               </p>
               <p className="text-sm font-bold text-blue-900 leading-snug italic">
                 "{cookingNote}"

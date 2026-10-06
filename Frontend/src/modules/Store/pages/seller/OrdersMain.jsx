@@ -2083,7 +2083,7 @@ export default function OrdersMain() {
               {selectedOrder.note?.trim() ? (
                 <div className="mb-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">
-                    Cooking Requests
+                    Customer Note
                   </p>
                   <p className="text-xs text-blue-800 italic">"{selectedOrder.note.trim()}"</p>
                 </div>
@@ -2453,7 +2453,7 @@ export default function OrdersMain() {
               {selectedOrder.note?.trim() ? (
                 <div className="mb-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">
-                    Cooking Requests
+                    Customer Note
                   </p>
                   <p className="text-xs text-blue-800 italic">"{selectedOrder.note.trim()}"</p>
                 </div>
@@ -2596,7 +2596,7 @@ function OrderCard({
       {note?.trim() ? (
         <div className="mx-3 mb-3 rounded-xl border border-blue-100 bg-blue-50/90 px-3 py-2.5">
           <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-1">
-            Cooking Requests
+            Customer Note
           </p>
           <p className="text-xs font-semibold text-blue-900 leading-snug line-clamp-3">
             {note.trim()}

@@ -76,13 +76,13 @@ export function getOrderStatusText(order) {
   const p = String(orderPhase);
 
   if (s === "confirmed") return "Order confirmed";
-  if (s === "preparing" || s === "created" || s === "pending") return "Preparing your order";
+  if (s === "preparing" || s === "created" || s === "pending") return "Packing your order";
   if (s === "ready_for_pickup") return "Ready for pickup";
   if (s === "reached_pickup" || p === "at_pickup") return "Delivery partner reached seller";
   if (s === "picked_up" || p === "en_route_to_delivery") return "On the way";
   if (s === "reached_drop" || p === "at_drop") return "Arrived near you";
   if (s === "delivered" || p === "delivered" || p === "completed") return "Delivered";
-  return "Preparing your order";
+  return "Packing your order";
 }
 
 export default function useActiveOrderTracking() {

@@ -1267,7 +1267,7 @@ export default function OrderTracking() {
     },
     delivered: {
       title: "Order Delivered",
-      subtitle: "Enjoy your meal!",
+      subtitle: "Hope you love it!",
       color: "bg-green-600",
       iconType: 'delivered'
     },

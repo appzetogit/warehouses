@@ -172,7 +172,7 @@ export default function CMSPage({ endpoint, title: defaultTitle, module = "USER"
                 {[
                   { q: "How do I track my order?", a: "You can track your order in real-time through the 'My Orders' section in your profile." },
                   { q: "What if I receive a wrong item?", a: "Please contact our support immediately via call or email with your order ID for a quick resolution." },
-                  { q: "Can I cancel my order?", a: "Orders can only be cancelled before the seller starts preparing your food." }
+                  { q: "Can I cancel my order?", a: "You can cancel an order until it leaves the store. Any payment is refunded." }
                 ].map((faq, idx) => (
                   <div key={idx} className="space-y-2">
                     <h4 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">

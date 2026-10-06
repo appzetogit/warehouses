@@ -1,3 +1,12 @@
+import {
+  orderPlacedForCustomer,
+  statusForCustomer,
+  statusForStore,
+  statusForRider,
+  deliveredBySupport,
+  cancelledByCustomer,
+  orderNo,
+} from '../../shared/notificationCopy.js';
 import mongoose from 'mongoose';
 import { Order, DispatchSettings } from '../models/order.model.js';
 // import { paymentSnapshotFromOrder } from './orderPaymentLedger.service.js';
@@ -910,8 +919,7 @@ export async function createOrder(userId, dto, options = {}) {
       // looking at does not already say.
       if (!isAwaitingOnlinePayment) {
         await notifyOwnersSafely([{ ownerType: "USER", ownerId: userId }], {
-          title: "Order Confirmed! 🍔",
-          body: `Your order #${order.order_id || order._id} from ${seller.sellerName || "the seller"} has been placed successfully.`,
+          ...orderPlacedForCustomer(order, seller),
           image: config.brand.notificationImage,
           data: {
             type: "order_created",
@@ -1518,6 +1526,27 @@ export async function recoverStuckOrders() {
   }
 }
 
+/**
+ * Status push to the people in `targets`, each in their own words (customer,
+ * store, rider). `refundDetail` is added to the customer's cancellation text.
+ */
+function notifyStatusPerAudience(order, status, targets, { seller, note = '', bySupport = false, refundDetail = '', data = {}, image } = {}) {
+  for (const target of targets) {
+    let copy = null;
+    if (target.ownerType === 'USER') {
+      copy = statusForCustomer(order, status, { seller, note, bySupport });
+      if (copy && refundDetail && String(status).includes('cancel') && !String(note || '').trim()) {
+        copy = { ...copy, body: `${copy.body}${refundDetail}` };
+      }
+    } else if (target.ownerType === 'SELLER') {
+      copy = statusForStore(order, status);
+    } else if (target.ownerType === 'DELIVERY_PARTNER') {
+      copy = statusForRider(order, status);
+    }
+    if (copy) void notifyOwnerSafely(target, { ...copy, ...(image ? { image } : {}), data });
+  }
+}
+
 export async function resyncState(userId, role) {
   if (role === "USER") {
     const order = await Order.findOne({
@@ -1706,8 +1735,7 @@ export async function cancelOrder(orderId, userId, reason) {
       { ownerType: "SELLER", ownerId: order.sellerId },
     ],
     {
-      title: "Order Cancelled ❌",
-      body: `Order #${order.order_id || order._id} has been cancelled successfully.${refundDetail}`,
+      ...cancelledByCustomer(order, refundDetail),
       image: config.brand.notificationImage,
       data: {
         type: "order_cancelled",
@@ -2086,26 +2114,20 @@ export async function updateOrderStatusSeller(
     }
   }
 
-  // Custom messages / titles for status updates
-  let title = `Order ${order._id.toString()} updated`;
-  let body = `Status changed to ${String(orderStatus).replace(/_/g, " ")}`;
-
-  if (orderStatus === "confirmed") {
-    title = "Order Accepted! 🧑‍🍳";
-    body = "The seller has accepted your order and is starting to prepare it.";
-  } else if (orderStatus === "preparing") {
-    title = "Your order is being prepared 🍳";
-    body = "The seller is preparing your order.";
-  } else if (orderStatus === "ready_for_pickup") {
-    title = "Your order is ready! 🛍️";
-    body = "Your order is ready and waiting to be picked up.";
-  } else if (String(orderStatus).includes("cancel")) {
-    const isOnlinePaid = order.payment.method === "razorpay" && (order.payment.status === "paid" || order.payment.status === "refunded");
-    const refundDetail = isOnlinePaid ? ` Your refund of ₹${order.pricing.total} is being processed and will be credited to your original payment method within 5-7 working days.` : "";
-    
-    title = "Order Cancelled ❌";
-    body = (note && String(note).trim()) ? note : `Unfortunately, your order has been cancelled by the seller.${refundDetail}`;
-  }
+  // Customer-facing wording, also sent with the socket update below.
+  const sellerRefundDetail =
+    String(orderStatus).includes("cancel") &&
+    order.payment?.method === "razorpay" &&
+    (order.payment?.status === "paid" || order.payment?.status === "refunded")
+      ? ` Your refund of ₹${order.pricing?.total} is being processed and will reach your original payment method in 5-7 working days.`
+      : "";
+  const customerCopy =
+    statusForCustomer(order, orderStatus, { note }) ||
+    { title: `Order ${orderNo(order)} updated`, body: `Status: ${String(orderStatus).replace(/_/g, " ")}.` };
+  let title = customerCopy.title;
+  let body = String(orderStatus).includes("cancel") && !String(note || "").trim()
+    ? `${customerCopy.body}${sellerRefundDetail}`
+    : customerCopy.body;
 
   // Real-time: status update to seller room.
   try {
@@ -2173,12 +2195,12 @@ export async function updateOrderStatusSeller(
     }
 
 
-    let riderTitle = `Order #${order.order_id || order._id} updated`;
-    let riderBody = `The order status is now ${String(orderStatus).replace(/_/g, " ")}.`;
+    let riderTitle = statusForRider(order, orderStatus).title;
+    let riderBody = statusForRider(order, orderStatus).body;
 
     if (String(orderStatus).includes("cancel")) {
-      riderTitle = "Order Cancelled ❌";
-      riderBody = `Order #${order.order_id || order._id} has been cancelled. Please stop your current task.`;
+      riderTitle = statusForRider(order, orderStatus).title;
+      riderBody = statusForRider(order, orderStatus).body;
       
       // Sync transaction status
       try {
@@ -2202,21 +2224,18 @@ export async function updateOrderStatusSeller(
     // Guarded rather than returned early: the delivery dispatch below this block
     // must still run for a status nobody is pushed about, or riders stop being
     // offered orders entirely.
-    if (notifyList.length > 0) void notifyOwnersSafely(
-      notifyList,
-      {
-        title: title,
-        body: body,
-        image: config.brand.notificationImage,
-        data: {
-          type: "order_status_update",
-          orderId: order._id.toString(),
-          orderMongoId: order._id?.toString?.() || "",
-          orderStatus: String(orderStatus || ""),
-          link: `/orders/${order._id?.toString?.() || ""}`,
-        },
+    if (notifyList.length > 0) notifyStatusPerAudience(order, orderStatus, notifyList, {
+      note,
+      refundDetail: sellerRefundDetail,
+      image: config.brand.notificationImage,
+      data: {
+        type: "order_status_update",
+        orderId: order._id.toString(),
+        orderMongoId: order._id?.toString?.() || "",
+        orderStatus: String(orderStatus || ""),
+        link: `/orders/${order._id?.toString?.() || ""}`,
       },
-    );
+    });
   } catch (err) {
     console.error("[DEBUG] Error emitting status update to seller:", err);
   }
@@ -2840,31 +2859,20 @@ export async function updateOrderStatusAdmin(orderId, orderStatus, note = "", ad
         notifyList.push({ ownerType: "DELIVERY_PARTNER", ownerId: order.dispatch.deliveryPartnerId });
     }
 
-    let title = `Order Status Updated 📋`;
-    let body = `Order #${order.order_id || order._id} status changed to ${String(orderStatus).replace(/_/g, " ")} by support.`;
+    const supportCopy =
+        statusForCustomer(order, orderStatus, { note, bySupport: true }) ||
+        { title: `Order ${orderNo(order)} updated`, body: `Support updated your order: ${String(orderStatus).replace(/_/g, " ")}.` };
+    const title = supportCopy.title;
+    const body = supportCopy.body;
 
-    if (orderStatus === "confirmed") {
-        title = "Order Accepted! 🧑‍🍳";
-        body = "The order has been accepted and is starting to be prepared.";
-    } else if (orderStatus === "preparing") {
-        title = "Your order is being prepared 🍳";
-        body = "The seller is preparing your order.";
-    } else if (orderStatus === "ready_for_pickup") {
-        title = "Your order is ready! 🛍️";
-        body = "Your order is ready and waiting to be picked up.";
-    } else if (String(orderStatus).includes("cancel")) {
-        title = "Order Cancelled ❌";
-        body = (note && String(note).trim()) ? note : `Unfortunately, your order has been cancelled by support.`;
-    }
-
-    await notifyOwnersSafely(notifyList, {
-        title,
-        body,
+    notifyStatusPerAudience(order, orderStatus, notifyList, {
+        note,
+        bySupport: true,
         data: {
             type: "order_status_update",
             orderId: order._id.toString(),
             orderStatus: String(orderStatus || ""),
-        }
+        },
     });
 
     // Real-time update
@@ -2974,8 +2982,7 @@ export async function markOrderDeliveredAdmin(orderId, adminId, note = "") {
     }
 
     await notifyOwnersSafely(notifyList, {
-        title: "Order Delivered! 🎉",
-        body: `Order #${orderLabel} has been marked as delivered by support.`,
+        ...deliveredBySupport(order),
         data: {
             type: "order_status_update",
             orderId: order._id.toString(),
@@ -2991,8 +2998,8 @@ export async function markOrderDeliveredAdmin(orderId, adminId, note = "") {
                 orderId: order._id.toString(),
                 orderStatus: "delivered",
                 deliveryState: order.deliveryState,
-                message: `Order #${orderLabel} marked as delivered by admin.`,
-                title: "Order Delivered! 🎉",
+                message: deliveredBySupport(order).body,
+                title: deliveredBySupport(order).title,
             };
             io.to(rooms.user(order.userId)).emit("order_status_update", payload);
             io.to(rooms.seller(order.sellerId)).emit("order_status_update", payload);

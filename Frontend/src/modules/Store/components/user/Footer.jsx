@@ -97,8 +97,8 @@ export default function Footer() {
                 </span>
               </div>
               <p className="text-slate-300 text-sm leading-relaxed max-w-md">
-                Delivering delicious food to your doorstep. Order from your favorite sellers
-                and enjoy fresh, hot meals in minutes.
+                Clothing from stores near you. Get it in minutes with Quick, or delivered
+                anywhere in India with Shop.
               </p>
             </div>
 

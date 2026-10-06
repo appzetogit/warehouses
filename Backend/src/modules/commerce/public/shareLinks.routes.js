@@ -219,7 +219,7 @@ router.get('/product-detail', async (req, res, next) => {
         const sellerName = product.sellerId?.sellerName || '';
         const price = Number(product.price);
         const description = [
-            Number.isFinite(price) && price > 0 ? `Rs.${price}` : '',
+            Number.isFinite(price) && price > 0 ? `₹${price}` : '',
             sellerName ? `from ${sellerName}` : '',
             product.description || '',
         ]

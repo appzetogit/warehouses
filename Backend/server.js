@@ -11,7 +11,6 @@ import { connectRedis, closeRedis } from './src/config/redis.js';
 import { initSocket } from './src/config/socket.js';
 import { initializeQueues, closeBullMQConnection } from './src/queues/index.js';
 import { expireExpiredOffers } from './src/modules/commerce/admin/services/admin.service.js';
-import { syncExpiredFssaiNotifications } from './src/modules/commerce/seller/services/fssaiExpiry.service.js';
 
 import { logger } from './src/utils/logger.js';
 import { initializeFirebaseRealtime } from './src/config/firebase.js';
@@ -88,15 +87,9 @@ const startBackgroundJobs = async () => {
     await runAutoDeliver();
     autoDeliverInterval = setInterval(runAutoDeliver, 60 * 60 * 1000);
 
-    const runFssaiExpirySync = async () => {
-        try {
-            await syncExpiredFssaiNotifications();
-        } catch (err) {
-            logger.error(`FSSAI expiry sync error: ${err.message}`);
-        }
-    };
-    await runFssaiExpirySync();
-    fssaiExpiryInterval = setInterval(runFssaiExpirySync, 60 * 60 * 1000);
+    // FSSAI is a food licence; clothing stores don't need one, so its expiry
+    // alerts to sellers and admins are off. syncExpiredFssaiNotifications is
+    // kept for a store that ever sells packaged food.
 
     // Manual dispatch: alert admins about Quick orders waiting too long for a
     // rider, and hand them to automatic dispatch if that fallback is on. Runs

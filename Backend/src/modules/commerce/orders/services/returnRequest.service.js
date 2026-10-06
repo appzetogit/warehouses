@@ -609,7 +609,7 @@ export async function receiveAndRefundReturnAdmin(id, adminId, { note = '' } = {
         'Refund processed',
         (fallbackNote ? "We couldn't send a replacement, so we refunded you instead. " : '') +
             (outcome.amount > 0
-                ? `Rs ${outcome.amount} for your return on order #${done.orderReadableId} has been refunded${outcome.method === 'coins' ? ' as coins' : ''}.`
+                ? `₹${outcome.amount} for your return on order #${done.orderReadableId} has been refunded${outcome.method === 'coins' ? ' as coins' : ''}.`
                 : `Your return on order #${done.orderReadableId} is complete.`)
     );
     return done;

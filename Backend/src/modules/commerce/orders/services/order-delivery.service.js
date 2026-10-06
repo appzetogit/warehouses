@@ -1,3 +1,4 @@
+import { deliveryMilestone, riderAssigned } from '../../shared/notificationCopy.js';
 import mongoose from 'mongoose';
 import { Order } from '../models/order.model.js';
 import { Seller } from '../../seller/models/seller.model.js';
@@ -120,73 +121,44 @@ function emitOrderUpdate(order, deliveryPartnerId) {
     const status = order.orderStatus;
     if (!['picked_up', 'reached_drop', 'delivered'].includes(status)) return;
 
-    let userTitle = '';
-    let userBody = '';
-    let riderTitle = '';
-    let riderBody = '';
-
     const orderId = order._id.toString();
+    const data = {
+      type: 'order_status_update',
+      orderId,
+      orderMongoId: order._id?.toString?.() || '',
+      orderStatus: status,
+    };
 
-    if (status === 'picked_up') {
-      userTitle = 'Order on the way!';
-      userBody = `Partner has picked up your order #${orderId} and is heading your way.`;
-      riderTitle = 'Order picked up!';
-      riderBody = `You have picked up order #${orderId}. Proceed to the customer location.`;
-    } else if (status === 'reached_drop') {
-      userTitle = 'Partner nearby!';
-      userBody = `Your delivery partner has reached your location for order #${orderId}.`;
-      riderTitle = 'Arrived at drop!';
-      riderBody = `You have reached the customer location for order #${orderId}.`;
-    } else if (status === 'delivered') {
-      userTitle = `Order #${orderId} delivered!`;
-      userBody = 'Hope you enjoyed your meal! Don\'t forget to rate your experience.';
-      riderTitle = 'Delivery successful!';
-      riderBody = `Order #${orderId} has been successfully delivered.`;
-
-      if (order.payment?.method === 'cash' || order.paymentMethod === 'cash') {
-        riderTitle = 'Payment collected!';
-        const amt = order.pricing?.total || order.amounts?.totalCustomerPaid || 0;
-        riderBody = `You have collected Rs ${amt} cash for Order #${orderId}.`;
+    // Each person gets their own wording (the store used to get the customer's).
+    void (async () => {
+      const rider = deliveryPartnerId
+        ? await DeliveryPartner.findById(deliveryPartnerId).select('name').lean().catch(() => null)
+        : null;
+      const copy = deliveryMilestone(order, status, { riderName: rider?.name });
+      if (!copy) return;
+      if (copy.customer) {
+        // Visible banner (notification block) + data for deep-linking. Without the
+        // notification block these key milestones stay silent when the app is backgrounded.
+        await notifyOwnerSafely({ ownerType: 'USER', ownerId: order.userId }, { ...copy.customer, data });
       }
-    }
-
-    if (userTitle) {
-      void notifyOwnersSafely(
-        [
-          { ownerType: 'SELLER', ownerId: order.sellerId },
-          { ownerType: 'USER', ownerId: order.userId },
-        ],
-        {
-          title: userTitle,
-          body: userBody,
-          // Visible banner (notification block) + data for deep-linking. Without the
-          // notification block these key milestones stay silent when the app is backgrounded.
-          data: {
-            type: 'order_status_update',
-            orderId,
-            orderMongoId: order._id?.toString?.() || '',
-            orderStatus: status,
+      if (copy.store) {
+        await notifyOwnerSafely({ ownerType: 'SELLER', ownerId: order.sellerId }, { ...copy.store, data });
+      }
+      if (copy.rider && deliveryPartnerId) {
+        await notifyOwnerSafely(
+          { ownerType: 'DELIVERY_PARTNER', ownerId: deliveryPartnerId },
+          {
+            ...copy.rider,
+            data: {
+              ...data,
+              type: status === 'delivered' ? 'order_completed' : 'order_status_update',
+              paymentMethod: order.payment?.method || order.paymentMethod,
+              amountCollected: String(order.pricing?.total || order.amounts?.totalCustomerPaid || 0),
+            },
           },
-        },
-      );
-    }
-
-    if (riderTitle) {
-      void notifyOwnerSafely(
-        { ownerType: 'DELIVERY_PARTNER', ownerId: deliveryPartnerId },
-        {
-          title: riderTitle,
-          body: riderBody,
-          data: {
-            type: status === 'delivered' ? 'order_completed' : 'order_status_update',
-            orderId,
-            orderMongoId: order._id?.toString?.() || '',
-            paymentMethod: order.payment?.method || order.paymentMethod,
-            amountCollected: String(order.pricing?.total || order.amounts?.totalCustomerPaid || 0),
-          },
-        },
-      );
-    }
+        );
+      }
+    })();
   } catch (error) {
     logger.error(`Error emitting delivery order update: ${error?.message || error}`);
   }
@@ -425,7 +397,7 @@ export async function assertCashLimitAllows(deliveryPartnerId, order) {
   const inHand = Number(wallet?.cashInHand) || 0;
   if (inHand >= limit) {
     throw new ValidationError(
-      `You are holding Rs.${inHand} in cash, which is at your Rs.${limit} limit. ` +
+      `You are holding ₹${inHand} in cash, which is at your ₹${limit} limit. ` +
         'Deposit your cash to keep accepting cash orders.',
     );
   }
@@ -707,24 +679,20 @@ export async function runDeliveryAcceptedEffects(order, deliveryPartnerId, { ass
       }
     }
 
-    await notifyOwnersSafely(
-      [
-        { ownerType: 'USER', ownerId: order.userId },
-        { ownerType: 'SELLER', ownerId: order.sellerId },
-        ...(assignedByAdmin ? [] : [{ ownerType: 'DELIVERY_PARTNER', ownerId: deliveryPartnerId }]),
-      ],
-      {
-        title: `Order ${order._id.toString()} accepted`,
-        body: 'A delivery partner has accepted your order.',
-        data: {
-          type: 'delivery_accepted',
-          orderId: order._id.toString(),
-          orderMongoId: order._id?.toString?.() || '',
-          dispatchStatus: order.dispatch?.status,
-          link: '/orders',
-        },
-      },
-    );
+    const riderDoc = await DeliveryPartner.findById(deliveryPartnerId).select('name').lean().catch(() => null);
+    const assignedCopy = riderAssigned(order, { riderName: riderDoc?.name });
+    const acceptedData = {
+      type: 'delivery_accepted',
+      orderId: order._id.toString(),
+      orderMongoId: order._id?.toString?.() || '',
+      dispatchStatus: order.dispatch?.status,
+      link: '/orders',
+    };
+    await notifyOwnerSafely({ ownerType: 'USER', ownerId: order.userId }, { ...assignedCopy.customer, data: acceptedData });
+    await notifyOwnerSafely({ ownerType: 'SELLER', ownerId: order.sellerId }, { ...assignedCopy.store, data: acceptedData });
+    if (!assignedByAdmin) {
+      await notifyOwnerSafely({ ownerType: 'DELIVERY_PARTNER', ownerId: deliveryPartnerId }, { ...assignedCopy.rider, data: acceptedData });
+    }
   } catch (error) {
     logger.error(
       `Error notifying delivery acceptance for ${order._id}: ${

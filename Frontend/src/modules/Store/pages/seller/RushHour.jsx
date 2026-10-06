@@ -61,7 +61,7 @@ export default function RushHour() {
           >
             <ArrowLeft className="w-6 h-6 text-gray-900" />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Rush in kitchen</h1>
+          <h1 className="text-lg font-bold text-gray-900">Busy Right Now</h1>
         </div>
       </div>
 
@@ -73,7 +73,7 @@ export default function RushHour() {
             <Zap className="w-7 h-7 text-white" strokeWidth={2.5} fill="white" />
           </div>
           <p className="text-sm text-gray-900 leading-relaxed flex-1 pt-1">
-            Inform us when your kitchen is in rush and you need more time to manage orders
+            Tell us when your store is busy and you need more time to pack orders
           </p>
         </div>
 

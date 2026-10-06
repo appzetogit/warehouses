@@ -31,7 +31,7 @@ const getStatusBadge = (message = "") => {
     return { label: "Issue", className: "bg-red-50 text-red-700 border-red-200" }
   }
   if (normalized.includes("preparing") || normalized.includes("ready")) {
-    return { label: "Kitchen", className: "bg-amber-50 text-amber-700 border-amber-200" }
+    return { label: "Packing", className: "bg-amber-50 text-amber-700 border-amber-200" }
   }
   if (normalized.includes("new order")) {
     return { label: "New", className: "bg-blue-50 text-blue-700 border-blue-200" }

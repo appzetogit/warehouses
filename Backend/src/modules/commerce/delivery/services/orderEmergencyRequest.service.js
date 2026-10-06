@@ -209,8 +209,8 @@ async function deassignOrderForRedispatch({
             { ownerType: 'USER', ownerId: order.userId }
         ],
         {
-            title: 'Delivery partner reassignment',
-            body: 'The order is being assigned to another delivery partner.',
+            title: 'Finding a new rider',
+            body: "Your order's rider changed. We're assigning a new one; nothing for you to do.",
             data: {
                 type: 'order_deassigned',
                 orderId: String(order._id),
