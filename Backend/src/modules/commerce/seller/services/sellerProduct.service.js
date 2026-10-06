@@ -297,13 +297,19 @@ const resolveCategoryForSeller = async (context, body = {}) => {
             ...baseFilter,
             name: { $regex: exact, $options: 'i' }
         })
-            .sort({ createdAt: -1 })
-            .limit(2)
+            .sort({ createdAt: 1 })
+            .limit(20)
             .lean();
-        if (matches.length > 1) {
-            throw new ValidationError('Multiple categories share this name. Please choose a specific category.');
-        }
-        category = matches[0] || null;
+        // Apps that send only a name (the seller app) hit duplicate names, e.g. a
+        // "T-Shirts" under Men and a top-level "T-Shirts". Pick one predictably:
+        // the store's own category, then a sub-category (where products belong),
+        // then the oldest.
+        const ownId = String(context.sellerId || '');
+        category =
+            matches.find((c) => ownId && String(c.sellerId || '') === ownId) ||
+            matches.find((c) => c.parentId) ||
+            matches[0] ||
+            null;
     }
 
     if (!category?._id) {

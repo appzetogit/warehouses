@@ -174,3 +174,26 @@ export async function fetchPolyline(origin, destination) {
   const { polyline } = await fetchDrivingRoute(origin, destination);
   return polyline;
 }
+
+/**
+ * The postal code (Indian pincode) at a point, from Google's reverse geocoder.
+ * Returns '' when there is no key, no result or the lookup fails; never throws.
+ */
+export async function reverseGeocodePincode(lat, lng) {
+  const apiKey = config.googleMapsApiKey;
+  const la = Number(lat);
+  const ln = Number(lng);
+  if (!apiKey || !Number.isFinite(la) || !Number.isFinite(ln)) return '';
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${la},${ln}&key=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const body = await res.json();
+    for (const result of body?.results || []) {
+      const part = (result.address_components || []).find((c) => (c.types || []).includes('postal_code'));
+      if (part && /^\d{6}$/.test(String(part.long_name || ''))) return String(part.long_name);
+    }
+  } catch (err) {
+    logger.warn(`Reverse geocode for pincode failed: ${err?.message || err}`);
+  }
+  return '';
+}

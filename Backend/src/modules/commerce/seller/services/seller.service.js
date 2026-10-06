@@ -1,3 +1,5 @@
+import { findZoneForPoint } from '../../shared/zoneServiceability.js';
+import { reverseGeocodePincode } from '../../orders/utils/googleMaps.js';
 import { Seller } from '../models/seller.model.js';
 import { parseFulfilmentMode, fulfilmentModeProductFilter, fulfilmentModeSellerFilter } from '../../search/validators/storefront.validator.js';
 import { CHANNELS, emptySellerChannel, parseChannelList, serializeSellerChannels } from '../../shared/channels.js';
@@ -718,11 +720,27 @@ export const registerSeller = async (payload, files) => {
     if (!pickedChannels.length) {
         throw new ValidationError('Pick at least one channel to sell in: quick, shop or both');
     }
-    const zoneIdText = String(zoneId || '').trim();
+    let zoneIdText = String(zoneId || '').trim();
     if (pickedChannels.includes('quick') && !mongoose.Types.ObjectId.isValid(zoneIdText)) {
-        throw new ValidationError('Quick needs a service zone. Pick the zone your store is in.');
+        // Apps that only send the store pin (the seller app) get the zone that
+        // contains it, the same way the zone check during sign-up finds it.
+        const zone = await findZoneForPoint(latitude, longitude);
+        if (zone?._id) {
+            zoneIdText = String(zone._id);
+        } else if (toFiniteNumber(latitude) !== null && toFiniteNumber(longitude) !== null) {
+            throw new ValidationError("Quick isn't available at your store's location yet. Choose Shop, or move the pin if it's in the wrong place.");
+        } else {
+            throw new ValidationError('Quick needs a service zone. Pin your store on the map or pick the zone it is in.');
+        }
     }
-    if (pickedChannels.includes('shop') && !/^\d{6}$/.test(String(pincode || '').trim())) {
+    // Apps sometimes send the pinned address without a pincode (the map's
+    // address had none). Take it from the address text, else from the pin.
+    let pincodeText = String(pincode || '').trim();
+    if (!/^\d{6}$/.test(pincodeText)) {
+        const fromText = String(formattedAddress || addressLine1 || '').match(/\b\d{6}\b/);
+        pincodeText = fromText ? fromText[0] : (await reverseGeocodePincode(latitude, longitude)) || pincodeText;
+    }
+    if (pickedChannels.includes('shop') && !/^\d{6}$/.test(pincodeText)) {
         throw new ValidationError('Shop needs a pickup address with a 6-digit pincode.');
     }
     const registrationTime = new Date();
@@ -933,8 +951,8 @@ export const registerSeller = async (payload, files) => {
             ownerPhoneLast10,
             primaryContactNumber,
             channels: initialChannels,
-            zoneId: zoneId && mongoose.Types.ObjectId.isValid(String(zoneId).trim())
-                ? new mongoose.Types.ObjectId(String(zoneId).trim())
+            zoneId: mongoose.Types.ObjectId.isValid(zoneIdText)
+                ? new mongoose.Types.ObjectId(zoneIdText)
                 : undefined,
             // Store unified location object (geo + address).
             location: {
@@ -949,7 +967,7 @@ export const registerSeller = async (payload, files) => {
                 area: area || '',
                 city: city || '',
                 state: state || '',
-                pincode: pincode || '',
+                pincode: pincodeText,
                 landmark: landmark || ''
             },
             openingTime: normalizedOpeningTime || undefined,
