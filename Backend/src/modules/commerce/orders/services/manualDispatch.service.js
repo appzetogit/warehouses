@@ -159,6 +159,26 @@ export async function assignOrdersToRider({ riderId, orderIds, adminId }) {
       failed.push({ orderId: String(o._id), reason: `${orderLabel(o)} was just taken by another rider or admin` });
       continue;
     }
+    // The capacity check above ran before claiming, so two admins assigning
+    // different orders to the same rider at once could both pass it. Recount
+    // now that the claim is in; whichever claim lands over the limit is undone.
+    if ((await countActiveOrdersForRider(riderId)) > maxOrders) {
+      await Order.updateOne(
+        { _id: claimed._id, 'dispatch.deliveryPartnerId': oid(riderId), 'dispatch.acceptedAt': now, 'dispatch.assignedBy': 'admin' },
+        {
+          $set: {
+            'dispatch.status': 'unassigned',
+            'dispatch.deliveryPartnerId': null,
+            'dispatch.assignedBy': null,
+            'dispatch.assignedByAdminId': null,
+          },
+          $unset: { 'dispatch.assignedAt': '', 'dispatch.acceptedAt': '' },
+          $pull: { statusHistory: { byRole: 'ADMIN', to: 'accepted', at: now } },
+        },
+      );
+      failed.push({ orderId: String(o._id), reason: `${riderName(rider)} can carry ${maxOrders} at a time and just got another order` });
+      continue;
+    }
     assigned.push(claimed);
     void runDeliveryAcceptedEffects(claimed, String(riderId), { assignedByAdmin: true }).catch((err) =>
       logger.error(`After-assign effects failed for ${claimed._id}: ${err.message}`),
@@ -233,7 +253,10 @@ export async function unassignOrder({ orderId, adminId, reason = 'Removed from y
       'dispatch.status': 'accepted',
       'dispatch.deliveryPartnerId': existing.dispatch.deliveryPartnerId,
       'deliveryState.pickedUpAt': null,
-      orderStatus: { $in: [...RIDER_ASSIGNABLE_STATUSES, 'reached_pickup'] },
+      // The status read above, not just any pre-pickup one: the $set below writes a
+      // status derived from it, which would undo a seller marking the order ready
+      // (or a rider reaching the store) in the meantime.
+      orderStatus: existing.orderStatus,
     },
     {
       $set: {
@@ -302,7 +325,7 @@ export async function unassignOrder({ orderId, adminId, reason = 'Removed from y
 /** Move an order (before pickup) from its rider to another one. */
 export async function moveOrderToRider({ orderId, riderId, adminId }) {
   const existing = isObjectId(orderId)
-    ? await Order.findById(orderId).select('dispatch orderId').lean()
+    ? await Order.findById(orderId).select('dispatch orderId payment paymentMethod').lean()
     : null;
   if (!existing) throw new NotFoundError('Order not found');
   if (String(existing.dispatch?.deliveryPartnerId || '') === String(riderId)) {
@@ -310,8 +333,22 @@ export async function moveOrderToRider({ orderId, riderId, adminId }) {
   }
   // Check the new rider can take it before taking it off the current one.
   await assertRiderCanTakeMore(riderId, 1);
+  if (collectsCash(existing)) {
+    try {
+      await assertCashLimitAllows(riderId, existing);
+    } catch {
+      throw new ValidationError(`That rider is at their cash limit, so can't take cash order ${orderLabel(existing)}`);
+    }
+  }
   await unassignOrder({ orderId, adminId, reason: 'Moved to another rider by admin', redispatch: false });
-  const result = await assignOrdersToRider({ riderId, orderIds: [orderId], adminId });
+  let result;
+  try {
+    result = await assignOrdersToRider({ riderId, orderIds: [orderId], adminId });
+  } catch (err) {
+    // The order is already off its old rider: send it back to dispatch, then report.
+    void tryAutoAssign(orderId).catch(() => {});
+    throw err;
+  }
   if (!result.assigned.length) {
     // Couldn't land on the new rider: put it back into normal dispatch so it isn't lost.
     void tryAutoAssign(orderId).catch(() => {});

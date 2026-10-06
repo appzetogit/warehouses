@@ -220,3 +220,93 @@ test('customers cannot use the admin dispatch routes', async () => {
     const res = await call('POST', '/admin/delivery/assign', { as: user, body: {} });
     assert.ok([401, 403].includes(res.status), `got ${res.status}`);
 });
+
+const activeFor = (riderId) => M.Order.countDocuments({
+    'dispatch.deliveryPartnerId': riderId,
+    'dispatch.status': 'accepted',
+    orderStatus: { $nin: ['delivered', 'cancelled_by_user', 'cancelled_by_seller', 'cancelled_by_admin'] },
+});
+
+test('two admins assigning different orders to the same rider at once cannot go over the limit', async () => {
+    await settings({ dispatchMode: 'manual' }); // one order per rider
+    for (let round = 0; round < 5; round += 1) {
+        await M.Order.deleteMany({});
+        const a = await quickOrder();
+        const b = await quickOrder();
+        const [r1, r2] = await Promise.all([assign(ids.rahul, [a._id]), assign(ids.rahul, [b._id])]);
+        assert.equal(await activeFor(ids.rahul), [r1, r2].filter((r) => r.status === 200 && r.body.data.assigned.length === 1).length,
+            'what the admins were told matches what the rider has');
+        assert.ok((await activeFor(ids.rahul)) <= 1, `round ${round}: rider is over the limit`);
+        const undone = await M.Order.find({ _id: { $in: [a._id, b._id] }, 'dispatch.status': 'unassigned' }).lean();
+        for (const o of undone) {
+            assert.equal(o.dispatch.deliveryPartnerId, null, 'undone claim leaves no rider');
+            assert.ok(!(o.statusHistory || []).some((h) => h.to === 'accepted'), 'undone claim leaves no history entry');
+        }
+    }
+});
+
+test('unassign does not undo a status change that lands after it read the order', async () => {
+    await settings({ dispatchMode: 'manual', multiOrderTrips: true });
+    const manual = await import('../src/modules/commerce/orders/services/manualDispatch.service.js');
+    const o = await quickOrder();
+    ok(await assign(ids.rahul, [o._id]), 'assign');
+
+    // The seller marks the order ready between unassign's read and its write.
+    const realFindById = M.Order.findById;
+    M.Order.findById = function (...args) {
+        const q = realFindById.apply(this, args);
+        return {
+            select: (fields) => ({
+                lean: async () => {
+                    const doc = await q.select(fields).lean();
+                    await M.Order.updateOne({ _id: o._id }, { $set: { orderStatus: 'ready_for_pickup' } });
+                    return doc;
+                },
+            }),
+        };
+    };
+    try {
+        await assert.rejects(manual.unassignOrder({ orderId: String(o._id) }), /changed just now/);
+    } finally {
+        M.Order.findById = realFindById;
+    }
+    const doc = await M.Order.findById(o._id).lean();
+    assert.equal(doc.orderStatus, 'ready_for_pickup', "the seller's change stands");
+    assert.equal(String(doc.dispatch.deliveryPartnerId), String(ids.rahul), 'rider unchanged');
+});
+
+test('moving a cash order to a rider at the cash limit leaves it with its rider', async () => {
+    await settings({ dispatchMode: 'manual', multiOrderTrips: true });
+    await M.CashLimit.create({ deliveryCashLimit: 1000, isActive: true });
+    await M.Wallet.create({ deliveryPartnerId: ids.imran, cashInHand: 1500 });
+    const o = await quickOrder({ payment: { method: 'cash', status: 'cod_pending' } });
+    ok(await assign(ids.rahul, [o._id]), 'assign');
+
+    const res = await call('POST', `/admin/delivery/orders/${o._id}/move`, { as: adminToken, body: { riderId: String(ids.imran) } });
+    assert.equal(res.status, 400);
+    assert.match(res.body.message, /cash limit/);
+    const doc = await M.Order.findById(o._id).lean();
+    assert.equal(doc.dispatch.status, 'accepted');
+    assert.equal(String(doc.dispatch.deliveryPartnerId), String(ids.rahul), 'still with the first rider');
+});
+
+test('a reassignment request in manual mode puts the order back on the board, not out to riders', async () => {
+    await settings({ dispatchMode: 'manual', manualFallbackMinutes: 5 });
+    const { deassignAndResendOrderAdmin } = await import('../src/modules/commerce/delivery/services/orderEmergencyRequest.service.js');
+    const long = new Date(Date.now() - 30 * 60000);
+    // It waited, fell back to automatic, and a rider took it.
+    const o = await quickOrder({
+        dispatch: {
+            status: 'accepted', deliveryPartnerId: ids.rahul, assignedAt: long, acceptedAt: long, assignedBy: 'rider',
+            manualQueuedAt: long, waitingAlertAt: long, fallbackToAutoAt: long,
+        },
+    });
+
+    await deassignAndResendOrderAdmin(String(o._id), new mongoose.Types.ObjectId());
+    const doc = await M.Order.findById(o._id).lean();
+    assert.equal(doc.dispatch.status, 'unassigned');
+    assert.equal(doc.dispatch.fallbackToAutoAt, undefined, 'old fallback cleared');
+    assert.equal(doc.dispatch.waitingAlertAt, undefined, 'old alert cleared');
+    assert.ok(doc.dispatch.manualQueuedAt > long, 'waits on the board from now');
+    assert.ok(!(doc.dispatch.offeredTo || []).some((x) => x.action === 'offered'), 'not broadcast to riders');
+});

@@ -148,3 +148,30 @@ test("statusLabel", () => {
   assert.equal(statusLabel("reached_store"), "Reached Store")
   assert.equal(statusLabel(""), "")
 })
+
+test("paymentCollectsCash: cash and QR at the door, not prepaid", async () => {
+  const { paymentCollectsCash } = await import("../src/modules/Store/utils/dispatchBoard.js")
+  assert.equal(paymentCollectsCash("cash"), true)
+  assert.equal(paymentCollectsCash("razorpay_qr"), true)
+  assert.equal(paymentCollectsCash("RAZORPAY_QR"), true)
+  assert.equal(paymentCollectsCash("razorpay"), false)
+  assert.equal(paymentCollectsCash(""), false)
+})
+
+test("coalesce: a call made during a load runs after it instead of being dropped", async () => {
+  const { coalesce } = await import("../src/modules/Store/utils/dispatchBoard.js")
+  const calls = []
+  let release
+  const first = new Promise((r) => (release = r))
+  const load = coalesce(async (tag) => {
+    calls.push(tag)
+    if (tag === "poll") await first
+  })
+  const p1 = load("poll")
+  load("after-assign-1")
+  load("after-assign-2")
+  assert.deepEqual(calls, ["poll"], "no overlapping loads")
+  release()
+  await p1
+  assert.deepEqual(calls, ["poll", "after-assign-2"], "one more load, with the latest args")
+})

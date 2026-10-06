@@ -182,3 +182,38 @@ export function statusLabel(status) {
   if (STATUS_LABELS[s]) return STATUS_LABELS[s]
   return s ? s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : ""
 }
+
+/** Payment methods where the rider collects money at the door (as the backend counts them). */
+export function paymentCollectsCash(method) {
+  const m = String(method || "").toLowerCase()
+  return m === "cash" || m === "razorpay_qr"
+}
+
+/**
+ * Wraps an async loader so calls never overlap and none is dropped: a call made
+ * while one is running runs once more when it finishes (with the latest args).
+ * Dropping it instead would leave the board showing data fetched before an
+ * assign/move/unassign that triggered the call.
+ */
+export function coalesce(fn) {
+  let running = false
+  let queued = null
+  const run = async (...args) => {
+    if (running) {
+      queued = args
+      return
+    }
+    running = true
+    try {
+      await fn(...args)
+    } finally {
+      running = false
+      if (queued) {
+        const next = queued
+        queued = null
+        await run(...next)
+      }
+    }
+  }
+  return run
+}

@@ -118,6 +118,7 @@ async function deassignOrderForRedispatch({
                 orderStatus: nextOrderStatus,
                 'dispatch.status': 'unassigned',
                 'dispatch.deliveryPartnerId': null,
+                'dispatch.assignedBy': null,
                 'deliveryState.currentPhase': 'en_route_to_pickup',
                 'deliveryState.status': '',
                 'deliveryState.reachedPickupAt': null,
@@ -128,7 +129,13 @@ async function deassignOrderForRedispatch({
             $unset: {
                 'dispatch.assignedAt': '',
                 'dispatch.acceptedAt': '',
-                'dispatch.dispatchingAt': ''
+                'dispatch.dispatchingAt': '',
+                // Manual-dispatch markers from the order's earlier wait: left in place, a
+                // past fallback would send it to automatic dispatch while manual mode is
+                // on, and the old queue time and alert would skip the new wait's alert.
+                'dispatch.manualQueuedAt': '',
+                'dispatch.waitingAlertAt': '',
+                'dispatch.fallbackToAutoAt': ''
             },
             $push: {
                 'dispatch.offeredTo': {
@@ -160,7 +167,14 @@ async function deassignOrderForRedispatch({
         { $unset: { deliveryPartnerId: '' } }
     );
 
-    const db = getFirebaseDB();
+    // getFirebaseDB throws when the Realtime Database isn't set up; that must not
+    // stop the order, already taken off its rider, from going back to dispatch.
+    let db = null;
+    try {
+        db = getFirebaseDB();
+    } catch {
+        /* Realtime Database is optional */
+    }
     if (db) {
         await db.ref(`active_orders/${String(order._id)}`).remove().catch((error) => {
             logger.warn(

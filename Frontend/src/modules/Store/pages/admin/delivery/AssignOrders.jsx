@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
 import io from "socket.io-client"
@@ -22,9 +22,11 @@ import { API_BASE_URL } from "@store/api/config"
 import { useAdminPanel } from "@store/components/admin/useAdminPanel"
 import {
   activeTrips,
+  coalesce,
   formatKm,
   hasMixedStores,
   locationFreshness,
+  paymentCollectsCash,
   pruneSelection,
   remainingCapacity,
   riderBlockReason,
@@ -639,7 +641,7 @@ function TripOrderRow({ order, rider, riders, onChanged }) {
         {order.phase ? <span className="text-xs text-slate-500">{statusLabel(order.phase)}</span> : null}
         {order.pickedUp ? <span className={`${chip} bg-emerald-50 text-emerald-700`}>Picked Up</span> : null}
         <span className={`${chip} bg-slate-100 text-slate-600`}>{order.assignedBy === "admin" ? "Assigned By Admin" : "Accepted By Rider"}</span>
-        {order.payment === "cash" ? <span className={`${chip} bg-amber-50 text-amber-700`}>Cash</span> : null}
+        {paymentCollectsCash(order.payment) ? <span className={`${chip} bg-amber-50 text-amber-700`}>Cash</span> : null}
       </div>
       <p className="mt-1 text-xs text-slate-600">
         {order.store?.name || "Store"}
@@ -670,7 +672,7 @@ function TripOrderRow({ order, rider, riders, onChanged }) {
               <option value="">Choose a rider</option>
               {others.map((r) => {
                 const left = remainingCapacity(r)
-                const cashNo = r.cashBlocked && order.payment === "cash"
+                const cashNo = r.cashBlocked && paymentCollectsCash(order.payment)
                 return (
                   <option key={r.id} value={r.id} disabled={left === 0 || cashNo}>
                     {r.name} ({r.activeOrders}/{r.maxOrders}){cashNo ? " · cash limit" : left === 0 ? " · full" : ""}
@@ -758,24 +760,26 @@ export default function AssignOrders() {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState("")
   const [tab, setTab] = useState("waiting")
-  const inFlight = useRef(false)
 
-  const load = useCallback(async ({ silent = false } = {}) => {
-    if (inFlight.current) return
-    inFlight.current = true
-    if (!silent) setRefreshing(true)
-    try {
-      const res = await adminAPI.getDispatchBoard()
-      setBoard(res?.data?.data || null)
-      setError("")
-    } catch (e) {
-      setError(message(e, "Couldn't load the dispatch board"))
-    } finally {
-      inFlight.current = false
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
+  // Coalesced, not skipped while a poll is in flight: a refresh asked for after an
+  // assign/move/unassign must not be dropped in favour of a response fetched before it.
+  const load = useMemo(
+    () =>
+      coalesce(async ({ silent = false } = {}) => {
+        if (!silent) setRefreshing(true)
+        try {
+          const res = await adminAPI.getDispatchBoard()
+          setBoard(res?.data?.data || null)
+          setError("")
+        } catch (e) {
+          setError(message(e, "Couldn't load the dispatch board"))
+        } finally {
+          setLoading(false)
+          setRefreshing(false)
+        }
+      }),
+    [],
+  )
 
   const isQuick = panel === "quick"
 
