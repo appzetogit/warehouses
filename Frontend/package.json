@@ -12,6 +12,7 @@
     "check:api-paths": "node scripts/check-api-paths.mjs . ../Backend/test/fixtures/routes.txt",
     "check:api-methods": "node scripts/check-api-methods.mjs .",
     "check:unreachable": "node scripts/check-unreachable.mjs .",
+    "test": "node --test \"test/**/*.test.mjs\"",
     "check": "npm run check:api-paths && npm run check:api-methods && npm run check:unreachable && npm run lint"
   },
   "dependencies": {

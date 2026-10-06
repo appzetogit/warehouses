@@ -46,6 +46,7 @@ const BasicCampaign = lazy(() => import("@store/pages/admin/campaigns/BasicCampa
 const ProductCampaign = lazy(() => import("@store/pages/admin/campaigns/ProductCampaign"));
 const Coupons = lazy(() => import("@store/pages/admin/Coupons"));
 const OfferBanners = lazy(() => import("@store/pages/admin/OfferBanners"));
+const AssignOrders = lazy(() => import("@store/pages/admin/delivery/AssignOrders"));
 const Cashback = lazy(() => import("@store/pages/admin/Cashback"));
 const Banners = lazy(() => import("@store/pages/admin/Banners"));
 const PromotionalBanner = lazy(() => import("@store/pages/admin/PromotionalBanner"));
@@ -406,6 +407,7 @@ export default function AdminRouter() {
             <Route path="delivery-emergency-help" element={<DeliveryEmergencyHelp />} />
             <Route path="delivery-support-tickets" element={<DeliverySupportTickets />} />
             <Route path="delivery-order-reassignment-requests" element={<OrderReassignmentRequests />} />
+            <Route path="assign-orders" element={<AssignOrders />} />
             <Route path="delivery-partners" element={<DeliverymanList />} />
             <Route path="delivery-partners/add" element={<AddDeliveryman />} />
             <Route path="delivery-partners/live-tracking" element={<DeliveryLiveTracking />} />

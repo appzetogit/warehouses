@@ -29,6 +29,7 @@ const PATH_PREFIX_TO_SECTION = [
   { prefix: "/delivery-emergency-help", section: "delivery_management" },
   { prefix: "/delivery-support-tickets", section: "delivery_management" },
   { prefix: "/delivery-order-reassignment-requests", section: "delivery_management" },
+  { prefix: "/assign-orders", section: "delivery_management" },
   { prefix: "/product-approval", section: "product_management" },
   { prefix: "/products", section: "product_management" },
   // Legacy twins of the routes above. The router still serves them so old

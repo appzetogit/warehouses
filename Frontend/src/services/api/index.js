@@ -935,7 +935,27 @@ export const adminAPI = {
     apiClient.get(`/admin/orders/user-carts/${String(cartId)}/pricing`, {
       contextModule: "admin",
     }),
-  /** Dispatch settings – auto vs manual assign (global) */
+  /** Dispatch (Quick orders): auto vs manual mode, the assign board, and assign/move/unassign. */
+  getDispatchSettings: () =>
+    apiClient.get("/admin/dispatch-settings", { contextModule: "admin" }),
+  updateDispatchSettings: (body) =>
+    apiClient.patch("/admin/dispatch-settings", body ?? {}, { contextModule: "admin" }),
+  getDispatchBoard: (params = {}) =>
+    apiClient.get("/admin/delivery/dispatch-board", { params, contextModule: "admin" }),
+  assignOrdersToRider: (riderId, orderIds) =>
+    apiClient.post(
+      "/admin/delivery/assign",
+      { riderId: String(riderId), orderIds: (orderIds || []).map(String) },
+      { contextModule: "admin" },
+    ),
+  unassignRiderOrder: (orderId) =>
+    apiClient.post(`/admin/delivery/orders/${String(orderId)}/unassign`, {}, { contextModule: "admin" }),
+  moveRiderOrder: (orderId, riderId) =>
+    apiClient.post(
+      `/admin/delivery/orders/${String(orderId)}/move`,
+      { riderId: String(riderId) },
+      { contextModule: "admin" },
+    ),
   /** Create seller (admin). Single API: POST /food/admin/sellers. Body: JSON with image URLs. */
   createSeller: (body) =>
     apiClient.post("/admin/sellers", body ?? {}, {

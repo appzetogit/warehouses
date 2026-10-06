@@ -169,6 +169,7 @@ const adminSidebarMenuTemplate = [
     label: "DELIVERY MANAGEMENT",
     panels: QUICK,
     items: [
+      { type: "link", label: "Assign Orders", path: "/assign-orders", icon: "Truck" },
       { type: "link", label: "Delivery & Platform Fee", path: "/fee-settings", icon: "DollarSign" },
       { type: "link", label: "Delivery Withdrawal", path: "/delivery-withdrawal", icon: "Wallet" },
       { type: "link", label: "Delivery boy Wallet", path: "/delivery-boy-wallet", icon: "PiggyBank" },

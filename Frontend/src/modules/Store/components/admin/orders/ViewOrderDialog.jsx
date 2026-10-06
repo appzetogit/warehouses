@@ -55,6 +55,7 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
   // Full order detail (statusHistory + transaction split) fetched on open;
   // the `order` prop only carries the mapped list-row fields.
   const [detail, setDetail] = useState(null)
+  const [detailVersion, setDetailVersion] = useState(0)
   const detailOrderId = order?._id || order?.orderMongoId || order?.id || null
 
   useEffect(() => {
@@ -76,7 +77,7 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
     return () => {
       active = false
     }
-  }, [isOpen, detailOrderId])
+  }, [isOpen, detailOrderId, detailVersion])
 
   if (!order) return null
 
@@ -484,6 +485,11 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
             </div>
           )}
 
+          <RiderDispatchControl
+            detail={detail}
+            onChanged={() => setDetailVersion((v) => v + 1)}
+          />
+
           {/* Pricing Breakdown */}
           <div className="border-t border-slate-200 pt-4">
             <h3 className="text-sm font-semibold text-slate-700 mb-4">Pricing Breakdown</h3>
@@ -748,5 +754,159 @@ function CheckoutLink({ order }) {
       Part of checkout{" "}
       <Link className="text-blue-600 hover:underline" to={`${base}/checkouts/${encodeURIComponent(String(key))}`}>{String(order.orderGroupId || key)}</Link>
     </p>
+  )
+}
+
+const RIDER_WAITING_STATUSES = ["confirmed", "preparing", "ready_for_pickup"]
+
+/**
+ * Quick orders only: assign a rider by hand while the order has none, or take
+ * the rider off before pickup. Uses the manual dispatch board's rider list.
+ */
+function RiderDispatchControl({ detail, onChanged }) {
+  const base = useAdminBase()
+  const [riders, setRiders] = useState(null)
+  const [riderId, setRiderId] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState(null) // { ok, text }
+  const [confirmUnassign, setConfirmUnassign] = useState(false)
+
+  const orderMongoId = detail?._id ? String(detail._id) : ""
+  const status = String(detail?.orderStatus || "")
+  const dispatchStatus = String(detail?.dispatch?.status || "")
+  const isQuick = detail && detail.fulfilmentMode !== "standard"
+  const needsRider = isQuick && RIDER_WAITING_STATUSES.includes(status) && dispatchStatus !== "accepted"
+  const canUnassign =
+    isQuick &&
+    dispatchStatus === "accepted" &&
+    !detail?.deliveryState?.pickedUpAt &&
+    RIDER_WAITING_STATUSES.includes(status)
+
+  useEffect(() => {
+    setRiders(null)
+    setRiderId("")
+    setNote(null)
+    setConfirmUnassign(false)
+  }, [orderMongoId])
+
+  if (!orderMongoId || (!needsRider && !canUnassign)) return null
+
+  const errText = (e, fallback) => e?.response?.data?.message || e?.message || fallback
+
+  const loadRiders = async () => {
+    setBusy(true)
+    setNote(null)
+    try {
+      const res = await adminAPI.getDispatchBoard()
+      setRiders(res?.data?.data?.riders || [])
+    } catch (e) {
+      setNote({ ok: false, text: errText(e, "Couldn't load the riders") })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const assign = async () => {
+    if (!riderId) return
+    setBusy(true)
+    setNote(null)
+    try {
+      const res = await adminAPI.assignOrdersToRider(riderId, [orderMongoId])
+      const failed = res?.data?.data?.failed || []
+      if (failed.length) setNote({ ok: false, text: failed.map((f) => f.reason).join(" ") })
+      else {
+        setNote({ ok: true, text: res?.data?.message || "Rider assigned" })
+        setRiders(null)
+        onChanged?.()
+      }
+    } catch (e) {
+      setNote({ ok: false, text: errText(e, "Couldn't assign the rider") })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const unassign = async () => {
+    setBusy(true)
+    setNote(null)
+    try {
+      const res = await adminAPI.unassignRiderOrder(orderMongoId)
+      setNote({ ok: true, text: res?.data?.message || "Rider removed; the order is waiting again" })
+      setConfirmUnassign(false)
+      onChanged?.()
+    } catch (e) {
+      setNote({ ok: false, text: errText(e, "Couldn't unassign the rider") })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const btn = "rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50"
+  const cashOrder = ["cash", "razorpay_qr"].includes(String(detail?.payment?.method || detail?.paymentMethod || "").toLowerCase())
+
+  return (
+    <div className="border-t border-slate-200 pt-4">
+      <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+        <Truck className="w-4 h-4" />
+        {needsRider ? "Assign Rider" : "Rider"}
+      </h3>
+      {needsRider ? (
+        riders === null ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs text-slate-500">This order has no rider yet.</p>
+            <button type="button" className={btn} onClick={loadRiders} disabled={busy}>
+              {busy ? "Loading..." : "Assign Rider"}
+            </button>
+          </div>
+        ) : riders.length === 0 ? (
+          <p className="text-xs text-slate-500">No riders are online right now.</p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="sr-only" htmlFor="assign-rider-select">Rider</label>
+            <select
+              id="assign-rider-select"
+              value={riderId}
+              onChange={(e) => setRiderId(e.target.value)}
+              className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm"
+            >
+              <option value="">Choose a rider</option>
+              {riders.map((r) => {
+                const full = Number(r.activeOrders) >= Number(r.maxOrders)
+                const cashNo = r.cashBlocked && cashOrder
+                return (
+                  <option key={r.id} value={r.id} disabled={full || cashNo}>
+                    {r.name} ({r.activeOrders}/{r.maxOrders}){cashNo ? " · cash limit" : full ? " · full" : ""}
+                  </option>
+                )
+              })}
+            </select>
+            <button type="button" className={btn} onClick={assign} disabled={!riderId || busy}>
+              {busy ? "Assigning..." : "Assign"}
+            </button>
+          </div>
+        )
+      ) : confirmUnassign ? (
+        <div className="rounded-lg bg-rose-50 p-2 text-xs text-rose-800">
+          <p>Take this order off the rider? It goes back to waiting for a rider.</p>
+          <div className="mt-2 flex gap-2">
+            <button type="button" className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50" onClick={unassign} disabled={busy}>
+              {busy ? "Unassigning..." : "Yes, Unassign"}
+            </button>
+            <button type="button" className={btn} onClick={() => setConfirmUnassign(false)} disabled={busy}>Keep</button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs text-slate-500">Not picked up yet.</p>
+          <button type="button" className={btn} onClick={() => setConfirmUnassign(true)}>Unassign</button>
+          <Link to={`${base}/assign-orders`} className="text-xs font-semibold text-blue-600 hover:underline">
+            Move In Assign Orders
+          </Link>
+        </div>
+      )}
+      {note ? (
+        <p className={`mt-2 text-xs ${note.ok ? "text-emerald-700" : "text-rose-600"}`} role="status">{note.text}</p>
+      ) : null}
+    </div>
   )
 }
