@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { Search, Download, ChevronDown, Filter, UtensilsCrossed, Eye, ArrowUpDown, Info, Settings, FileText, FileSpreadsheet, Code, Calendar } from "lucide-react"
+import { Search, Download, ChevronDown, Filter, Shirt, Eye, ArrowUpDown, Info, Settings, FileText, FileSpreadsheet, Code, Calendar } from "lucide-react"
 import { emptyDisbursementReportSellers, emptyDisbursementStats } from "@store/utils/adminFallbackData"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@store/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@store/components/ui/dialog"
@@ -104,7 +104,7 @@ export default function DisbursementReportSellers() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center">
-              <UtensilsCrossed className="w-5 h-5 text-white" />
+              <Shirt className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Seller Disbursement Report</h1>
           </div>

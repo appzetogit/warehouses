@@ -32,7 +32,7 @@ import {
   CalendarClock,
   ShieldCheck,
   IndianRupee,
-  UtensilsCrossed,
+  Shirt,
   AlertCircle,
   Loader2,
   Plus,

@@ -10,11 +10,11 @@ import {
   CheckCircle2,
   MapPin,
   Link as LinkIcon,
-  UtensilsCrossed,
+  Shirt,
   Building2,
   FolderTree,
   Plus,
-  Utensils,
+  ShoppingBag,
   LayoutGrid,
   Megaphone,
   ChevronDown,
@@ -86,7 +86,7 @@ const iconMap = {
   Percent,
   Coins,
   LayoutDashboard,
-  UtensilsCrossed,
+  Shirt,
   Building2,
   FileText,
   Calendar,
@@ -98,7 +98,7 @@ const iconMap = {
   Link: LinkIcon,
   FolderTree,
   Plus,
-  Utensils,
+  ShoppingBag,
   Megaphone,
   Gift,
   DollarSign,
@@ -679,7 +679,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     }
 
     if (item.type === "link") {
-      const Icon = iconMap[item.icon] || Utensils
+      const Icon = iconMap[item.icon] || ShoppingBag
       const displayLabel = getDisplayLabel(item)
       return (
         <Link
@@ -726,7 +726,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
     }
 
     if (item.type === "expandable") {
-      const Icon = iconMap[item.icon] || Utensils
+      const Icon = iconMap[item.icon] || ShoppingBag
       const sectionKey = item.label.toLowerCase().replace(/\s+/g, "")
       const isExpanded = expandedSections[sectionKey] || false
 

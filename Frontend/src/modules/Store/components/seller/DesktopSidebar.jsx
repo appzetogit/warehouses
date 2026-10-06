@@ -48,11 +48,11 @@ const sections = [
     ],
   },
   {
-    title: "MANAGE OUTLET",
+    title: "MANAGE STORE",
     items: [
-      { name: "Outlet info", path: `${BASE}/outlet-info`, icon: Info },
-      { name: "Outlet timings", path: `${BASE}/outlet-timings`, icon: Clock },
-      { name: "Menu categories", path: `${BASE}/menu-categories`, icon: LayoutGrid },
+      { name: "Store Info", path: `${BASE}/outlet-info`, icon: Info },
+      { name: "Store Timings", path: `${BASE}/outlet-timings`, icon: Clock },
+      { name: "Categories", path: `${BASE}/menu-categories`, icon: LayoutGrid },
       { name: "Offers & Coupons", path: `${BASE}/coupon`, icon: FileCheck },
     ],
   },

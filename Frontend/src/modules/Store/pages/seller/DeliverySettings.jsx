@@ -260,7 +260,7 @@ export default function DeliverySettings() {
                         className="text-xs text-orange-600 mt-2 flex items-center gap-1"
                       >
                         <AlertCircle className="w-3 h-3" />
-                        You are outside outlet timings
+                        You are outside your store timings
                       </motion.p>
                     )}
                     {showWarning && deliveryStatus && (
@@ -271,7 +271,7 @@ export default function DeliverySettings() {
                         className="text-xs text-red-600 mt-2 animate-pulse flex items-center gap-1"
                       >
                         <AlertCircle className="w-3 h-3" />
-                        Warning: Delivery enabled outside outlet timings!
+                        Delivery is on outside your store timings
                       </motion.p>
                     )}
                   </AnimatePresence>
@@ -345,7 +345,7 @@ export default function DeliverySettings() {
                 <p className="text-sm text-gray-600 mb-6 text-center">
                   {pendingStatus ? (
                     !canEnableDelivery ? (
-                      <>You are currently outside your outlet timings. Are you sure you want to enable delivery?</>
+                      <>You are outside your store timings. Turn delivery on anyway?</>
                     ) : (
                       <>You will start receiving delivery orders. Make sure you're ready to accept orders.</>
                     )

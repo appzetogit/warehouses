@@ -173,7 +173,7 @@ export default function OutletTimings() {
       await sellerAPI.saveOutletTimings(days)
       window.dispatchEvent(new Event("outletTimingsUpdated"))
       setHasUnsavedChanges(false)
-      toast.success("Outlet timings saved successfully!")
+      toast.success("Store timings saved")
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to save timings. Please try again.")
     } finally {
@@ -209,7 +209,7 @@ export default function OutletTimings() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center md:min-h-full md:bg-slate-50">
-        <div className="text-sm text-gray-600">Loading outlet timings...</div>
+        <div className="text-sm text-gray-600">Loading store timings...</div>
       </div>
     )
   }
@@ -229,7 +229,7 @@ export default function OutletTimings() {
                 <ArrowLeft className="w-6 h-6 text-gray-900" />
               </button>
               <div className="min-w-0">
-                <h1 className="text-lg font-bold text-gray-900 md:text-2xl">Outlet timings</h1>
+                <h1 className="text-lg font-bold text-gray-900 md:text-2xl">Store Timings</h1>
                 <p className="hidden md:block text-sm text-slate-500 mt-0.5">
                   Set weekly opening and closing hours for delivery
                 </p>

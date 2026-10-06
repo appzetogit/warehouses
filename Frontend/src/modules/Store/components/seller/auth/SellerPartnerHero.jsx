@@ -1,11 +1,11 @@
 import { motion, useReducedMotion } from "framer-motion"
-import { ShieldCheck, UtensilsCrossed, TrendingUp, Clock } from "lucide-react"
+import { ShieldCheck, Shirt, TrendingUp, Clock } from "lucide-react"
 import { useCompanyName } from "@store/hooks/useCompanyName"
 
 const DEFAULT_THEME = "#FD920B"
 
 const HIGHLIGHTS = [
-  { icon: UtensilsCrossed, text: "Manage menus, orders & outlet timings" },
+  { icon: Shirt, text: "Manage products, orders & store timings" },
   { icon: TrendingUp, text: "Track earnings and subscription insights" },
   { icon: Clock, text: "Go live faster with guided onboarding" },
 ]

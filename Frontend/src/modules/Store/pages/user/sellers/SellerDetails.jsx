@@ -20,7 +20,7 @@ import {
   ChevronDown,
   Star,
   SlidersHorizontal,
-  Utensils,
+  ShoppingBag,
   Flame,
   Bookmark,
   Share2,
@@ -2099,7 +2099,7 @@ function SellerDetailsContent() {
                 </h1>
                 {seller?.topCategory && (
                   <div className="mt-1.5 flex items-center gap-2 text-[13px] sm:text-sm text-gray-700 dark:text-gray-300">
-                    <Utensils className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                    <ShoppingBag className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                     <span>{seller.topCategory}</span>
                   </div>
                 )}
@@ -2914,7 +2914,7 @@ function SellerDetailsContent() {
               className="flex h-[60px] w-[60px] flex-col items-center justify-center gap-0.5 rounded-full bg-[#1a1a1a] text-white shadow-[0_8px_24px_rgba(0,0,0,0.28)] hover:bg-black transition-colors"
               aria-label="Open menu categories"
             >
-              <Utensils className="h-5 w-5" />
+              <ShoppingBag className="h-5 w-5" />
               <span className="text-[10px] font-bold tracking-wide">MENU</span>
             </button>
           </div>,

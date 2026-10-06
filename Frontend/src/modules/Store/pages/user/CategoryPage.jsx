@@ -7,7 +7,7 @@ import useIsDesktop, { useStorefrontLayout } from "@store/components/user/deskto
 import MobileListing from "@store/components/user/mobile/MobileListing"
 import { DesktopProductListing } from "@store/components/user/desktop/ListingDesktop"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, Star, Clock, Search, SlidersHorizontal, ChevronDown, Bookmark, BadgePercent, MapPin, ArrowDownUp, Timer, IndianRupee, UtensilsCrossed, ShieldCheck, X, Loader2, Grid2x2 } from "lucide-react"
+import { ArrowLeft, Star, Clock, Search, SlidersHorizontal, ChevronDown, Bookmark, BadgePercent, MapPin, ArrowDownUp, Timer, IndianRupee, Shirt, ShieldCheck, X, Loader2, Grid2x2 } from "lucide-react"
 import { Card, CardContent } from "@store/components/ui/card"
 import { Button } from "@store/components/ui/button"
 import { Input } from "@store/components/ui/input"

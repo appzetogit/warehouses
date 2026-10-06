@@ -63,7 +63,10 @@ export default function ProductTile({ product, showSizes = true }) {
   const variant = chosen?.variant || (variants.length === 1 ? variants[0] : null)
 
   const price = Number(variant?.price ?? product?.displayPrice ?? product?.price ?? 0)
-  const mrp = Number(variant?.mrp ?? product?.mrp ?? 0)
+  // Before a size is picked, show the MRP of the size the price comes from: many
+  // products keep the MRP on their sizes only, and the card lost its strike-through.
+  const priceVariant = variant || variants.find((v) => Number(v?.price) === price) || variants[0]
+  const mrp = Number(variant?.mrp) || Number(product?.mrp) || Number(priceVariant?.mrp) || 0
   const off = percentOff(price, mrp)
   const rating = Number(product?.rating) > 0 ? Number(product.rating) : null
   const ratingCount = Number(product?.ratingCount ?? product?.totalRatings) || 0

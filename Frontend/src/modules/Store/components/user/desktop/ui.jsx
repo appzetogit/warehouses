@@ -131,7 +131,13 @@ const productImage = (p) =>
   p?.imageUrl || p?.image || (Array.isArray(p?.images) ? (typeof p.images[0] === 'string' ? p.images[0] : p.images[0]?.url) : null) || ''
 
 const productPrice = (p) => p?.price ?? p?.salePrice ?? p?.variants?.[0]?.price
-const productMrp = (p) => p?.mrp ?? p?.originalPrice ?? p?.variants?.[0]?.mrp
+// A product-level MRP of 0 means "not set": fall back to the size the price comes from.
+const productMrp = (p) => {
+  const price = Number(productPrice(p))
+  const variants = Array.isArray(p?.variants) ? p.variants : []
+  const priceVariant = variants.find((v) => Number(v?.price) === price) || variants[0]
+  return Number(p?.mrp) || Number(p?.originalPrice) || Number(priceVariant?.mrp) || null
+}
 
 /**
  * Result/carousel tile: image on light grey square, 2-line title, rating,

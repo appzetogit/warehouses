@@ -1218,7 +1218,7 @@ export default function AddSeller() {
 
       <section className="bg-white p-4 sm:p-6 rounded-md space-y-5">
         <div className="space-y-3">
-          <Label className="text-xs text-gray-700">Outlet timings*</Label>
+          <Label className="text-xs text-gray-700">Store timings*</Label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs text-gray-700 mb-1 block">Opening time</Label>

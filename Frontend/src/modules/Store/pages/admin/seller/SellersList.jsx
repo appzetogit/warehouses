@@ -2079,7 +2079,7 @@ export default function SellersList() {
                       <div className="space-y-3">
                         {outletDayRows.length > 0 && (
                           <div>
-                            <p className="text-xs text-slate-500 mb-1">Outlet Timings (Day-wise)</p>
+                            <p className="text-xs text-slate-500 mb-1">Store Timings (Day-wise)</p>
                             <div className="space-y-1.5">
                               {outletDayRows.map((slot) => (
                                 <div key={slot.day} className="flex items-center justify-between text-sm">

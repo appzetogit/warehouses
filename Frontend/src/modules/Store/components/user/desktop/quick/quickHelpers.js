@@ -18,16 +18,22 @@ export const productName = (p) => p?.name || p?.title || "Product"
 
 export const productPrice = (p) => num(p?.displayPrice) ?? num(p?.price) ?? num(p?.variants?.[0]?.price) ?? 0
 
-export const productMrp = (p) =>
-  num(p?.mrp) ?? num(p?.originalPrice) ?? num(p?.otherPrice) ?? num(p?.variants?.[0]?.mrp) ?? null
+/** The struck-through price. 0 means not set; then the MRP of the size the price comes from. */
+export const productMrp = (p) => {
+  const price = productPrice(p)
+  const variants = Array.isArray(p?.variants) ? p.variants : []
+  const priceVariant = variants.find((v) => num(v?.price) === price) || variants[0]
+  return [p?.mrp, p?.originalPrice, p?.otherPrice, priceVariant?.mrp].map(num).find((n) => n > 0) ?? null
+}
 
 export const productImage = (p) =>
   mediaUrl(p?.imageUrl || p?.image || (Array.isArray(p?.images) ? p.images[0] : ""))
 
 /** Pack size / unit line under the name; blank when the catalogue has none. */
 export const productPack = (p) => {
-  const raw = p?.packSize || p?.unit || p?.unitLabel || p?.weight || p?.quantityLabel || ""
-  return String(raw || "").trim()
+  const raw = String(p?.packSize || p?.unit || p?.unitLabel || p?.weight || p?.quantityLabel || "").trim()
+  // The seller app saves a bare count ("1"); on its own that reads as a stray number.
+  return /^\d+$/.test(raw) ? `Pack of ${raw}` : raw
 }
 
 /** Variants mean the customer has to choose, so the card links out to the product page. */

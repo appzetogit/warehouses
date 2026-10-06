@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { Search, Download, ChevronDown, Star, ArrowUpDown, Settings, FileText, FileSpreadsheet, Code, Check, Columns, Loader2, Eye, Utensils } from "lucide-react"
+import { Search, Download, ChevronDown, Star, ArrowUpDown, Settings, FileText, FileSpreadsheet, Code, Check, Columns, Loader2, Eye, ShoppingBag } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@store/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@store/components/ui/dialog"
 import { exportReviewsToCSV, exportReviewsToExcel, exportReviewsToPDF, exportReviewsToJSON } from "@store/components/admin/deliveryman/deliverymanExportUtils"
@@ -155,7 +155,7 @@ export default function SellerReviews() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <Utensils className="w-5 h-5 text-emerald-500" />
+              <ShoppingBag className="w-5 h-5 text-emerald-500" />
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-slate-900">Seller Reviews</h1>
                 <span className="px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700">

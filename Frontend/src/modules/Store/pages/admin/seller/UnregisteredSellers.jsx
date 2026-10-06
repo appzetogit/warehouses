@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Search, Trash2, Building2, User, Phone, Mail, MapPin, Calendar, 
-  UtensilsCrossed, ArrowUpDown, Loader2, RefreshCw, AlertCircle, Eye, X
+  Shirt, ArrowUpDown, Loader2, RefreshCw, AlertCircle, Eye, X
 } from "lucide-react";
 import { adminAPI } from "@store/api";
 
@@ -106,7 +106,7 @@ export default function UnregisteredSellers() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-600 shadow-inner">
-              <UtensilsCrossed className="w-6 h-6" />
+              <Shirt className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Unregistered Seller Leads</h1>

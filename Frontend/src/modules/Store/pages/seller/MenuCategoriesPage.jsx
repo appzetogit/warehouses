@@ -348,7 +348,7 @@ export default function MenuCategoriesPage() {
           </button>
           <div className="flex-1 md:flex md:items-center md:justify-between md:gap-4">
             <div>
-              <h1 className="text-xl font-bold text-slate-900 md:text-2xl">Menu Categories</h1>
+              <h1 className="text-xl font-bold text-slate-900 md:text-2xl">Categories</h1>
               <p className="text-xs text-slate-500 md:text-sm md:mt-1">
                 Create categories, track approvals, and resubmit edits safely.
               </p>

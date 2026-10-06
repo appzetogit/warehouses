@@ -4,7 +4,7 @@ import { useSearchParams, Link, useNavigate } from "react-router-dom"
 import { 
   ArrowLeft, Star, Clock, Search, SlidersHorizontal, 
   ChevronDown, Bookmark, BadgePercent, Mic, Grid2x2,
-  X, Utensils, Store, Loader2, History
+  X, ShoppingBag, Store, Loader2, History
 } from "lucide-react"
 import { Card, CardContent } from "@store/components/ui/card"
 import { Button } from "@store/components/ui/button"
@@ -309,7 +309,7 @@ export default function ProfessionalSearch() {
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
                       />
                     ) : (
-                      <Utensils className="w-6 h-6 text-slate-300" />
+                      <ShoppingBag className="w-6 h-6 text-slate-300" />
                     )}
                   </div>
                   <span className={`text-[11px] font-medium text-center line-clamp-1 ${selectedCategoryId === cat._id ? 'text-wh-brand-ink' : 'text-slate-600 dark:text-slate-400'}`}>

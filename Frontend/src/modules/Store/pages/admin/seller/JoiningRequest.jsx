@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react"
 import { 
-  Search, Filter, Eye, Check, X, UtensilsCrossed, ArrowUpDown, Loader2,
+  Search, Filter, Eye, Check, X, Shirt, ArrowUpDown, Loader2,
   FileText, Image as ImageIcon, ExternalLink, CreditCard, Calendar, Star, Building2, User, Phone, Mail, MapPin, Clock
 } from "lucide-react"
 import { adminAPI, sellerAPI } from "@store/api"
@@ -310,7 +310,7 @@ export default function JoiningRequest() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-              <UtensilsCrossed className="w-5 h-5 text-white" />
+              <Shirt className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">New Seller Join Request <span className="text-base font-medium text-slate-500">({panelLabel} channel)</span></h1>
           </div>
@@ -702,7 +702,7 @@ export default function JoiningRequest() {
             <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-5 flex items-center justify-between z-10">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                  <UtensilsCrossed className="w-5 h-5 text-blue-600" />
+                  <Shirt className="w-5 h-5 text-blue-600" />
                 </div>
                 <h2 className="text-xl font-bold text-slate-900">Seller Details - {selectedRequest.sellerName || "N/A"}</h2>
               </div>

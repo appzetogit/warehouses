@@ -6,7 +6,7 @@ import {
   ChevronUp,
   ChevronDown,
   Loader2,
-  Utensils,
+  ShoppingBag,
   Minus,
   Plus,
   Upload,
@@ -1549,7 +1549,7 @@ export default function Inventory() {
       <div className="hidden md:block border-b border-slate-200 bg-white shrink-0">
         <div className="px-6 py-5 flex items-start justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Menu inventory</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Inventory</h1>
             <p className="text-sm text-slate-500 mt-1">Manage products and stock</p>
           </div>
           <div className="flex items-center gap-6 text-sm">
@@ -1804,7 +1804,7 @@ export default function Inventory() {
                                         />
                                       ) : (
                                         <div className="h-11 w-11 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300">
-                                          <Utensils className="w-4 h-4" />
+                                          <ShoppingBag className="w-4 h-4" />
                                         </div>
                                       )}
                                       <div className="min-w-0">
@@ -1866,10 +1866,10 @@ export default function Inventory() {
                 {!loadingInventory && listToRender.filter((cat) => activeDesktopCategory === "all" || cat.id === activeDesktopCategory).length === 0 && (
                   <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
                     <p className="text-base font-semibold text-slate-700">
-                      {hasActiveTools ? "No matching categories or items found" : "No menu categories available"}
+                      {hasActiveTools ? "No matching categories or items found" : "No categories yet"}
                     </p>
                     <p className="mt-2 text-sm text-slate-500">
-                      {hasActiveTools ? "Try adjusting your search or filters." : "Your menu categories will appear here once items are added."}
+                      {hasActiveTools ? "Try adjusting your search or filters." : "Your categories will appear here once you add products."}
                     </p>
                   </div>
                 )}
@@ -1882,10 +1882,10 @@ export default function Inventory() {
           {!loadingInventory && listToRender.length === 0 && (
             <div className="rounded-[28px] border border-dashed border-slate-200 bg-white/70 px-6 py-16 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.35)]">
               <p className="text-lg font-semibold text-slate-700">
-                {hasActiveTools ? "No matching categories or items found" : "No menu categories available"}
+                {hasActiveTools ? "No matching categories or items found" : "No categories yet"}
               </p>
               <p className="mt-2 text-sm text-slate-500">
-                {hasActiveTools ? "Try adjusting your search or filters." : "Your menu categories will appear here once items are added."}
+                {hasActiveTools ? "Try adjusting your search or filters." : "Your categories will appear here once you add products."}
               </p>
             </div>
           )}
@@ -2489,7 +2489,7 @@ export default function Inventory() {
             {isMenuOpen ? (
               <X className="w-4 h-4 text-slate-900" />
             ) : (
-              <Utensils className="w-4 h-4 text-slate-900" />
+              <ShoppingBag className="w-4 h-4 text-slate-900" />
             )}
           </span>
           <span>{isMenuOpen ? "Close" : "Menu"}</span>

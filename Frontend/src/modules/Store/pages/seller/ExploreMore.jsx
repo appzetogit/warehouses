@@ -663,9 +663,9 @@ export default function ExploreMore() {
 
   // Section data
   const manageOutletItems = [
-    { id: 1, label: "Outlet info", icon: Info, route: "/seller/outlet-info" },
-    { id: 2, label: "Outlet timings", icon: Clock, route: "/seller/outlet-timings" },
-    { id: 4, label: "Menu categories", icon: Settings, route: "/seller/menu-categories" },
+    { id: 1, label: "Store info", icon: Info, route: "/seller/outlet-info" },
+    { id: 2, label: "Store timings", icon: Clock, route: "/seller/outlet-timings" },
+    { id: 4, label: "Categories", icon: Settings, route: "/seller/menu-categories" },
     { id: "coupons-nav", label: "Offers & Coupons", icon: FileCheck, route: "/seller/coupon" },
   ]
 
@@ -693,7 +693,7 @@ export default function ExploreMore() {
 
   // All sections with their items
   const allSections = [
-    { title: "Manage outlet", items: manageOutletItems, key: "manage-outlet" },
+    { title: "Manage store", items: manageOutletItems, key: "manage-outlet" },
     { title: "Settings", items: settingsItems, key: "settings" },
     { title: "Orders", items: ordersItems, key: "orders" },
     { title: "Help", items: helpItems, key: "help" },
@@ -820,7 +820,7 @@ export default function ExploreMore() {
                 Explore
               </h1>
               <p className="hidden text-sm text-gray-500 md:block">
-                Manage outlet, settings, orders, and account tools
+                Manage your store, settings, orders and account
               </p>
             </div>
           </div>

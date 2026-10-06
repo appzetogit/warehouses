@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, Plus, Share2, UtensilsCrossed, Store, X } from "lucide-react"
+import { ArrowLeft, Plus, Share2, Shirt, Store, X } from "lucide-react"
 import { Button } from "@store/components/ui/button"
 import { Input } from "@store/components/ui/input"
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation"
@@ -101,7 +101,7 @@ export default function Collections() {
                       <div className="absolute left-0 top-2 w-14 h-11 bg-white rounded-lg shadow-lg transform -rotate-12 overflow-hidden">
                         <div className="w-full h-full bg-gray-50 flex items-center justify-center p-1">
                           <div className="w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center">
-                            <UtensilsCrossed className="h-4 w-4 text-white" />
+                            <Shirt className="h-4 w-4 text-white" />
                           </div>
                         </div>
                         {/* Red flag */}

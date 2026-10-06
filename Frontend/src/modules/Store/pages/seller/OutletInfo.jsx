@@ -997,7 +997,7 @@ export default function OutletInfo() {
                 <ArrowLeft className="w-6 h-6 text-gray-900" />
               </button>
               <div className="min-w-0">
-                <h1 className="text-lg font-bold text-gray-900 md:text-2xl">Outlet info</h1>
+                <h1 className="text-lg font-bold text-gray-900 md:text-2xl">Store Info</h1>
                 <p className="hidden md:block text-sm text-slate-500 mt-0.5">
                   Manage profile, contact, compliance, and bank details
                 </p>

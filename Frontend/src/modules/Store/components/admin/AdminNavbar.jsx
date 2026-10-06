@@ -7,7 +7,7 @@ import {
   Search,
   User,
   ChevronDown,
-  UtensilsCrossed,
+  Shirt,
   LogOut,
   Settings,
   FileText,
@@ -16,11 +16,10 @@ import {
   AlertCircle,
   ArrowRight,
   Building2,
-  Utensils,
+  ShoppingBag,
   Grid,
   Bell,
   BellOff,
-  ShoppingBag,
   ShieldCheck,
   ExternalLink,
   Zap,
@@ -600,7 +599,7 @@ export default function AdminNavbar({ onMenuClick }) {
                   {[
                     { icon: Package, label: "Orders", path: `${base}/orders/all` },
                     { icon: Users, label: "Users", path: `${base}/customers` },
-                    { icon: UtensilsCrossed, label: "Products", path: `${base}/products` },
+                    { icon: Shirt, label: "Products", path: `${base}/products` },
                     { icon: FileText, label: "Reports", path: `${base}/transaction-report` },
                   ].map((action, idx) => (
                     <button
@@ -674,7 +673,7 @@ export default function AdminNavbar({ onMenuClick }) {
                                 {result.type === 'Order' && <Package className="w-5 h-5" />}
                                 {result.type === 'User' && <User className="w-5 h-5" />}
                                 {result.type === 'Seller' && <Building2 className="w-5 h-5" />}
-                                {result.type === 'Product' && <Utensils className="w-5 h-5" />}
+                                {result.type === 'Product' && <ShoppingBag className="w-5 h-5" />}
                                 {result.type === 'Category' && <Grid className="w-5 h-5" />}
                               </div>
                               <div className="flex-1 min-w-0">
