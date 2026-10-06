@@ -166,7 +166,7 @@ export async function updateDispatchSettingsController(req, res, next) {
     try {
         const adminId = req.user?.userId;
         const dto = validateDispatchSettingsDto(req.body);
-        const result = await orderService.updateDispatchSettings(dto.dispatchMode, adminId);
+        const result = await orderService.updateDispatchSettings(dto, adminId);
         return sendResponse(res, 200, 'Dispatch settings updated', result);
     } catch (err) {
         next(err);
@@ -332,8 +332,9 @@ export async function updateOrderStatusDeliveryController(req, res, next) {
 export async function getCurrentTripDeliveryController(req, res, next) {
     try {
         const deliveryPartnerId = req.user?.userId;
-        const order = await orderService.getCurrentTripDelivery(deliveryPartnerId);
-        return sendResponse(res, 200, 'Current trip retrieved', { activeOrder: order });
+        const orders = await orderService.listActiveOrdersDelivery(deliveryPartnerId);
+        // activeOrder stays for rider apps that show one order at a time.
+        return sendResponse(res, 200, 'Current trip retrieved', { activeOrder: orders[0] || null, activeOrders: orders });
     } catch (err) {
         next(err);
     }

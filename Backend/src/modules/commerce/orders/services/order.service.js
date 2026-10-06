@@ -509,8 +509,8 @@ export async function getDispatchSettings() {
   return dispatchService.getDispatchSettings();
 }
 
-export async function updateDispatchSettings(dispatchMode, adminId) {
-  return dispatchService.updateDispatchSettings(dispatchMode, adminId);
+export async function updateDispatchSettings(patch, adminId) {
+  return dispatchService.updateDispatchSettings(patch, adminId);
 }
 
 // ----- Calculate (validation + return pricing from payload) -----
@@ -1551,16 +1551,19 @@ export async function resyncState(userId, role) {
   }
 
   if (role === "DELIVERY_PARTNER") {
-    const order = await Order.findOne({
+    const orders = await Order.find({
       "dispatch.deliveryPartnerId": new mongoose.Types.ObjectId(userId),
       "dispatch.status": { $in: ["assigned", "accepted"] },
       orderStatus: {
-        $nin: ["delivered", "cancelled_by_user", "cancelled_by_seller"],
+        $nin: ["delivered", "cancelled_by_user", "cancelled_by_seller", "cancelled_by_admin"],
       },
     })
       .populate("sellerId")
+      .sort({ "dispatch.acceptedAt": 1, createdAt: 1 })
+      .limit(20)
       .lean();
-    return { activeOrder: order ? sanitizeOrderForDeliveryPartner(order) : null };
+    const activeOrders = orders.map((o) => sanitizeOrderForDeliveryPartner(o));
+    return { activeOrder: activeOrders[0] || null, activeOrders };
   }
 
   return {};
@@ -2221,7 +2224,8 @@ export async function updateOrderStatusSeller(
   // Real-time: delivery request / ready notifications.
   try {
     const io = getIO();
-    if (io) {
+    // Dispatch must start even when the socket server isn't up; only the emits need it.
+    {
       // On accept (confirmed or preparing) -> request delivery partners via central logic
       if (
         (String(orderStatus) === "preparing" || String(orderStatus) === "confirmed") && 
@@ -2259,7 +2263,7 @@ export async function updateOrderStatusSeller(
                     logger.info(
                       `[DeliveryDispatch] Emitting order_ready to ${rooms.delivery(assignedId)} for order ${order._id.toString()}`,
                     );
-                    io.to(rooms.delivery(assignedId)).emit('order_ready', payload);
+                    io?.to(rooms.delivery(assignedId)).emit('order_ready', payload);
                 } else {
                     console.log(`[DEBUG] Order ${order._id.toString()} is ready but no partner assigned.`);
                 }
@@ -2300,6 +2304,10 @@ export async function resendDeliveryNotificationSeller(orderId, sellerId) {
 
 export async function resendDeliveryNotificationAdmin(orderId) {
     return dispatchService.resendDeliveryNotificationAdmin(orderId);
+}
+
+export async function listActiveOrdersDelivery(deliveryPartnerId) {
+  return deliveryService.listActiveOrdersDelivery(deliveryPartnerId);
 }
 
 export async function getCurrentTripDelivery(deliveryPartnerId) {

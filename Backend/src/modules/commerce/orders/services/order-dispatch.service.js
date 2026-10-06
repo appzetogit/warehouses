@@ -337,23 +337,175 @@ async function listNearbyOnlineDeliveryPartners(
   return { partners: final };
 }
 
+const DISPATCH_DEFAULTS = Object.freeze({
+  dispatchMode: 'auto',
+  maxOrdersPerRider: 3,
+  multiOrderTrips: false,
+  manualAlertMinutes: 3,
+  manualFallbackMinutes: 0,
+});
+
+const SETTINGS_FIELDS = Object.keys(DISPATCH_DEFAULTS);
+
+/**
+ * Dispatch settings with defaults filled in. `effectiveMaxOrdersPerRider` is
+ * what assignment enforces: one order per rider until the rider app that can
+ * show several orders is out (multiOrderTrips).
+ */
 export async function getDispatchSettings() {
-  return { dispatchMode: "auto" };
+  const doc = await DispatchSettings.findOne({ key: 'dispatch' }).lean();
+  const settings = { ...DISPATCH_DEFAULTS };
+  for (const field of SETTINGS_FIELDS) {
+    if (doc?.[field] !== undefined && doc?.[field] !== null) settings[field] = doc[field];
+  }
+  return {
+    ...settings,
+    effectiveMaxOrdersPerRider: settings.multiOrderTrips ? settings.maxOrdersPerRider : 1,
+    updatedAt: doc?.updatedAt || null,
+  };
 }
 
-export async function updateDispatchSettings(dispatchMode, adminId) {
-  // Always set to auto
+/**
+ * Save any of the dispatch settings. Switching from manual back to automatic
+ * hands every order still waiting for an admin to automatic dispatch.
+ */
+export async function updateDispatchSettings(patch = {}, adminId) {
+  const before = await getDispatchSettings();
+  const $set = { updatedBy: { role: 'ADMIN', adminId, at: new Date() } };
+  for (const field of SETTINGS_FIELDS) {
+    if (patch[field] !== undefined) $set[field] = patch[field];
+  }
   await DispatchSettings.findOneAndUpdate(
-    { key: "dispatch" },
-    {
-      $set: {
-        dispatchMode: "auto",
-        updatedBy: { role: "ADMIN", adminId, at: new Date() },
-      },
-    },
-    { upsert: true, new: true },
+    { key: 'dispatch' },
+    { $set },
+    { upsert: true, new: true, runValidators: true },
   );
-  return getDispatchSettings();
+  const after = await getDispatchSettings();
+  if (before.dispatchMode === 'manual' && after.dispatchMode === 'auto') {
+    void releaseWaitingOrdersToAuto().catch((err) =>
+      logger.error(`Releasing manual queue to auto dispatch failed: ${err.message}`),
+    );
+  }
+  return after;
+}
+
+/** Statuses in which an order can be given to a rider. */
+export const RIDER_ASSIGNABLE_STATUSES = ['confirmed', 'preparing', 'ready_for_pickup'];
+
+/** Shop (courier) orders go to the courier company, never to our riders. */
+export const isRiderDeliveredOrder = (order) => String(order?.fulfilmentMode || 'quick') !== 'standard';
+
+/** Quick orders waiting for a rider (the admin's manual queue). */
+export function waitingForRiderFilter(extra = {}) {
+  return {
+    fulfilmentMode: { $ne: 'standard' },
+    orderStatus: { $in: RIDER_ASSIGNABLE_STATUSES },
+    'dispatch.status': 'unassigned',
+    ...extra,
+  };
+}
+
+async function releaseWaitingOrdersToAuto() {
+  const waiting = await Order.find(waitingForRiderFilter()).select('_id').limit(200).lean();
+  for (const row of waiting) {
+    await tryAutoAssign(row._id).catch((err) =>
+      logger.warn(`Auto dispatch for released order ${row._id} failed: ${err.message}`),
+    );
+  }
+  logger.info(`[Dispatch] Manual mode off: ${waiting.length} waiting order(s) sent to automatic dispatch.`);
+}
+
+/**
+ * Puts an order on the admin's manual queue (once) and tells admins it needs a rider.
+ * The waiting-time alert and the optional fallback are handled by sweepManualDispatchQueue.
+ */
+async function queueForManualDispatch(order) {
+  const queued = await Order.findOneAndUpdate(
+    { _id: order._id, 'dispatch.status': 'unassigned', 'dispatch.manualQueuedAt': { $exists: false } },
+    { $set: { 'dispatch.manualQueuedAt': new Date() } },
+    { new: true },
+  ).lean();
+  if (!queued) return;
+  logger.info(`[Dispatch] Manual mode: order ${order._id} is waiting for an admin to assign a rider.`);
+  try {
+    getIO()?.to(rooms.admin()).emit('order_needs_rider', {
+      orderId: String(order._id),
+      orderDisplayId: order.orderId || order.order_id || '',
+      at: queued.dispatch?.manualQueuedAt,
+    });
+  } catch (err) {
+    logger.warn(`order_needs_rider emit failed: ${err.message}`);
+  }
+}
+
+/**
+ * Runs every 30 seconds. In manual mode it alerts admins about orders that have
+ * waited past manualAlertMinutes and, when manualFallbackMinutes is set, hands
+ * orders waiting longer than that to automatic dispatch.
+ */
+export async function sweepManualDispatchQueue(now = new Date()) {
+  const settings = await getDispatchSettings();
+  if (settings.dispatchMode !== 'manual') return { alerted: 0, fellBack: 0 };
+
+  let alerted = 0;
+  let fellBack = 0;
+
+  const alertBefore = new Date(now.getTime() - settings.manualAlertMinutes * 60000);
+  const toAlert = await Order.find(
+    waitingForRiderFilter({
+      'dispatch.manualQueuedAt': { $lte: alertBefore },
+      'dispatch.waitingAlertAt': { $exists: false },
+    }),
+  )
+    .select('_id orderId dispatch.manualQueuedAt')
+    .limit(50)
+    .lean();
+  for (const row of toAlert) {
+    const claimed = await Order.updateOne(
+      { _id: row._id, 'dispatch.waitingAlertAt': { $exists: false } },
+      { $set: { 'dispatch.waitingAlertAt': now } },
+    );
+    if (!claimed.modifiedCount) continue;
+    alerted += 1;
+    const minutes = Math.max(1, Math.round((now - new Date(row.dispatch.manualQueuedAt)) / 60000));
+    await notifyOwnersSafely([{ ownerType: 'ADMIN', ownerId: 'GLOBAL' }], {
+      title: 'Order waiting for a rider',
+      body: `Order #${row.orderId || row._id} has waited ${minutes} min. Assign a rider in Assign Orders.`,
+      data: { type: 'admin_alert_unassigned', orderId: String(row._id), link: '/admin/quick/assign-orders' },
+    });
+    try {
+      getIO()?.to(rooms.admin()).emit('order_waiting_alert', { orderId: String(row._id), minutes });
+    } catch {
+      /* the socket is optional */
+    }
+  }
+
+  if (settings.manualFallbackMinutes > 0) {
+    const fallbackBefore = new Date(now.getTime() - settings.manualFallbackMinutes * 60000);
+    const toRelease = await Order.find(
+      waitingForRiderFilter({
+        'dispatch.manualQueuedAt': { $lte: fallbackBefore },
+        'dispatch.fallbackToAutoAt': { $exists: false },
+      }),
+    )
+      .select('_id')
+      .limit(50)
+      .lean();
+    for (const row of toRelease) {
+      const claimed = await Order.updateOne(
+        { _id: row._id, 'dispatch.fallbackToAutoAt': { $exists: false } },
+        { $set: { 'dispatch.fallbackToAutoAt': now } },
+      );
+      if (!claimed.modifiedCount) continue;
+      fellBack += 1;
+      logger.info(`[Dispatch] Order ${row._id} waited past ${settings.manualFallbackMinutes} min; sending it to automatic dispatch.`);
+      await tryAutoAssign(row._id).catch((err) =>
+        logger.warn(`Fallback dispatch for ${row._id} failed: ${err.message}`),
+      );
+    }
+  }
+
+  return { alerted, fellBack };
 }
 
 export async function tryAutoAssign(orderId, options = {}) {
@@ -393,6 +545,16 @@ export async function tryAutoAssign(orderId, options = {}) {
   }
 
   try {
+    // Manual mode: no broadcast. The order waits on the admin's assign board,
+    // unless it has already been handed to automatic dispatch after waiting too long.
+    if (!options.forceAuto && !order.dispatch?.fallbackToAutoAt && isRiderDeliveredOrder(order)) {
+      const settings = await getDispatchSettings();
+      if (settings.dispatchMode === 'manual') {
+        await queueForManualDispatch(order);
+        return order;
+      }
+    }
+
     const offeredIds = (order.dispatch?.offeredTo || []).map(o => o.partnerId.toString());
     const permanentlyExcludedIds = new Set(
       (order.dispatch?.offeredTo || [])
@@ -635,7 +797,7 @@ export async function tryAutoAssign(orderId, options = {}) {
 }
 
 
-export async function processDispatchTimeout(orderId, partnerId) {
+export async function processDispatchTimeout(orderId, partnerId, options = {}) {
   const order = await Order.findById(orderId);
   if (!order) return;
 
@@ -654,11 +816,12 @@ export async function processDispatchTimeout(orderId, partnerId) {
     order.dispatch.deliveryPartnerId = null;
     await order.save();
     
-    const attempt = (order.dispatch?.offeredTo?.length || 0) + 1;
+    const attempt = Number(options?.attempt) || (order.dispatch?.offeredTo?.length || 0) + 1;
     await tryAutoAssign(orderId, { attempt });
   } else if (order.dispatch?.status === 'unassigned') {
-    // If it's already unassigned (e.g. from a previous timeout), just keep hunting
-    const attempt = (order.dispatch?.offeredTo?.length || 0) + 1;
+    // If it's already unassigned (e.g. from a previous timeout), just keep hunting.
+    // The job carries the round number; counting offers made the radius jump around.
+    const attempt = Number(options?.attempt) || (order.dispatch?.offeredTo?.length || 0) + 1;
     await tryAutoAssign(orderId, { attempt });
   }
 }

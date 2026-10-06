@@ -236,12 +236,38 @@ export const initSocket = async (server) => {
             socket.emit('tracking-room-joined', { room, orderId: String(orderId) });
         });
 
-        // Delivery partner emits live GPS location for an active order.
-        // Broadcasts to the tracking room so users see the bike move in real time.
+        // Delivery partner emits live GPS location. With an orderId it goes to that
+        // order only (older apps); without one it goes to every order the rider is
+        // carrying, so a rider with several orders sends a single update.
         const _lastLocationBroadcast = {};
+        let _riderOrdersCache = { at: 0, orders: [] };
+        let _riderPointSavedAt = 0;
+
+        const riderActiveOrders = async () => {
+            if (Date.now() - _riderOrdersCache.at < 15000) return _riderOrdersCache.orders;
+            try {
+                const { Order } = await import('../modules/commerce/orders/models/order.model.js');
+                const rows = await Order.find({
+                    'dispatch.deliveryPartnerId': userId,
+                    'dispatch.status': 'accepted',
+                    orderStatus: { $nin: ['delivered', 'cancelled_by_user', 'cancelled_by_seller', 'cancelled_by_admin'] },
+                })
+                    .select('_id userId sellerId')
+                    .limit(20)
+                    .lean();
+                _riderOrdersCache = {
+                    at: Date.now(),
+                    orders: rows.map((o) => ({ orderId: String(o._id), userId: o.userId ? String(o.userId) : '', sellerId: o.sellerId ? String(o.sellerId) : '' })),
+                };
+            } catch (err) {
+                logger.warn(`Rider order lookup for location failed: ${err.message}`);
+            }
+            return _riderOrdersCache.orders;
+        };
+
         socket.on('update-location', async (data) => {
             if (socket.user?.role !== 'DELIVERY_PARTNER') return;
-            if (!data || !data.orderId) return;
+            if (!data) return;
 
             const lat = Number(data.lat);
             const lng = Number(data.lng);
@@ -251,109 +277,129 @@ export const initSocket = async (server) => {
             const heading = Number.isFinite(Number(data.heading)) ? Number(data.heading) : 0;
             const speed = Number.isFinite(Number(data.speed)) ? Number(data.speed) : 0;
             const accuracy = Number.isFinite(Number(data.accuracy)) ? Number(data.accuracy) : null;
-
-            // Throttle: max one broadcast per 2s per orderId
             const now = Date.now();
-            const lastTS = _lastLocationBroadcast[data.orderId] || 0;
-            if (now - lastTS < 2000) return;
-            _lastLocationBroadcast[data.orderId] = now;
 
-            const payload = {
-                orderId: String(data.orderId),
-                deliveryPartnerId: String(userId),
-                lat,
-                lng,
-                boy_lat: lat, // Add boy_lat/lng for compatibility
-                boy_lng: lng,
-                riderLocation: [lat, lng], // Add array format for safety
-                heading,
-                speed,
-                accuracy,
-                timestamp: now
-            };
-
-            logDeliverySocket('Location update received', {
-                socketId: socket.id,
-                deliveryPartnerId: String(userId),
-                orderId: String(data.orderId),
-                lat,
-                lng,
-                status: data.status || 'on_the_way',
-            });
-
-            // Broadcast to tracking room (all users watching this order)
-            const trackingRoom = roomNames.tracking(data.orderId);
-            socket.to(trackingRoom).emit('location-update', payload);
-
-            // Also emit to the specific user room if userId is provided
-            if (data.userId) {
-                socket.to(roomNames.user(data.userId)).emit('location-update', payload);
+            // Keep the position dispatch reads fresh (it used to update only on the availability call).
+            if (now - _riderPointSavedAt > 30000) {
+                _riderPointSavedAt = now;
+                import('../modules/commerce/delivery/models/deliveryPartner.model.js')
+                    .then(({ DeliveryPartner }) =>
+                        DeliveryPartner.updateOne(
+                            { _id: userId },
+                            { $set: { lastLat: lat, lastLng: lng, lastLocationAt: new Date(now), lastLocation: { type: 'Point', coordinates: [lng, lat] } } },
+                        ),
+                    )
+                    .catch((err) => logger.warn(`Saving rider position failed: ${err.message}`));
             }
 
-            if (data.sellerId) {
-                socket.to(roomNames.seller(data.sellerId)).emit('location-update', payload);
-            }
+            const targets = data.orderId
+                ? [{ orderId: String(data.orderId), userId: data.userId ? String(data.userId) : '', sellerId: data.sellerId ? String(data.sellerId) : '' }]
+                : await riderActiveOrders();
 
-            // ─── Scalable Persistence (BullMQ + Redis "Hot" Buffering) ───
-            try {
-                const { getTrackingQueue } = await import('../queues/index.js');
-                const { getRedisClient } = await import('../config/redis.js');
-                const trackingQueue = getTrackingQueue();
-                const redis = getRedisClient();
+            for (const target of targets) {
+            const orderId = target.orderId;
+            // Throttle: max one broadcast per 2s per order
+            const lastTS = _lastLocationBroadcast[orderId] || 0;
+            if (now - lastTS < 2000) continue;
+            _lastLocationBroadcast[orderId] = now;
 
-                if (trackingQueue && redis) {
-                    const coordString = JSON.stringify({ lat, lng, timestamp: now });
+                const payload = {
+                    orderId: String(orderId),
+                    deliveryPartnerId: String(userId),
+                    lat,
+                    lng,
+                    boy_lat: lat, // Add boy_lat/lng for compatibility
+                    boy_lng: lng,
+                    riderLocation: [lat, lng], // Add array format for safety
+                    heading,
+                    speed,
+                    accuracy,
+                    timestamp: now
+                };
+
+                logDeliverySocket('Location update received', {
+                    socketId: socket.id,
+                    deliveryPartnerId: String(userId),
+                    orderId: String(orderId),
+                    lat,
+                    lng,
+                    status: data.status || 'on_the_way',
+                });
+
+                // Broadcast to tracking room (all users watching this order)
+                const trackingRoom = roomNames.tracking(orderId);
+                socket.to(trackingRoom).emit('location-update', payload);
+
+                // Also emit to the specific user room if userId is provided
+                if (target.userId) {
+                    socket.to(roomNames.user(target.userId)).emit('location-update', payload);
+                }
+
+                if (target.sellerId) {
+                    socket.to(roomNames.seller(target.sellerId)).emit('location-update', payload);
+                }
+
+                // ─── Scalable Persistence (BullMQ + Redis "Hot" Buffering) ───
+                try {
+                    const { getTrackingQueue } = await import('../queues/index.js');
+                    const { getRedisClient } = await import('../config/redis.js');
+                    const trackingQueue = getTrackingQueue();
+                    const redis = getRedisClient();
+
+                    if (trackingQueue && redis) {
+                        const coordString = JSON.stringify({ lat, lng, timestamp: now });
                     
-                    // 1. Immediately buffer the newest location in high-speed Redis Hash (HOT storage)
-                    await Promise.all([
-                        redis.hSet('rider:locations:hot', String(userId), coordString),
-                        redis.hSet('order:locations:hot', String(data.orderId), coordString)
-                    ]);
+                        // 1. Immediately buffer the newest location in high-speed Redis Hash (HOT storage)
+                        await Promise.all([
+                            redis.hSet('rider:locations:hot', String(userId), coordString),
+                            redis.hSet('order:locations:hot', String(orderId), coordString)
+                        ]);
 
-                    // 2. Schedule a deferred MongoDB write (COLD storage)
-                    // jobId debulks updates: if a job is already waiting, BullMQ ignores the new add()
-                    // Delay (30s) ensures we don't spam MongoDB while the rider is moving fast
-                    const syncJobId = `sync:loc:${data.orderId}`;
-                    trackingQueue.add('sync-hot-locations', 
-                        { userId, orderId: data.orderId }, 
-                        { jobId: syncJobId, delay: 30000, removeOnComplete: true }
-                    ).catch(e => logger.error(`BullMQ sync schedule failed: ${e.message}`));
+                        // 2. Schedule a deferred MongoDB write (COLD storage)
+                        // jobId debulks updates: if a job is already waiting, BullMQ ignores the new add()
+                        // Delay (30s) ensures we don't spam MongoDB while the rider is moving fast
+                        const syncJobId = `sync:loc:${orderId}`;
+                        trackingQueue.add('sync-hot-locations', 
+                            { userId, orderId: orderId }, 
+                            { jobId: syncJobId, delay: 30000, removeOnComplete: true }
+                        ).catch(e => logger.error(`BullMQ sync schedule failed: ${e.message}`));
+                    }
+                } catch (err) {
+                    logger.error(`Real-time persistence layer error: ${err.message}`);
                 }
-            } catch (err) {
-                logger.error(`Real-time persistence layer error: ${err.message}`);
-            }
 
-            // ─── Firebase Realtime Database Sync (Cost Optimization) ───
-            try {
-                const db = getFirebaseDB();
-                if (db) {
-                    // 1. Update order-specific tracking node
-                    const orderRef = db.ref(`active_orders/${data.orderId}`);
-                    orderRef.update({
-                        lat,
-                        lng,
-                        boy_lat: lat,
-                        boy_lng: lng,
-                        heading,
-                        speed,
-                        accuracy,
-                        last_updated: now,
-                        status: data.status || 'on_the_way'
-                    }).catch(e => logger.error(`Firebase orderRef update error: ${e.message}`));
+                // ─── Firebase Realtime Database Sync (Cost Optimization) ───
+                try {
+                    const db = getFirebaseDB();
+                    if (db) {
+                        // 1. Update order-specific tracking node
+                        const orderRef = db.ref(`active_orders/${orderId}`);
+                        orderRef.update({
+                            lat,
+                            lng,
+                            boy_lat: lat,
+                            boy_lng: lng,
+                            heading,
+                            speed,
+                            accuracy,
+                            last_updated: now,
+                            status: data.status || 'on_the_way'
+                        }).catch(e => logger.error(`Firebase orderRef update error: ${e.message}`));
 
-                    // 2. Update global delivery boy status node
-                    const boyRef = db.ref(`delivery_boys/${userId}`);
-                    boyRef.update({
-                        lat,
-                        lng,
-                        accuracy,
-                        last_updated: now,
-                        status: 'online'
-                    }).catch(e => logger.error(`Firebase boyRef update error: ${e.message}`));
+                        // 2. Update global delivery boy status node
+                        const boyRef = db.ref(`delivery_boys/${userId}`);
+                        boyRef.update({
+                            lat,
+                            lng,
+                            accuracy,
+                            last_updated: now,
+                            status: 'online'
+                        }).catch(e => logger.error(`Firebase boyRef update error: ${e.message}`));
+                    }
+                } catch (err) {
+                    // Silently skip if Firebase not initialized yet
+                    logger.debug(`Firebase RTDB sync skipped: ${err.message}`);
                 }
-            } catch (err) {
-                // Silently skip if Firebase not initialized yet
-                logger.debug(`Firebase RTDB sync skipped: ${err.message}`);
             }
         });
 

@@ -202,32 +202,54 @@ async function syncRazorpayQrPayment(orderDoc) {
 
 
 
-export async function getCurrentTripDelivery(deliveryPartnerId) {
+/** Order statuses a rider is still working on. */
+const RIDER_IN_PROGRESS_STATUSES = [
+  'confirmed',
+  'preparing',
+  'ready_for_pickup',
+  'reached_pickup',
+  'picked_up',
+  'reached_drop',
+];
+
+/**
+ * Every order a rider is carrying, oldest assignment first. Admins can put
+ * several orders on one rider; automatic dispatch still gives one at a time.
+ */
+export async function listActiveOrdersDelivery(deliveryPartnerId) {
   if (!deliveryPartnerId) {
     throw new ValidationError('Delivery partner ID required');
   }
 
   const partnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
-  const order = await Order.findOne({
+  const orders = await Order.find({
     'dispatch.deliveryPartnerId': partnerId,
     'dispatch.status': 'accepted',
-    orderStatus: {
-      $in: ['confirmed', 'preparing', 'ready_for_pickup', 'picked_up'],
-    },
+    orderStatus: { $in: RIDER_IN_PROGRESS_STATUSES },
   })
     .select(DELIVERY_ORDER_BASE_SELECT)
     .populate(DELIVERY_SELLER_POPULATE)
     .populate({ path: 'userId', select: 'name phone' })
-    .sort({ updatedAt: -1 })
+    .sort({ 'dispatch.acceptedAt': 1, createdAt: 1 })
+    .limit(20)
     .lean();
 
-  if (!order) return null;
+  if (!orders.length) return [];
 
-  const tx = await OrderTransaction.findOne({ orderId: order._id })
+  const txRows = await OrderTransaction.find({ orderId: { $in: orders.map((o) => o._id) } })
     .select(DELIVERY_TRANSACTION_SELECT)
     .lean();
+  const txByOrder = new Map(txRows.map((tx) => [String(tx.orderId), tx]));
 
-  return sanitizeOrderForDeliveryPartner(mergeTransactionIntoOrder(order, tx));
+  return orders.map((order) =>
+    sanitizeOrderForDeliveryPartner(mergeTransactionIntoOrder(order, txByOrder.get(String(order._id)) || null)),
+  );
+}
+
+/** The rider's first active order; kept for apps that show one order at a time. */
+export async function getCurrentTripDelivery(deliveryPartnerId) {
+  const orders = await listActiveOrdersDelivery(deliveryPartnerId);
+  return orders[0] || null;
 }
 
 export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
@@ -388,7 +410,7 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
  * A limit of 0 means no limit, matching the schema default, so installs that never
  * configured this are untouched.
  */
-async function assertCashLimitAllows(deliveryPartnerId, order) {
+export async function assertCashLimitAllows(deliveryPartnerId, order) {
   const method = String(order?.payment?.method || order?.paymentMethod || '').toLowerCase();
   if (method !== 'cash' && method !== 'razorpay_qr') return;
 
@@ -536,172 +558,180 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
   }
 
   const responseOrder = sanitizeOrderForDeliveryPartner(order);
+  void runDeliveryAcceptedEffects(order, deliveryPartnerId);
+  return responseOrder;
+}
 
-  void (async () => {
-    try {
-      const rest = order.sellerId;
-      const userLoc = order.deliveryAddress?.location?.coordinates;
-      const restLoc = rest?.location?.coordinates;
+/**
+ * Everything that follows an order landing on a rider, whether the rider
+ * accepted an offer or an admin assigned it: live tracking, the payment
+ * record, withdrawing the offer from other riders, and telling the customer
+ * and the store. `order` must have sellerId and userId populated.
+ */
+export async function runDeliveryAcceptedEffects(order, deliveryPartnerId, { assignedByAdmin = false } = {}) {
+  try {
+    const rest = order.sellerId;
+    const userLoc = order.deliveryAddress?.location?.coordinates;
+    const restLoc = rest?.location?.coordinates;
 
-      if (restLoc?.[0] && userLoc?.[0]) {
-        const route = await fetchDrivingRoute(
-          { lat: restLoc[1], lng: restLoc[0] },
-          { lat: userLoc[1], lng: userLoc[0] },
-        );
-        const polyline = route.polyline || '';
-
-        if (route.distanceKm != null) {
-          const tripDurationMins =
-            route.durationSeconds != null
-              ? Math.ceil(route.durationSeconds / 60)
-              : null;
-          Order.updateOne(
-            { _id: order._id },
-            {
-              $set: {
-                tripDistanceKm: route.distanceKm,
-                tripDurationMins,
-                'pricing.roadDistanceKm': route.distanceKm,
-                'pricing.roadDurationMins': tripDurationMins,
-              },
-            },
-          ).catch(() => {});
-        }
-
-        const db = getFirebaseDB();
-        if (db) {
-          const orderRef = db.ref(`active_orders/${order._id.toString()}`);
-          await orderRef
-            .set({
-              polyline,
-              lat: restLoc[1],
-              lng: restLoc[0],
-              boy_lat: restLoc[1],
-              boy_lng: restLoc[0],
-              seller_lat: restLoc[1],
-              seller_lng: restLoc[0],
-              customer_lat: userLoc[1],
-              customer_lng: userLoc[0],
-              status: 'accepted',
-              last_updated: Date.now(),
-            })
-            .catch((error) =>
-              logger.error(`Firebase orderRef set error: ${error.message}`),
-            );
-        }
-      }
-    } catch (error) {
-      logger.error(
-        `Error initializing Firebase order tracking: ${error?.message || error}`,
+    if (restLoc?.[0] && userLoc?.[0]) {
+      const route = await fetchDrivingRoute(
+        { lat: restLoc[1], lng: restLoc[0] },
+        { lat: userLoc[1], lng: userLoc[0] },
       );
-    }
+      const polyline = route.polyline || '';
 
-    try {
-      await orderTransactionService.updateTransactionRider(order._id, deliveryPartnerId);
-    } catch (error) {
-      logger.error(
-        `Error updating delivery rider transaction for ${order._id}: ${
-          error?.message || error
-        }`,
-      );
-    }
-
-    // Everyone who was offered this order and did not win it. Deduped: a partner
-    // can appear once per re-offer round, and pushing the same withdrawal three
-    // times is just noise.
-    const winner = deliveryPartnerId.toString();
-    const losingPartnerIds = [
-      ...new Set(
-        (order.dispatch?.offeredTo || [])
-          .map((offer) => offer.partnerId?.toString?.())
-          .filter((pid) => pid && pid !== winner),
-      ),
-    ];
-
-    const claimedPayload = {
-      orderId: order._id.toString(),
-      orderMongoId: order._id?.toString?.(),
-      claimedBy: winner,
-    };
-
-    try {
-      const io = getIO();
-      if (io) {
-        const payload = {
-          orderMongoId: order._id?.toString?.(),
-          orderId: order._id.toString(),
-          orderStatus: order.orderStatus,
-          dispatchStatus: order.dispatch?.status,
-        };
-        io.to(rooms.delivery(deliveryPartnerId)).emit('order_status_update', payload);
-        io.to(rooms.seller(order.sellerId)).emit('order_status_update', payload);
-        io.to(rooms.user(order.userId)).emit('order_status_update', payload);
-
-        for (const pid of losingPartnerIds) {
-          io.to(rooms.delivery(pid)).emit('order_claimed', claimedPayload);
-        }
-        logger.info(
-          `[DeliveryDispatch] Broadcast order_claimed to ${losingPartnerIds.length} other partners for order ${order._id.toString()}`,
-        );
-      }
-
-      // The socket emit above only reaches riders whose app is open and connected.
-      // The offer itself is delivered by a data-only push that the app raises as a
-      // full-screen alert from its background isolate, so the rider most likely to
-      // still be staring at a dead offer is exactly the one the socket cannot reach.
-      // Withdraw over the same transport the offer arrived on.
-      if (losingPartnerIds.length > 0) {
-        try {
-          await notifyOwnersSafely(
-            losingPartnerIds.map((pid) => ({
-              ownerType: 'DELIVERY_PARTNER',
-              ownerId: pid,
-            })),
-            {
-              title: 'Order taken',
-              body: 'Another partner accepted this order.',
-              // Data-only, like the offer: this must dismiss a UI, never add one.
-              dataOnly: true,
-              data: {
-                type: 'order_taken',
-                orderId: order._id.toString(),
-                orderMongoId: order._id?.toString?.() || '',
-              },
+      if (route.distanceKm != null) {
+        const tripDurationMins =
+          route.durationSeconds != null
+            ? Math.ceil(route.durationSeconds / 60)
+            : null;
+        Order.updateOne(
+          { _id: order._id },
+          {
+            $set: {
+              tripDistanceKm: route.distanceKm,
+              tripDurationMins,
+              'pricing.roadDistanceKm': route.distanceKm,
+              'pricing.roadDurationMins': tripDurationMins,
             },
-          );
-        } catch (err) {
-          logger.warn(
-            `order_taken push failed for order ${order._id}: ${err.message}`,
-          );
-        }
-      }
-
-      await notifyOwnersSafely(
-        [
-          { ownerType: 'USER', ownerId: order.userId },
-          { ownerType: 'SELLER', ownerId: order.sellerId },
-          { ownerType: 'DELIVERY_PARTNER', ownerId: deliveryPartnerId },
-        ],
-        {
-          title: `Order ${order._id.toString()} accepted`,
-          body: 'A delivery partner has accepted your order.',
-          data: {
-            type: 'delivery_accepted',
-            orderId: order._id.toString(),
-            orderMongoId: order._id?.toString?.() || '',
-            dispatchStatus: order.dispatch?.status,
-            link: '/orders',
           },
-        },
-      );
-    } catch (error) {
-      logger.error(
-        `Error notifying delivery acceptance for ${order._id}: ${
-          error?.message || error
-        }`,
+        ).catch(() => {});
+      }
+
+      const db = getFirebaseDB();
+      if (db) {
+        const orderRef = db.ref(`active_orders/${order._id.toString()}`);
+        await orderRef
+          .set({
+            polyline,
+            lat: restLoc[1],
+            lng: restLoc[0],
+            boy_lat: restLoc[1],
+            boy_lng: restLoc[0],
+            seller_lat: restLoc[1],
+            seller_lng: restLoc[0],
+            customer_lat: userLoc[1],
+            customer_lng: userLoc[0],
+            status: 'accepted',
+            last_updated: Date.now(),
+          })
+          .catch((error) =>
+            logger.error(`Firebase orderRef set error: ${error.message}`),
+          );
+      }
+    }
+  } catch (error) {
+    logger.error(
+      `Error initializing Firebase order tracking: ${error?.message || error}`,
+    );
+  }
+
+  try {
+    await orderTransactionService.updateTransactionRider(order._id, deliveryPartnerId);
+  } catch (error) {
+    logger.error(
+      `Error updating delivery rider transaction for ${order._id}: ${
+        error?.message || error
+      }`,
+    );
+  }
+
+  // Everyone who was offered this order and did not win it. Deduped: a partner
+  // can appear once per re-offer round, and pushing the same withdrawal three
+  // times is just noise.
+  const winner = deliveryPartnerId.toString();
+  const losingPartnerIds = [
+    ...new Set(
+      (order.dispatch?.offeredTo || [])
+        .map((offer) => offer.partnerId?.toString?.())
+        .filter((pid) => pid && pid !== winner),
+    ),
+  ];
+
+  const claimedPayload = {
+    orderId: order._id.toString(),
+    orderMongoId: order._id?.toString?.(),
+    claimedBy: winner,
+  };
+
+  try {
+    const io = getIO();
+    if (io) {
+      const payload = {
+        orderMongoId: order._id?.toString?.(),
+        orderId: order._id.toString(),
+        orderStatus: order.orderStatus,
+        dispatchStatus: order.dispatch?.status,
+      };
+      io.to(rooms.delivery(deliveryPartnerId)).emit('order_status_update', payload);
+      io.to(rooms.seller(order.sellerId)).emit('order_status_update', payload);
+      io.to(rooms.user(order.userId)).emit('order_status_update', payload);
+
+      for (const pid of losingPartnerIds) {
+        io.to(rooms.delivery(pid)).emit('order_claimed', claimedPayload);
+      }
+      logger.info(
+        `[DeliveryDispatch] Broadcast order_claimed to ${losingPartnerIds.length} other partners for order ${order._id.toString()}`,
       );
     }
-  })();
+
+    // The socket emit above only reaches riders whose app is open and connected.
+    // The offer itself is delivered by a data-only push that the app raises as a
+    // full-screen alert from its background isolate, so the rider most likely to
+    // still be staring at a dead offer is exactly the one the socket cannot reach.
+    // Withdraw over the same transport the offer arrived on.
+    if (losingPartnerIds.length > 0) {
+      try {
+        await notifyOwnersSafely(
+          losingPartnerIds.map((pid) => ({
+            ownerType: 'DELIVERY_PARTNER',
+            ownerId: pid,
+          })),
+          {
+            title: 'Order taken',
+            body: 'Another partner accepted this order.',
+            // Data-only, like the offer: this must dismiss a UI, never add one.
+            dataOnly: true,
+            data: {
+              type: 'order_taken',
+              orderId: order._id.toString(),
+              orderMongoId: order._id?.toString?.() || '',
+            },
+          },
+        );
+      } catch (err) {
+        logger.warn(
+          `order_taken push failed for order ${order._id}: ${err.message}`,
+        );
+      }
+    }
+
+    await notifyOwnersSafely(
+      [
+        { ownerType: 'USER', ownerId: order.userId },
+        { ownerType: 'SELLER', ownerId: order.sellerId },
+        ...(assignedByAdmin ? [] : [{ ownerType: 'DELIVERY_PARTNER', ownerId: deliveryPartnerId }]),
+      ],
+      {
+        title: `Order ${order._id.toString()} accepted`,
+        body: 'A delivery partner has accepted your order.',
+        data: {
+          type: 'delivery_accepted',
+          orderId: order._id.toString(),
+          orderMongoId: order._id?.toString?.() || '',
+          dispatchStatus: order.dispatch?.status,
+          link: '/orders',
+        },
+      },
+    );
+  } catch (error) {
+    logger.error(
+      `Error notifying delivery acceptance for ${order._id}: ${
+        error?.message || error
+      }`,
+    );
+  }
 
   enqueueOrderEvent('delivery_accepted', {
     orderMongoId: order._id?.toString?.(),
@@ -709,9 +739,8 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
     deliveryPartnerId,
     dispatchStatus: order.dispatch?.status,
     orderStatus: order.orderStatus,
+    assignedByAdmin,
   });
-
-  return responseOrder;
 }
 
 export async function rejectOrderDelivery(orderId, deliveryPartnerId) {

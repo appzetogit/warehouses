@@ -142,7 +142,7 @@ const paymentSchema = new mongoose.Schema(
 
 const dispatchSchema = new mongoose.Schema(
     {
-        modeAtCreation: { type: String, enum: ['auto'], default: 'auto' },
+        modeAtCreation: { type: String, enum: ['auto', 'manual'], default: 'auto' },
         status: {
             type: String,
             enum: ['unassigned', 'assigned', 'accepted', 'rejected', 'cancelled'],
@@ -151,6 +151,15 @@ const dispatchSchema = new mongoose.Schema(
         deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'DeliveryPartner', default: null },
         assignedAt: { type: Date },
         acceptedAt: { type: Date },
+        /** Who put the order on the rider: the rider accepting an offer, or an admin assigning it. */
+        assignedBy: { type: String, enum: ['rider', 'admin', null], default: null },
+        assignedByAdminId: { type: mongoose.Schema.Types.ObjectId, default: null },
+        /** Manual mode: when the order started waiting for an admin to assign it. */
+        manualQueuedAt: { type: Date },
+        /** Manual mode: when the admin was alerted that this order is still waiting. */
+        waitingAlertAt: { type: Date },
+        /** Manual mode: set when a long-waiting order was handed to automatic dispatch. */
+        fallbackToAutoAt: { type: Date },
         /** List of partners who were offered this order (to avoid repeats and track timeouts) */
         offeredTo: [{
             partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'DeliveryPartner' },
@@ -476,7 +485,19 @@ export const Order = mongoose.model('Order', orderSchema);
 const settingsSchema = new mongoose.Schema(
     {
         key: { type: String, required: true, unique: true, trim: true },
-        dispatchMode: { type: String, enum: ['auto'], default: 'auto' },
+        /** auto: offers go to nearby riders; manual: orders wait for an admin to assign them. */
+        dispatchMode: { type: String, enum: ['auto', 'manual'], default: 'auto' },
+        /** How many Quick orders an admin may put on one rider at a time. */
+        maxOrdersPerRider: { type: Number, default: 3, min: 1, max: 10 },
+        /**
+         * Off until every rider runs an app that can show several orders; while off,
+         * a rider can hold one order whatever maxOrdersPerRider says.
+         */
+        multiOrderTrips: { type: Boolean, default: false },
+        /** Manual mode: alert admins once an order has waited this long. */
+        manualAlertMinutes: { type: Number, default: 3, min: 1, max: 60 },
+        /** Manual mode: hand a still-waiting order to automatic dispatch after this long (0 = never). */
+        manualFallbackMinutes: { type: Number, default: 0, min: 0, max: 120 },
         updatedBy: {
             role: { type: String },
             adminId: { type: mongoose.Schema.Types.ObjectId },

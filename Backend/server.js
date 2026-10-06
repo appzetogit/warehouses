@@ -22,6 +22,7 @@ let server = null;
 let autoDeliverInterval = null;
 let expireOffersInterval = null;
 let fssaiExpiryInterval = null;
+let manualDispatchInterval = null;
 
 const gracefulShutdown = async (signal) => {
     logger.info(`${signal} received, starting graceful shutdown`);
@@ -37,6 +38,7 @@ const gracefulShutdown = async (signal) => {
             if (autoDeliverInterval) clearInterval(autoDeliverInterval);
             if (expireOffersInterval) clearInterval(expireOffersInterval);
             if (fssaiExpiryInterval) clearInterval(fssaiExpiryInterval);
+            if (manualDispatchInterval) clearInterval(manualDispatchInterval);
             logger.info('Graceful shutdown complete');
             process.exit(0);
         } catch (err) {
@@ -95,6 +97,19 @@ const startBackgroundJobs = async () => {
     };
     await runFssaiExpirySync();
     fssaiExpiryInterval = setInterval(runFssaiExpirySync, 60 * 60 * 1000);
+
+    // Manual dispatch: alert admins about Quick orders waiting too long for a
+    // rider, and hand them to automatic dispatch if that fallback is on. Runs
+    // here rather than on the job queue so it works without Redis.
+    const runManualDispatchSweep = async () => {
+        try {
+            const { sweepManualDispatchQueue } = await import('./src/modules/commerce/orders/services/order-dispatch.service.js');
+            await sweepManualDispatchQueue();
+        } catch (err) {
+            logger.error(`Manual dispatch sweep error: ${err.message}`);
+        }
+    };
+    manualDispatchInterval = setInterval(runManualDispatchSweep, 30 * 1000);
 };
 
 const startServer = async () => {

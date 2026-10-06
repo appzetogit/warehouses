@@ -265,7 +265,7 @@ test('a wallet top-up pays for an order, and cancelling it credits the wallet ba
     const { id, total } = await placeOrder('wallet', 1);
     assert.equal(await balance(), start - total, 'order paid from the wallet');
 
-    ok(await call('PATCH', `/orders/${id}/cancel`, { as, body: {} }), 'cancel');
+    ok(await call('PATCH', `/orders/${id}/cancel`, { as, body: { reason: 'changed my mind' } }), 'cancel');
     assert.equal(await balance(), start, 'wallet refunded in full');
 });
 

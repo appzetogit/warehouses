@@ -177,8 +177,12 @@ export function validateAssignDeliveryDto(body) {
 
 export function validateDispatchSettingsDto(body) {
     const schema = z.object({
-        dispatchMode: z.enum(['auto', 'manual'])
-    });
+        dispatchMode: z.enum(['auto', 'manual']).optional(),
+        maxOrdersPerRider: z.coerce.number().int().min(1).max(10).optional(),
+        multiOrderTrips: z.boolean().optional(),
+        manualAlertMinutes: z.coerce.number().int().min(1).max(60).optional(),
+        manualFallbackMinutes: z.coerce.number().int().min(0).max(120).optional(),
+    }).refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
     const result = schema.safeParse(body);
     if (!result.success) {
         throw new ValidationError(result.error.errors?.[0]?.message || 'Validation failed');

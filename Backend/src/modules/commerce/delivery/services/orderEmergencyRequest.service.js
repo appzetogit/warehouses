@@ -249,7 +249,14 @@ export async function createOrderEmergencyRequest(deliveryPartnerId, payload = {
     }
 
     const partnerObjectId = new mongoose.Types.ObjectId(deliveryPartnerId);
+    // A rider can carry several orders, so the app names the one it's about.
+    // Without an orderId (older apps) it means the rider's only pre-pickup order.
+    const requestedOrderId = String(payload.orderId || '').trim();
+    if (requestedOrderId && !mongoose.isValidObjectId(requestedOrderId)) {
+        throw new ValidationError('Order not found');
+    }
     const order = await Order.findOne({
+        ...(requestedOrderId ? { _id: new mongoose.Types.ObjectId(requestedOrderId) } : {}),
         'dispatch.deliveryPartnerId': partnerObjectId,
         'dispatch.status': 'accepted',
         orderStatus: { $in: PRE_PICKUP_ORDER_STATUSES }

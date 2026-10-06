@@ -24,6 +24,8 @@ import * as driverRegField from '../../delivery/controllers/driverRegistrationFi
 import * as cashbackSettings from '../controllers/cashbackSettings.controller.js';
 import * as sellerAppBanner from '../controllers/sellerAppBanner.controller.js';
 import * as offerBanner from '../controllers/offerBanner.controller.js';
+import * as manualDispatch from '../../orders/controllers/manualDispatch.controller.js';
+import { getDispatchSettingsController, updateDispatchSettingsController } from '../../orders/controllers/order.controller.js';
 import * as coinController from '../../coins/controllers/coin.controller.js';
 import * as spinController from '../../spin/controllers/spin.controller.js';
 import * as dailyMetricsController from '../controllers/dailyMetrics.controller.js';
@@ -94,7 +96,7 @@ const resolveSectionFromRequest = (path = '', method = '') => {
     if (path.startsWith('/orders') || path.startsWith('/order-detect-delivery')) return 'order_management';
     if (path.startsWith('/shipments') || path.startsWith('/returns') || path.startsWith('/checkouts')) return 'order_management';
     if (path.startsWith('/cod-remittances')) return 'report_management';
-    if (path.startsWith('/delivery')) return 'delivery_management';
+    if (path.startsWith('/delivery') || path.startsWith('/dispatch-settings')) return 'delivery_management';
     if (path.startsWith('/withdrawals') || path.startsWith('/coins')) return 'transaction_management';
     if (path.startsWith('/feedback-experiences')) return 'report_management';
     if (path.startsWith('/reports')) return 'report_management';
@@ -139,6 +141,7 @@ router.use('/products', requireAdminPermission('product_management', 'view'));
 router.use('/offers', requireAdminPermission('promotions_management', 'view'));
 router.use('/offer-banners', requireAdminPermission('promotions_management', 'view'));
 router.use('/delivery', requireAdminPermission('delivery_management', 'view'));
+router.use('/dispatch-settings', requireAdminPermission('delivery_management', 'view'));
 router.use('/withdrawals', requireAdminPermission('transaction_management', 'view'));
 router.use('/reports', requireAdminPermission('report_management', 'view'));
 router.use('/feature-settings', requireAdminPermission('system_settings', 'view'));
@@ -336,6 +339,14 @@ router.get('/offers', adminController.getAllOffers);
 router.post('/offers', adminController.createAdminOffer);
 router.patch('/offers/:id/cart-visibility', adminController.updateAdminOfferCartVisibility);
 router.delete('/offers/:id', adminController.deleteAdminOffer);
+
+// ----- Rider dispatch: automatic/manual setting and manual assignment (Quick) -----
+router.get('/dispatch-settings', getDispatchSettingsController);
+router.patch('/dispatch-settings', updateDispatchSettingsController);
+router.get('/delivery/dispatch-board', manualDispatch.getDispatchBoardController);
+router.post('/delivery/assign', manualDispatch.assignOrdersController);
+router.post('/delivery/orders/:orderId/unassign', manualDispatch.unassignOrderController);
+router.post('/delivery/orders/:orderId/move', manualDispatch.moveOrderController);
 
 // ----- Offer banners (storefront coupon/offer banners for Quick and/or Shop) -----
 router.get('/offer-banners', offerBanner.listOfferBannersAdminController);

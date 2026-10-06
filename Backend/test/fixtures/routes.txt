@@ -75,6 +75,7 @@ GET /api/v1/admin/delivery/:id
 GET /api/v1/admin/delivery/bonus-transactions
 GET /api/v1/admin/delivery/cash-limit-settlements
 GET /api/v1/admin/delivery/commission-rules
+GET /api/v1/admin/delivery/dispatch-board
 GET /api/v1/admin/delivery/earning-addon-history
 GET /api/v1/admin/delivery/earning-addons
 GET /api/v1/admin/delivery/earnings
@@ -87,6 +88,7 @@ GET /api/v1/admin/delivery/support-tickets
 GET /api/v1/admin/delivery/support-tickets/stats
 GET /api/v1/admin/delivery/wallets
 GET /api/v1/admin/delivery/withdrawals
+GET /api/v1/admin/dispatch-settings
 GET /api/v1/admin/driver-registration-fields
 GET /api/v1/admin/feature-settings
 GET /api/v1/admin/fee-settings
@@ -321,6 +323,7 @@ PATCH /api/v1/admin/delivery/order-emergency-requests/:id/deassign-resend
 PATCH /api/v1/admin/delivery/support-tickets/:id
 PATCH /api/v1/admin/delivery/wallets
 PATCH /api/v1/admin/delivery/withdrawals/:id
+PATCH /api/v1/admin/dispatch-settings
 PATCH /api/v1/admin/driver-registration-fields/:id
 PATCH /api/v1/admin/feature-settings/:key
 PATCH /api/v1/admin/offer-banners/:id
@@ -410,12 +413,15 @@ POST /api/v1/admin/categories
 POST /api/v1/admin/cod-remittances
 POST /api/v1/admin/cod-remittances/preview
 POST /api/v1/admin/coins/adjust
+POST /api/v1/admin/delivery/assign
 POST /api/v1/admin/delivery/bonus
 POST /api/v1/admin/delivery/commission-rules
 POST /api/v1/admin/delivery/earning-addon-completions/check
 POST /api/v1/admin/delivery/earning-addon-history/:id/cancel
 POST /api/v1/admin/delivery/earning-addon-history/:id/credit
 POST /api/v1/admin/delivery/earning-addons
+POST /api/v1/admin/delivery/orders/:orderId/move
+POST /api/v1/admin/delivery/orders/:orderId/unassign
 POST /api/v1/admin/driver-registration-fields
 POST /api/v1/admin/first-order-guard/claims/:id/release
 POST /api/v1/admin/notifications/broadcast
