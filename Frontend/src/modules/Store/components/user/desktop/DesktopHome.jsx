@@ -7,18 +7,22 @@ import HeroCarousel from "./HeroCarousel"
 import OfferBannerStrip from "../home/OfferBannerStrip"
 import { HomeSkeleton } from "./HomeSkeletons"
 import {
-  BoutiqueStoresSection,
-  CollectionTiles,
   CuratedEditsSection,
   FeatureBand,
   Marquee,
   ProductRailSection,
   TrustStrip,
 } from "../storefront/HomeSections"
+import {
+  CategoryCircleStrip,
+  ShopByCategoryGrid,
+  ShopPromiseRow,
+  StoreDealsSection,
+} from "../storefront/ShopHomeSections"
 import { useDesktopAddToCart } from "./desktopCart"
 import { percentOff } from "./ui"
 import useIsDesktop from "./useIsDesktop"
-import { useBusinessSettings } from "./useDesktopShell"
+import { useBusinessSettings, usePublicCategories } from "./useDesktopShell"
 import MobileHome from "../mobile/MobileHome"
 
 const PRODUCT_LIMIT = 50
@@ -42,6 +46,7 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
   const isDesktop = useIsDesktop()
   const { storePath, fulfilmentMode, isQuick } = useStoreMode()
   const business = useBusinessSettings()
+  const { roots: categoryRoots, categories: categoryList } = usePublicCategories(zoneId)
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [orderItems, setOrderItems] = useState([])
@@ -135,11 +140,41 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
     for (const p of products) {
       const key = String(p.categoryId || p.categoryName || "")
       if (!key || !p.categoryName) continue
-      if (!byCat.has(key)) byCat.set(key, { id: key, name: p.categoryName, items: [] })
-      byCat.get(key).items.push(p)
+      if (!byCat.has(key)) byCat.set(key, { id: key, name: p.categoryName, items: [], fromPrice: 0, maxOff: 0 })
+      const g = byCat.get(key)
+      g.items.push(p)
+      const price = Number(p.price) || 0
+      if (price > 0 && (!g.fromPrice || price < g.fromPrice)) g.fromPrice = price
+      g.maxOff = Math.max(g.maxOff, percentOff(p.price, p.mrp) || 0)
     }
     return [...byCat.values()].sort((a, b) => b.items.length - a.items.length)
   }, [products])
+
+  // Stores by their best discount right now, from the products they list here.
+  const storeDeals = useMemo(() => {
+    const byStore = new Map()
+    for (const p of products) {
+      const id = String(p.seller?._id || p.sellerId || "")
+      if (!id) continue
+      if (!byStore.has(id)) {
+        byStore.set(id, {
+          id,
+          name: p.seller?.name || "Store",
+          image: p.seller?.image || p.image,
+          to: storePath(`/sellers/${id}`),
+          count: 0,
+          fromPrice: 0,
+          maxOff: 0,
+        })
+      }
+      const s = byStore.get(id)
+      s.count += 1
+      const price = Number(p.price) || 0
+      if (price > 0 && (!s.fromPrice || price < s.fromPrice)) s.fromPrice = price
+      s.maxOff = Math.max(s.maxOff, percentOff(p.price, p.mrp) || 0)
+    }
+    return [...byStore.values()].sort((a, b) => b.maxOff - a.maxOff || b.count - a.count)
+  }, [products, storePath])
 
   const categoryLink = (id, name) => {
     const match = categories.find((c) => String(c.id) === String(id) || c.name === name)
@@ -147,7 +182,17 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
   }
 
   // Collection tiles: every category that actually has products here.
-  const collectionTiles = productGroups.slice(0, 12).map((group) => {
+  // One tile per category name (two stores' categories can share one); the busier wins.
+  const seenTileNames = new Set()
+  const collectionTiles = productGroups
+    .filter((group) => {
+      const key = String(group.name || "").trim().toLowerCase()
+      if (seenTileNames.has(key)) return false
+      seenTileNames.add(key)
+      return true
+    })
+    .slice(0, 14)
+    .map((group) => {
     const match = categories.find(
       (c) => String(c.id) === String(group.id) || c.name === group.name,
     )
@@ -156,8 +201,25 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
       label: group.name,
       image: match?.image || firstImage(group.items[0]),
       to: categoryLink(group.id, group.name),
+      fromPrice: group.fromPrice,
+      maxOff: group.maxOff,
     }
   })
+
+  // Departments first (Men, Women, ...), then the busiest subcategories, as photo circles.
+  const circleItems = (() => {
+    const withImage = (c) => c?.image && c?.name
+    const tops = categoryRoots.filter(withImage)
+    const busy = productGroups
+      .map((g) => categoryList.find((c) => String(c.id) === String(g.id) || c.name === g.name))
+      .filter((c) => withImage(c) && !tops.some((t) => t.id === c.id))
+    return [...tops, ...busy].slice(0, 12).map((c) => ({
+      id: c.id,
+      label: c.name,
+      image: c.image,
+      to: storePath(`/category/${c.slug}`),
+    }))
+  })()
 
   // Only promises the settings back up: no free-delivery threshold or coin
   // rate is configured, so none is advertised.
@@ -184,6 +246,10 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
 
   return (
     <div className="min-h-screen bg-wh-page pb-12">
+      <div className="mx-auto max-w-[1500px] px-3 pt-4 sm:px-5">
+        <CategoryCircleStrip items={circleItems} />
+      </div>
+
       {/* Hero, inset and rounded like the reference (MOBILE_UI_SPEC.md) */}
       <div className="mx-auto max-w-[1500px] px-3 pt-3 sm:px-5">
         <div className="overflow-hidden rounded-2xl shadow-sm">
@@ -198,11 +264,10 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
 
         <Marquee items={marqueeItems} />
 
-        <CollectionTiles
-          title={isQuick ? "Shop Essentials by Category" : "Wardrobe Collections"}
-          subtitle="Handpicked pure apparel & fashion collections"
+        <ShopByCategoryGrid
+          title="Shop by Category"
+          subtitle="The best price in every category, from stores near you"
           tiles={collectionTiles}
-          seeAllTo="/categories"
         />
 
         {/* Curated Style Lookbook Grid */}
@@ -227,8 +292,8 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
           />
         ) : null}
 
-        {/* Featured Fashion Boutiques */}
-        <BoutiqueStoresSection />
+        {/* Real stores and their best discount, from what they list */}
+        <StoreDealsSection stores={storeDeals} />
 
         {/* Indigo Denim & Trousers Rail */}
         {jeansProducts.length >= 3 ? (
@@ -275,6 +340,8 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
             onAdd={addToCart}
           />
         ) : null}
+
+        <ShopPromiseRow returnDays={business.returnWindowDays} />
 
         {!deals.length && !recommendedList.length && !products.length ? (
           <section className="rounded-2xl border border-wh-border bg-wh-surface p-8 text-center text-wh-muted">
