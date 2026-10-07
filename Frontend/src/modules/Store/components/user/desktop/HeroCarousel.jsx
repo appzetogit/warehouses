@@ -54,22 +54,16 @@ export default function HeroCarousel({ banners = [], onOpen }) {
         )
       })}
 
-      {/* Dark gradient overlay for text readability */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent z-10" />
-
-      {/* Bottom fade into the page background */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-gray-100/90 to-transparent z-10" />
-
       {/* Hero Content Overlay (Left) */}
       <div className="relative z-20 mx-auto flex h-full max-w-[1500px] flex-col justify-center px-4 pb-8 sm:px-8 lg:px-12 lg:pb-12">
         <div key={index} className="wh-reveal is-visible max-w-[78%] text-left sm:max-w-xl">
-          <span className="inline-block text-[10px] font-bold uppercase tracking-[0.18em] text-[#f59e0b] drop-shadow-sm sm:text-[12px] sm:tracking-[0.2em]">
+          <span className="inline-block text-[10px] font-bold uppercase tracking-[0.18em] text-[#f59e0b] [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] sm:text-[12px] sm:tracking-[0.2em]">
             {current.tag || "NEW SEASON COLLECTION"}
           </span>
-          <h1 className="mt-1.5 whitespace-pre-line text-[26px] font-black leading-[1.1] tracking-tight text-white drop-shadow-md sm:mt-2 sm:text-5xl lg:text-[54px]">
+          <h1 className="mt-1.5 whitespace-pre-line text-[26px] font-black leading-[1.1] tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.65)] sm:mt-2 sm:text-5xl lg:text-[54px]">
             {current.title || "Style That\nMoves With You"}
           </h1>
-          <p className="mt-2 text-[13px] text-gray-200 drop-shadow sm:mt-3 sm:text-[16px]">
+          <p className="mt-2 text-[13px] text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.7)] sm:mt-3 sm:text-[16px]">
             {current.subtitle || "Trendy styles. Everyday comfort. Unbeatable prices."}
           </p>
           <div className="mt-4 sm:mt-6">
