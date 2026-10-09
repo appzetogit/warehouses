@@ -53,10 +53,18 @@ export default function ProductCard({
 
   const [frame, setFrame] = useState(0)
 
-  // Cycle only while the card is on screen, and never when the visitor has
-  // asked for less motion — an animation nobody is looking at is just battery.
+  // With a mouse, hovering shows the next photo (as the old shop did) and
+  // leaving goes back; nothing moves on its own.
+  const canHover = useMemo(() => Boolean(window.matchMedia?.("(hover: hover) and (pointer: fine)")?.matches), [])
+  const hoverHandlers = canHover && gallery.length > 1
+    ? { onMouseEnter: () => setFrame(1), onMouseLeave: () => setFrame(0) }
+    : {}
+
+  // Touch screens have no hover: there the photos cycle, only while the card
+  // is on screen, and never when the visitor has asked for less motion — an
+  // animation nobody is looking at is just battery.
   useEffect(() => {
-    if (gallery.length < 2) return undefined
+    if (canHover || gallery.length < 2) return undefined
     const el = ref.current
     if (!el) return undefined
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
@@ -84,7 +92,7 @@ export default function ProductCard({
       observer.disconnect()
       stop()
     }
-  }, [gallery.length])
+  }, [canHover, gallery.length])
 
   const price = Number(product?.displayPrice ?? product?.price ?? 0)
   const mrp = Number(product?.mrp ?? 0)
@@ -98,7 +106,7 @@ export default function ProductCard({
       className="flex h-full flex-col overflow-hidden rounded-2xl border border-wh-border bg-wh-surface transition-shadow duration-300 hover:shadow-lg"
     >
       <Link to={storePath(`/product/${id}`)} className="flex flex-1 flex-col focus-visible:outline-2 focus-visible:outline-wh-brand">
-        <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-t-2xl bg-[#F7F7F7]">
+        <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-t-2xl bg-[#F7F7F7]" {...hoverHandlers}>
           {gallery.length ? (
             gallery.map((url, i) => (
               <img

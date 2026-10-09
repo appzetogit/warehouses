@@ -64,6 +64,16 @@ export function ListingTile({ product, channel, etaMinutes, onAddToCart }) {
   const mrp = product.mrp ?? product.originalPrice
   const off = percentOff(price, mrp)
   const img = firstImage(product)
+  // The next photo, shown on hover as the old shop did.
+  const hoverImg = useMemo(() => {
+    const pathOf = (u) => {
+      try { return new URL(u, window.location.origin).pathname } catch { return u }
+    }
+    const first = pathOf(img)
+    return (Array.isArray(product.images) ? product.images : [])
+      .map((e) => mediaUrl(typeof e === "string" ? e : e?.url))
+      .find((u) => isRealImage(u) && pathOf(u) !== first) || ""
+  }, [product.images, img])
   const rating = num(product.rating ?? product.averageRating)
   const inStock = channelAvailability(product, channel).inStock
   const hasOptions = Array.isArray(product.variants) && product.variants.length > 0
@@ -72,14 +82,25 @@ export function ListingTile({ product, channel, etaMinutes, onAddToCart }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-wh-border bg-wh-surface text-wh-text">
       <Link to={to} className={cx("block", focusRing)}>
-        <div className="aspect-[4/5] w-full overflow-hidden rounded-t-2xl bg-[#F7F7F7]">
+        <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-t-2xl bg-[#F7F7F7]">
           {isRealImage(img) ? (
-            <img
-              src={img}
-              alt={product.name || "Product"}
-              loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-500 ease-out hover:scale-105"
-            />
+            <>
+              <img
+                src={img}
+                alt={product.name || "Product"}
+                loading="lazy"
+                className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              />
+              {hoverImg ? (
+                <img
+                  src={hoverImg}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 ease-out [@media(hover:hover)]:group-hover:opacity-100"
+                />
+              ) : null}
+            </>
           ) : (
             <ImagePlaceholder name={product.name} />
           )}
