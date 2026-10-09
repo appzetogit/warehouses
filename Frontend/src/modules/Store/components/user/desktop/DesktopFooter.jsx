@@ -1,9 +1,8 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { Facebook, Instagram, Linkedin, Mail, MessageCircle, Phone, Youtube } from "lucide-react"
-import { BRAND_LOGO_ON_DARK } from "@/config/brandMark"
+import { ArrowUp, Facebook, Instagram, Linkedin, Mail, MapPin, MessageCircle, Phone, Youtube } from "lucide-react"
 import { useStoreMode } from "@store/context/StoreModeContext"
-import { useBusinessSettings } from "./useDesktopShell"
+import { useBusinessSettings, usePublicCategories } from "./useDesktopShell"
 
 const SOCIAL_LABELS = { facebook: "Facebook", instagram: "Instagram", twitter: "X (Twitter)", x: "X", youtube: "YouTube", linkedin: "LinkedIn", whatsapp: "WhatsApp" }
 
@@ -29,116 +28,127 @@ const socialLinksFrom = (s) => {
     })
 }
 
+// The brand's own contact details (from the old thewarehousess.com footer),
+// used when Business Settings do not hold real ones.
+const BRAND_CONTACT = {
+  address: "401, 5th Floor, A Block, Corporate House, RNT Marg, Indore, India, 452001",
+  phone: "+91-9203409595",
+  email: "connect@thewarehousess.com",
+}
+const BRAND_LOGO_ON_LIGHT = "/brand/logo-on-light.png"
+
 function Column({ title, children }) {
   return (
     <div>
-      <h2 className="mb-2 text-[16px] font-bold text-white">{title}</h2>
-      <ul className="space-y-2 text-[14px] text-[#DDD]">{children}</ul>
+      <h2 className="mb-4 font-display text-[18px] font-semibold text-wh-text">{title}</h2>
+      <ul className="space-y-3 text-[15px] text-gray-700">{children}</ul>
     </div>
   )
 }
 
 const FLink = ({ to, children }) => (
   <li>
-    <Link to={to} className="hover:underline">{children}</Link>
+    <Link to={to} className="transition-colors hover:text-[#ea580c]">{children}</Link>
   </li>
 )
 
-/** Desktop (lg+) storefront footer. */
+/** Storefront footer: a white card on the brand orange, as on the old thewarehousess.com. */
 export default function DesktopFooter() {
   const { storePath } = useStoreMode()
-  const { settings, brandName, logoOnDark, supportEmail, supportPhone } = useBusinessSettings()
-  const [logoSrc, setLogoSrc] = useState(null)
+  const { settings, brandName, supportEmail, supportPhone } = useBusinessSettings()
+  const { categories } = usePublicCategories()
   const social = socialLinksFrom(settings)
-  // Only real contacts; placeholders such as admin@example.com stay hidden.
-  const email = supportEmail
-  const phone = supportPhone
+  const email = supportEmail || BRAND_CONTACT.email
+  const phone = supportPhone || BRAND_CONTACT.phone
+  const address = String(settings?.address || settings?.companyAddress || "").trim() || BRAND_CONTACT.address
+  // Subcategories that have products (the list only holds those), Women's first.
+  const footerCategories = categories.filter((c) => c.parentId).slice(0, 6)
 
   return (
-    <footer className="wh-desktop mt-8">
-      <button
-        type="button"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="block h-[50px] w-full bg-wh-nav-3 text-[13px] text-white hover:bg-[#485769]"
-      >
-        Back to Top
-      </button>
-
-      <div className="bg-wh-nav-2">
-        <div className="mx-auto grid max-w-[1000px] grid-cols-2 gap-x-6 gap-y-8 px-4 py-8 sm:grid-cols-4 sm:gap-10 sm:px-[20px] sm:py-10">
-          <Column title="Get to Know Us">
-            <FLink to="/profile/about">About {brandName}</FLink>
-            <FLink to={storePath("/sellers")}>Our Stores</FLink>
-            <FLink to="/offers">Offers &amp; Deals</FLink>
-            <FLink to="/profile/refer-earn">Refer &amp; Earn</FLink>
-          </Column>
-          <Column title="Connect with Us">
+    <footer className="wh-desktop mt-8 bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316] px-3 pt-8 sm:px-5 sm:pt-10">
+      <div className="mx-auto max-w-[1500px] rounded-2xl bg-white px-6 py-8 shadow-lg sm:px-10 sm:py-10">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.6fr] lg:gap-10">
+          <div className="col-span-2 md:col-span-3 lg:col-span-1">
+            <Link to={storePath("/")} aria-label={`${brandName} home`} className="inline-block">
+              <img src={BRAND_LOGO_ON_LIGHT} alt={brandName} className="h-[72px] w-auto object-contain" />
+            </Link>
+            <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-gray-700">
+              {brandName} brings you trendy and elegant fashion designed for modern women. From Western wear to
+              ethnic styles, discover outfits that blend comfort with style.
+            </p>
             {social.length ? (
-              <li>
-                <ul aria-label="Social media" className="flex flex-wrap gap-2">
-                  {social.map(({ key, label, url, Icon }) => (
-                    <li key={key}>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`${brandName} on ${label}`}
-                        title={label}
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-wh-brand hover:text-wh-text focus-visible:outline-2 focus-visible:outline-wh-brand"
-                      >
-                        {Icon ? <Icon className="h-[18px] w-[18px]" aria-hidden="true" /> : <span className="text-[12px] font-bold">{label.charAt(0)}</span>}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </li>
+              <ul aria-label="Social media" className="mt-4 flex flex-wrap gap-2">
+                {social.map(({ key, label, url, Icon }) => (
+                  <li key={key}>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${brandName} on ${label}`}
+                      title={label}
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-wh-brand-50 text-[#ea580c] hover:bg-[#ea580c] hover:text-white"
+                    >
+                      {Icon ? <Icon className="h-[18px] w-[18px]" aria-hidden="true" /> : <span className="text-[12px] font-bold">{label.charAt(0)}</span>}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             ) : null}
-            {email ? (
-              <li>
-                <a href={`mailto:${email}`} className="inline-flex items-center gap-2 hover:underline">
-                  <Mail className="h-4 w-4 shrink-0" aria-hidden="true" /> {email}
-                </a>
-              </li>
-            ) : null}
-            {phone ? (
-              <li>
-                <a href={`tel:${phone.replace(/\s+/g, "")}`} className="inline-flex items-center gap-2 hover:underline">
-                  <Phone className="h-4 w-4 shrink-0" aria-hidden="true" /> {phone}
-                </a>
-              </li>
-            ) : null}
-            {!social.length && !email && !phone ? <FLink to="/help">Contact Us</FLink> : null}
+          </div>
+
+          <Column title="Categories">
+            {footerCategories.length
+              ? footerCategories.map((c) => <FLink key={c.id} to={storePath(`/category/${c.slug}`)}>{c.name}</FLink>)
+              : <FLink to="/categories">All categories</FLink>}
           </Column>
-          <Column title="Make Money with Us">
-            <FLink to="/seller/signup">Sell on {brandName}</FLink>
-            <FLink to="/food/delivery/login">Become a Delivery Partner</FLink>
-          </Column>
-          <Column title="Let Us Help You">
-            <FLink to="/profile">Your Account</FLink>
-            <FLink to="/orders">Returns &amp; Orders</FLink>
-            <FLink to="/help">Help</FLink>
-            <FLink to="/profile/shipping">Shipping Policy</FLink>
-            <FLink to="/profile/refund">Refund Policy</FLink>
-            <FLink to="/profile/cancellation">Cancellation Policy</FLink>
-            <FLink to="/profile/terms">Terms of Use</FLink>
+
+          <Column title="Quick Links">
             <FLink to="/profile/privacy">Privacy Policy</FLink>
+            <FLink to="/profile/terms">Terms &amp; Conditions</FLink>
+            <FLink to="/profile/refund">Refund &amp; Return</FLink>
+            <FLink to="/profile/shipping">Shipping Policy</FLink>
+            <FLink to="/seller/signup">Become a Vendor</FLink>
           </Column>
+
+          <Column title="Useful Links">
+            <FLink to="/profile/about">About Us</FLink>
+            <FLink to="/help">Contact Us</FLink>
+            <FLink to="/orders">Track Your Order</FLink>
+            <FLink to="/offers">Offers &amp; Deals</FLink>
+            <FLink to="/profile">Your Account</FLink>
+          </Column>
+
+          <div className="col-span-2 md:col-span-1">
+            <h2 className="mb-4 font-display text-[18px] font-semibold text-wh-text">Get in Touch</h2>
+            <ul className="space-y-4 text-[15px] text-gray-700">
+              <li className="flex gap-3">
+                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#ea580c]" aria-hidden="true" />
+                <span>{address}</span>
+              </li>
+              <li>
+                <a href={`tel:${phone.replace(/[\s-]+/g, "")}`} className="flex items-center gap-3 hover:text-[#ea580c]">
+                  <Phone className="h-5 w-5 shrink-0 text-[#ea580c]" aria-hidden="true" /> {phone}
+                </a>
+              </li>
+              <li>
+                <a href={`mailto:${email}`} className="flex items-center gap-3 break-all hover:text-[#ea580c]">
+                  <Mail className="h-5 w-5 shrink-0 text-[#ea580c]" aria-hidden="true" /> {email}
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
-      <div className="bg-wh-nav">
-        <div className="mx-auto flex max-w-[1500px] flex-col items-center gap-2 px-4 py-6 text-center text-[12px] text-[#DDD] sm:px-[20px]">
-          <Link to={storePath("/")} aria-label={`${brandName} home`}>
-            <img
-              src={logoSrc || logoOnDark}
-              alt={brandName}
-              className="h-[36px] w-auto object-contain"
-              onError={() => setLogoSrc(BRAND_LOGO_ON_DARK)}
-            />
-          </Link>
-          <p className="text-[14px] font-bold text-white">{brandName}</p>
-          <p>© {new Date().getFullYear()} {brandName}. All rights reserved.</p>
-        </div>
+      <div className="mx-auto flex max-w-[1500px] flex-col items-center justify-between gap-3 py-5 text-[13px] text-white sm:flex-row">
+        <p>© {new Date().getFullYear()} {brandName}. All rights reserved.</p>
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 font-semibold hover:bg-white/25"
+        >
+          <ArrowUp className="h-4 w-4" aria-hidden="true" /> Back to top
+        </button>
       </div>
     </footer>
   )
