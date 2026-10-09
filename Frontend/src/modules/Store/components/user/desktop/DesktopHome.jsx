@@ -7,10 +7,10 @@ import HeroCarousel from "./HeroCarousel"
 import OfferBannerStrip from "../home/OfferBannerStrip"
 import { HomeSkeleton } from "./HomeSkeletons"
 import {
-  CuratedEditsSection,
   FeatureBand,
   Marquee,
   ProductRailSection,
+  TabbedRailSection,
   TrustStrip,
 } from "../storefront/HomeSections"
 import {
@@ -20,12 +20,31 @@ import {
   StoreDealsSection,
 } from "../storefront/ShopHomeSections"
 import { useDesktopAddToCart } from "./desktopCart"
-import { percentOff } from "./ui"
+import { isRealImage, percentOff } from "./ui"
+import { buildHomeRails, railSubtitle } from "@store/utils/homeRails"
 import useIsDesktop from "./useIsDesktop"
 import { useBusinessSettings, usePublicCategories } from "./useDesktopShell"
 import MobileHome from "../mobile/MobileHome"
 
-const PRODUCT_LIMIT = 50
+// The search API pages 50 at a time; the home reads up to this many pages.
+const PAGE_SIZE = 50
+const MAX_PAGES = 8
+
+/** The whole catalogue for this mode, newest first, a page at a time. */
+async function loadCatalogue(params) {
+  const page = (n) => searchAPI
+    .searchProducts({ ...params, sort: "newest", limit: PAGE_SIZE, page: n })
+    .then((res) => res?.data?.data || {})
+  const first = await page(1)
+  const pages = Math.min(MAX_PAGES, Math.ceil((Number(first.total) || 0) / PAGE_SIZE))
+  const rest = pages > 1
+    ? await Promise.all(Array.from({ length: pages - 1 }, (_, i) => page(i + 2).catch(() => ({}))))
+    : []
+  const seen = new Set()
+  return [first, ...rest]
+    .flatMap((d) => d.products || [])
+    .filter((p) => p?._id && !seen.has(String(p._id)) && seen.add(String(p._id)))
+}
 
 const firstImage = (p) => {
   const raw = p?.image || (Array.isArray(p?.images) ? (typeof p.images[0] === "string" ? p.images[0] : p.images[0]?.url) : "")
@@ -57,9 +76,8 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    searchAPI
-      .searchProducts({ limit: PRODUCT_LIMIT, fulfilmentMode, ...(zoneId ? { zoneId } : {}) })
-      .then((res) => { if (!cancelled) setProducts((res?.data?.data?.products || []).map(toTile)) })
+    loadCatalogue({ fulfilmentMode, ...(zoneId ? { zoneId } : {}) })
+      .then((list) => { if (!cancelled) setProducts(list.map(toTile)) })
       .catch(() => { if (!cancelled) setProducts([]) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -116,23 +134,8 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
     [products],
   )
 
-  // Dedicated fashion category product rails
-  const tshirtProducts = useMemo(
-    () => products.filter((p) => /t-shirt|tee|polo/i.test(p.categoryName || p.name)),
-    [products],
-  )
-  const jeansProducts = useMemo(
-    () => products.filter((p) => /jean|denim|pant|jogger|trouser/i.test(p.categoryName || p.name)),
-    [products],
-  )
-  const festiveProducts = useMemo(
-    () => products.filter((p) => /kurta|dress|festive|ethnic|silk|top/i.test(p.categoryName || p.name)),
-    [products],
-  )
-  const jacketProducts = useMemo(
-    () => products.filter((p) => /jacket|hoodie|bomber|outerwear|sweatshirt/i.test(p.categoryName || p.name)),
-    [products],
-  )
+  // New Arrivals, a row per busy category and an under-499 row, from the catalogue itself.
+  const rails = useMemo(() => buildHomeRails(products), [products])
 
   // Product categories ranked by how many products they have here.
   const productGroups = useMemo(() => {
@@ -199,26 +202,37 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
     return {
       id: group.id,
       label: group.name,
-      image: match?.image || firstImage(group.items[0]),
+      image: isRealImage(match?.image) ? match.image : firstImage(group.items[0]),
       to: categoryLink(group.id, group.name),
       fromPrice: group.fromPrice,
       maxOff: group.maxOff,
     }
   })
 
-  // Departments first (Men, Women, ...), then the busiest subcategories, as photo circles.
+  // Departments that have products (Women, Accessories...), then the busiest
+  // subcategories, as photo circles. Empty departments are left out, and a
+  // category without its own photo shows one of its products.
   const circleItems = (() => {
-    const withImage = (c) => c?.image && c?.name
-    const tops = categoryRoots.filter(withImage)
+    const groupOf = (c) => productGroups.find((g) => String(g.id) === String(c.id) || g.name === c.name)
     const busy = productGroups
       .map((g) => categoryList.find((c) => String(c.id) === String(g.id) || c.name === g.name))
-      .filter((c) => withImage(c) && !tops.some((t) => t.id === c.id))
-    return [...tops, ...busy].slice(0, 12).map((c) => ({
+      .filter(Boolean)
+    const stocked = new Set(busy.flatMap((c) => [String(c.id), c.parentId ? String(c.parentId) : ""]))
+    const tops = categoryRoots.filter((c) => stocked.has(String(c.id)))
+    const photoOf = (c) => {
+      if (isRealImage(c.image)) return c.image
+      const own = groupOf(c)
+      if (own) return firstImage(own.items[0])
+      const child = busy.find((b) => String(b.parentId) === String(c.id))
+      const childGroup = child ? groupOf(child) : null
+      return childGroup ? firstImage(childGroup.items[0]) : ""
+    }
+    return [...tops, ...busy.filter((c) => !tops.some((t) => t.id === c.id))].slice(0, 12).map((c) => ({
       id: c.id,
       label: c.name,
-      image: c.image,
+      image: photoOf(c),
       to: storePath(`/category/${c.slug}`),
-    }))
+    })).filter((c) => c.image)
   })()
 
   // Only promises the settings back up: no free-delivery threshold or coin
@@ -270,60 +284,56 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
           tiles={collectionTiles}
         />
 
-        {/* Curated Style Lookbook Grid */}
-        <CuratedEditsSection />
+        {/* New Arrivals, with a tab per busy category (the old shop's home led with this) */}
+        <TabbedRailSection
+          title="New Arrivals"
+          subtitle="Fresh styles, added every week"
+          all={rails.newArrivals.all}
+          tabs={rails.newArrivals.tabs.map((t) => ({ ...t, to: categoryLink(t.id, t.label) }))}
+          onAdd={addToCart}
+        />
 
         {/* Today's Fashion Deals */}
         <ProductRailSection
           title="Today's Fashion Deals"
-          subtitle="Top savings on premium contemporary apparel"
+          subtitle="The biggest savings in the store right now"
           products={deals.slice(0, 20)}
           onAdd={addToCart}
           auto={5200}
         />
 
-        {/* Trending T-Shirts & Polos Rail */}
-        {tshirtProducts.length >= 3 ? (
+        {/* A row per category that has enough to fill one, best discount first */}
+        {rails.categoryRails.slice(0, 2).map((r) => (
           <ProductRailSection
-            title="Trending T-Shirts & Polos"
-            subtitle="Heavyweight Supima cotton, graphic drop-shoulders & classic piques"
-            products={tshirtProducts}
+            key={r.id}
+            title={r.name}
+            subtitle={railSubtitle(r)}
+            products={r.products}
             onAdd={addToCart}
+            seeAllTo={categoryLink(r.id, r.name)}
           />
-        ) : null}
+        ))}
+
+        <ProductRailSection
+          title="Under ₹499"
+          subtitle="Easy picks that cost less"
+          products={rails.budget}
+          onAdd={addToCart}
+        />
+
+        {rails.categoryRails.slice(2).map((r) => (
+          <ProductRailSection
+            key={r.id}
+            title={r.name}
+            subtitle={railSubtitle(r)}
+            products={r.products}
+            onAdd={addToCart}
+            seeAllTo={categoryLink(r.id, r.name)}
+          />
+        ))}
 
         {/* Real stores and their best discount, from what they list */}
-        <StoreDealsSection stores={storeDeals} />
-
-        {/* Indigo Denim & Trousers Rail */}
-        {jeansProducts.length >= 3 ? (
-          <ProductRailSection
-            title="Denim & Trousers Studio"
-            subtitle="Raw selvedge slim-tapered denim, relaxed straight cuts & modern chinos"
-            products={jeansProducts}
-            onAdd={addToCart}
-          />
-        ) : null}
-
-        {/* Artisanal Festive & Ethnic Wear Rail */}
-        {festiveProducts.length >= 3 ? (
-          <ProductRailSection
-            title="Artisanal Festive & Ethnic Glamour"
-            subtitle="Pure Chanderi silks, handloom weaves & regal anarkalis"
-            products={festiveProducts}
-            onAdd={addToCart}
-          />
-        ) : null}
-
-        {/* Jackets & Winterwear Rail */}
-        {jacketProducts.length >= 3 ? (
-          <ProductRailSection
-            title="Jackets & Layering Essentials"
-            subtitle="Vintage trucker denim jackets, minimalist bombers & French Terry hoodies"
-            products={jacketProducts}
-            onAdd={addToCart}
-          />
-        ) : null}
+        {storeDeals.length > 1 ? <StoreDealsSection stores={storeDeals} /> : null}
 
         <FeatureBand
           title="Sell on The Warehouses"

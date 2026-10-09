@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowRight, BadgeCheck, Gift, RotateCcw, Truck } from "lucide-react"
 import { useStoreMode } from "@store/context/StoreModeContext"
@@ -127,7 +128,7 @@ export function CollectionTiles({ title, subtitle, tiles = [], seeAllTo }) {
 }
 
 /** A titled rail of product cards. */
-export function ProductRailSection({ title, subtitle, products = [], onAdd, minimum = 4, auto = 0 }) {
+export function ProductRailSection({ title, subtitle, products = [], onAdd, minimum = 4, auto = 0, seeAllTo = "" }) {
   if (products.length < minimum) return null
 
   return (
@@ -140,6 +141,66 @@ export function ProductRailSection({ title, subtitle, products = [], onAdd, mini
           </div>
         ))}
       </Rail>
+      {seeAllTo ? <SeeAllLink to={seeAllTo} label={`View all ${title}`} /> : null}
+    </Reveal>
+  )
+}
+
+function SeeAllLink({ to, label }) {
+  return (
+    <div className="mt-4 text-center">
+      <Link
+        to={to}
+        className="inline-flex items-center gap-1.5 rounded-full border border-wh-text px-5 py-2 text-[13px] font-bold text-wh-text hover:bg-wh-text hover:text-white"
+      >
+        {label} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      </Link>
+    </div>
+  )
+}
+
+/**
+ * A product row with category tabs above it ("All", "Kurtas", "Tops"...),
+ * like the old shop's New Arrivals. Tabs only switch what the row shows.
+ */
+export function TabbedRailSection({ title, subtitle, all = [], tabs = [], onAdd, minimum = 4 }) {
+  const [active, setActive] = useState("all")
+  if (all.length < minimum) return null
+  const current = tabs.find((t) => t.id === active)
+  const products = current ? current.products : all
+
+  return (
+    <Reveal as="section" aria-label={title}>
+      <SectionHeading title={title} subtitle={subtitle} />
+      {tabs.length ? (
+        <div role="tablist" aria-label={`${title} categories`} className="mb-4 flex flex-wrap justify-center gap-2">
+          {[{ id: "all", label: "All" }, ...tabs].map((t) => {
+            const selected = t.id === active || (t.id === "all" && !current)
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setActive(t.id)}
+                className={`rounded-full px-4 py-1.5 text-[12px] font-bold uppercase tracking-wide transition-colors sm:text-[13px] ${
+                  selected ? "bg-wh-text text-white" : "border border-wh-border bg-wh-surface text-wh-text hover:border-wh-text"
+                }`}
+              >
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+      <Rail key={active} ariaLabel={title}>
+        {products.map((product) => (
+          <div key={product._id || product.id} className="snap-start">
+            <ProductCard product={product} onAction={onAdd} />
+          </div>
+        ))}
+      </Rail>
+      {current?.to ? <SeeAllLink to={current.to} label={`View all ${current.label}`} /> : null}
     </Reveal>
   )
 }
