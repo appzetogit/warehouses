@@ -28,7 +28,7 @@ const AddressSelectorPage = lazy(() => import("@store/pages/user/cart/AddressSel
 
 // Orders
 const Orders = lazy(() => import("@store/pages/user/orders/Orders"))
-const OrderTracking = lazy(() => import("@store/pages/user/orders/OrderTracking"))
+const OrderTracking = lazy(() => import("@store/pages/user/orders/OrderTrackingRoute"))
 const OrderInvoice = lazy(() => import("@store/pages/user/orders/OrderInvoice"))
 const UserOrderDetails = lazy(() => import("@store/pages/user/orders/UserOrderDetails"))
 

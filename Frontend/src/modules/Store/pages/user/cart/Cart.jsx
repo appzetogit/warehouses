@@ -2050,9 +2050,12 @@ export default function Cart() {
         const checkoutRes = await orderAPI.createCheckout(checkoutPayload);
         const checkoutData = checkoutRes?.data?.data?.checkout || checkoutRes?.data?.data;
         const checkoutId = checkoutData?.checkoutId;
+        // The orders this checkout made, one per store. The order page takes an
+        // order's id; a checkout split across stores opens My Orders instead.
+        const childOrders = checkoutRes?.data?.data?.childOrders || [];
 
         const finishCheckout = () => {
-          setPlacedOrderId(checkoutId);
+          setPlacedOrderId(childOrders.length === 1 ? (childOrders[0]?._id || null) : null);
           setShowOrderSuccess(true);
           clearCart();
           resetCartPreferences();
@@ -2581,7 +2584,7 @@ export default function Cart() {
 
   const handleGoToOrders = () => {
     setShowOrderSuccess(false)
-    navigate(`/user/orders/${placedOrderId}?confirmed=true`)
+    navigate(placedOrderId ? `/user/orders/${placedOrderId}?confirmed=true` : "/user/orders")
   }
 
   // Empty cart state - but don't show if order success or placing order modal is active
