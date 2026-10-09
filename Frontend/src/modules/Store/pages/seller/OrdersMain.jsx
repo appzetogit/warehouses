@@ -26,6 +26,8 @@ import { getSellerCookingNote } from "@store/utils/orderCookingNote";
 import BottomNavOrders from "@store/components/seller/BottomNavOrders";
 import SellerNavbar from "@store/components/seller/SellerNavbar";
 import NewOrderAcceptCard from "@store/components/seller/NewOrderAcceptCard";
+import RejectOrderReasonModal from "@store/components/seller/RejectOrderReasonModal";
+import { isShopOrder, isShopOrderAwaitingStore } from "@store/utils/shopOrder";
 import { sellerAPI } from "@store/api";
 import { useSellerNotifications } from "@store/hooks/useSellerNotifications";
 import ResendNotificationButton from "@store/components/seller/ResendNotificationButton";
@@ -819,6 +821,7 @@ export default function OrdersMain() {
   const [showRejectPopup, setShowRejectPopup] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [orderToReject, setOrderToReject] = useState(null);
+  const [shopOrderToReject, setShopOrderToReject] = useState(null);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [orderToCancel, setOrderToCancel] = useState(null);
@@ -898,7 +901,8 @@ export default function OrdersMain() {
     const order = normalizeIncomingOrder(rawOrder);
     if (hasOrderBeenQueued(order)) return false;
 
-    const remaining = getOrderCountdownSeconds(order);
+    // Shop orders have no deadline (acceptanceDeadlineAt is null), so never treat them as expired.
+    const remaining = isShopOrder(order) ? 1 : getOrderCountdownSeconds(order);
     if (remaining <= 0) {
       requestOrdersRefresh();
       return false;
@@ -1224,8 +1228,10 @@ export default function OrdersMain() {
               const match = apiOrders.find((o) => isSameQueuedOrder(o, queued));
               if (!match) return true; // keep — may be newer than shared cache
 
-              const stillNew =
-                (match.status === "confirmed" && !match.scheduledAt) ||
+              // The list maps "created" to "confirmed"; an accepted Shop order is "confirmed" too.
+              const stillNew = isShopOrder(match)
+                ? isShopOrderAwaitingStore(match)
+                : (match.status === "confirmed" && !match.scheduledAt) ||
                 (match.scheduledAt &&
                   (match.status === "created" || match.status === "confirmed") &&
                   new Date(match.scheduledAt).getTime() <= now + 30 * 60000);
@@ -1241,6 +1247,7 @@ export default function OrdersMain() {
 
           const targetOrders = apiOrders.filter((order) => {
             if (hasOrderBeenQueued(order)) return false;
+            if (isShopOrder(order)) return isShopOrderAwaitingStore(order);
 
             const isConfirmed = order.status === "confirmed";
             if (isConfirmed && !order.scheduledAt) return true;
@@ -1285,6 +1292,9 @@ export default function OrdersMain() {
               acceptanceWindowSeconds:
                 orderToQueue.acceptanceWindowSeconds || null,
               acceptanceDeadlineAt: orderToQueue.acceptanceDeadlineAt || null,
+              fulfilmentMode: orderToQueue.fulfilmentMode,
+              orderStatus: orderToQueue.orderStatus,
+              awaitingSellerSince: orderToQueue.awaitingSellerSince,
             };
 
             enqueueNewOrder(orderForQueue, { switchToTab: false });
@@ -1328,7 +1338,10 @@ export default function OrdersMain() {
 
     try {
       const orderId = orderToAccept.orderMongoId || orderToAccept.orderId;
-      await sellerAPI.acceptOrder(orderId, prepTime);
+      const isShop = isShopOrder(orderToAccept);
+      // Shop (courier) orders go to "confirmed"; Quick keeps the prep-time flow.
+      if (isShop) await sellerAPI.confirmOrder(orderId);
+      else await sellerAPI.acceptOrder(orderId, prepTime);
       debugLog("? Order accepted:", orderId);
       toast.success("Order accepted successfully");
       stopSellerAlert(orderToAccept);
@@ -1337,7 +1350,7 @@ export default function OrdersMain() {
       sharedOrdersResponse = null;
       sharedOrdersFetchedAt = 0;
       requestOrdersRefresh();
-      setActiveFilter("preparing");
+      setActiveFilter(isShop ? "all" : "preparing");
     } catch (error) {
       debugError("? Error accepting order:", error);
       const errorMessage =
@@ -1361,8 +1374,22 @@ export default function OrdersMain() {
   };
 
   const handleRejectQueuedClick = (order) => {
+    if (isShopOrder(order)) {
+      setShopOrderToReject(order);
+      return;
+    }
     setOrderToReject(order);
     setShowRejectPopup(true);
+  };
+
+  const handleShopOrderRejected = (order) => {
+    stopSellerAlert(order);
+    removeQueuedOrder(order);
+    clearNewOrder(order);
+    sharedOrdersResponse = null;
+    sharedOrdersFetchedAt = 0;
+    setShopOrderToReject(null);
+    requestOrdersRefresh();
   };
 
   const handleRejectConfirm = async () => {
@@ -2276,6 +2303,12 @@ export default function OrdersMain() {
           </>
         )}
       </AnimatePresence>
+
+      <RejectOrderReasonModal
+        order={shopOrderToReject}
+        onClose={() => setShopOrderToReject(null)}
+        onRejected={handleShopOrderRejected}
+      />
 
       {/* Cancel Order Popup */}
       <AnimatePresence>

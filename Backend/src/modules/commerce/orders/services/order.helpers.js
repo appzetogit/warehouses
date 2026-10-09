@@ -597,6 +597,8 @@ export async function notifySellerNewOrder(orderDoc) {
           total: str(total),
           paymentMethod: str(orderDoc.payment?.method),
           acceptanceDeadlineAt: str(orderDoc.acceptanceDeadlineAt?.toISOString?.() || ""),
+          // "standard" (Shop) orders carry no deadline: no countdown on the alert.
+          fulfilmentMode: str(orderDoc.fulfilmentMode || "quick"),
         },
       },
     );

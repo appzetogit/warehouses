@@ -273,6 +273,22 @@ async function expireStalePendingPaymentOrders() {
   }
 }
 
+/**
+ * Only Quick orders race a clock: a store that does not answer within minutes
+ * is cancelled so the customer can order elsewhere. A Shop (courier) order
+ * waits on the store however long it takes; the store is reminded instead
+ * (shopOrderReminders.service.js).
+ */
+export const hasAcceptanceDeadline = (fulfilmentMode) => String(fulfilmentMode || "quick") !== "standard";
+
+/** What a store picks when it rejects an order, as the customer is told it. */
+export const SELLER_REJECT_REASONS = {
+  out_of_stock: "Out of stock",
+  size_unavailable: "Size not available",
+  cannot_ship: "Can't ship to this address",
+  other: "Other",
+};
+
 function buildAcceptanceDeadline(date = new Date(), windowSeconds = ORDER_ACCEPTANCE_WINDOW_SECONDS) {
   const seconds = Number(windowSeconds);
   return new Date(date.getTime() + (Number.isFinite(seconds) && seconds > 0 ? seconds : ORDER_ACCEPTANCE_WINDOW_SECONDS) * 1000);
@@ -419,6 +435,7 @@ async function expireUnacceptedOrders(filter = {}) {
     orderStatus: { $in: ["created", "confirmed"] },
     acceptanceDeadlineAt: { $ne: null, $lte: now },
     ...filter,
+    fulfilmentMode: { $ne: "standard" },
   };
 
   const docs = await Order.find(baseFilter).select("_id orderStatus").lean();
@@ -431,6 +448,7 @@ async function expireUnacceptedOrders(filter = {}) {
         _id: doc._id,
         orderStatus: { $in: ["created", "confirmed"] },
         acceptanceDeadlineAt: { $ne: null, $lte: now },
+        fulfilmentMode: { $ne: "standard" },
       },
       {
         $set: {
@@ -775,7 +793,10 @@ export async function createOrder(userId, dto, options = {}) {
       // one on an auto-confirmed order would let the timeout sweep cancel an
       // order nobody was waiting for.
       acceptanceDeadlineAt:
-        initialStatus === "created" ? buildAcceptanceDeadline(new Date(), acceptanceWindowSeconds) : null,
+        initialStatus === "created" && hasAcceptanceDeadline(orderFulfilmentMode)
+          ? buildAcceptanceDeadline(new Date(), acceptanceWindowSeconds)
+          : null,
+      awaitingSellerSince: initialStatus === "created" ? new Date() : null,
       dispatch: { modeAtCreation: dispatchMode, status: "unassigned" },
       statusHistory: [
         {
@@ -858,8 +879,9 @@ export async function createOrder(userId, dto, options = {}) {
       throw err;
     }
 
-    // An auto-confirmed order has nobody to wait for, so no timeout is armed.
-    if (!isAwaitingOnlinePayment && !autoAccept) {
+    // An auto-confirmed order has nobody to wait for, so no timeout is armed;
+    // nor does a Shop order, which waits on the store without one.
+    if (!isAwaitingOnlinePayment && !autoAccept && hasAcceptanceDeadline(orderFulfilmentMode)) {
       void addOrderJob(
         {
           action: "ORDER_ACCEPTANCE_TIMEOUT_CHECK",
@@ -995,27 +1017,31 @@ export async function releasePaidOrder(order, {
 
   const from = order.orderStatus;
   const acceptanceWindowSeconds = await getOrderAcceptanceWindowSeconds();
+  const timed = hasAcceptanceDeadline(order.fulfilmentMode);
   order.orderStatus = "created";
   order.acceptanceWindowSeconds = acceptanceWindowSeconds;
-  order.acceptanceDeadlineAt = buildAcceptanceDeadline(new Date(), acceptanceWindowSeconds);
+  order.acceptanceDeadlineAt = timed ? buildAcceptanceDeadline(new Date(), acceptanceWindowSeconds) : null;
+  order.awaitingSellerSince = new Date();
 
   pushStatusHistory(order, { byRole, byId, from, to: "created", note });
   await order.save();
-  void addOrderJob(
-    {
-      action: "ORDER_ACCEPTANCE_TIMEOUT_CHECK",
-      orderMongoId: order._id?.toString?.(),
-      orderId: order._id.toString(),
-    },
-    {
-      delay: acceptanceWindowSeconds * 1000,
-      removeOnComplete: true,
-      removeOnFail: true,
-      jobId: `order-accept-timeout-${order._id?.toString?.()}`,
-    },
-  ).catch((err) => {
-    logger.warn(`Failed to enqueue acceptance timeout check: ${err?.message || err}`);
-  });
+  if (timed) {
+    void addOrderJob(
+      {
+        action: "ORDER_ACCEPTANCE_TIMEOUT_CHECK",
+        orderMongoId: order._id?.toString?.(),
+        orderId: order._id.toString(),
+      },
+      {
+        delay: acceptanceWindowSeconds * 1000,
+        removeOnComplete: true,
+        removeOnFail: true,
+        jobId: `order-accept-timeout-${order._id?.toString?.()}`,
+      },
+    ).catch((err) => {
+      logger.warn(`Failed to enqueue acceptance timeout check: ${err?.message || err}`);
+    });
+  }
 
   try {
     const transaction = await orderTransactionService.createInitialTransaction(order);
@@ -1430,6 +1456,9 @@ export async function autoDeliverStaleOrders() {
 
   const stale = await Order.find({
     orderStatus: { $in: ['picked_up', 'reached_drop'] },
+    // A parcel with a courier takes days, and the courier's own tracking
+    // marks it delivered; this watchdog is for rider trips only.
+    'shipment.awb': { $in: [null, ''] },
     // Age from the pickup, not order creation: a trip picked up 10 minutes ago on a
     // five-hour-old scheduled order is perfectly healthy.
     $or: [
@@ -1530,12 +1559,12 @@ export async function recoverStuckOrders() {
  * Status push to the people in `targets`, each in their own words (customer,
  * store, rider). `refundDetail` is added to the customer's cancellation text.
  */
-function notifyStatusPerAudience(order, status, targets, { seller, note = '', bySupport = false, refundDetail = '', data = {}, image } = {}) {
+function notifyStatusPerAudience(order, status, targets, { seller, note = '', bySupport = false, storeRejected = false, refundDetail = '', data = {}, image } = {}) {
   for (const target of targets) {
     let copy = null;
     if (target.ownerType === 'USER') {
-      copy = statusForCustomer(order, status, { seller, note, bySupport });
-      if (copy && refundDetail && String(status).includes('cancel') && !String(note || '').trim()) {
+      copy = statusForCustomer(order, status, { seller, note, bySupport, storeRejected });
+      if (copy && refundDetail && String(status).includes('cancel') && (storeRejected || !String(note || '').trim())) {
         copy = { ...copy, body: `${copy.body}${refundDetail}` };
       }
     } else if (target.ownerType === 'SELLER') {
@@ -2034,6 +2063,7 @@ export async function updateOrderStatusSeller(
   sellerId,
   orderStatus,
   note = "",
+  { reason = "" } = {},
 ) {
   await expireUnacceptedOrders({
     sellerId: new mongoose.Types.ObjectId(sellerId),
@@ -2067,6 +2097,26 @@ export async function updateOrderStatusSeller(
     throw new ValidationError(
       `Current order status '${from}' is further ahead than '${orderStatus}'. Order cannot be moved backwards.`
     );
+  }
+
+  // A store turning down a Shop order says why: the customer has waited for
+  // it, possibly for days, and is told the reason along with the refund.
+  const isCancel = targetStatus.includes("cancel");
+  const reasonLabel = SELLER_REJECT_REASONS[String(reason || "")] || "";
+  const freeText = String(note || "").trim().slice(0, 300);
+  const storeRejected = isCancel && order.fulfilmentMode === "standard" && from === "created";
+  if (storeRejected && !reasonLabel) {
+    throw new ValidationError("Choose why you are rejecting this order");
+  }
+  if (reason === "other" && !freeText) {
+    throw new ValidationError("Tell the customer why you are rejecting this order");
+  }
+  if (isCancel) {
+    const why = [reasonLabel && reasonLabel !== "Other" ? reasonLabel : "", freeText].filter(Boolean).join(": ");
+    if (why) order.cancellationReason = why.slice(0, 300);
+    order.cancelledBy = "seller";
+    order.cancelledAt = new Date();
+    note = order.cancellationReason || freeText;
   }
 
   order.orderStatus = orderStatus;
@@ -2122,10 +2172,10 @@ export async function updateOrderStatusSeller(
       ? ` Your refund of ₹${order.pricing?.total} is being processed and will reach your original payment method in 5-7 working days.`
       : "";
   const customerCopy =
-    statusForCustomer(order, orderStatus, { note }) ||
+    statusForCustomer(order, orderStatus, { note, storeRejected }) ||
     { title: `Order ${orderNo(order)} updated`, body: `Status: ${String(orderStatus).replace(/_/g, " ")}.` };
   let title = customerCopy.title;
-  let body = String(orderStatus).includes("cancel") && !String(note || "").trim()
+  let body = String(orderStatus).includes("cancel") && (storeRejected || !String(note || "").trim())
     ? `${customerCopy.body}${sellerRefundDetail}`
     : customerCopy.body;
 
@@ -2226,6 +2276,7 @@ export async function updateOrderStatusSeller(
     // offered orders entirely.
     if (notifyList.length > 0) notifyStatusPerAudience(order, orderStatus, notifyList, {
       note,
+      storeRejected,
       refundDetail: sellerRefundDetail,
       image: config.brand.notificationImage,
       data: {
@@ -2822,6 +2873,11 @@ export async function updateOrderStatusAdmin(orderId, orderStatus, note = "", ad
     });
 
     if (String(orderStatus).includes("cancel")) {
+        // The customer's order page shows why, as it does for a store's rejection.
+        const why = String(note || "").trim().slice(0, 300);
+        if (why) order.cancellationReason = why;
+        order.cancelledBy = "admin";
+        order.cancelledAt = new Date();
         await restoreOrderStock(order);
         try {
             await applyCancellationRefund(order, { cancelledBy: 'admin' });

@@ -153,6 +153,17 @@ export async function updateOrderInstructionsController(req, res, next) {
     }
 }
 
+/** Admin: Shop orders left waiting on their store for more than ?hours= (default 24). */
+export async function listOrdersAwaitingStoreController(req, res, next) {
+    try {
+        const { listOrdersAwaitingStore } = await import('../services/shopOrderReminders.service.js');
+        const result = await listOrdersAwaitingStore({ hours: req.query.hours });
+        return sendResponse(res, 200, 'Orders waiting on a store', result);
+    } catch (err) {
+        next(err);
+    }
+}
+
 export async function getDispatchSettingsController(req, res, next) {
     try {
         const result = await orderService.getDispatchSettings();
@@ -199,7 +210,7 @@ export async function updateOrderStatusSellerController(req, res, next) {
         const sellerId = req.user?.userId;
         const orderId = req.params.orderId;
         const dto = validateOrderStatusDto(req.body);
-        const order = await orderService.updateOrderStatusSeller(orderId, sellerId, dto.orderStatus, dto.note);
+        const order = await orderService.updateOrderStatusSeller(orderId, sellerId, dto.orderStatus, dto.note, { reason: dto.reason });
         return sendResponse(res, 200, 'Order status updated', { order });
     } catch (err) {
         next(err);

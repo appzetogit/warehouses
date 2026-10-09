@@ -738,6 +738,11 @@ export default function OrdersPage({ statusKey = "all" }) {
         orderStatus: displayStatus,
         // The backend status code (e.g. "cancelled_by_admin"); orderStatus above is a display label.
         statusCode: backendStatus,
+        // Shop orders have no acceptance deadline: show how long one has waited on its store.
+        storeWaitHours:
+          order.fulfilmentMode === "standard" && backendStatus === "created"
+            ? Math.max(0, Math.floor((Date.now() - new Date(order.awaitingSellerSince || createdAtRaw || Date.now()).getTime()) / 3600000))
+            : null,
         deliveryPartnerName,
         deliveryPartnerPhone,
         deliveryType: order.deliveryType || "Home Delivery",

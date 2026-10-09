@@ -386,6 +386,17 @@ const orderSchema = new mongoose.Schema(
         deliveryInstructions: { type: String, default: '', trim: true },
         acceptanceWindowSeconds: { type: Number, default: 240, min: 1 },
         acceptanceDeadlineAt: { type: Date, default: null },
+        /**
+         * When the order started waiting on the store to accept it. Shop
+         * (courier) orders have no acceptance deadline; the store is reminded
+         * instead, and support sees the ones left waiting.
+         */
+        awaitingSellerSince: { type: Date, default: null },
+        /** Reminders sent to the store about a Shop order still waiting on it. */
+        sellerReminders: {
+            firstAt: { type: Date, default: null },
+            secondAt: { type: Date, default: null },
+        },
         /** Idempotency guard so retries/duplicate calls never double-push the "new order" alert. */
         sellerNotifiedAt: { type: Date, default: null },
         /** Set once stock was decremented for this order; absent on pre-inventory orders. */

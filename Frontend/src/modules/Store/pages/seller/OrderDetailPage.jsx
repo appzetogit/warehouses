@@ -27,6 +27,14 @@ import { toast } from "sonner"
 import useSellerBackNavigation from "@store/hooks/useSellerBackNavigation"
 import { getTimelineStatusLabel, getTimelineRoleLabel } from "@store/utils/orderStatus"
 import { getSellerCookingNote } from "@store/utils/orderCookingNote"
+import {
+  formatAgo,
+  getAwaitingSince,
+  getCancellationReasonText,
+  isShopOrder,
+  isShopOrderAwaitingStore,
+} from "@store/utils/shopOrder"
+import RejectOrderReasonModal from "@store/components/seller/RejectOrderReasonModal"
 
 const formatMoney = (value) => `₹${Number(value || 0).toFixed(2)}`
 const toNumber = (value) => {
@@ -48,6 +56,9 @@ export default function OrderDetailPage({
   const [generatingShipment, setGeneratingShipment] = useState(false)
   const [trackingData, setTrackingData] = useState(null)
   const [loadingTracking, setLoadingTracking] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [accepting, setAccepting] = useState(false)
+  const [rejectTarget, setRejectTarget] = useState(null)
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -75,7 +86,21 @@ export default function OrderDetailPage({
     if (id) {
       fetchOrder()
     }
-  }, [id])
+  }, [id, reloadKey])
+
+  const handleAcceptShopOrder = async () => {
+    if (accepting) return
+    setAccepting(true)
+    try {
+      await sellerAPI.confirmOrder(order._id || order.orderId || id)
+      toast.success("Order accepted")
+      setReloadKey((k) => k + 1)
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to accept order")
+    } finally {
+      setAccepting(false)
+    }
+  }
 
   const handleClose = () => {
     if (isSidebar && typeof onClose === "function") {
@@ -198,6 +223,9 @@ export default function OrderDetailPage({
   const deliveryAddress = order.deliveryAddress?.formattedAddress || order.deliveryAddress?.address || 
                          (order.deliveryAddress?.street ? `${order.deliveryAddress.street}, ${order.deliveryAddress.city || ""}` : "Address not specified")
   const cookingNote = getSellerCookingNote(order)
+  const isShop = isShopOrder(order)
+  const awaitingStore = isShopOrderAwaitingStore(order)
+  const cancellationText = order.rejectionReason || getCancellationReasonText(order.cancellationReason)
 
   return (
     <div className={`${isSidebar ? "h-full flex flex-col overflow-hidden" : "min-h-screen"} bg-[#F8F9FB] ${isSidebar ? "" : "pb-[calc(5rem+env(safe-area-inset-bottom))]"}`}>
@@ -227,6 +255,11 @@ export default function OrderDetailPage({
                   {String(order.payment?.method || order.paymentMethod).replace(/_/g, ' ').toUpperCase()}
                 </span>
               )}
+              {isShop && (
+                <span className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-[0.05em] bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  SHOP · COURIER
+                </span>
+              )}
             </div>
             <button 
               onClick={handleCopyId}
@@ -237,6 +270,43 @@ export default function OrderDetailPage({
             </button>
           </div>
         </div>
+
+        {/* Shop orders wait for the store with no deadline */}
+        {awaitingStore && (
+          <div className="bg-white rounded-3xl p-5 border border-amber-200 shadow-sm shadow-gray-100/50 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-50 rounded-2xl flex items-center justify-center">
+                <Clock className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-gray-900">
+                  Waiting for you · placed {formatAgo(getAwaitingSince(order)) || "just now"}
+                </h3>
+                <p className="text-[11px] font-bold text-gray-400">Accept to start packing, or reject with a reason.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setRejectTarget(order)}
+                disabled={accepting}
+                className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-black transition-all disabled:opacity-50"
+              >
+                <XCircle className="w-4 h-4" />
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleAcceptShopOrder()}
+                disabled={accepting}
+                className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-200 transition-all disabled:opacity-50"
+              >
+                {accepting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                {accepting ? "Accepting..." : "Accept"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Customer & Delivery Section */}
         <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm shadow-gray-100/50 space-y-6">
@@ -364,7 +434,7 @@ export default function OrderDetailPage({
               <button
                 type="button"
                 onClick={handleGenerateShipment}
-                disabled={generatingShipment || String(status || '').toLowerCase().includes('cancel')}
+                disabled={generatingShipment || awaitingStore || String(status || '').toLowerCase().includes('cancel')}
                 className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 hover:bg-black active:scale-[0.98] text-white rounded-xl text-xs font-black shadow-lg shadow-gray-200 transition-all disabled:opacity-50"
               >
                 {generatingShipment ? (
@@ -528,16 +598,25 @@ export default function OrderDetailPage({
         ) : null}
 
         {/* Rejection/Cancellation Reason */}
-        {(order.rejectionReason || order.cancellationReason) && (
+        {cancellationText && (
           <div className="bg-rose-50 border border-rose-100 rounded-3xl p-5 space-y-2">
             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">
               Reason for {status.includes('REJECTED') ? 'Rejection' : 'Cancellation'}
             </p>
-            <p className="text-sm font-bold text-rose-700">{order.rejectionReason || order.cancellationReason}</p>
+            <p className="text-sm font-bold text-rose-700">{cancellationText}</p>
           </div>
         )}
       </div>
       
+      <RejectOrderReasonModal
+        order={rejectTarget}
+        onClose={() => setRejectTarget(null)}
+        onRejected={() => {
+          setRejectTarget(null)
+          setReloadKey((k) => k + 1)
+        }}
+      />
+
       {/* Fixed Bottom Action */}
       {!isSidebar && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-gray-100 z-50 flex gap-3">

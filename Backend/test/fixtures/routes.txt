@@ -103,6 +103,7 @@ GET /api/v1/admin/offer-banners
 GET /api/v1/admin/offers
 GET /api/v1/admin/orders
 GET /api/v1/admin/orders/:orderId
+GET /api/v1/admin/orders/awaiting-store
 GET /api/v1/admin/orders/user-carts
 GET /api/v1/admin/orders/user-carts/:cartId/pricing
 GET /api/v1/admin/pages-social-media/:key

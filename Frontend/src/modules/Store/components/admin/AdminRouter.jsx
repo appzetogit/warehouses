@@ -16,6 +16,7 @@ const AdminSettings = lazy(() => import("@store/pages/admin/AdminSettings"));
 const ProductApproval = lazy(() => import("@store/pages/admin/seller/ProductApproval"));
 const OrdersPage = lazy(() => import("@store/pages/admin/orders/OrdersPage"));
 const UserCarts = lazy(() => import("@store/pages/admin/orders/UserCarts"));
+const AwaitingStoreOrders = lazy(() => import("@store/pages/admin/orders/AwaitingStoreOrders"));
 const OrderDetectDelivery = lazy(() => import("@store/pages/admin/OrderDetectDelivery"));
 const Category = lazy(() => import("@store/pages/admin/categories/Category"));
 const FeeSettings = lazy(() => import("@store/pages/admin/fee-settings/FeeSettings"));
@@ -303,6 +304,7 @@ export default function AdminRouter() {
             <Route path="orders/refunded" element={<OrdersPage statusKey="refunded" />} />
             <Route path="orders/offline-payments" element={<OrdersPage statusKey="offline-payments" />} />
             <Route path="orders/user-carts" element={<UserCarts />} />
+            <Route path="orders/awaiting-store" element={<AwaitingStoreOrders />} />
             <Route path="order-detect-delivery" element={<OrderDetectDelivery />} />
 
             {/* SELLER MANAGEMENT */}

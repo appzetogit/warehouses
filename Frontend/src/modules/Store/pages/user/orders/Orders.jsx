@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { getCompanyNameAsync } from "@store/utils/businessSettings"
 import { useCompanyName } from "@store/hooks/useCompanyName"
 import { imagePlaceholder } from "@store/constants/images"
+import { isShopOrder, shopStatusLabel } from "@store/utils/shopOrderFlow"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
 const debugError = (...args) => { }
@@ -355,6 +356,8 @@ export default function Orders() {
               review: order.review || null,
               tracking: order.tracking || {},
               cancellationReason: cancellationReason,
+              // Shop (courier) orders say where they are in their own words.
+              shopLabel: isShopOrder(order) ? shopStatusLabel(order) : null,
               isSellerCancelled: isSellerCancelled,
               isUserCancelled: isUserCancelled,
               cancelledBy: order.cancelledBy,
@@ -1004,6 +1007,9 @@ Order again from this seller in the ${companyName} app.`
                         )}
                       </p>
                     )}
+                    {order.shopLabel ? (
+                      <p className={`text-xs font-medium mt-1 ${isCancelled ? "text-red-500" : isDelivered ? "text-green-600" : "text-wh-brand-ink"}`}>{order.shopLabel}</p>
+                    ) : (<>
                     {isDelivered && !paymentFailed && (
                       <p className="text-xs font-medium text-green-600 mt-1">Delivered</p>
                     )}
@@ -1016,6 +1022,7 @@ Order again from this seller in the ${companyName} app.`
                     {isCancelled && !isSellerCancelled && !isUserCancelled && (
                       <p className="text-xs font-medium text-gray-500 mt-1">Cancelled</p>
                     )}
+                    </>)}
                   </div>
                   <div className="flex items-center ml-4">
                     <Link to={`/user/orders/${order.id}`}>
@@ -1033,7 +1040,14 @@ Order again from this seller in the ${companyName} app.`
                 {/* Card Footer: Actions */}
                 <div className="px-4 py-3 flex items-center justify-between">
                   {/* Left Side: Rating or Error */}
-                  {isSellerCancelled ? (
+                  {order.shopLabel && !isDelivered ? (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{order.shopLabel}</p>
+                      {isCancelled && order.cancellationReason ? (
+                        <p className="text-xs text-gray-500 mt-0.5">Reason: {order.cancellationReason}</p>
+                      ) : null}
+                    </div>
+                  ) : isSellerCancelled ? (
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <div className="bg-red-100 p-1 rounded-full">

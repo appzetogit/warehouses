@@ -29,6 +29,7 @@ const AddressSelectorPage = lazy(() => import("@store/pages/user/cart/AddressSel
 // Orders
 const Orders = lazy(() => import("@store/pages/user/orders/Orders"))
 const OrderTracking = lazy(() => import("@store/pages/user/orders/OrderTrackingRoute"))
+const OrderPlaced = lazy(() => import("@store/pages/user/orders/OrderPlaced"))
 const OrderInvoice = lazy(() => import("@store/pages/user/orders/OrderInvoice"))
 const UserOrderDetails = lazy(() => import("@store/pages/user/orders/UserOrderDetails"))
 
@@ -129,6 +130,14 @@ export default function UserRouter() {
             element={
               <ProtectedRoute requiredRole="user" loginPath="/auth/login">
                 <PhoneOr phone={MobileOrders} wide={Orders} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="orders/placed/:id"
+            element={
+              <ProtectedRoute requiredRole="user" loginPath="/auth/login">
+                <OrderPlaced />
               </ProtectedRoute>
             }
           />

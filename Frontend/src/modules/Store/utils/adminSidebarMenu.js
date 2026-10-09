@@ -96,6 +96,7 @@ const adminSidebarMenuTemplate = [
         subItems: [
           { label: "All", path: "/orders/all" },
           { label: "Pending", path: "/orders/pending" },
+          { label: "Waiting for store", path: "/orders/awaiting-store", panels: SHOP },
           { label: "Processing", path: "/orders/processing" },
           { label: "Out For Delivery", path: "/orders/out-for-delivery", panels: QUICK },
           { label: "Delivered", path: "/orders/delivered" },

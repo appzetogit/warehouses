@@ -9,6 +9,11 @@ import {
   VolumeX,
 } from "lucide-react";
 import { getSellerCookingNote } from "@store/utils/orderCookingNote";
+import {
+  formatAgo,
+  getAwaitingSince,
+  isShopOrder,
+} from "@store/utils/shopOrder";
 
 const getOrderTotal = (orderLike) => {
   if (!orderLike) return 0;
@@ -86,8 +91,18 @@ export default function NewOrderAcceptCard({
   const acceptSwipeStartXRef = useRef(0);
   const acceptSwipeActiveRef = useRef(false);
   const expiredNotifiedRef = useRef(false);
+  // Shop orders have no acceptance deadline: no countdown, never "expired".
+  const isShop = isShopOrder(order);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
+    if (!isShop) return undefined;
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, [isShop]);
+
+  useEffect(() => {
+    if (isShop) return undefined;
     const timer = setInterval(() => {
       const remaining = getCountdownSeconds(order);
       setCountdown(remaining);
@@ -98,7 +113,7 @@ export default function NewOrderAcceptCard({
     }, 1000);
     setCountdown(getCountdownSeconds(order));
     return () => clearInterval(timer);
-  }, [order, onExpired]);
+  }, [order, onExpired, isShop]);
 
   const totalSeconds = getAcceptanceWindowSeconds(order);
   const fillPercent =
@@ -113,7 +128,8 @@ export default function NewOrderAcceptCard({
         : "rgba(244, 63, 94, 0.16)";
 
   const cookingNote = getSellerCookingNote(order);
-  const isExpired = countdown <= 0;
+  const isExpired = !isShop && countdown <= 0;
+  const waitingLine = `Waiting for you · placed ${formatAgo(getAwaitingSince(order), now) || "just now"}`;
 
   const getSliderMetrics = () => {
     const sliderWidth = acceptSliderRef.current?.offsetWidth || 320;
@@ -244,14 +260,29 @@ export default function NewOrderAcceptCard({
             >
               New Order
             </h3>
+            {isShop && (
+              <span className="px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
+                Shop · Courier
+              </span>
+            )}
           </div>
           <p className="text-xl font-black text-gray-900 tracking-tight truncate">
             {order?.orderId || "#Order"}
           </p>
+          {isShop && (
+            <p className="md:hidden text-xs font-semibold text-gray-500 mt-0.5">
+              {waitingLine}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* Desktop: timer chip next to actions */}
+          {/* Desktop: timer chip next to actions (Shop: calm waiting line) */}
+          {isShop ? (
+            <span className="hidden md:inline text-xs font-semibold text-gray-500 mr-1">
+              {waitingLine}
+            </span>
+          ) : (
           <div
             className="hidden md:flex flex-col items-end px-3 py-1.5 rounded-xl border mr-1"
             style={{
@@ -269,6 +300,7 @@ export default function NewOrderAcceptCard({
               {isExpired ? "00:00" : formatTime(countdown)}
             </span>
           </div>
+          )}
           <button
             type="button"
             onClick={() => onPrint?.(order)}
@@ -357,6 +389,7 @@ export default function NewOrderAcceptCard({
             </div>
           </div>
 
+          {!isShop && (
           <div className="flex items-center justify-between bg-emerald-50/50 p-4 rounded-[20px] border border-emerald-100/50">
             <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
               Prep Time
@@ -386,6 +419,7 @@ export default function NewOrderAcceptCard({
               </button>
             </div>
           </div>
+          )}
 
           {/* Desktop actions sit with summary */}
           <div className="hidden md:flex flex-col gap-2 mt-auto pt-1">
@@ -402,7 +436,9 @@ export default function NewOrderAcceptCard({
               >
                 {isAcceptingOrder
                   ? "Accepting..."
-                  : `Accept Order (${formatTime(countdown)})`}
+                  : isShop
+                    ? "Accept Order"
+                    : `Accept Order (${formatTime(countdown)})`}
               </button>
             )}
             <button
@@ -411,7 +447,7 @@ export default function NewOrderAcceptCard({
               disabled={isAcceptingOrder}
               className="w-full py-2.5 rounded-2xl font-bold text-[12px] text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest disabled:opacity-50"
             >
-              Decline Order
+              {isShop ? "Reject Order" : "Decline Order"}
             </button>
           </div>
         </div>
@@ -419,7 +455,15 @@ export default function NewOrderAcceptCard({
 
       {/* Mobile actions only — same as before */}
       <div className="px-5 pb-5 flex flex-col gap-3 md:hidden">
-        {isExpired ? (
+        {isShop ? (
+          <button
+            type="button"
+            onClick={() => void handleAccept()}
+            disabled={isAcceptingOrder}
+            className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[14px] uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center">
+            {isAcceptingOrder ? "Accepting..." : "Accept Order"}
+          </button>
+        ) : isExpired ? (
           <div className="w-full h-14 rounded-2xl bg-gray-100 text-gray-500 font-bold text-sm flex items-center justify-center">
             Acceptance window expired
           </div>
@@ -472,7 +516,7 @@ export default function NewOrderAcceptCard({
           disabled={isAcceptingOrder}
           className="w-full py-3 rounded-2xl font-bold text-[13px] text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest disabled:opacity-50"
         >
-          Decline Order
+          {isShop ? "Reject Order" : "Decline Order"}
         </button>
       </div>
     </motion.div>

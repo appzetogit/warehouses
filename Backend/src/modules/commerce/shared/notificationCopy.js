@@ -35,7 +35,7 @@ export function orderPlacedForCustomer(order, seller) {
 }
 
 /** Customer: a status the store or support set. Returns null when the customer needn't be told. */
-export function statusForCustomer(order, status, { seller, bySupport = false, note = '' } = {}) {
+export function statusForCustomer(order, status, { seller, bySupport = false, note = '', storeRejected = false } = {}) {
   const no = orderNo(order);
   const store = storeName(order, seller);
   switch (String(status)) {
@@ -58,6 +58,13 @@ export function statusForCustomer(order, status, { seller, bySupport = false, no
     default:
       if (String(status).includes('cancel')) {
         const why = String(note || '').trim();
+        // A Shop order the store turned down before accepting it.
+        if (storeRejected) {
+          return {
+            title: `${store} couldn't accept order ${no}`,
+            body: why ? `Reason: ${why}.` : 'The store could not take this order.',
+          };
+        }
         return {
           title: `Order ${no} cancelled`,
           body: why || (bySupport ? 'Support cancelled your order. Any payment will be refunded.' : 'Your order was cancelled. Any payment will be refunded.'),

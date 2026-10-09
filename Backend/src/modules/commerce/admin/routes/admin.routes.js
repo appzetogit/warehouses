@@ -521,6 +521,7 @@ router.get(
     ]),
     getUserCartPricingAdminController
 );
+router.get('/orders/awaiting-store', orderController.listOrdersAwaitingStoreController);
 router.get('/orders/:orderId', orderController.getOrderByIdAdminController);
 router.patch('/orders/:orderId/accept', orderController.acceptOrderAdminController);
 router.patch('/orders/:orderId/reject', orderController.rejectOrderAdminController);

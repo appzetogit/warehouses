@@ -22,6 +22,7 @@ let autoDeliverInterval = null;
 let expireOffersInterval = null;
 let fssaiExpiryInterval = null;
 let manualDispatchInterval = null;
+let shopReminderInterval = null;
 
 const gracefulShutdown = async (signal) => {
     logger.info(`${signal} received, starting graceful shutdown`);
@@ -38,6 +39,7 @@ const gracefulShutdown = async (signal) => {
             if (expireOffersInterval) clearInterval(expireOffersInterval);
             if (fssaiExpiryInterval) clearInterval(fssaiExpiryInterval);
             if (manualDispatchInterval) clearInterval(manualDispatchInterval);
+            if (shopReminderInterval) clearInterval(shopReminderInterval);
             logger.info('Graceful shutdown complete');
             process.exit(0);
         } catch (err) {
@@ -103,6 +105,18 @@ const startBackgroundJobs = async () => {
         }
     };
     manualDispatchInterval = setInterval(runManualDispatchSweep, 30 * 1000);
+
+    // Shop orders have no acceptance deadline: remind the store about ones
+    // still waiting (2h, then 24h with support alerted) instead.
+    const runShopOrderReminders = async () => {
+        try {
+            const { remindStoresOfWaitingShopOrders } = await import('./src/modules/commerce/orders/services/shopOrderReminders.service.js');
+            await remindStoresOfWaitingShopOrders();
+        } catch (err) {
+            logger.error(`Shop order reminder sweep error: ${err.message}`);
+        }
+    };
+    shopReminderInterval = setInterval(runShopOrderReminders, 5 * 60 * 1000);
 };
 
 const startServer = async () => {

@@ -5,6 +5,7 @@ import { orderAPI } from "@/services/api"
 import { mediaUrl } from "../desktop/desktopCart"
 import MobileTopBar from "./MobileTopBar"
 import CancelOrderSheet, { canCancelOrder } from "../orders/CancelOrderSheet"
+import { shopStatusLabel } from "@store/utils/shopOrderFlow"
 
 /**
  * "My Orders" from the mobile mockup (screen 6): status tabs, one card per
@@ -58,6 +59,8 @@ function headline(o) {
     return RETURN_LABEL[o.latestReturn.status] || "Return in Progress"
   }
   if (s === "pending_payment") return "Waiting for payment"
+  // Shop orders: "Waiting for store confirmation", "Rejected by store", "Refund started"...
+  if (isCourier(o) && s !== "delivered") return shopStatusLabel(o)
   if (s === "cancelled_by_user") return "You cancelled this order"
   if (CANCELLED.includes(s)) return "Cancelled"
   if (s === "delivered") {
@@ -65,7 +68,6 @@ function headline(o) {
     return at ? `Delivered on ${new Date(at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : "Delivered"
   }
   const step = stepOf(o)
-  if (isCourier(o)) return step >= 2 ? "Out for Delivery" : step >= 1.5 ? "Shipped" : "Ordered, packing soon"
   return step >= 2 ? "On the Way" : step >= 1 ? "Being Packed" : "Order Placed"
 }
 

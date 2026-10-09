@@ -155,7 +155,9 @@ export function validateOrderStatusDto(body) {
             'delivered',
             'cancelled_by_seller'
         ]),
-        note: z.string().optional()
+        note: z.string().max(300).optional(),
+        /** Why the store rejects an order; required for a Shop order it never accepted. */
+        reason: z.enum(['out_of_stock', 'size_unavailable', 'cannot_ship', 'other']).optional()
     });
     const result = schema.safeParse(body);
     if (!result.success) {

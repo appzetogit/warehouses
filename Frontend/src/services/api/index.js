@@ -935,6 +935,12 @@ export const adminAPI = {
     apiClient.get(`/admin/orders/user-carts/${String(cartId)}/pricing`, {
       contextModule: "admin",
     }),
+  /** Shop orders a store has left unanswered for longer than `hours` (default 24). */
+  getOrdersAwaitingStore: (params = {}) =>
+    apiClient.get("/admin/orders/awaiting-store", {
+      params,
+      contextModule: "admin",
+    }),
   /** Dispatch (Quick orders): auto vs manual mode, the assign board, and assign/move/unassign. */
   getDispatchSettings: () =>
     apiClient.get("/admin/dispatch-settings", { contextModule: "admin" }),
@@ -1834,6 +1840,20 @@ export const sellerAPI = {
       orderStatus: "cancelled_by_seller",
       note: reason,
     }),
+  /**
+   * Reject with a structured reason. Required by the server for Shop orders
+   * still waiting on the store; it refunds and restores stock itself.
+   * reason: out_of_stock | size_unavailable | cannot_ship | other
+   */
+  rejectOrderWithReason: (orderId, { reason, note } = {}) => {
+    const body = { orderStatus: "cancelled_by_seller", reason };
+    const trimmed = String(note || "").trim();
+    if (trimmed) body.note = trimmed;
+    return sellerAPI.updateOrderStatus(orderId, body);
+  },
+  /** Accept a Shop (courier) order: created -> confirmed, no prep timer. */
+  confirmOrder: (orderId) =>
+    sellerAPI.updateOrderStatus(orderId, { orderStatus: "confirmed" }),
   /** Mark order ready (seller handoff). */
   markOrderReady: (orderId) =>
     sellerAPI.updateOrderStatus(orderId, {

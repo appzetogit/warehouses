@@ -422,10 +422,15 @@ export default function OrdersTable({
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.orderStatus)}`}>
-                          {order.orderStatus}
+                          {order.storeWaitHours != null ? "Waiting for store" : order.orderStatus}
                         </span>
                         <span className="text-xs text-slate-500">{order.deliveryType}</span>
                       </div>
+                      {order.storeWaitHours != null && (
+                        <div className={`text-xs font-medium ${order.storeWaitHours >= 24 ? "text-red-600" : "text-amber-600"}`}>
+                          Shop order · waiting {order.storeWaitHours < 1 ? "under 1h" : `${order.storeWaitHours}h`} for the store to accept
+                        </div>
+                      )}
                       {order.cancellationReason && (
                         <div className="text-xs text-red-600 mt-1">
                           <span className="font-medium">

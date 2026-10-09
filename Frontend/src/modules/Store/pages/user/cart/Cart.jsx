@@ -2055,6 +2055,15 @@ export default function Cart() {
         const childOrders = checkoutRes?.data?.data?.childOrders || [];
 
         const finishCheckout = () => {
+          // Shop orders land on their own "Order placed" page instead of the modal.
+          const placedRef = checkoutId || childOrders[0]?._id;
+          if (storeFulfilmentMode === "standard" && placedRef) {
+            clearCart();
+            resetCartPreferences();
+            setIsPlacingOrder(false);
+            navigate(`/orders/placed/${placedRef}`, { replace: true });
+            return;
+          }
           setPlacedOrderId(childOrders.length === 1 ? (childOrders[0]?._id || null) : null);
           setShowOrderSuccess(true);
           clearCart();
