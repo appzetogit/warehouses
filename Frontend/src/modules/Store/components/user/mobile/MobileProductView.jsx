@@ -30,6 +30,8 @@ export default function MobileProductView({
   notInThisStore,
   currentVariant,
   selectedAttrs,
+  missingOptions = [],
+  choiceHint = false,
   onSelectAttribute,
   isValueEnabled,
   allImages = [],
@@ -217,7 +219,11 @@ export default function MobileProductView({
             <fieldset key={opt.name}>
               <legend className="mb-2 flex w-full items-center justify-between text-[15px] font-bold text-gray-900">
                 Select {opt.name}
-                {selectedAttrs?.[opt.name] ? <span className="text-[13px] font-medium text-gray-500">{selectedAttrs[opt.name]}</span> : null}
+                {selectedAttrs?.[opt.name] ? (
+                  <span className="text-[13px] font-medium text-gray-500">{selectedAttrs[opt.name]}</span>
+                ) : choiceHint && missingOptions.includes(opt.name) ? (
+                  <span className="text-[13px] font-semibold text-red-600">Please choose</span>
+                ) : null}
               </legend>
               <div className="flex flex-wrap gap-2">
                 {(opt.values || []).map((raw) => {

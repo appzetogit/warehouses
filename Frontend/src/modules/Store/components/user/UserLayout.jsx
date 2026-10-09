@@ -13,6 +13,7 @@ const debugError = (...args) => {}
 
 import SearchOverlay from "./SearchOverlay"
 import DesktopHeader from "./desktop/DesktopHeader"
+import PageErrorBoundary from "./PageErrorBoundary"
 import BottomNav from "./storefront/BottomNav"
 import MobileHeader from "./mobile/MobileHeader"
 import QuickMobileHeader from "./quick-mobile/QuickMobileHeader"
@@ -269,7 +270,9 @@ export default function UserLayout() {
                   {/* clip, not hidden: hidden makes <main> a scroll container and
                       every sticky bar inside a page stops sticking. */}
                   <main className={`w-full min-w-0 max-w-full overflow-x-clip ${normalizedPath.startsWith("/auth/") ? "" : "pb-[57px] md:pb-0"}`}>
-                    <Outlet />
+                    <PageErrorBoundary resetKey={location.pathname}>
+                      <Outlet />
+                    </PageErrorBoundary>
                   </main>
                   <ReorderIntake />
                   {showDesktopShell && <DesktopFooter />}

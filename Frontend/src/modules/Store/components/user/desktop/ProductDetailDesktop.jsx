@@ -42,6 +42,8 @@ export default function ProductDetailDesktop({
   notInThisStore,
   currentVariant,
   selectedAttrs,
+  missingOptions = [],
+  choiceHint = false,
   onSelectAttribute,
   isValueEnabled,
   allImages,
@@ -204,7 +206,14 @@ export default function ProductDetailDesktop({
                   return (
                     <fieldset key={opt.name}>
                       <legend className="mb-2 text-[14px]">
-                        {opt.name}: <span className="font-bold">{selectedVal}</span>
+                        {opt.name}:{" "}
+                        {selectedVal ? (
+                          <span className="font-bold">{selectedVal}</span>
+                        ) : (
+                          <span className={choiceHint && missingOptions.includes(opt.name) ? "font-semibold text-red-600" : "text-wh-muted"}>
+                            {choiceHint && missingOptions.includes(opt.name) ? `Please choose a ${String(opt.name).toLowerCase()}` : "Choose an option"}
+                          </span>
+                        )}
                       </legend>
                       <div className="flex flex-wrap gap-2">
                         {opt.values.map((v) => {

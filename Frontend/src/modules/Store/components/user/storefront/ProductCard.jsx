@@ -184,7 +184,8 @@ export default function ProductCard({
             }}
             className="w-full rounded-full border-[0.8px] border-wh-text px-3 py-1.5 text-[12px] font-medium text-wh-text transition-colors hover:bg-wh-brand hover:border-wh-brand disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {actionLabel}
+            {/* A product with sizes/colours opens its page to choose one first. */}
+            {actionLabel === "Add to Cart" && Array.isArray(product?.variants) && product.variants.length > 1 ? "Select options" : actionLabel}
           </button>
         </div>
       ) : null}

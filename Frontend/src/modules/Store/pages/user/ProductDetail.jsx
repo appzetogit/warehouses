@@ -52,6 +52,8 @@ export default function ProductDetail() {
 
   // Selected attribute dictionary: { [optionName]: selectedValue }
   const [selectedAttrs, setSelectedAttrs] = useState({})
+  // Set when Add to Cart is pressed before a size/colour was chosen.
+  const [choiceHint, setChoiceHint] = useState(false)
 
   useEffect(() => {
     async function loadProduct() {
@@ -63,11 +65,14 @@ export default function ProductDetail() {
           setProduct(data.product)
           setSeller(data.seller)
 
-          // Initial selection: select first available value for each option
+          // Only an option with a single value is chosen up front. A size has
+          // to be picked by the customer, as on any fashion store; choosing S
+          // for them sent the wrong size to anyone who didn't notice.
+          setChoiceHint(false)
           if (Array.isArray(data.product.options) && data.product.options.length > 0) {
             const initialAttrs = {}
             data.product.options.forEach((opt) => {
-              if (opt.values && opt.values.length > 0) {
+              if (opt.values && opt.values.length === 1) {
                 const firstVal = typeof opt.values[0] === "object" ? opt.values[0].value : opt.values[0]
                 initialAttrs[opt.name] = firstVal
               }
@@ -155,7 +160,17 @@ export default function ProductDetail() {
     setSelectedAttrs((prev) => ({ ...prev, [optName]: val }))
   }
 
+  // Options with a real choice the customer hasn't made yet.
+  const missingOptions = (Array.isArray(product?.options) ? product.options : [])
+    .filter((opt) => (opt.values?.length || 0) > 1 && !selectedAttrs[opt.name])
+    .map((opt) => opt.name)
+
   const handleAddToCart = () => {
+    if (missingOptions.length > 0) {
+      setChoiceHint(true)
+      toast.error(`Please choose a ${missingOptions.map((n) => n.toLowerCase()).join(" and ")}`)
+      return false
+    }
     if (notInThisStore) {
       toast.error(`This item isn't available in ${CHANNEL_COPY[channel].label}.`)
       return false
@@ -246,6 +261,8 @@ export default function ProductDetail() {
             currentVariant={currentVariant}
             selectedAttrs={selectedAttrs}
             onSelectAttribute={handleSelectAttribute}
+            missingOptions={missingOptions}
+            choiceHint={choiceHint}
             isValueEnabled={isValueEnabled}
             allImages={allImages}
             displayPrice={displayPrice}
@@ -270,6 +287,8 @@ export default function ProductDetail() {
           currentVariant={currentVariant}
           selectedAttrs={selectedAttrs}
           onSelectAttribute={handleSelectAttribute}
+          missingOptions={missingOptions}
+          choiceHint={choiceHint}
           isValueEnabled={isValueEnabled}
           allImages={allImages}
           activeImageIndex={activeImageIndex}
@@ -457,7 +476,9 @@ export default function ProductDetail() {
                     <div key={opt.name} className="space-y-2">
                       <div className="flex justify-between text-xs">
                         <span className="font-bold text-gray-700 dark:text-gray-300">{opt.name}</span>
-                        <span className="font-semibold text-orange-600 dark:text-orange-400">{selectedVal}</span>
+                        <span className={`font-semibold ${selectedVal ? "text-orange-600 dark:text-orange-400" : choiceHint ? "text-red-600" : "text-gray-500"}`}>
+                          {selectedVal || "Choose an option"}
+                        </span>
                       </div>
 
                       <div className="flex flex-wrap gap-2.5">

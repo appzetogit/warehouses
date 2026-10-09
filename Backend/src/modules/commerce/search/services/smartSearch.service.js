@@ -44,6 +44,24 @@ export async function smartSearchProducts(query = {}) {
     if (parsed.sort && (!query.sort || query.sort === 'relevance')) merged.sort = parsed.sort;
 
     const results = await searchProducts(merged);
+
+    // A word read as a filter can rule out what the shopper meant: "yellow
+    // kurta sets" became Colour = Yellow, and a kurta whose colour is only in
+    // its name has no such variant. Nothing found that way, the plain words
+    // get their chance before the shopper is told there is nothing.
+    if (!results.total && parsed.chips?.length && raw) {
+        const plain = { ...query, q: raw };
+        delete plain.smart;
+        delete plain.smartExclude;
+        const relaxed = await searchProducts(plain);
+        if (relaxed.total) {
+            return {
+                ...relaxed,
+                smart: { originalQuery: raw, query: raw, source: parsed.source, appliedFilters: [], filters: {}, relaxed: true },
+            };
+        }
+    }
+
     return {
         ...results,
         smart: {
