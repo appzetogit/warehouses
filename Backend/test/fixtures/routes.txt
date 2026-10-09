@@ -228,6 +228,8 @@ GET /api/v1/delivery/wallet
 GET /api/v1/fcm-tokens/check
 GET /api/v1/health
 GET /api/v1/health/rate-limit
+GET /api/v1/legacy/^\/product-category\/(.+?)\/?$/
+GET /api/v1/legacy/product/:slug
 GET /api/v1/notifications/inbox
 GET /api/v1/orders/
 GET /api/v1/orders/:orderId

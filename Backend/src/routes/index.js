@@ -17,6 +17,7 @@ import { requireRoles } from '../core/roles/role.middleware.js';
 import { getQueuesController } from '../controllers/admin.controller.js';
 import webhookRoutes from '../core/payments/routes/webhook.routes.js';
 import catalogRoutes from '../modules/commerce/catalog/routes/catalog.routes.js';
+import legacyRedirectRoutes from '../modules/commerce/catalog/routes/legacyRedirect.routes.js';
 import chatRoutes from '../modules/commerce/chat/routes/chat.routes.js';
 import aiRoutes from '../modules/commerce/ai/routes/ai.routes.js';
 import { getCashbackSettingsPublicController } from '../modules/commerce/user/controllers/cashback.controller.js';
@@ -44,6 +45,8 @@ router.use('/v1/uploads', uploadRoutes);
 
 // Anyone browsing, signed in or not.
 router.use('/v1/catalog', catalogRoutes);
+// Old thewarehousess.com links (nginx sends /product/<slug>/ and /product-category/ here).
+router.use('/v1/legacy', legacyRedirectRoutes);
 router.use('/v1/content', landingRoutes);
 router.use('/v1/ai', aiRoutes);
 router.get('/v1/settings/business', businessSettingsController.getBusinessSettings);
