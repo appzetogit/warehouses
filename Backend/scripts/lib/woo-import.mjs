@@ -197,10 +197,10 @@ export function mapProduct(product, { imageFor = (url) => url } = {}) {
     const price = cheapest ? cheapest.price : basePrice;
     const mrp = cheapest ? cheapest.mrp : (baseMrp > basePrice ? baseMrp : null);
 
-    // "Free Size" alone is not a choice worth a picker; one-option products stay simple.
-    const onlyOption = variants.length === 1 && variants[0].attributes.every((a) => a.value === 'Free Size');
-    const keepVariants = variants.length > 0 && !onlyOption;
-    const stockShop = keepVariants ? null : (variants.length ? variants[0].stock.shop : parseStock(product));
+    // A lone "Free Size" stays a variant: the product page shows "Size: Free
+    // Size" (chosen already, being the only one), as the old shop did.
+    const keepVariants = variants.length > 0;
+    const stockShop = keepVariants ? null : parseStock(product);
 
     return {
         name: cleanName(product.name),

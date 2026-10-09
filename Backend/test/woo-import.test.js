@@ -82,14 +82,14 @@ test('a variable product keeps its sizes, each counted on its own', () => {
     assert.deepEqual(product.legacy, { source: 'woocommerce', id: 10, slug: 'kurta', permalink: 'https://thewarehousess.com/product/kurta/' });
 });
 
-test('a lone "Free Size" option becomes a simple product carrying its stock', () => {
+test('a lone "Free Size" option stays a size, carrying its own stock', () => {
     const product = mapProduct({
         id: 11, slug: 'earrings', name: 'Jhumka Earrings', type: 'variable', categories: [],
         prices: prices(7900, 16900), images: [{ src: 'https://x/e.avif' }],
         _variationDetails: [{ variation: 'Size: Free Size', prices: prices(7900, 16900), stock_availability: { text: '2 in stock' }, images: [] }],
     });
-    assert.equal(product.variants.length, 0);
-    assert.deepEqual(product.stock, { shop: 2, quick: null });
+    assert.deepEqual(product.variants.map((v) => [v.name, v.stock.shop, v.attributes]), [['Free Size', 2, [{ name: 'Size', value: 'Free Size' }]]]);
+    assert.deepEqual(product.stock, { shop: null, quick: null });
     assert.equal(product.price, 79);
     assert.equal(product.mrp, 169);
 });
