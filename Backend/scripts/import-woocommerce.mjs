@@ -84,7 +84,7 @@ async function importImage(url) {
 
 /** The global top-level category with this name, preferring the one that has subcategories. */
 async function findParent(name) {
-    const roots = await Category.find({ name, sellerId: { $exists: false }, parentId: { $exists: false } }).sort({ createdAt: 1 }).lean();
+    const roots = await Category.find({ name, sellerId: null, parentId: null }).sort({ createdAt: 1 }).lean();
     if (!roots.length) return null;
     for (const root of roots) {
         if (await Category.exists({ parentId: root._id })) return root;
@@ -98,15 +98,15 @@ async function ensureCategories() {
     for (const [key, [parentName, childName]] of Object.entries(TARGET_CATEGORIES)) {
         let parent = await findParent(parentName);
         if (!parent) {
-            if (DRY_RUN) { console.log(`  would create category ${parentName}`); byKey[key] = { _id: null, name: childName }; continue; }
+            if (DRY_RUN) { console.log(`  would create category ${parentName} > ${childName}`); byKey[key] = { _id: null, name: childName }; continue; }
             parent = (await Category.create({ name: parentName, approvalStatus: 'approved', isApproved: true, isActive: true })).toObject();
             await Category.collection.updateOne({ _id: parent._id }, { $set: { seedTag: SEED_TAG } });
             console.log(`  created category ${parentName}`);
         }
-        let child = await Category.findOne({ name: childName, parentId: parent._id, sellerId: { $exists: false } }).sort({ createdAt: 1 }).lean();
+        let child = await Category.findOne({ name: childName, parentId: parent._id, sellerId: null }).sort({ createdAt: 1 }).lean();
         if (!child) {
             // A new subcategory takes its siblings' attribute set and commission.
-            const sibling = await Category.findOne({ parentId: parent._id, sellerId: { $exists: false } }).sort({ createdAt: 1 }).lean();
+            const sibling = await Category.findOne({ parentId: parent._id, sellerId: null }).sort({ createdAt: 1 }).lean();
             const fields = {
                 name: childName,
                 parentId: parent._id,
