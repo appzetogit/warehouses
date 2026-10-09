@@ -31,13 +31,16 @@ export function useDesktopAddToCart() {
   const { addToCart } = useCart()
   const { storePath } = useStoreMode()
   const navigate = useNavigate()
-  return (product, sellerOverride = null) => {
+  // `variant`: the size/colour picked on the card. A product with options and
+  // none picked opens its page instead.
+  return (product, sellerOverride = null, variant = null) => {
     const id = product?._id || product?.id
     if (!id) return
-    if (Array.isArray(product.variants) && product.variants.length > 0) {
+    if (!variant && Array.isArray(product.variants) && product.variants.length > 0) {
       navigate(storePath(`/product/${id}`))
       return
     }
+    const variantPrice = variant ? Number(variant.price) || (product.displayPrice ?? product.price) : null
     const seller = sellerOverride || product.seller || {}
     const sellerName = seller.name || seller.sellerName || "Store"
     const result = addToCart({
@@ -45,12 +48,12 @@ export function useDesktopAddToCart() {
       itemId: id,
       productId: id,
       name: product.name,
-      price: product.displayPrice ?? product.price,
-      variantId: null,
-      variantName: "",
-      variantPrice: product.displayPrice ?? product.price,
-      otherPrice: product.mrp,
-      image: firstImage(product),
+      price: variant ? variantPrice : product.displayPrice ?? product.price,
+      variantId: variant ? variant._id || variant.id || null : null,
+      variantName: variant ? variant.name || "" : "",
+      variantPrice: variant ? variantPrice : product.displayPrice ?? product.price,
+      otherPrice: variant?.mrp ?? product.mrp,
+      image: (variant && mediaUrl(variant.images?.[0])) || firstImage(product),
       seller: sellerName,
       sellerName,
       sellerId: seller._id || seller.id || product.sellerId,
@@ -60,6 +63,6 @@ export function useDesktopAddToCart() {
       if (!result.needsConfirmation) toast.error(result.error || "Could not add this item to your cart")
       return
     }
-    toast.success(`Added ${product.name} to cart`)
+    toast.success(variant?.name ? `Added ${product.name} (${variant.name}) to cart` : `Added ${product.name} to cart`)
   }
 }

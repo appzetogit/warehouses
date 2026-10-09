@@ -16,6 +16,7 @@ import { searchAPI } from "@/services/api"
 import { channelAvailability, stockLabel } from "@store/utils/channelStock"
 import { ImagePlaceholder, isRealImage, DealBadge, DeliveryPromise, PriceTag, percentOff } from "./ui"
 import { mediaUrl, useDesktopAddToCart } from "./desktopCart"
+import CardSizePicker from "../storefront/CardSizePicker"
 import { QuickGridSkeleton, QuickProductGrid } from "./quick/QuickRail"
 import QuickSubcategoryRail from "./quick/QuickSubcategoryRail"
 
@@ -77,10 +78,11 @@ export function ListingTile({ product, channel, etaMinutes, onAddToCart }) {
   const rating = num(product.rating ?? product.averageRating)
   const inStock = channelAvailability(product, channel).inStock
   const hasOptions = Array.isArray(product.variants) && product.variants.length > 0
+  const [picking, setPicking] = useState(false)
   // The card's proportions follow MOBILE_UI_SPEC.md: a 4:5 cover image flush to
   // the card's top, then a compact body and a full-width outlined action.
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-wh-border bg-wh-surface text-wh-text">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-wh-border bg-wh-surface text-wh-text">
       <Link to={to} className={cx("block", focusRing)}>
         <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-t-2xl bg-[#F7F7F7]">
           {isRealImage(img) ? (
@@ -127,17 +129,29 @@ export function ListingTile({ product, channel, etaMinutes, onAddToCart }) {
             <button
               type="button"
               disabled={!inStock}
-              onClick={() => onAddToCart(product)}
+              onClick={() => (hasOptions ? setPicking((open) => !open) : onAddToCart(product))}
+              aria-expanded={hasOptions ? picking : undefined}
               className={cx(
                 "w-full rounded-full border-[0.8px] border-wh-text px-3 py-1.5 text-[12px] font-medium text-wh-text transition-colors hover:border-wh-brand hover:bg-wh-brand disabled:cursor-not-allowed disabled:opacity-50",
                 focusRing,
               )}
             >
-              {hasOptions ? "See Options" : "Add to Cart"}
+              Add to Cart
             </button>
           </div>
         ) : null}
       </div>
+      {picking && onAddToCart ? (
+        <CardSizePicker
+          product={product}
+          channel={channel}
+          onClose={() => setPicking(false)}
+          onPick={(variant) => {
+            setPicking(false)
+            onAddToCart(product, null, variant)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

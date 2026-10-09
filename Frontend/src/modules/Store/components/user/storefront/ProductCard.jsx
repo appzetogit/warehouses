@@ -4,6 +4,7 @@ import { Star } from "lucide-react"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { ImagePlaceholder, isRealImage, percentOff } from "../desktop/ui"
 import { mediaUrl } from "../desktop/desktopCart"
+import CardSizePicker from "./CardSizePicker"
 
 /**
  * The storefront product card (MOBILE_UI_SPEC.md), at the reference's
@@ -21,7 +22,10 @@ export default function ProductCard({
   badge = null,
   footNote = null,
 }) {
-  const { storePath } = useStoreMode()
+  const { storePath, isQuick } = useStoreMode()
+  // Products with sizes/colours: Add to Cart opens the picker on the card.
+  const hasOptions = Array.isArray(product?.variants) && product.variants.length > 0
+  const [picking, setPicking] = useState(false)
   const ref = useRef(null)
   const id = product?._id || product?.id
 
@@ -103,7 +107,7 @@ export default function ProductCard({
   return (
     <article
       ref={ref}
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-wh-border bg-wh-surface transition-shadow duration-300 hover:shadow-lg"
+      className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-wh-border bg-wh-surface transition-shadow duration-300 hover:shadow-lg"
     >
       <Link to={storePath(`/product/${id}`)} className="flex flex-1 flex-col focus-visible:outline-2 focus-visible:outline-wh-brand">
         <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-t-2xl bg-[#F7F7F7]" {...hoverHandlers}>
@@ -188,14 +192,27 @@ export default function ProductCard({
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
-              onAction(product)
+              if (hasOptions) setPicking((open) => !open)
+              else onAction(product)
             }}
+            aria-expanded={hasOptions ? picking : undefined}
             className="w-full rounded-full border-[0.8px] border-wh-text px-3 py-1.5 text-[12px] font-medium text-wh-text transition-colors hover:bg-wh-brand hover:border-wh-brand disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {/* A product with sizes/colours opens its page to choose one first. */}
-            {actionLabel === "Add to Cart" && Array.isArray(product?.variants) && product.variants.length > 1 ? "Select options" : actionLabel}
+            {actionLabel}
           </button>
         </div>
+      ) : null}
+
+      {picking && onAction ? (
+        <CardSizePicker
+          product={product}
+          channel={isQuick ? "quick" : "shop"}
+          onClose={() => setPicking(false)}
+          onPick={(variant) => {
+            setPicking(false)
+            onAction(product, null, variant)
+          }}
+        />
       ) : null}
     </article>
   )
