@@ -17,6 +17,13 @@ const DEFAULT_SLIDES = [
   },
 ]
 
+/**
+ * A banner with no title is finished artwork (a sale poster with its own
+ * lettering): it is shown whole, over a blurred copy of itself, with no
+ * headline laid on top, and the whole slide links to its target.
+ */
+const isArtwork = (b) => Boolean(b?.imageUrl) && !String(b?.title || "").trim()
+
 export default function HeroCarousel({ banners = [], onOpen }) {
   const { storePath } = useStoreMode()
   const rawSlides = banners.filter((b) => b && typeof b.imageUrl === "string" && b.imageUrl)
@@ -38,6 +45,7 @@ export default function HeroCarousel({ banners = [], onOpen }) {
 
   const go = (d) => setIndex((i) => (i + d + count) % count)
   const current = slides[index % slides.length] || slides[0]
+  const artwork = isArtwork(current) && rawSlides.length > 0
 
   return (
     <section className="relative h-[260px] w-full overflow-hidden bg-[#1a1a1a] sm:h-[340px] lg:h-[440px]" aria-roledescription="carousel" aria-label="Featured">
@@ -47,15 +55,26 @@ export default function HeroCarousel({ banners = [], onOpen }) {
         const common = `absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-700 ${
           active ? "opacity-100 wh-kenburns" : "opacity-0"
         }`
-        return isVideoUrl(b.imageUrl) ? (
-          <video key={b.imageUrl + i} src={b.imageUrl} className={common} muted loop autoPlay={active} playsInline preload={active ? "auto" : "metadata"} aria-hidden={!active} />
-        ) : (
-          <img key={b.imageUrl + i} src={b.imageUrl} alt={b.title || `Hero banner ${i + 1}`} className={common} loading={i === 0 ? "eager" : "lazy"} aria-hidden={!active} />
-        )
+        if (isVideoUrl(b.imageUrl)) {
+          return <video key={b.imageUrl + i} src={b.imageUrl} className={common} muted loop autoPlay={active} playsInline preload={active ? "auto" : "metadata"} aria-hidden={!active} />
+        }
+        if (isArtwork(b) && rawSlides.length > 0) {
+          return (
+            <div key={b.imageUrl + i} className={`absolute inset-0 transition-opacity duration-700 ${active ? "opacity-100" : "opacity-0"}`} aria-hidden={!active}>
+              <img src={b.imageUrl} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl brightness-75" loading={i === 0 ? "eager" : "lazy"} />
+              <img src={b.imageUrl} alt={`Offer ${i + 1}`} className="absolute inset-0 h-full w-full object-contain" loading={i === 0 ? "eager" : "lazy"} />
+            </div>
+          )
+        }
+        return <img key={b.imageUrl + i} src={b.imageUrl} alt={b.title || `Hero banner ${i + 1}`} className={common} loading={i === 0 ? "eager" : "lazy"} aria-hidden={!active} />
       })}
 
+      {artwork ? (
+        <Link to={storePath(current.ctaLink || "/categories")} className="absolute inset-0 z-10" aria-label={current.ctaText || "Shop the offer"} />
+      ) : null}
+
       {/* Hero Content Overlay (Left) */}
-      <div className="relative z-20 mx-auto flex h-full max-w-[1500px] flex-col justify-center px-4 pb-8 sm:px-8 lg:px-12 lg:pb-12">
+      <div className={`relative z-20 mx-auto h-full max-w-[1500px] flex-col justify-center px-4 pb-8 sm:px-8 lg:px-12 lg:pb-12 ${artwork ? "hidden" : "flex"}`}>
         <div key={index} className="wh-reveal is-visible max-w-[78%] text-left sm:max-w-xl">
           <span className="inline-block text-[10px] font-bold uppercase tracking-[0.18em] text-[#f59e0b] [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] sm:text-[12px] sm:tracking-[0.2em]">
             {current.tag || "NEW SEASON COLLECTION"}
@@ -119,7 +138,7 @@ export default function HeroCarousel({ banners = [], onOpen }) {
       </div>
 
       {/* Trust Badges (Bottom Right) */}
-      <div className="absolute bottom-6 right-8 hidden xl:flex items-center gap-6 z-20">
+      <div className={`absolute bottom-6 right-8 hidden items-center gap-6 z-20 ${artwork ? "" : "xl:flex"}`}>
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#f59e0b]/50 bg-black/50 backdrop-blur-sm text-[#f59e0b] shadow-sm">
             <Truck className="h-5 w-5" />

@@ -91,18 +91,21 @@ function BannerCarousel({ banners = [] }) {
               src={mediaUrl(b.imageUrl)}
               alt=""
               loading={i === 0 ? "eager" : "lazy"}
-              className={`h-full w-full object-cover ${i === index ? "wh-kenburns" : ""}`}
+              className={`h-full w-full object-cover ${i === index && String(b.title || "").trim() ? "wh-kenburns" : ""}`}
             />
-            <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent" />
-            <span className="absolute inset-y-0 left-0 flex w-[70%] flex-col justify-center gap-1.5 p-4">
-              {b.title ? (
-                <span className="font-display text-[22px] font-bold leading-[1.1] text-white drop-shadow">{b.title}</span>
-              ) : null}
-              {b.subtitle ? <span className="line-clamp-2 text-[11px] text-white/85">{b.subtitle}</span> : null}
-              <span className="wh-sheen relative mt-1 inline-flex w-fit items-center gap-1 overflow-hidden rounded-full bg-gray-900 px-3.5 py-1.5 text-[12px] font-bold text-white">
-                {b.ctaText || "Shop Now"} <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </span>
-            </span>
+            {/* A banner without a title is finished artwork with its own lettering: no shade or button over it. */}
+            {String(b.title || "").trim() ? (
+              <>
+                <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent" />
+                <span className="absolute inset-y-0 left-0 flex w-[70%] flex-col justify-center gap-1.5 p-4">
+                  <span className="font-display text-[22px] font-bold leading-[1.1] text-white drop-shadow">{b.title}</span>
+                  {b.subtitle ? <span className="line-clamp-2 text-[11px] text-white/85">{b.subtitle}</span> : null}
+                  <span className="wh-sheen relative mt-1 inline-flex w-fit items-center gap-1 overflow-hidden rounded-full bg-gray-900 px-3.5 py-1.5 text-[12px] font-bold text-white">
+                    {b.ctaText || "Shop Now"} <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                </span>
+              </>
+            ) : null}
           </Link>
         ))}
       </div>

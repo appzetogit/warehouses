@@ -161,21 +161,24 @@
 }
 
 @layer base {
+  /* clip, not hidden: overflow-x: hidden also makes the element a scroll
+     container (overflow-y becomes auto), and position: sticky then sticks
+     to that box instead of the window, so the header scrolled away. */
   html {
     scroll-behavior: auto;
-    overflow-x: hidden;
+    overflow-x: clip;
     max-width: 100%;
   }
 
   body {
     @apply bg-background text-foreground m-0 min-h-screen;
-    overflow-x: hidden;
+    overflow-x: clip;
     max-width: 100%;
     width: 100%;
   }
 
   #root {
-    overflow-x: hidden;
+    overflow-x: clip;
     max-width: 100%;
     width: 100%;
   }

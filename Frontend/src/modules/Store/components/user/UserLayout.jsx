@@ -237,7 +237,7 @@ export default function UserLayout() {
     storeMode === "quick" || /\/product\/|\/cart(\/|$)|^\/orders|\/wishlist$|^\/profile\/favorites|\/sellers(\/|$)/.test(normalizedPath)
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
       <CartProvider key={storeMode} mode={storeMode}>
         <AutoCouponController />
         <ProfileProvider>
