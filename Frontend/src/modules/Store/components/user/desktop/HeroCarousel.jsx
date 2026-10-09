@@ -46,9 +46,17 @@ export default function HeroCarousel({ banners = [], onOpen }) {
   const go = (d) => setIndex((i) => (i + d + count) % count)
   const current = slides[index % slides.length] || slides[0]
   const artwork = isArtwork(current) && rawSlides.length > 0
+  // Posters are 16:9 with lettering to the edges: give them the room to show whole.
+  const hasArtwork = rawSlides.some(isArtwork)
 
   return (
-    <section className="relative h-[260px] w-full overflow-hidden bg-[#1a1a1a] sm:h-[340px] lg:h-[440px]" aria-roledescription="carousel" aria-label="Featured">
+    <section
+      className={`relative w-full overflow-hidden bg-[#1a1a1a] ${
+        hasArtwork ? "aspect-[16/9] max-h-[600px] lg:aspect-auto lg:h-[600px]" : "h-[260px] sm:h-[340px] lg:h-[440px]"
+      }`}
+      aria-roledescription="carousel"
+      aria-label="Featured"
+    >
       {/* Background slide image */}
       {slides.map((b, i) => {
         const active = i === (index % slides.length)
@@ -61,12 +69,12 @@ export default function HeroCarousel({ banners = [], onOpen }) {
         if (isArtwork(b) && rawSlides.length > 0) {
           return (
             <div key={b.imageUrl + i} className={`absolute inset-0 transition-opacity duration-700 ${active ? "opacity-100" : "opacity-0"}`} aria-hidden={!active}>
-              <img src={b.imageUrl} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl brightness-75" loading={i === 0 ? "eager" : "lazy"} />
-              <img src={b.imageUrl} alt={`Offer ${i + 1}`} className="absolute inset-0 h-full w-full object-contain" loading={i === 0 ? "eager" : "lazy"} />
+              <img src={b.imageUrl} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl brightness-75" loading="eager" />
+              <img src={b.imageUrl} alt={`Offer ${i + 1}`} className="absolute inset-0 h-full w-full object-contain" loading="eager" />
             </div>
           )
         }
-        return <img key={b.imageUrl + i} src={b.imageUrl} alt={b.title || `Hero banner ${i + 1}`} className={common} loading={i === 0 ? "eager" : "lazy"} aria-hidden={!active} />
+        return <img key={b.imageUrl + i} src={b.imageUrl} alt={b.title || `Hero banner ${i + 1}`} className={common} loading="eager" aria-hidden={!active} />
       })}
 
       {artwork ? (
