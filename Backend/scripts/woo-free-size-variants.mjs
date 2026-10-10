@@ -26,6 +26,12 @@ const source = JSON.parse(fs.readFileSync(path.join(DIR, 'products.json'), 'utf8
 const freeSizeOnly = new Map();
 for (const p of source) {
     const details = (p._variationDetails || []).filter((v) => v && !v.error);
+    // A simple product that names "Size: Free Size" as an attribute, not a variation.
+    if (!details.length) {
+        const size = (p.attributes || []).find((a) => /^(pa_)?size$/i.test(String(a?.name || a?.taxonomy || '')) && (a.terms || []).length === 1);
+        if (size && /^free[\s-]?size$/i.test(String(size.terms[0]?.name || '').trim())) freeSizeOnly.set(p.id, String(p.sku || '').trim());
+        continue;
+    }
     if (details.length !== 1) continue;
     const attrs = parseVariationLabel(details[0].variation);
     if (attrs.length && attrs.every((a) => a.value === 'Free Size')) freeSizeOnly.set(p.id, String(details[0].sku || '').trim());

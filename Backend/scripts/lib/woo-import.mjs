@@ -193,6 +193,28 @@ export function mapProduct(product, { imageFor = (url) => url } = {}) {
 
     const basePrice = toRupees(product.prices?.price, minorUnit);
     const baseMrp = toRupees(product.prices?.regular_price, minorUnit);
+
+    // A simple product that names a single size ("Size: Free Size") as an
+    // attribute rather than a variation carries it as its only option, so its
+    // page shows the size like every other product.
+    if (!variants.length && basePrice > 0) {
+        const sizeAttr = (product.attributes || []).find((a) => /^(pa_)?size$/i.test(String(a?.name || a?.taxonomy || '')) && (a.terms || []).length === 1);
+        if (sizeAttr) {
+            const attribute = normaliseAttribute('size', sizeAttr.terms[0].name);
+            variants.push({
+                name: attribute.value,
+                price: basePrice,
+                mrp: baseMrp > basePrice ? baseMrp : null,
+                sku: String(product.sku ?? '').trim(),
+                attributes: [attribute],
+                channels: { quick: null, shop: null },
+                stock: { shop: parseStock(product), quick: null },
+                lowStockThreshold: { shop: null, quick: null },
+                images: images.slice(0, 1),
+                isActive: true,
+            });
+        }
+    }
     const cheapest = variants.length ? variants.reduce((a, b) => (b.price < a.price ? b : a)) : null;
     const price = cheapest ? cheapest.price : basePrice;
     const mrp = cheapest ? cheapest.mrp : (baseMrp > basePrice ? baseMrp : null);

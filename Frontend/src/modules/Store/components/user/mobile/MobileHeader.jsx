@@ -118,7 +118,7 @@ export default function MobileHeader() {
           </button>
         )}
 
-        <Link to={storePath("/")} className="flex shrink-0 items-center pr-1" aria-label="The Warehouses home">
+        <Link to={storePath("/")} className="flex shrink-0 items-center pr-1" aria-label="The Warehousess home">
           <img src={BRAND_LOGO_ON_DARK} alt="" className="h-[28px] w-auto max-w-[80px] object-contain drop-shadow-sm" />
         </Link>
 

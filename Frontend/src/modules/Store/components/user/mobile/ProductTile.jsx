@@ -10,6 +10,7 @@ import { buildCartLineId } from "@store/utils/productVariants"
 import { mediaUrl } from "../desktop/desktopCart"
 import { useQuickEta, useShopDeliveryEstimate } from "../desktop/useDeliveryEstimates"
 import { ImagePlaceholder, isRealImage, percentOff } from "../desktop/ui"
+import SizeSheet from "./SizeSheet"
 
 /**
  * The product card from the mobile mockup (screens 1, 2, 3 and 9): image with a
@@ -58,7 +59,7 @@ export default function ProductTile({ product, showSizes = true }) {
 
   const [size, setSize] = useState("")
   const [imageLoaded, setImageLoaded] = useState(false)
-  const [nudge, setNudge] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const chosen = sizes.find((s) => s.size === size)
   const variant = chosen?.variant || (variants.length === 1 ? variants[0] : null)
 
@@ -106,30 +107,23 @@ export default function ProductTile({ product, showSizes = true }) {
     }
   }
 
-  const add = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (variants.length > 1 && !variant) {
-      if (!sizes.length) return navigate(storePath(`/product/${id}`))
-      setNudge(true)
-      setTimeout(() => setNudge(false), 900)
-      toast("Pick a size first")
-      return
-    }
-    if (!stock.inStock) {
+  // Adds the product, in `v` when it has sizes.
+  const addVariant = (v) => {
+    if (!channelAvailability(product, channel, v).inStock) {
       toast.error("Out of Stock")
       return
     }
+    const linePrice = Number(v?.price ?? product?.displayPrice ?? product?.price ?? 0)
     const result = addToCart({
       id,
       itemId: id,
       productId: id,
       name: product?.name,
-      price,
-      variantId: variantId || null,
-      variantName: variant?.name || "",
-      variantPrice: price,
-      otherPrice: mrp,
+      price: linePrice,
+      variantId: v?._id ? String(v._id) : null,
+      variantName: v?.name || "",
+      variantPrice: linePrice,
+      otherPrice: Number(v?.mrp) || mrp,
       image,
       seller: sellerName || "Store",
       sellerName: sellerName || "Store",
@@ -140,7 +134,25 @@ export default function ProductTile({ product, showSizes = true }) {
       if (!result.needsConfirmation) toast.error(result.error || "Could not add this item")
       return
     }
-    toast.success(`Added ${product?.name}${chosen ? ` (${chosen.size})` : ""}`)
+    const label = v ? sizeOf(v) : ""
+    if (label) setSize(label)
+    toast.success(`Added ${product?.name}${label ? ` (${label})` : ""}`)
+  }
+
+  // A product with sizes asks which one first, in a sheet, unless a size chip
+  // on the tile was already picked.
+  const sheetOptions = sizes.length
+    ? sizes.map((s) => ({ key: s.size, label: s.size, ok: s.ok, variant: s.variant }))
+    : variants.map((v) => ({ key: String(v._id || v.name), label: v.name || "Option", ok: channelAvailability(product, channel, v).inStock, variant: v }))
+
+  const add = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (variants.length > 0 && !chosen) {
+      setSheetOpen(true)
+      return
+    }
+    addVariant(variant)
   }
 
   const step = (by) => (e) => {
@@ -216,7 +228,7 @@ export default function ProductTile({ product, showSizes = true }) {
         </p>
 
         {showSizes && sizes.length > 1 ? (
-          <div className={`flex flex-wrap gap-1 ${nudge ? "wh-pop" : ""}`} role="radiogroup" aria-label="Size">
+          <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="Size">
             {sizes.slice(0, 5).map((s) => (
               <button
                 key={s.size}
@@ -228,9 +240,7 @@ export default function ProductTile({ product, showSizes = true }) {
                 className={`min-w-[28px] rounded-md border px-1.5 py-0.5 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:line-through ${
                   size === s.size
                     ? "border-[#EA580C] bg-[#FFF1E7] text-[#C2410C]"
-                    : nudge
-                      ? "border-[#EA580C] text-gray-700"
-                      : "border-gray-200 text-gray-700"
+                    : "border-gray-200 text-gray-700"
                 }`}
               >
                 {s.size}
@@ -264,6 +274,20 @@ export default function ProductTile({ product, showSizes = true }) {
           )}
         </div>
       </div>
+
+      {sheetOpen ? (
+        <SizeSheet
+          title={product?.name}
+          optionName={sizes.length ? "size" : "option"}
+          price={price}
+          options={sheetOptions}
+          onClose={() => setSheetOpen(false)}
+          onPick={(o) => {
+            setSheetOpen(false)
+            addVariant(o.variant)
+          }}
+        />
+      ) : null}
     </article>
   )
 }

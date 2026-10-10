@@ -336,7 +336,7 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
         {storeDeals.length > 1 ? <StoreDealsSection stores={storeDeals} /> : null}
 
         <FeatureBand
-          title="Sell on The Warehouses"
+          title={`Sell on ${business.brandName || "The Warehousess"}`}
           subtitle="Showcase your designer apparel and boutique collections to millions across India."
           ctaLabel="Start Selling"
           ctaTo="/seller/signup"

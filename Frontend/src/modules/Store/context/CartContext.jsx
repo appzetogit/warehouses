@@ -71,7 +71,24 @@ const isDifferentSeller = (existing, incoming) => {
     return false
 }
 
-const normalizeCartData = (rawCart) => {
+/**
+ * One line per product and size. Carts saved before the add path compared
+ * line ids properly could hold the same product twice (two lines, one id);
+ * those merge here, quantities added.
+ */
+const mergeDuplicateLines = (lines) => {
+  const byId = new Map()
+  for (const line of lines) {
+    const prev = byId.get(line.id)
+    if (prev) prev.quantity += line.quantity
+    else byId.set(line.id, { ...line })
+  }
+  return [...byId.values()]
+}
+
+const normalizeCartData = (rawCart) => mergeDuplicateLines(normalizeCartLines(rawCart))
+
+const normalizeCartLines = (rawCart) => {
   if (!Array.isArray(rawCart)) return []
 
   return rawCart
@@ -355,7 +372,10 @@ export function CartProvider({ children, mode = "shop" }) {
         return safePrev;
       }
 
-      const existing = safePrev.find((i) => i.id === item.id)
+      // Lines are stored under "<product>::<size>"; the caller passes the bare
+      // product id, so match on the id this item will be stored under.
+      const lineId = normalizeCartLines([item])[0]?.id || item.id
+      const existing = safePrev.find((i) => i.id === lineId)
       if (existing) {
         // Set last add event for animation when incrementing existing item
         if (sourcePosition) {
@@ -371,7 +391,7 @@ export function CartProvider({ children, mode = "shop" }) {
           setTimeout(() => setLastAddEvent(null), 1500)
         }
         return safePrev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + addQuantity } : i
+          i.id === lineId ? { ...i, quantity: i.quantity + addQuantity } : i
         )
       }
       

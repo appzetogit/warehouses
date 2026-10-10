@@ -103,3 +103,22 @@ test('a simple product with no sale has no MRP above its price', () => {
     assert.deepEqual(product.stock, { shop: 0, quick: null });
     assert.equal(product.image, '');
 });
+
+test('a simple product naming one size (Size: Free Size) carries it as its only option', () => {
+    const product = mapProduct({
+        id: 13, slug: 'tank', name: 'Yellow Ribbed Tank Top Women', type: 'simple', categories: [],
+        prices: prices(34900, 79900), images: [{ src: 'https://x/t.avif' }], stock_availability: { text: '1 in stock' },
+        attributes: [{ name: 'Size', taxonomy: 'pa_size', has_variations: false, terms: [{ name: 'Free Size' }] }],
+    });
+    assert.deepEqual(product.variants.map((v) => [v.name, v.price, v.mrp, v.stock.shop]), [['Free Size', 349, 799, 1]]);
+    assert.deepEqual(product.stock, { shop: null, quick: null });
+});
+
+test('a simple product with no size stays without options', () => {
+    const product = mapProduct({
+        id: 14, slug: 'tee', name: 'Pink Color Print T Shirt for Women', type: 'simple', categories: [],
+        prices: prices(30000, 100000), images: [], stock_availability: { text: '1 in stock' }, attributes: [],
+    });
+    assert.equal(product.variants.length, 0);
+    assert.deepEqual(product.stock, { shop: 1, quick: null });
+});
