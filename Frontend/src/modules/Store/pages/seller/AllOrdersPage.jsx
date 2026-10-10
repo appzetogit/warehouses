@@ -16,6 +16,7 @@ import { DateRangeCalendar } from "@store/components/ui/date-range-calendar"
 import { sellerAPI } from "@store/api"
 import { useSellerNotifications } from "@store/hooks/useSellerNotifications"
 import { getSellerCookingNote } from "@store/utils/orderCookingNote"
+import { formatItemNameWithVariant } from "@store/utils/orderItemVariant"
 import OrderDetailPage from "@store/pages/seller/OrderDetailPage"
 import SellerReturnsPanel from "@store/pages/seller/SellerReturnsPanel"
 const debugLog = (...args) => {}
@@ -214,7 +215,7 @@ export default function AllOrdersPage() {
     
     // Format items
     const items = (order.items || []).map(item => ({
-      name: item.name || 'Item',
+      name: formatItemNameWithVariant(item, 'Item'),
       quantity: item.quantity || 1,
       price: item.price || 0
     }))

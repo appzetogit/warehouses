@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Check, ChevronRight, Package, RotateCcw, Store, Truck, Zap } from "lucide-react"
+import { Check, ChevronRight, Loader2, Package, RotateCcw, Store, Truck, Zap } from "lucide-react"
+import { toast } from "sonner"
 import { orderAPI } from "@/services/api"
 import { mediaUrl } from "../desktop/desktopCart"
 import MobileTopBar from "./MobileTopBar"
@@ -14,6 +15,14 @@ import { shopStatusLabel } from "@store/utils/shopOrderFlow"
  */
 
 const TABS = ["All", "Ordered", "Shipped", "Delivered", "Returns"]
+const PAGE_SIZE = 20
+
+/** The orders and pagination out of a list response. */
+function readPage(res) {
+  const d = res?.data?.data
+  const list = d?.orders || d?.data || (Array.isArray(d) ? d : [])
+  return { list: Array.isArray(list) ? list : [], pagination: d?.pagination || null }
+}
 
 const CANCELLED = ["cancelled_by_user", "cancelled_by_seller", "cancelled_by_admin"]
 const MOVING = ["picked_up", "reached_drop"]
@@ -193,7 +202,7 @@ function OrderCard({ order, onChanged }) {
             <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Buy Again
           </button>
         )}
-        {s === "delivered" && courier && !order.latestReturn ? (
+        {s === "delivered" && courier && (!order.latestReturn || order.latestReturn.status === "rejected") ? (
           <Link
             to={`/orders/${id}/details#returns`}
             className="flex h-9 flex-1 items-center justify-center rounded-lg border border-gray-300 text-[13px] font-bold text-gray-800 active:bg-gray-50"
@@ -215,11 +224,10 @@ function OrderCard({ order, onChanged }) {
           onClose={() => setCancelling(false)}
           onCancelled={(updated) => {
             setCancelling(false)
-            onChanged?.(id, {
-              orderStatus: updated?.orderStatus || "cancelled_by_user",
-              cancellationReason: updated?.cancellationReason || "",
-              payment: updated?.payment || order.payment,
-            })
+            // Take the whole cancelled order (refund, history) but keep the populated store.
+            const next = updated && typeof updated === "object" ? { ...updated } : {}
+            if (next.sellerId && typeof next.sellerId !== "object") delete next.sellerId
+            onChanged?.(id, { orderStatus: "cancelled_by_user", payment: order.payment, ...next })
           }}
         />
       ) : null}
@@ -232,15 +240,23 @@ export default function MobileOrders() {
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
   const [tab, setTab] = useState("All")
+  // Pages loaded so far and what the server says is there in all.
+  const [page, setPage] = useState(1)
+  const [pages, setPages] = useState(1)
+  const [total, setTotal] = useState(null)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     orderAPI
-      .getOrders({ page: 1, limit: 50 })
+      .getOrders({ page: 1, limit: PAGE_SIZE })
       .then((res) => {
-        const d = res?.data?.data
-        const list = d?.orders || d?.data || (Array.isArray(d) ? d : [])
-        if (!cancelled) setOrders(Array.isArray(list) ? list : [])
+        if (cancelled) return
+        const { list, pagination } = readPage(res)
+        setOrders(list)
+        setPage(1)
+        setPages(Number(pagination?.pages) || 1)
+        setTotal(Number.isFinite(Number(pagination?.total)) ? Number(pagination.total) : null)
       })
       .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
@@ -248,6 +264,29 @@ export default function MobileOrders() {
       cancelled = true
     }
   }, [])
+
+  const loadMore = async () => {
+    if (loadingMore || page >= pages) return
+    setLoadingMore(true)
+    try {
+      const next = page + 1
+      const { list, pagination } = readPage(await orderAPI.getOrders({ page: next, limit: PAGE_SIZE }))
+      setOrders((prev) => {
+        const seen = new Set(prev.map((o) => String(o._id || o.id)))
+        return [...prev, ...list.filter((o) => !seen.has(String(o._id || o.id)))]
+      })
+      setPage(next)
+      if (pagination?.pages) setPages(Number(pagination.pages) || next)
+      if (Number.isFinite(Number(pagination?.total))) setTotal(Number(pagination.total))
+    } catch {
+      toast.error("Couldn't load more orders. Try again.")
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  const totalCount = total ?? orders.length
+  const hasMore = page < pages
 
   const counts = useMemo(() => {
     const c = { All: orders.length, Returns: 0 }
@@ -262,7 +301,7 @@ export default function MobileOrders() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F8] pb-8 lg:hidden">
-      <MobileTopBar title="My Orders" subtitle={loading ? "" : `${orders.length} order${orders.length === 1 ? "" : "s"}`} actions={["search", "cart"]} />
+      <MobileTopBar title="My Orders" subtitle={loading || failed ? "" : `${totalCount} order${totalCount === 1 ? "" : "s"}`} actions={["search", "cart"]} />
       <div className="sticky top-14 z-30 flex gap-2 overflow-x-auto border-b border-gray-100 bg-white px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist">
         {TABS.map((t) => (
           <button
@@ -319,6 +358,17 @@ export default function MobileOrders() {
             ) : null}
           </div>
         )}
+        {!loading && !failed && hasMore ? (
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white text-[14px] font-bold text-gray-800 active:bg-gray-50 disabled:opacity-60"
+          >
+            {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+            {loadingMore ? "Loading…" : `Load more orders (${Math.max(0, totalCount - orders.length)} more)`}
+          </button>
+        ) : null}
       </div>
     </div>
   )

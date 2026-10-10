@@ -1,5 +1,24 @@
 import { useState, useEffect, useMemo } from "react"
 import { Eye, Printer, ArrowUpDown, Loader2, Check, X, Trash2, RefreshCw, Volume2, PackageCheck } from "lucide-react"
+import { formatItemVariant } from "@store/utils/orderItemVariant"
+
+/** Raw backend status (orderStatus on a row is a display label). */
+const getStatusCode = (order) => String(order?.statusCode || order?.status || "").trim().toLowerCase()
+
+const isShopRow = (order) => order?.fulfilmentMode === "standard"
+
+/** Accept / Reject apply only while the store has not answered yet. */
+const isAwaitingAcceptance = (order) => getStatusCode(order) === "created"
+
+// Accepted and still moving: the only statuses an admin can mark as delivered.
+const MARK_DELIVERED_STATUSES = [
+  "confirmed",
+  "preparing",
+  "ready_for_pickup",
+  "reached_pickup",
+  "picked_up",
+  "reached_drop",
+]
 
 const getStatusColor = (orderStatus) => {
   const colors = {
@@ -7,6 +26,7 @@ const getStatusColor = (orderStatus) => {
     "Pending": "bg-blue-100 text-blue-700",
     "Scheduled": "bg-blue-100 text-blue-700",
     "Accepted": "bg-green-100 text-green-700",
+    "Pending Payment": "bg-amber-100 text-amber-700",
     "Processing": "bg-orange-100 text-orange-700",
     "Out For Delivery": "bg-yellow-100 text-yellow-700",
     "Canceled": "bg-rose-100 text-rose-700",
@@ -86,7 +106,11 @@ export default function OrdersTable({
     return name
   }
 
+  // Once a courier AWB exists the shipment must be cancelled first (backend refuses too).
+  const hasCourierBooked = (order) => Boolean(order?.shipment?.awb)
+
   const canShowCancelAction = (order) => {
+    if (hasCourierBooked(order)) return false
     const currentStatus = String(order?.orderStatus || "").trim().toLowerCase()
     return [
       "pending",
@@ -97,7 +121,9 @@ export default function OrdersTable({
   }
 
   const canDeassignAndResend = (order) => {
-    const backendStatus = String(order?.status || "").trim().toLowerCase()
+    // Shop orders go by courier, not riders.
+    if (isShopRow(order)) return false
+    const backendStatus = getStatusCode(order)
     const phase = String(order?.deliveryState?.currentPhase || "").trim().toLowerCase()
     return (
       ["confirmed", "preparing", "ready_for_pickup", "reached_pickup"].includes(backendStatus) &&
@@ -109,7 +135,9 @@ export default function OrdersTable({
   }
 
   const canResendNotification = (order) => {
-    const backendStatus = String(order?.status || "").trim().toLowerCase()
+    // Shop orders go by courier, not riders.
+    if (isShopRow(order)) return false
+    const backendStatus = getStatusCode(order)
     const phase = String(order?.deliveryState?.currentPhase || "").trim().toLowerCase()
     return (
       ["confirmed", "preparing", "ready_for_pickup", "ready"].includes(backendStatus) &&
@@ -120,17 +148,7 @@ export default function OrdersTable({
     )
   }
 
-  const canMarkAsDelivered = (order) => {
-    const status = String(order?.orderStatus || "").trim().toLowerCase()
-    return ![
-      "delivered",
-      "canceled",
-      "cancelled by seller",
-      "cancelled by user",
-      "payment failed",
-      "refunded",
-    ].includes(status)
-  }
+  const canMarkAsDelivered = (order) => MARK_DELIVERED_STATUSES.includes(getStatusCode(order))
 
   if (orders.length === 0 && !isLoading) {
     return (
@@ -329,6 +347,11 @@ export default function OrdersTable({
                             </span>
                             <span className="text-slate-800 font-medium flex-1">
                               {item.name || item.itemName || item.title || 'Unknown Item'}
+                              {formatItemVariant(item) && (
+                                <span className="block text-xs font-semibold text-indigo-700">
+                                  {formatItemVariant(item)}
+                                </span>
+                              )}
                             </span>
                             {item.price && (
                               <span className="text-xs text-slate-500">
@@ -476,7 +499,11 @@ export default function OrdersTable({
                               ? "bg-red-600 text-white hover:bg-red-700"
                               : "bg-slate-100 text-slate-400 cursor-not-allowed"
                             } disabled:opacity-60 disabled:cursor-not-allowed`}
-                          title="Cancel Order"
+                          title={
+                            hasCourierBooked(order)
+                              ? "Cancel the courier shipment first"
+                              : "Cancel Order"
+                          }
                         >
                           {actionLoadingOrderId === (order.id || order.orderId) ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -502,7 +529,9 @@ export default function OrdersTable({
                           title={
                             canResendNotification(order)
                               ? "Resend delivery notification to nearby partners"
-                              : "Available only after seller accepts the order and no delivery partner is assigned"
+                              : isShopRow(order)
+                                ? "Shop orders go by courier, not delivery partners"
+                                : "Available only after seller accepts the order and no delivery partner is assigned"
                           }
                         >
                           {actionLoadingOrderId === (order.id || order.orderId) ? (
@@ -529,7 +558,9 @@ export default function OrdersTable({
                           title={
                             canDeassignAndResend(order)
                               ? "Remove the current delivery partner and resend this order"
-                              : "Available only for an accepted delivery before pickup"
+                              : isShopRow(order)
+                                ? "Shop orders go by courier, not delivery partners"
+                                : "Available only for an accepted delivery before pickup"
                           }
                         >
                           {actionLoadingOrderId === (order.id || order.orderId) ? (
@@ -551,17 +582,17 @@ export default function OrdersTable({
                           onClick={() => onAcceptOrder(order)}
                           disabled={
                             actionLoadingOrderId === (order.id || order.orderId) ||
-                            String(order.orderStatus || "").trim().toLowerCase() !== "pending"
+                            !isAwaitingAcceptance(order)
                           }
                           className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
-                            String(order.orderStatus || "").trim().toLowerCase() === "pending"
+                            isAwaitingAcceptance(order)
                               ? "text-white bg-emerald-600 hover:bg-emerald-700"
                               : "bg-slate-100 text-slate-400 cursor-not-allowed"
                           } disabled:opacity-60 disabled:cursor-not-allowed`}
                           title={
-                            String(order.orderStatus || "").trim().toLowerCase() === "pending"
+                            isAwaitingAcceptance(order)
                               ? "Accept Order"
-                              : "Available only for pending orders"
+                              : "Available only while the order is waiting for the store"
                           }
                         >
                           {actionLoadingOrderId === (order.id || order.orderId) ? (
@@ -577,17 +608,17 @@ export default function OrdersTable({
                           onClick={() => onRejectOrder(order)}
                           disabled={
                             actionLoadingOrderId === (order.id || order.orderId) ||
-                            String(order.orderStatus || "").trim().toLowerCase() !== "pending"
+                            !isAwaitingAcceptance(order)
                           }
                           className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
-                            String(order.orderStatus || "").trim().toLowerCase() === "pending"
+                            isAwaitingAcceptance(order)
                               ? "text-white bg-rose-600 hover:bg-rose-700"
                               : "bg-slate-100 text-slate-400 cursor-not-allowed"
                           } disabled:opacity-60 disabled:cursor-not-allowed`}
                           title={
-                            String(order.orderStatus || "").trim().toLowerCase() === "pending"
+                            isAwaitingAcceptance(order)
                               ? "Reject Order"
-                              : "Available only for pending orders"
+                              : "Available only while the order is waiting for the store"
                           }
                         >
                           {actionLoadingOrderId === (order.id || order.orderId) ? (
@@ -613,7 +644,7 @@ export default function OrdersTable({
                           title={
                             canMarkAsDelivered(order)
                               ? "Mark order as delivered"
-                              : "Not available for delivered or cancelled orders"
+                              : "Available only for accepted orders that are not delivered or cancelled"
                           }
                         >
                           {actionLoadingOrderId === (order.id || order.orderId) ? (

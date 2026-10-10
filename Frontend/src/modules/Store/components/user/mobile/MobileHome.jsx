@@ -14,6 +14,7 @@ import { useQuickLayout } from "../quick-mobile/QuickLayoutContext"
 import { CampaignBanner, FeaturedRail } from "../quick-mobile/QuickFeed"
 import QuickRateNudge from "../quick-mobile/QuickRateNudge"
 import OfferBannerStrip from "../home/OfferBannerStrip"
+import { categorySlugOf } from "@store/utils/categorySlug"
 
 /**
  * The phone home from the mobile mockup (screen 1), for Shop and Quick alike:
@@ -27,12 +28,14 @@ import OfferBannerStrip from "../home/OfferBannerStrip"
 
 const sectionTitle = "text-[17px] font-bold text-gray-900"
 const viewAll = "flex items-center gap-0.5 text-[13px] font-semibold text-[#EA580C]"
-const slugify = (name) =>
-  String(name || "")
-    .toLowerCase()
-    .replace(/&/g, " ")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+/** A banner's link: a full http(s) address opens in a new tab as written; a path stays in this store. */
+function BannerLink({ link, storePath, children, ...rest }) {
+  const target = String(link || "").trim() || "/categories"
+  if (/^https?:\/\//i.test(target)) {
+    return <a href={target} target="_blank" rel="noopener noreferrer" {...rest}>{children}</a>
+  }
+  return <Link to={storePath(target)} {...rest}>{children}</Link>
+}
 
 function SectionHead({ title, subtitle, to }) {
   return (
@@ -82,9 +85,10 @@ function BannerCarousel({ banners = [] }) {
         className="flex snap-x snap-mandatory overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {slides.map((b, i) => (
-          <Link
+          <BannerLink
             key={`${b.imageUrl}-${i}`}
-            to={storePath(b.ctaLink || "/categories")}
+            link={b.ctaLink}
+            storePath={storePath}
             className="relative aspect-[16/9] w-full shrink-0 snap-center overflow-hidden rounded-2xl bg-[#FFF1E7]"
           >
             <img
@@ -106,7 +110,7 @@ function BannerCarousel({ banners = [] }) {
                 </span>
               </>
             ) : null}
-          </Link>
+          </BannerLink>
         ))}
       </div>
       {slides.length > 1 ? (
@@ -157,7 +161,7 @@ function CategoryRow({ categories = [] }) {
       <SectionHead title="Shop by Category" to={storePath("/categories")} />
       <div className="flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {categories.map((c) => (
-          <Link key={c.id} to={storePath(`/category/${slugify(c.name)}`)} className="w-[72px] shrink-0 text-center active:scale-95">
+          <Link key={c.id} to={storePath(`/category/${categorySlugOf(c)}`)} className="w-[72px] shrink-0 text-center active:scale-95">
             <span className="block aspect-square overflow-hidden rounded-2xl bg-[#FFF1E7]">
               {c.image ? (
                 <img src={mediaUrl(c.image)} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -356,7 +360,8 @@ export default function MobileHome({ heroBanners = [], products = [], loading = 
     () =>
       products
         .map((p) => ({ p, off: percentOff(p.displayPrice ?? p.price, p.mrp) || 0 }))
-        .filter((x) => x.off > 0)
+        // The same 10% floor as "View All" (/search?minDiscount=10).
+        .filter((x) => x.off >= 10)
         .sort((a, b) => b.off - a.off)
         .map((x) => x.p)
         .slice(0, 12),

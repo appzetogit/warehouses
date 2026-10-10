@@ -18,8 +18,22 @@ import { logger } from '../../../../utils/logger.js';
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const norm = (s) => String(s ?? '').toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
-/** Loose key for matching category names: "T-Shirts" = "tshirt". */
-const looseKey = (s) => norm(s).replace(/\s+/g, '').replace(/(es|s)$/, '');
+/**
+ * Words shoppers use for a category named differently, as loose keys:
+ * "coord"/"co ords" for "Co-ord Sets", "necklace" for "Neckpieces".
+ */
+const CATEGORY_ALIASES = new Map([
+    ['coord', 'coordset'],
+    ['necklac', 'neckpiec'],
+]);
+/**
+ * Loose key for matching category names: "T-Shirts" = "tshirt", "Neckpieces"
+ * = "neckpiece" (a trailing e goes too, so the plural and singular agree).
+ */
+const looseKey = (s) => {
+    const key = norm(s).replace(/\s+/g, '').replace(/(es|s)$/, '').replace(/e$/, '');
+    return CATEGORY_ALIASES.get(key) || key;
+};
 
 /* ------------------------------------------------------------------ units */
 

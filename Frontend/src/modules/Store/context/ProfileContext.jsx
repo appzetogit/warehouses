@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react"
-import { authAPI, userAPI } from "@store/api"
-const debugLog = (...args) => {}
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+import apiClient, { authAPI, userAPI } from "@store/api"
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
@@ -8,7 +9,77 @@ const debugError = (...args) => {}
 const ProfileContext = createContext(null)
 const USER_SESSION_PREFERENCE_KEYS = ["userVegMode"]
 
+// Wishlist cache. A guest's hearts live under the plain key; a signed-in
+// customer's under a key of their own, so one account never sees another's
+// list on a shared device. The server (/user/favorites) is the source of
+// truth for signed-in customers; this cache only makes hearts show instantly.
+export const GUEST_WISHLIST_KEY = "userDishFavorites"
+export const USER_WISHLIST_KEY_PREFIX = "userDishFavorites:"
+const wishlistKey = (userId) => (userId ? `${USER_WISHLIST_KEY_PREFIX}${userId}` : GUEST_WISHLIST_KEY)
+const OBJECT_ID = /^[a-f0-9]{24}$/i
+const isObjectId = (value) => OBJECT_ID.test(String(value || ""))
+const sameId = (a, b) => String(a ?? "") === String(b ?? "")
+
+const readList = (key) => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || "[]")
+    return Array.isArray(parsed) ? parsed.filter((item) => item && item.id != null) : []
+  } catch {
+    return []
+  }
+}
+
+const mergeById = (...lists) => {
+  const seen = new Set()
+  const out = []
+  lists.flat().forEach((item) => {
+    const id = String(item?.id ?? "")
+    if (!id || seen.has(id)) return
+    seen.add(id)
+    out.push(item)
+  })
+  return out
+}
+
+const userIdOf = (user) => {
+  const id = user?._id || user?.id || user?.userId
+  return id ? String(id) : null
+}
+
+const storedUserId = () => {
+  try {
+    return userIdOf(JSON.parse(localStorage.getItem("user_user") || "null"))
+  } catch {
+    return null
+  }
+}
+
+const isUserSignedIn = () =>
+  localStorage.getItem("user_authenticated") === "true" || !!localStorage.getItem("user_accessToken")
+
+// A wishlist entry from a /user/favorites product.
+const wishlistItemFromProduct = (product) => {
+  if (!product?._id) return null
+  const seller = product.sellerId
+  return {
+    id: String(product._id),
+    sellerId: String(seller?._id || seller || ""),
+    name: product.name,
+    image: (Array.isArray(product.images) && product.images[0]) || product.image || "",
+    price: product.price,
+    mrp: product.otherPrice,
+  }
+}
+
+const AUTH_PATH = /^\/(quick\/|shop\/)?auth(\/|$)/
+// Pages that only make sense signed in.
+const ACCOUNT_PATH = /^\/(quick\/|shop\/)?(orders|profile|wallet|coins|notifications|complaints)(\/|$)/
+
 export function ProfileProvider({ children }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const locationRef = useRef(location)
+  locationRef.current = location
   const getAddressId = (address) => address?.id || address?._id || null
   const normalizeAddressLabel = (label) => {
     const normalized = String(label || "").trim().toLowerCase()
@@ -59,6 +130,8 @@ export function ProfileProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const [addresses, setAddresses] = useState([])
+  const addressesRef = useRef(addresses)
+  addressesRef.current = addresses
 
   const [paymentMethods, setPaymentMethods] = useState(() => {
     const saved = localStorage.getItem("userPaymentMethods")
@@ -70,11 +143,15 @@ export function ProfileProvider({ children }) {
     return saved ? JSON.parse(saved) : []
   })
 
-  // Dish favorites state - stored in localStorage for persistence
-  const [dishFavorites, setDishFavorites] = useState(() => {
-    const saved = localStorage.getItem("userDishFavorites")
-    return saved ? JSON.parse(saved) : []
+  // Product wishlist, with the account it belongs to (null = guest). Kept
+  // together so the list is never written under the wrong account's key.
+  const [wishlist, setWishlist] = useState(() => {
+    const owner = isUserSignedIn() ? storedUserId() : null
+    return { owner, items: readList(wishlistKey(owner)) }
   })
+  const wishlistRef = useRef(wishlist)
+  wishlistRef.current = wishlist
+  const dishFavorites = wishlist.items
 
   // VegMode state - stored in localStorage for persistence
   const [vegMode, setVegMode] = useState(() => {
@@ -114,10 +191,61 @@ export function ProfileProvider({ children }) {
   }, [favorites, isAuthenticated])
 
   useEffect(() => {
-    if (dishFavorites.length > 0 || isAuthenticated) {
-      localStorage.setItem("userDishFavorites", JSON.stringify(dishFavorites))
+    try {
+      localStorage.setItem(wishlistKey(wishlist.owner), JSON.stringify(wishlist.items))
+    } catch {
+      // storage full or blocked: the in-memory list still works
     }
-  }, [dishFavorites, isAuthenticated])
+  }, [wishlist])
+
+  // Signed in: show the cached list for this account (plus anything hearted as
+  // a guest), then reconcile with the server.
+  const syncWishlist = useCallback(async (userId) => {
+    if (!userId) return
+    const cached = readList(wishlistKey(userId))
+    const guest = readList(GUEST_WISHLIST_KEY)
+    const merged = mergeById(cached, guest)
+    setWishlist({ owner: userId, items: merged })
+    if (guest.length) {
+      try {
+        localStorage.removeItem(GUEST_WISHLIST_KEY)
+      } catch {
+        // ignore
+      }
+    }
+
+    try {
+      const response = await apiClient.get("/user/favorites", { contextModule: "user" })
+      const payload = response?.data?.data || {}
+      const serverIds = (Array.isArray(payload.productIds) ? payload.productIds : []).map(String)
+      const productById = new Map(
+        (Array.isArray(payload.products) ? payload.products : []).map((p) => [String(p?._id), p]),
+      )
+
+      // Hearts given as a guest are saved to the account.
+      const toPush = guest.filter((g) => isObjectId(g.id) && !serverIds.includes(String(g.id)))
+      const pushed = await Promise.allSettled(
+        toPush.map((g) => apiClient.post(`/user/favorites/products/${String(g.id)}`, {}, { contextModule: "user" })),
+      )
+      const pushedIds = toPush.filter((_, i) => pushed[i].status === "fulfilled").map((g) => String(g.id))
+
+      const localById = new Map(merged.map((item) => [String(item.id), item]))
+      const fromServer = [...serverIds, ...pushedIds].map(
+        (id) => localById.get(id) || wishlistItemFromProduct(productById.get(id)) || { id, sellerId: "" },
+      )
+      // Entries that are not product ids can't be stored on the server; keep them locally.
+      const localOnly = merged.filter((item) => !isObjectId(item.id))
+
+      setWishlist((prev) => {
+        if (prev.owner !== userId) return prev
+        // Keep anything hearted while this request was in flight.
+        const addedMeanwhile = prev.items.filter((item) => !localById.has(String(item.id)))
+        return { owner: userId, items: mergeById(fromServer, localOnly, addedMeanwhile) }
+      })
+    } catch (error) {
+      debugError("Error syncing wishlist:", error)
+    }
+  }, [])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -137,7 +265,9 @@ export function ProfileProvider({ children }) {
         setAddresses([])
         setPaymentMethods([])
         setFavorites([])
-        setDishFavorites([])
+        // Signed out: drop the account's list from memory. A guest's own list
+        // (no owner) is left alone so it survives reloads.
+        setWishlist((prev) => (prev.owner ? { owner: null, items: readList(GUEST_WISHLIST_KEY) } : prev))
         setVegMode(false)
         USER_SESSION_PREFERENCE_KEYS.forEach((key) => {
           localStorage.removeItem(key)
@@ -158,6 +288,7 @@ export function ProfileProvider({ children }) {
           // Update localStorage
           localStorage.setItem("user_user", JSON.stringify(userData))
           localStorage.setItem("userProfile", JSON.stringify(userData))
+          void syncWishlist(userIdOf(userData))
         }
 
         // Fetch addresses
@@ -204,10 +335,49 @@ export function ProfileProvider({ children }) {
     }
     
     window.addEventListener("userAuthChanged", handleAuthChange)
-    
+
     return () => {
       window.removeEventListener("userAuthChanged", handleAuthChange)
     }
+  }, [syncWishlist])
+
+  // The session could not be refreshed (signed out elsewhere, token revoked):
+  // reset to signed-out and ask the customer to sign in again, coming back here.
+  const lastSessionExpiryRef = useRef(0)
+  useEffect(() => {
+    const onRefreshFailed = (event) => {
+      if (event?.detail?.module !== "user") return
+      const now = Date.now()
+      // axios and the token helper can both report the same failure.
+      if (now - lastSessionExpiryRef.current < 3000) return
+      lastSessionExpiryRef.current = now
+      // Auth is already cleared; this re-runs the profile load, which resets the state.
+      window.dispatchEvent(new Event("userAuthChanged"))
+      const { pathname, search } = locationRef.current
+      if (AUTH_PATH.test(pathname)) return
+      // Someone browsing or shopping keeps going (signing in again at checkout);
+      // only pages that are the account itself send them to sign in.
+      if (!ACCOUNT_PATH.test(pathname)) {
+        toast("You've been signed out. Sign in again at checkout.", { id: "user-session-expired" })
+        return
+      }
+      toast.error("Please sign in again", { id: "user-session-expired" })
+      navigate("/auth/login", { state: { from: `${pathname}${search || ""}` } })
+    }
+    window.addEventListener("authRefreshFailed", onRefreshFailed)
+    return () => window.removeEventListener("authRefreshFailed", onRefreshFailed)
+  }, [navigate])
+
+  // Re-read the saved addresses from the server (bypassing the short list cache),
+  // e.g. after a delete, where the server may have promoted a new default.
+  const refreshAddresses = useCallback(async () => {
+    const response = await apiClient.get("/user/addresses", { contextModule: "user" })
+    const addressesData = response?.data?.data?.addresses || response?.data?.addresses || []
+    const normalizedAddresses = dedupeAddressesByLabel(addressesData)
+    setAddresses(normalizedAddresses)
+    localStorage.setItem("userAddresses", JSON.stringify(normalizedAddresses))
+    return normalizedAddresses
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Address functions - memoized with useCallback
@@ -268,9 +438,16 @@ export function ProfileProvider({ children }) {
       debugError("Error deleting address:", error)
       throw error
     }
-  }, [])
+    // Deleting the default makes the server promote another one; pick that up.
+    try {
+      await refreshAddresses()
+    } catch (error) {
+      debugError("Error refreshing addresses after delete:", error)
+    }
+  }, [refreshAddresses])
 
   const setDefaultAddress = useCallback(async (id) => {
+    const previous = addressesRef.current
     // Optimistic UI update first
     setAddresses((prev) =>
       prev.map((addr) => ({
@@ -281,9 +458,12 @@ export function ProfileProvider({ children }) {
 
     try {
       await userAPI.setDefaultAddress(id)
+      return true
     } catch (error) {
       debugError("Error setting default address:", error)
-      // Keep UI stable even if backend call fails
+      if (previous) setAddresses(previous)
+      toast.error(error?.response?.data?.message || "Couldn't change your default address. Please try again.")
+      return false
     }
   }, [])
 
@@ -367,23 +547,50 @@ export function ProfileProvider({ children }) {
   }, [favorites])
 
   // Dish favorites functions - memoized with useCallback
+  // Product ids are unique, so the seller id is not needed to tell entries apart
+  // (older entries, or ones rebuilt from the server, may not carry the same one).
   const addDishFavorite = useCallback((dish) => {
-    setDishFavorites((prev) => {
-      if (!prev.find(fav => fav.id === dish.id && fav.sellerId === dish.sellerId)) {
-        return [...prev, dish]
-      }
-      return prev
-    })
-  }, [])
-
-  const removeDishFavorite = useCallback((dishId, sellerId) => {
-    setDishFavorites((prev) => 
-      prev.filter(fav => !(fav.id === dishId && fav.sellerId === sellerId))
+    if (!dish || dish.id == null) return
+    const { owner, items } = wishlistRef.current
+    if (items.some((fav) => sameId(fav.id, dish.id))) return
+    setWishlist((prev) =>
+      prev.owner === owner && !prev.items.some((fav) => sameId(fav.id, dish.id))
+        ? { owner, items: [...prev.items, dish] }
+        : prev,
     )
+    if (owner && isObjectId(dish.id)) {
+      apiClient.post(`/user/favorites/products/${String(dish.id)}`, {}, { contextModule: "user" }).catch((error) => {
+        debugError("Error saving wishlist item:", error)
+        setWishlist((prev) =>
+          prev.owner === owner ? { owner, items: prev.items.filter((fav) => !sameId(fav.id, dish.id)) } : prev,
+        )
+        toast.error("Couldn't save to your wishlist. Please try again.")
+      })
+    }
   }, [])
 
-  const isDishFavorite = useCallback((dishId, sellerId) => {
-    return dishFavorites.some(fav => fav.id === dishId && fav.sellerId === sellerId)
+  const removeDishFavorite = useCallback((dishId) => {
+    const { owner, items } = wishlistRef.current
+    const removed = items.find((fav) => sameId(fav.id, dishId))
+    if (!removed) return
+    setWishlist((prev) =>
+      prev.owner === owner ? { owner, items: prev.items.filter((fav) => !sameId(fav.id, dishId)) } : prev,
+    )
+    if (owner && isObjectId(dishId)) {
+      apiClient.delete(`/user/favorites/products/${String(dishId)}`, { contextModule: "user" }).catch((error) => {
+        debugError("Error removing wishlist item:", error)
+        setWishlist((prev) =>
+          prev.owner === owner && !prev.items.some((fav) => sameId(fav.id, dishId))
+            ? { owner, items: [...prev.items, removed] }
+            : prev,
+        )
+        toast.error("Couldn't remove it from your wishlist. Please try again.")
+      })
+    }
+  }, [])
+
+  const isDishFavorite = useCallback((dishId) => {
+    return dishFavorites.some((fav) => sameId(fav.id, dishId))
   }, [dishFavorites])
 
   const getDishFavorites = useCallback(() => {
@@ -427,6 +634,7 @@ export function ProfileProvider({ children }) {
       removeDishFavorite,
       isDishFavorite,
       getDishFavorites,
+      refreshAddresses,
     }),
     [
       userProfile,
@@ -458,6 +666,7 @@ export function ProfileProvider({ children }) {
       removeDishFavorite,
       isDishFavorite,
       getDishFavorites,
+      refreshAddresses,
     ]
   )
 
@@ -498,6 +707,7 @@ export function useProfile() {
       removeDishFavorite: () => debugWarn("ProfileProvider not available"),
       isDishFavorite: () => false,
       getDishFavorites: () => [],
+      refreshAddresses: async () => [],
       vegMode: false,
       setVegMode: () => debugWarn("ProfileProvider not available")
     }

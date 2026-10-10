@@ -6,32 +6,37 @@ import { Button } from "@store/components/ui/button"
 import { Card, CardContent } from "@store/components/ui/card"
 import { Badge } from "@store/components/ui/badge"
 import useNotificationInbox from "@store/hooks/useNotificationInbox"
+import { useProfile } from "@store/context/ProfileContext"
 
-// Initial mock notification data (fallback if localStorage is empty)
-const DEFAULT_NOTIFICATIONS = [
-  {
-    id: "1",
-    type: "order",
-    title: "Order Confirmed",
-    message: "Your order #12345 has been accepted and is being packed",
-    time: "2 minutes ago",
-    timestamp: Date.now() - 120000,
-    read: false,
-    icon: "CheckCircle2",
-    iconColor: "text-wh-brand-ink"
-  },
-  {
-    id: "2",
-    type: "offer",
-    title: "Special Offer",
-    message: "Get 50% off on your next order above ₹500",
-    time: "1 hour ago",
-    timestamp: Date.now() - 3600000,
-    read: false,
-    icon: "Tag",
-    iconColor: "text-wh-brand-ink"
+// Order updates that arrived on this device while the app was open, kept per
+// account. Everything else comes from the server inbox.
+const LEGACY_NOTIFICATIONS_KEY = "store_user_notifications"
+const USER_NOTIFICATIONS_KEY_PREFIX = "store_user_notifications:"
+
+const currentUserId = (profile) => {
+  let user = profile
+  if (!user) {
+    try {
+      user = JSON.parse(localStorage.getItem("user_user") || "null")
+    } catch {
+      user = null
+    }
   }
-]
+  const id = user?._id || user?.id || user?.userId
+  return id ? String(id) : null
+}
+
+const loadLocalNotifications = (userId) => {
+  try {
+    // The old key was shared by every account on the device.
+    localStorage.removeItem(LEGACY_NOTIFICATIONS_KEY)
+    if (!userId) return []
+    const saved = JSON.parse(localStorage.getItem(`${USER_NOTIFICATIONS_KEY_PREFIX}${userId}`) || "[]")
+    return Array.isArray(saved) ? saved : []
+  } catch {
+    return []
+  }
+}
 
 // Icon mapping for dynamic icons
 const ICON_MAP = {
@@ -42,10 +47,14 @@ const ICON_MAP = {
 }
 
 export default function Notifications() {
-  const [notificationsList, setNotificationsList] = useState(() => {
-    const saved = localStorage.getItem('store_user_notifications')
-    return saved ? JSON.parse(saved) : DEFAULT_NOTIFICATIONS
-  })
+  const { userProfile } = useProfile()
+  const userId = currentUserId(userProfile)
+  const [stored, setStored] = useState(() => ({ userId, items: loadLocalNotifications(userId) }))
+  // Another account signed in on this device: show theirs, not the previous one's.
+  if (stored.userId !== userId) setStored({ userId, items: loadLocalNotifications(userId) })
+  const notificationsList = stored.userId === userId ? stored.items : []
+  const setNotificationsList = (update) =>
+    setStored((prev) => ({ ...prev, items: typeof update === "function" ? update(prev.items) : update }))
   const {
     items: broadcastNotifications,
     unreadCount: broadcastUnreadCount,
@@ -56,10 +65,16 @@ export default function Notifications() {
 
   // Persistence: Save to localStorage whenever list updates
   useEffect(() => {
-    localStorage.setItem('store_user_notifications', JSON.stringify(notificationsList))
+    if (stored.userId) {
+      try {
+        localStorage.setItem(`${USER_NOTIFICATIONS_KEY_PREFIX}${stored.userId}`, JSON.stringify(stored.items))
+      } catch {
+        // storage full or blocked
+      }
+    }
     // Also dispatch an event to update other components (like navbar badge)
-    window.dispatchEvent(new CustomEvent('notificationsUpdated', { detail: { count: notificationsList.filter(n => !n.read).length } }))
-  }, [notificationsList])
+    window.dispatchEvent(new CustomEvent('notificationsUpdated', { detail: { count: stored.items.filter(n => !n.read).length } }))
+  }, [stored])
 
   // Real-time: Listen for status updates from useUserNotifications hook
   useEffect(() => {

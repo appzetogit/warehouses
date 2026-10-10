@@ -260,7 +260,7 @@ function SearchRow({ showBack }) {
   // Placeholder words: the zone's own subcategories, so it suggests real things.
   const words = useMemo(() => {
     const names = categories.filter((c) => c.parentId).map((c) => c.name.toLowerCase())
-    return (names.length ? names : ["milk", "atta", "chips", "fruits"]).slice(0, 8)
+    return (names.length ? names : ["kurta", "co-ord sets", "earrings", "tops"]).slice(0, 8)
   }, [categories])
   const typed = useTypewriter(words)
 

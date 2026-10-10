@@ -44,11 +44,24 @@ export const SORTS = {
 const ACTIVE = { isActive: { $ne: false } };
 
 /**
+ * A variant that can be bought in the channel: active, not switched off there
+ * and, when its own stock is counted, some left. A variant whose count is null
+ * goes by the product's, which the storefront's product filter already covers.
+ */
+const sellableVariant = (channel) => (channel
+    ? { ...ACTIVE, [`channels.${channel}`]: { $ne: false } }
+    : { ...ACTIVE });
+const sellableStock = (channel) => (channel
+    ? [{ $or: [{ [`stock.${channel}`]: null }, { [`stock.${channel}`]: { $gt: 0 } }] }]
+    : []);
+
+/**
  * Attribute filters from the query: `attr[Size]=M,L&attr[Color]=Red`.
  * All of them have to hold on the same variant ("M" and "Red" means a variant
- * that is both, not an M in blue next to an L in red).
+ * that is both, not an M in blue next to an L in red), and with a channel,
+ * that variant has to be buyable there: a sold-out M does not match "M".
  */
-export function attributeFilter(attr) {
+export function attributeFilter(attr, channel = null) {
     if (!attr || typeof attr !== 'object') return null;
     const clauses = Object.entries(attr)
         .map(([name, values]) => [String(name).trim(), toList(values)])
@@ -62,7 +75,7 @@ export function attributeFilter(attr) {
             },
         }));
     if (!clauses.length) return null;
-    return { variants: { $elemMatch: { ...ACTIVE, $and: clauses } } };
+    return { variants: { $elemMatch: { ...sellableVariant(channel), $and: [...clauses, ...sellableStock(channel)] } } };
 }
 
 /** Price range against what can actually be bought: an active variant's price, or the product's. */
@@ -79,13 +92,26 @@ export function priceFilter(min, max) {
     };
 }
 
+/**
+ * Words shoppers spell differently from how the catalogue names things:
+ * "coord" for "Co-ord Set", "necklace" for "Neckpiece".
+ */
+const WORD_SYNONYMS = [
+    { rx: /^co-?ords?$/i, source: 'co[\\s-]?ord' },
+    { rx: /^neck-?(?:laces?|pieces?)$/i, source: 'neck[\\s-]?(?:lace|piece)' },
+];
+export const wordRegex = (word) => {
+    const synonym = WORD_SYNONYMS.find((s) => s.rx.test(word));
+    return new RegExp(synonym ? synonym.source : escapeRegex(word), 'i');
+};
+
 /** Every word has to appear somewhere in the searchable fields, as a prefix or inside a word. */
 function wordsFilter(term) {
     const words = term.split(/\s+/).filter(Boolean).slice(0, 8);
     if (!words.length) return null;
     return {
         $and: words.map((word) => {
-            const rx = new RegExp(escapeRegex(word), 'i');
+            const rx = wordRegex(word);
             return { $or: SEARCH_FIELDS.map((field) => ({ [field]: rx })) };
         }),
     };
@@ -132,7 +158,13 @@ const PRICE_EXPRESSION = {
     },
 };
 
-async function facetsFor(match) {
+async function facetsFor(match, channel = null) {
+    // Only sizes/colours that can be bought here: "M (3)" has to lead to three Ms.
+    const variantMatch = { 'variants.isActive': { $ne: false } };
+    if (channel) {
+        variantMatch[`variants.channels.${channel}`] = { $ne: false };
+        variantMatch.$or = [{ [`variants.stock.${channel}`]: null }, { [`variants.stock.${channel}`]: { $gt: 0 } }];
+    }
     const [brands, price, attributes] = await Promise.all([
         Product.aggregate([
             { $match: { ...match, brand: { $nin: [null, ''] } } },
@@ -147,7 +179,7 @@ async function facetsFor(match) {
         Product.aggregate([
             { $match: match },
             { $unwind: '$variants' },
-            { $match: { 'variants.isActive': { $ne: false } } },
+            { $match: variantMatch },
             { $unwind: '$variants.attributes' },
             // Counted once per product, not per variant: "Red (3)" means three products.
             { $group: { _id: { name: '$variants.attributes.name', value: '$variants.attributes.value', product: '$_id' } } },
@@ -247,7 +279,7 @@ export async function searchProducts(query = {}) {
             },
         });
     }
-    const attrs = attributeFilter(query.attr);
+    const attrs = attributeFilter(query.attr, channel);
     if (attrs) filters.push(attrs);
 
     const base = { $and: filters };
@@ -310,7 +342,7 @@ export async function searchProducts(query = {}) {
         zoneFiltered: Boolean(zoneId && mongoose.Types.ObjectId.isValid(zoneId)),
         // Counted over everything matching the search and filters, so the
         // filter sheet only offers choices that lead somewhere.
-        ...(isTrue(query.facets) ? { facets: await facetsFor(match) } : {}),
+        ...(isTrue(query.facets) ? { facets: await facetsFor(match, channel) } : {}),
     };
 }
 

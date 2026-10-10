@@ -1,5 +1,5 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom"
-import { useEffect, Suspense, lazy } from "react"
+import { Routes, Route, Navigate, useLocation, useNavigationType } from "react-router-dom"
+import { useEffect, useLayoutEffect, useRef, Suspense, lazy } from "react"
 import ProtectedRoute from "@store/components/ProtectedRoute"
 import AuthRedirect from "@store/components/AuthRedirect"
 import Loader from "@store/components/Loader"
@@ -25,13 +25,125 @@ const AdminForgotPassword = lazy(() => import("@store/pages/admin/auth/AdminForg
 // Delivery Module
 const DeliveryRouter = lazy(() => import("../DeliveryV2"))
 
-// Scroll to top on route change (skip when Home has a pending scroll restore)
+/*
+ * Where each history entry was scrolled to, by location.key, so Back/Forward
+ * returns to the same spot (a listing, a search) instead of the top.
+ */
+const SCROLL_POSITIONS_KEY = "store_scroll_positions_v1"
+const MAX_SCROLL_ENTRIES = 60
+
+function readScrollPositions() {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(SCROLL_POSITIONS_KEY) || "{}")
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveScrollPosition(key, y) {
+  if (!key) return
+  try {
+    const all = readScrollPositions()
+    delete all[key]
+    all[key] = Math.max(0, Math.round(y))
+    const keys = Object.keys(all)
+    for (const old of keys.slice(0, Math.max(0, keys.length - MAX_SCROLL_ENTRIES))) delete all[old]
+    sessionStorage.setItem(SCROLL_POSITIONS_KEY, JSON.stringify(all))
+  } catch {
+    // private mode / quota: Back just starts at the top
+  }
+}
+
+// Scroll to top on a new page; on Back/Forward (POP) go back to where that
+// entry was, once its content has loaded. Home keeps its own restore.
 function ScrollToTop() {
   const location = useLocation();
+  const navigationType = useNavigationType();
+  const keyRef = useRef(location.key);
+  const restoringRef = useRef(false);
+
   useEffect(() => {
-    if (shouldSkipScrollResetForHome(location.pathname)) return;
-    window.scrollTo(0, 0);
-  }, [location.pathname, location.search, location.key]);
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+    // Throttled: the latest position per entry, written at most every 150ms.
+    let pending = null;
+    let timer = 0;
+    const flush = () => {
+      window.clearTimeout(timer);
+      timer = 0;
+      if (pending) saveScrollPosition(pending.key, pending.y);
+      pending = null;
+    };
+    const onScroll = () => {
+      if (restoringRef.current) return;
+      // A different entry now: write the last one's spot before it is replaced.
+      if (pending && pending.key !== keyRef.current) flush();
+      pending = { key: keyRef.current, y: window.scrollY || 0 };
+      if (!timer) timer = window.setTimeout(flush, 150);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
+
+  // A layout effect: the new key and the saved spot are read before any
+  // scroll event of the new page can overwrite them.
+  useLayoutEffect(() => {
+    keyRef.current = location.key;
+    if (shouldSkipScrollResetForHome(location.pathname)) return undefined;
+
+    const target = navigationType === "POP" ? Number(readScrollPositions()[location.key]) || 0 : 0;
+    if (!target) {
+      // A replace that only rewrites the query (a listing's sort or filters)
+      // is still a change of results: start them from the top.
+      window.scrollTo(0, 0);
+      return undefined;
+    }
+
+    // Content comes in after the route renders: keep trying until the page is
+    // tall enough and has settled, or the shopper scrolls themselves.
+    restoringRef.current = true;
+    const started = Date.now();
+    let settledSince = 0;
+    let lastHeight = 0;
+    let timer = 0;
+    const finish = (save) => {
+      restoringRef.current = false;
+      window.clearInterval(timer);
+      window.removeEventListener("wheel", stop);
+      window.removeEventListener("touchstart", stop);
+      window.removeEventListener("keydown", stop);
+      window.removeEventListener("mousedown", stop);
+      if (save) saveScrollPosition(location.key, window.scrollY || 0);
+    };
+    const stop = () => finish(true);
+    const tick = () => {
+      const height = document.documentElement.scrollHeight;
+      const reachable = height - window.innerHeight >= target - 2;
+      window.scrollTo(0, target);
+      if (reachable && height === lastHeight) {
+        if (!settledSince) settledSince = Date.now();
+        if (Date.now() - settledSince >= 600) return stop();
+      } else {
+        settledSince = 0;
+      }
+      lastHeight = height;
+      if (Date.now() - started > 4000) stop();
+      return undefined;
+    };
+    window.addEventListener("wheel", stop, { passive: true });
+    window.addEventListener("touchstart", stop, { passive: true });
+    window.addEventListener("keydown", stop);
+    window.addEventListener("mousedown", stop);
+    timer = window.setInterval(tick, 50);
+    tick();
+    // Leaving mid-restore: the window already shows the next page, nothing to save.
+    return () => finish(false);
+  }, [location.pathname, location.search, location.key, navigationType]);
   return null;
 }
 

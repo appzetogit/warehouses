@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from "react"
-import { Routes, Route, Outlet } from "react-router-dom"
+import { Routes, Route, Outlet, Navigate } from "react-router-dom"
 import ProtectedRoute from "@store/components/ProtectedRoute"
 import AuthRedirect from "@store/components/AuthRedirect"
 import Loader from "@store/components/Loader"
@@ -143,6 +143,8 @@ export default function SellerRouter() {
         <Route path="privacy" element={<SellerPrivacy />} />
         <Route path="terms" element={<SellerTerms />} />
         <Route path="help-content" element={<SellerCMSHelpSupport />} />
+        {/* An unknown or old address opens the orders screen, not a blank page. */}
+        <Route path="*" element={<Navigate to="/seller" replace />} />
       </Routes>
     </Suspense>
   )

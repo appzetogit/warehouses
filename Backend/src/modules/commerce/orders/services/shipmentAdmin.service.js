@@ -15,7 +15,7 @@ import { bookOrderShipment, markOrderDeliveredAdmin } from './order.service.js';
 import { captureTrackingEvents } from './courierOps.service.js';
 
 /** Order statuses a courier shipment can be booked from. */
-const BOOKABLE_STATUSES = ['created', 'confirmed', 'preparing', 'ready_for_pickup'];
+const BOOKABLE_STATUSES = ['confirmed', 'preparing', 'ready_for_pickup'];
 /** Courier statuses after which a shipment can no longer be cancelled. */
 const UNCANCELLABLE = ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'returned', 'undelivered', 'rto_initiated', 'rto_in_transit', 'rto_delivered', 'rto_received'];
 
@@ -133,10 +133,22 @@ export async function trackShipmentAdmin(orderId, adminId) {
         logger.warn(`NDR/RTO capture for ${order._id} failed: ${err?.message || err}`);
     }
 
+    // Once the courier has the parcel the order is on its way: the customer's
+    // page says Shipped and it can no longer be cancelled as if still at the store.
+    if (['picked_up', 'in_transit', 'out_for_delivery'].includes(currentStatus) && isStatusAdvance(order.orderStatus, 'picked_up') && !String(order.orderStatus).includes('cancel')) {
+        await Order.updateOne(
+            { _id: order._id, orderStatus: order.orderStatus },
+            {
+                $set: { orderStatus: 'picked_up' },
+                $push: { statusHistory: { at: now, byRole: 'SYSTEM', from: order.orderStatus, to: 'picked_up', note: `Courier picked up (AWB ${awb})` } },
+            },
+        );
+    }
+
     let orderDelivered = false;
     if (currentStatus === 'delivered' && isStatusAdvance(order.orderStatus, 'delivered') && !String(order.orderStatus).includes('cancel')) {
         try {
-            await markOrderDeliveredAdmin(String(order._id), adminId, `Courier tracking reports delivered (AWB ${awb})`);
+            await markOrderDeliveredAdmin(String(order._id), adminId, `Courier tracking reports delivered (AWB ${awb})`, { source: 'courier' });
             orderDelivered = true;
         } catch (err) {
             logger.warn(`Tracking-based delivery of ${order._id} skipped: ${err?.message || err}`);

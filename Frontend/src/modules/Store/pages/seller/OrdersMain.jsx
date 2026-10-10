@@ -28,6 +28,7 @@ import SellerNavbar from "@store/components/seller/SellerNavbar";
 import NewOrderAcceptCard from "@store/components/seller/NewOrderAcceptCard";
 import RejectOrderReasonModal from "@store/components/seller/RejectOrderReasonModal";
 import { isShopOrder, isShopOrderAwaitingStore } from "@store/utils/shopOrder";
+import { formatItemNameWithVariant, formatItemVariant } from "@store/utils/orderItemVariant";
 import { sellerAPI } from "@store/api";
 import { useSellerNotifications } from "@store/hooks/useSellerNotifications";
 import ResendNotificationButton from "@store/components/seller/ResendNotificationButton";
@@ -100,6 +101,33 @@ const getAllOrdersTimestamp = (order) =>
   order?.createdAt ||
   new Date().toISOString();
 
+// Shop (courier) orders that the store accepted but has not booked a courier for yet.
+const SHOP_COURIER_TODO_STATUSES = ["confirmed", "preparing"];
+
+/**
+ * Raw backend fields the list needs to tell Shop orders apart. `status` on list rows is
+ * the UI bucket (Shop "created" and "confirmed" both show as "confirmed"), so keep the raw
+ * orderStatus, the fulfilment mode and whether a courier AWB exists.
+ */
+const getShopListFields = (order) => {
+  const isShop = isShopOrder(order);
+  const orderStatus = String(order?.orderStatus || "").toLowerCase();
+  const hasAwb = Boolean(order?.shipment?.awb);
+  let shopListLabel = null;
+  if (isShop && orderStatus === "created") shopListLabel = "Awaiting you";
+  else if (isShop && SHOP_COURIER_TODO_STATUSES.includes(orderStatus) && !hasAwb) {
+    shopListLabel = "Accepted – pack & book courier";
+  }
+  return {
+    fulfilmentMode: order?.fulfilmentMode || null,
+    orderStatus: order?.orderStatus || null,
+    hasAwb,
+    shopListLabel,
+    shopNeedsCourier: isShop && SHOP_COURIER_TODO_STATUSES.includes(orderStatus) && !hasAwb,
+    shopAwaitingStore: isShop && orderStatus === "created",
+  };
+};
+
 const transformOrderForList = (order) => ({
   orderId: order.orderId || order._id,
   mongoId: order._id,
@@ -118,13 +146,14 @@ const transformOrderForList = (order) => ({
   ),
   eta: null,
   itemsSummary:
-    order.items?.map((item) => `${item.quantity}x ${item.name}`).join(", ") ||
+    order.items?.map((item) => `${item.quantity}x ${formatItemNameWithVariant(item)}`).join(", ") ||
     "No items",
   photoUrl: order.items?.[0]?.image || null,
   photoAlt: order.items?.[0]?.name || "Order",
   note: getSellerCookingNote(order),
   paymentMethod: order.paymentMethod || order.payment?.method || null,
   deliveryPartnerId: order.deliveryPartnerId || null,
+  ...getShopListFields(order),
   dispatchStatus: order.dispatch?.status || null,
   preparingTimestamp: order.tracking?.preparing?.timestamp
     ? new Date(order.tracking.preparing.timestamp)
@@ -197,7 +226,7 @@ function CompletedOrders({ onSelectOrder, refreshToken = 0, searchQuery = "" }) 
               order.deliveredAt || order.updatedAt || order.createdAt,
             itemsSummary:
               order.items
-                ?.map((item) => `${item.quantity}x ${item.name}`)
+                ?.map((item) => `${item.quantity}x ${formatItemNameWithVariant(item)}`)
                 .join(", ") || "No items",
             photoUrl: order.items?.[0]?.image || null,
             photoAlt: order.items?.[0]?.name || "Order",
@@ -407,7 +436,7 @@ function CancelledOrders({ onSelectOrder, refreshToken = 0, searchQuery = "" }) 
               order.cancellationReason || "No reason provided",
             itemsSummary:
               order.items
-                ?.map((item) => `${item.quantity}x ${item.name}`)
+                ?.map((item) => `${item.quantity}x ${formatItemNameWithVariant(item)}`)
                 .join(", ") || "No items",
             photoUrl: order.items?.[0]?.image || null,
             photoAlt: order.items?.[0]?.name || "Order",
@@ -1350,7 +1379,8 @@ export default function OrdersMain() {
       sharedOrdersResponse = null;
       sharedOrdersFetchedAt = 0;
       requestOrdersRefresh();
-      setActiveFilter(isShop ? "all" : "preparing");
+      // Accepted Shop orders wait in Preparing until the courier is booked.
+      setActiveFilter("preparing");
     } catch (error) {
       debugError("? Error accepting order:", error);
       const errorMessage =
@@ -1490,7 +1520,7 @@ export default function OrdersMain() {
         yPos += 8;
 
         const tableData = orderToPrint.items.map((item) => [
-          item.name || "Item",
+          formatItemNameWithVariant(item),
           item.quantity || 1,
           `₹${(item.price || 0).toFixed(2)}`,
           `₹${((item.price || 0) * (item.quantity || 1)).toFixed(2)}`,
@@ -2077,14 +2107,16 @@ export default function OrdersMain() {
                           : "bg-gray-800"
                         }`}
                     />
-                    {String(selectedOrder.status || "")
-                      .replace(/_/g, " ")
-                      .replace(/\b\w/g, (c) => c.toUpperCase())}
+                    {selectedOrder.shopListLabel ||
+                      String(selectedOrder.status || "")
+                        .replace(/_/g, " ")
+                        .replace(/\b\w/g, (c) => c.toUpperCase())}
                   </span>
                   <span className="text-[11px] text-gray-500">
                     {selectedOrder.timePlaced}
                   </span>
-                  {(String(selectedOrder.status).toLowerCase() === "preparing" ||
+                  {selectedOrder.fulfilmentMode !== "standard" &&
+                    (String(selectedOrder.status).toLowerCase() === "preparing" ||
                     String(selectedOrder.status).toLowerCase() === "ready") &&
                     !selectedOrder.deliveryPartnerId && (
                       <div className="mt-1">
@@ -2454,13 +2486,14 @@ export default function OrdersMain() {
                         : "bg-gray-800"
                         }`}
                     />
-                    {selectedOrder.status}
+                    {selectedOrder.shopListLabel || selectedOrder.status}
                   </span>
                   <span className="text-[11px] text-gray-500">
                     {selectedOrder.timePlaced}
                   </span>
                   {/* Delivery Resend Button - Only for preparing/ready orders with no partner */}
-                  {(String(selectedOrder.status).toLowerCase() === "preparing" ||
+                  {selectedOrder.fulfilmentMode !== "standard" &&
+                    (String(selectedOrder.status).toLowerCase() === "preparing" ||
                     String(selectedOrder.status).toLowerCase() === "ready") &&
                     !selectedOrder.deliveryPartnerId && (
                       <div className="mt-1">
@@ -2557,13 +2590,26 @@ function OrderCard({
   onCancel,
   onMarkReady,
   isMarkingReady = false,
+  fulfilmentMode = null,
+  shopListLabel = null,
+  shopNeedsCourier = false,
+  shopAwaitingStore = false,
 }) {
+  const navigate = useNavigate();
+  const isShop = fulfilmentMode === "standard";
   const normalizedStatus = String(status || "").toLowerCase();
   const isReady = normalizedStatus === "ready";
   const isPreparing = normalizedStatus === "preparing";
-  const statusLabel = String(status || "")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const statusLabel =
+    shopListLabel ||
+    String(status || "")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  const openOrderDetail = (e) => {
+    e?.stopPropagation?.();
+    const key = mongoId || orderId;
+    if (key) navigate(`/seller/orders/${encodeURIComponent(String(key))}`);
+  };
 
   return (
     <div className="w-full bg-white rounded-2xl border border-gray-200 mb-3 overflow-hidden shadow-sm md:hover:border-gray-300 md:transition-colors">
@@ -2571,7 +2617,7 @@ function OrderCard({
       <div className="flex items-center justify-between px-3 pt-3 pb-2 gap-2">
         {/* Left: order id + customer */}
         <div className="flex items-center gap-2 min-w-0">
-          {isPreparing && onCancel && (
+          {isPreparing && !isShop && onCancel && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onCancel({ orderId, mongoId, customerName }); }}
@@ -2591,12 +2637,12 @@ function OrderCard({
           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${
             isReady
               ? "bg-green-50 border border-green-400 text-green-700"
-              : isPreparing
+              : isPreparing || shopNeedsCourier || shopAwaitingStore
                 ? "bg-amber-50 border border-amber-400 text-amber-700"
                 : "bg-gray-100 border border-gray-300 text-gray-700"
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-              isReady ? "bg-green-500" : isPreparing ? "bg-amber-500" : "bg-gray-500"
+              isReady ? "bg-green-500" : isPreparing || shopNeedsCourier || shopAwaitingStore ? "bg-amber-500" : "bg-gray-500"
             }`} />
             {statusLabel}
           </span>
@@ -2606,7 +2652,7 @@ function OrderCard({
 
       {/* ── Body: photo + items ── */}
       <div
-        onClick={() => onSelect?.({ orderId, mongoId, status, customerName, type, tableOrToken, timePlaced, eta, itemsSummary, note, paymentMethod, deliveryPartnerId })}
+        onClick={() => onSelect?.({ orderId, mongoId, status, customerName, type, tableOrToken, timePlaced, eta, itemsSummary, note, paymentMethod, deliveryPartnerId, fulfilmentMode, shopListLabel })}
         className="flex items-center gap-3 px-3 pb-3 cursor-pointer">
         {/* Food image */}
         <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0">
@@ -2641,7 +2687,13 @@ function OrderCard({
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-100 bg-gray-50/60">
         {/* Delivery assignment pill + resend */}
         <div className="flex items-center gap-2 flex-wrap">
-          {(isPreparing || isReady || normalizedStatus === "confirmed") && (
+          {/* Shop orders go by courier: no rider assignment / resend. */}
+          {isShop && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+              Shop · Courier
+            </span>
+          )}
+          {!isShop && (isPreparing || isReady || normalizedStatus === "confirmed") && (
             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold ${
               deliveryPartnerId
                 ? "bg-green-100 text-green-700 border border-green-300"
@@ -2651,14 +2703,28 @@ function OrderCard({
               {deliveryPartnerId ? "Assigned" : "Not Assigned"}
             </span>
           )}
-          {dispatchStatus !== "accepted" && (isPreparing || isReady || normalizedStatus === "confirmed") && (
+          {!isShop && dispatchStatus !== "accepted" && (isPreparing || isReady || normalizedStatus === "confirmed") && (
             <ResendNotificationButton orderId={orderId} mongoId={mongoId} onSuccess={onSelect} />
           )}
         </div>
 
         {/* Mark Ready + ETA */}
         <div className="flex items-center gap-2 shrink-0">
-          {isPreparing && onMarkReady && (
+          {isShop && (shopNeedsCourier || shopAwaitingStore) && (
+            <button
+              type="button"
+              onClick={openOrderDetail}
+              className="h-8 px-3 rounded-lg text-[11px] font-bold text-white transition-all shadow-sm"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(var(--module-theme-rgb,37,99,235),0.96), var(--module-theme-color,#2563EB))",
+                boxShadow:
+                  "0 8px 16px -10px rgba(var(--module-theme-rgb,37,99,235),0.85)",
+              }}>
+              {shopNeedsCourier ? "Book courier" : "Accept / Reject"}
+            </button>
+          )}
+          {isPreparing && !isShop && onMarkReady && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onMarkReady({ orderId, mongoId, customerName }); }}
@@ -2673,7 +2739,7 @@ function OrderCard({
               {isMarkingReady ? "Marking…" : "Mark Ready"}
             </button>
           )}
-          {!isReady && eta && (
+          {!isReady && !isShop && eta && (
             <div className="flex items-baseline gap-0.5">
               <span className="text-[10px] text-gray-400">ETA</span>
               <span className="text-[11px] font-bold text-gray-800">{eta}</span>
@@ -2712,8 +2778,11 @@ function PreparingOrders({
           // Filter orders with 'preparing' status only
           // 'confirmed' orders should only appear in popup notification, not in preparing list
           // After accepting, order status changes to 'preparing' and then appears here
+          // Accepted Shop orders without a courier yet are the store's to-do here too.
           const preparingOrders = response.data.data.orders.filter(
-            (order) => order.status === "preparing",
+            (order) =>
+              order.status === "preparing" ||
+              getShopListFields(order).shopNeedsCourier,
           );
 
           const transformedOrders = preparingOrders.map((order) => {
@@ -2740,12 +2809,13 @@ function PreparingOrders({
               preparingTimestamp, // Store when order started preparing
               itemsSummary:
                 order.items
-                  ?.map((item) => `${item.quantity}x ${item.name}`)
+                  ?.map((item) => `${item.quantity}x ${formatItemNameWithVariant(item)}`)
                   .join(", ") || "No items",
               photoUrl: order.items?.[0]?.image || null,
               photoAlt: order.items?.[0]?.name || "Order",
               note: getSellerCookingNote(order),
               deliveryPartnerId: order.deliveryPartnerId || null,
+              ...getShopListFields(order),
               dispatchStatus: order.dispatch?.status || null,
               paymentMethod:
                 order.paymentMethod || order.payment?.method || null,
@@ -2824,6 +2894,8 @@ function PreparingOrders({
         if (markedReadyOrdersRef.current.has(orderKey)) {
           continue;
         }
+        // Shop (courier) orders become ready when the courier is booked, never on a timer.
+        if (order.fulfilmentMode === "standard") continue;
 
         // Calculate remaining ETA
         const elapsedMs = currentTime - order.preparingTimestamp;
@@ -3044,13 +3116,14 @@ function ReadyOrders({ onSelectOrder, refreshToken = 0, searchQuery = "" }) {
             eta: null, // Don't show ETA for ready orders
             itemsSummary:
               order.items
-                ?.map((item) => `${item.quantity}x ${item.name}`)
+                ?.map((item) => `${item.quantity}x ${formatItemNameWithVariant(item)}`)
                 .join(", ") || "No items",
             photoUrl: order.items?.[0]?.image || null,
             photoAlt: order.items?.[0]?.name || "Order",
             note: getSellerCookingNote(order),
             paymentMethod: order.paymentMethod || order.payment?.method || null,
             deliveryPartnerId: order.deliveryPartnerId || null,
+            ...getShopListFields(order),
             dispatchStatus: order.dispatch?.status || null,
           }));
 
@@ -3163,13 +3236,14 @@ const OutForDeliveryOrders = ({ onSelectOrder, refreshToken = 0, searchQuery = "
             eta: null,
             itemsSummary:
               order.items
-                ?.map((item) => `${item.quantity}x ${item.name}`)
+                ?.map((item) => `${item.quantity}x ${formatItemNameWithVariant(item)}`)
                 .join(", ") || "No items",
             photoUrl: order.items?.[0]?.image || null,
             photoAlt: order.items?.[0]?.name || "Order",
             note: getSellerCookingNote(order),
             paymentMethod: order.paymentMethod || order.payment?.method || null,
             deliveryPartnerId: order.deliveryPartnerId || null,
+            ...getShopListFields(order),
             dispatchStatus: order.dispatch?.status || null,
           }));
 

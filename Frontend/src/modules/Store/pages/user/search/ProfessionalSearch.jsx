@@ -58,7 +58,8 @@ export default function ProfessionalSearch() {
   const [loading, setLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [categories, setCategories] = useState([])
-  const [selectedCategoryId, setSelectedCategoryId] = useState(searchParams.get("cat") || null)
+  // From the address, so a category picked in the header (or "All Categories") applies here too.
+  const selectedCategoryId = searchParams.get("cat") || null
   const [history, setHistory] = useState([])
   // Smart search: products for the typed text, with the filters it was read as ("Under ₹500", "5 kg").
   const [smart, setSmart] = useState({ products: [], chips: [] })
@@ -206,7 +207,6 @@ export default function ProfessionalSearch() {
 
   const handleClear = () => {
     setQuery("")
-    setSelectedCategoryId(null)
     setSearchParams({}, { replace: true })
     setResults({ sellers: [], dishes: [] })
     setSmart({ products: [], chips: [] })
@@ -215,14 +215,11 @@ export default function ProfessionalSearch() {
 
   const handleCategoryClick = (id) => {
     const newCat = selectedCategoryId === id ? null : id
-    setSelectedCategoryId(newCat)
-    if (newCat) {
-        setSearchParams({ ...Object.fromEntries(searchParams), cat: newCat }, { replace: true })
-    } else {
-        const p = Object.fromEntries(searchParams)
-        delete p.cat
-        setSearchParams(p, { replace: true })
-    }
+    // A new category keeps the search, and drops the old one's filters, sort and page.
+    const p = {}
+    for (const key of ["q", "minDiscount"]) if (searchParams.get(key)) p[key] = searchParams.get(key)
+    if (newCat) p.cat = newCat
+    setSearchParams(p, { replace: true })
   }
 
   // Desktop (lg+): filter rail, results bar and product grid; mobile below is unchanged.
@@ -413,7 +410,7 @@ export default function ProfessionalSearch() {
                            <img 
                             src={getMediaUrl(r.matchedDishImage || r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                            onError={(e) => (e.target.src = "/placeholder-dish.jpg")}
+                            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.visibility = "hidden" }}
                           />
                        </div>
                        <div className="flex-1 min-w-0 flex flex-col justify-center">
@@ -450,7 +447,7 @@ export default function ProfessionalSearch() {
                          <img 
                           src={getMediaUrl(r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => (e.target.src = "/placeholder-seller.jpg")}
+                          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.visibility = "hidden" }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                         <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">

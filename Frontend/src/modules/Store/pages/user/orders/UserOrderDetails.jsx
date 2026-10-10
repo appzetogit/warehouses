@@ -15,7 +15,6 @@ import {
   FileText,
 } from "lucide-react"
 import { orderAPI, sellerAPI } from "@store/api"
-import { useCart } from "@store/context/CartContext"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@store/utils/businessSettings"
 import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@store/utils/productVariants"
@@ -25,6 +24,7 @@ import CancelOrderSheet, { canCancelOrder } from "@store/components/user/orders/
 import OrderItemsReviewPanel from "@store/components/user/reviews/OrderItemsReviewPanel"
 import CompletePaymentCard from "@store/components/user/CompletePaymentCard"
 import { imagePlaceholder } from "@store/constants/images"
+import { orderStatusLabel, paymentMethodLabel, reorderPath, rupees, totalLabel } from "@store/utils/shopOrderFlow"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -33,7 +33,6 @@ const debugError = (...args) => {}
 export default function UserOrderDetails() {
   const navigate = useNavigate()
   const goBack = useAppBackNavigation()
-  const { replaceCart } = useCart()
   const { orderId } = useParams()
   const [order, setOrder] = useState(null)
   const [cancelling, setCancelling] = useState(false)
@@ -62,7 +61,7 @@ export default function UserOrderDetails() {
           orderData = response.data.order
         } else {
           toast.error("Order not found")
-          navigate("/user/orders")
+          navigate("/orders")
           return
         }
 
@@ -88,7 +87,7 @@ export default function UserOrderDetails() {
         toast.error(
           error?.response?.data?.message || "Failed to load order details"
         )
-        navigate("/user/orders")
+        navigate("/orders")
       } finally {
         setLoading(false)
       }
@@ -99,7 +98,7 @@ export default function UserOrderDetails() {
 
   const handleCopyOrderId = async () => {
     if (!order) return
-    const id = order.orderId || order._id || orderId
+    const id = order.order_id || order.orderId || order._id || orderId
     try {
       await navigator.clipboard.writeText(String(id))
       toast.success("Order ID copied")
@@ -122,7 +121,7 @@ export default function UserOrderDetails() {
         <div className="text-center space-y-3">
           <p className="text-gray-700 text-sm font-medium">Order Not Found</p>
           <button
-            onClick={() => navigate("/user/orders")}
+            onClick={() => navigate("/orders")}
             className="px-4 py-2 rounded-lg bg-wh-brand text-wh-text text-sm font-semibold"
           >
             Back to Orders
@@ -132,7 +131,7 @@ export default function UserOrderDetails() {
     )
   }
 
-  const orderIdDisplay = order.orderId || order._id || orderId
+  const orderIdDisplay = order.order_id || order.orderId || order._id || orderId
   // Use fetched seller data if available, otherwise use order.sellerId or order.seller
   const sellerObj = seller || order.sellerId || order.seller || {}
   const sellerName =
@@ -185,7 +184,14 @@ export default function UserOrderDetails() {
 
   const userName = order.customerName || order.userName || order.userId?.name || order.userId?.fullName || ""
   const userPhone = order.customerPhone || order.userPhone || order.userId?.phone || ""
-  const paymentMethod = order.payment?.method || "Online"
+  const paymentMethod = paymentMethodLabel(order)
+  // Bill rows: these add up to pricing.total (the quick-mode surcharge is part of platformFee).
+  const deliveryTotal = (Number(pricing.deliveryFee) || 0) + (Number(pricing.deliveryFeeGst) || 0)
+  const quickFee = Number(pricing.quickDeliveryFee) || 0
+  const basePlatformFee = Math.max(0, (Number(pricing.platformFee) || 0) - quickFee)
+  const packagingFee = Number(pricing.packagingFee) || 0
+  const discountAmount = Number(pricing.discount) || 0
+  const coinsAmount = Number(order.coinsDiscount ?? pricing.coinsDiscount) || 0
   const paymentDate = order.createdAt
     ? new Date(order.createdAt).toLocaleString("en-IN", {
       month: "long",
@@ -351,47 +357,6 @@ export default function UserOrderDetails() {
     }
   }
 
-  const handleReorder = (currentOrder) => {
-    const sellerTarget =
-      sellerObj.slug ||
-      sellerObj._id ||
-      sellerObj.sellerId ||
-      (typeof currentOrder?.sellerId === "string" ? currentOrder.sellerId : currentOrder?.sellerId?._id)
-
-    if (!sellerTarget || !items.length) {
-      toast.error("Order items or seller information not available")
-      return
-    }
-
-    const reorderItems = items
-      .map((item, index) => {
-        const itemId = item.id || item.itemId || item._id
-        if (!itemId) return null
-
-        return {
-          id: itemId,
-          name: item.name || item.productName || "Item",
-          price: Number(item.price) || 0,
-          image: item.image || "",
-          seller: sellerName,
-          sellerId: sellerObj._id || sellerObj.sellerId || currentOrder?.sellerId,
-          description: item.description || "",
-          isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null,
-          quantity: Math.max(1, Number(item.quantity || item.qty) || 1),
-          reorderIndex: index,
-        }
-      })
-      .filter(Boolean)
-
-    if (!reorderItems.length) {
-      toast.error("No reorderable items found in this order")
-      return
-    }
-
-    replaceCart(reorderItems)
-    toast.success("Items added to cart")
-    navigate(`/sellers/${sellerTarget}`)
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-24 font-sans relative">
@@ -419,9 +384,9 @@ export default function UserOrderDetails() {
           </div>
           <div>
             <h2 className="font-semibold text-gray-800 dark:text-white">
-              {order.status === "delivered"
+              {(order.orderStatus || order.status) === "delivered"
                 ? "Order was delivered"
-                : "Order status: " + (order.status || "Processing")}
+                : "Order status: " + orderStatusLabel(order)}
             </h2>
           </div>
         </div>
@@ -535,38 +500,51 @@ export default function UserOrderDetails() {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-gray-400">GST (govt. taxes)</span>
-              <span className="text-gray-800 dark:text-gray-200">
-                ₹{Number(pricing.tax || 0).toFixed(2)}
-              </span>
+              <span className="text-gray-800 dark:text-gray-200">{rupees(pricing.tax)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400 dark:text-gray-500 font-medium">Delivery Fee</span>
-              {pricing.deliveryFee === 0 && (
-                <span className="text-wh-brand-ink text-[10px] font-bold border border-wh-brand px-1 rounded ml-1">
-                  FREE
-                </span>
-              )}
-              <span className="text-wh-brand-ink font-medium uppercase">
-                {pricing.deliveryFee ? `₹${Number(pricing.deliveryFee).toFixed(2)}` : "Free"}
+              <span className="text-gray-500 dark:text-gray-400">
+                Delivery Fee{Number(pricing.deliveryFeeGst) > 0 ? " (incl. GST)" : ""}
+              </span>
+              <span className={deliveryTotal > 0 ? "text-gray-800 dark:text-gray-200" : "text-wh-brand-ink font-medium uppercase"}>
+                {deliveryTotal > 0 ? rupees(deliveryTotal) : "Free"}
               </span>
             </div>
-            {Number(pricing.quickDeliveryFee || 0) > 0 && (
+            {quickFee > 0 && (
               <div className="flex justify-between font-semibold">
                 <span className="text-wh-brand-ink">Quick Mode</span>
-                <span className="text-wh-brand-ink">
-                  ₹{Number(pricing.quickDeliveryFee).toFixed(2)}
-                </span>
+                <span className="text-wh-brand-ink">{rupees(quickFee)}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Platform Fee</span>
-              <span className="text-gray-800 dark:text-gray-200">
-                ₹{Math.max(0, Number(pricing.platformFee || 0) - Number(pricing.quickDeliveryFee || 0)).toFixed(2)}
-              </span>
-            </div>
+            {packagingFee > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">Packaging</span>
+                <span className="text-gray-800 dark:text-gray-200">{rupees(packagingFee)}</span>
+              </div>
+            )}
+            {basePlatformFee > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">Platform Fee</span>
+                <span className="text-gray-800 dark:text-gray-200">{rupees(basePlatformFee)}</span>
+              </div>
+            )}
+            {discountAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-green-700 dark:text-green-400">
+                  Discount{pricing.couponCode ? ` (${pricing.couponCode})` : ""}
+                </span>
+                <span className="text-green-700 dark:text-green-400">− {rupees(discountAmount)}</span>
+              </div>
+            )}
+            {coinsAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-green-700 dark:text-green-400">Coins</span>
+                <span className="text-green-700 dark:text-green-400">− {rupees(coinsAmount)}</span>
+              </div>
+            )}
 
             <div className="border-t border-gray-100 dark:border-zinc-800 my-2 pt-2 flex justify-between items-start gap-3">
-              <span className="font-bold text-gray-800 dark:text-white shrink-0">Paid</span>
+              <span className="font-bold text-gray-800 dark:text-white shrink-0">{totalLabel(order)}</span>
               <DualMoney
                 amount={orderPayTotal}
                 compareAmount={compareToPay}
@@ -596,7 +574,6 @@ export default function UserOrderDetails() {
               </div>
 
               <div className="flex items-center justify-center gap-2 pt-1 text-wh-brand-ink font-bold text-sm">
-                <span>??</span>
                 <span>
                   You saved ₹{Number(savings).toFixed(2)} on this order!
                 </span>
@@ -630,7 +607,7 @@ export default function UserOrderDetails() {
                 Payment Method
               </h4>
               <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">
-                Paid via: {paymentMethod.toUpperCase()}
+                {paymentMethod}
               </p>
             </div>
           </div>
@@ -642,7 +619,7 @@ export default function UserOrderDetails() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
-                Payment Date
+                Order Date
               </h4>
               <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">{paymentDate}</p>
             </div>
@@ -670,7 +647,7 @@ export default function UserOrderDetails() {
         <button
           type="button"
           // Same items and sizes back in the right cart, at today's prices.
-          onClick={() => navigate(`${order?.fulfilmentMode === "standard" ? "" : "/quick"}/cart?reorder=${encodeURIComponent(String(order?._id || orderId))}`)}
+          onClick={() => navigate(reorderPath({ ...order, _id: order?._id || orderId }))}
           className="flex-1 bg-wh-brand text-wh-text py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-wh-brand-600 transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
@@ -708,7 +685,13 @@ export default function UserOrderDetails() {
           onClose={() => setCancelling(false)}
           onCancelled={(updated) => {
             setCancelling(false)
-            setOrder((o) => ({ ...o, orderStatus: updated?.orderStatus || "cancelled_by_user", cancellationReason: updated?.cancellationReason || "", payment: updated?.payment || o?.payment }))
+            // The server returns the whole cancelled order (status, refund, history); keep it all.
+            setOrder((o) => {
+              const next = { ...o, orderStatus: "cancelled_by_user", ...(updated && typeof updated === "object" ? updated : {}) }
+              // Keep the populated store if the response only carries its id.
+              if (o?.sellerId && typeof o.sellerId === "object" && typeof next.sellerId !== "object") next.sellerId = o.sellerId
+              return next
+            })
           }}
         />
       ) : null}
@@ -745,7 +728,7 @@ export default function UserOrderDetails() {
                 : String(orderMongoId)
 
               debugLog("Navigating to complaint page with orderId:", orderIdString)
-              navigate(`/user/complaints/submit/${encodeURIComponent(orderIdString)}`)
+              navigate(`/complaints/submit/${encodeURIComponent(orderIdString)}`)
             }}
             className="w-full bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-400 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
           >

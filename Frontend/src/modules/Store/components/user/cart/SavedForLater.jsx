@@ -82,13 +82,31 @@ export default function SavedForLater({ variant = "mobile", className = "" }) {
       const res = await userAPI.moveSavedToCart(row.id)
       const line = res?.data?.data?.line
       if (line && Number(line.quantity) > 0) {
-        const result = addToCart(line, null, { quantity: line.quantity })
-        if (result?.ok === false) {
-          // Keep the row: the item is still saved, not moved.
-          if (!result.needsConfirmation) {
-            toast.error(result.error || "Could not move this item to your cart")
+        // The server has already taken the row out of "saved". If the cart
+        // can't take the line (or the "Replace cart?" prompt is dismissed),
+        // save it again so the item is never lost.
+        const putBack = async () => {
+          try {
+            await userAPI.saveForLater({
+              mode,
+              productId: line.productId || line.itemId || row.productId,
+              variantId: line.variantId || undefined,
+              qty: Math.max(1, Math.min(99, Number(row.qty) || Number(line.quantity) || 1)),
+            })
+          } catch (e) {
+            toast.error(errorMessage(e, "Could not keep this item saved"))
           }
           load()
+        }
+        const result = addToCart(line, null, { quantity: line.quantity, onReplaceCancelled: putBack })
+        if (result?.ok === false) {
+          if (!result.needsConfirmation) {
+            toast.error(result.error || "Could not move this item to your cart")
+            await putBack()
+          }
+          // Waiting on "Replace cart?": confirm adds it, cancel saves it again
+          // (and reloads this list).
+          else setItems((prev) => prev.filter((r) => r.id !== row.id))
           return
         }
       }

@@ -1,13 +1,12 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, Search, MoreVertical, ChevronRight, Star, RotateCcw, AlertCircle, Loader2, Clock, X, Share2, MessageCircle, Send, Copy, Mail, MessagesSquare, Link2 } from "lucide-react"
 import { orderAPI } from "@store/api"
-import { useCart } from "@store/context/CartContext"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@store/utils/businessSettings"
 import { useCompanyName } from "@store/hooks/useCompanyName"
 import { imagePlaceholder } from "@store/constants/images"
-import { isShopOrder, shopStatusLabel } from "@store/utils/shopOrderFlow"
+import { isShopOrder, orderStatusLabel, paymentMethodLabel, reorderPath, shopStatusLabel, variantText } from "@store/utils/shopOrderFlow"
 const debugLog = (...args) => { }
 const debugWarn = (...args) => { }
 const debugError = (...args) => { }
@@ -17,11 +16,33 @@ const toNum = (value) => {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+const PAYMENT_BADGE_TONE = {
+  good: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  bad: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  wait: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  plain: 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300',
+}
+
+/** The payment status in words, or null when there's nothing worth saying. */
+function paymentBadgeFor(order, { delivered = false, cancelled = false } = {}) {
+  const status = String(order?.payment?.status || '').toLowerCase()
+  if (!status) return null
+  if (status === 'cod_pending') {
+    if (delivered) return { text: 'Paid', tone: 'good' }
+    return cancelled ? null : { text: 'Pay on delivery', tone: 'wait' }
+  }
+  if (status === 'paid' || status === 'authorized' || status === 'completed') return { text: 'Paid', tone: 'good' }
+  if (status === 'refunded') return { text: 'Refunded', tone: 'plain' }
+  if (status === 'failed') return { text: 'Payment failed', tone: 'bad' }
+  if (cancelled) return null
+  if (status === 'created' || status === 'pending' || status === 'pending_qr') return { text: 'Not paid yet', tone: 'wait' }
+  return { text: status.replace(/_/g, ' '), tone: 'plain' }
+}
 
 export default function Orders() {
   const companyName = useCompanyName()
   const navigate = useNavigate()
-  const { replaceCart } = useCart()
+
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -106,11 +127,14 @@ export default function Orders() {
   }, [orders])
 
   // Get order status text
+  // Groups the API's statuses into the few this page styles; the words
+  // shown come from orderStatusLabel (statusText).
   const getOrderStatus = (order) => {
     const status = order.status
     if (status === 'delivered' || status === 'completed') return 'delivered'
-    if (status === 'out_for_delivery' || status === 'outForDelivery') return 'outForDelivery'
-    if (status === 'ready' || status === 'preparing') return 'preparing'
+    if (['out_for_delivery', 'outForDelivery', 'picked_up', 'reached_drop'].includes(status)) return 'outForDelivery'
+    if (['ready', 'preparing', 'ready_for_pickup', 'reached_pickup'].includes(status)) return 'preparing'
+    if (status === 'created') return 'placed'
     if (String(status).toLowerCase().includes('cancel')) return 'cancelled'
     return status || 'confirmed'
   }
@@ -205,196 +229,187 @@ export default function Orders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, shownRatingForOrders, ratingModal.open])
 
+  // Whether any order on screen can still change; polling stops when none can.
+  const hasActiveOrderRef = useRef(false)
+  useEffect(() => {
+    hasActiveOrderRef.current = orders.some((o) => {
+      const s = String(o.originalStatus || o.status || "").toLowerCase()
+      return s !== "delivered" && s !== "completed" && !s.includes("cancel")
+    })
+  }, [orders])
+
   // Fetch orders from backend API
   useEffect(() => {
     const FETCH_LIMIT = 100
+    let alive = true
 
-    const fetchAllOrders = async () => {
-      const firstResponse = await orderAPI.getOrders({
-        limit: FETCH_LIMIT,
-        page: 1,
-      })
+    const pageOrders = (resp) => {
+      if (resp?.data?.success && resp?.data?.data?.orders) return resp.data.data.orders || []
+      if (resp?.data?.orders) return resp.data.orders || []
+      if (resp?.data?.data && Array.isArray(resp.data.data)) return resp.data.data || []
+      return []
+    }
+    const pageCount = (resp) => resp?.data?.data?.pagination?.pages || resp?.data?.pagination?.pages || 1
 
-      // Check multiple possible response structures
-      let firstPageOrders = []
-      let totalPages = 1
-
-      if (firstResponse?.data?.success && firstResponse?.data?.data?.orders) {
-        firstPageOrders = firstResponse.data.data.orders || []
-        totalPages = firstResponse.data.data?.pagination?.pages || 1
-      } else if (firstResponse?.data?.orders) {
-        firstPageOrders = firstResponse.data.orders || []
-        totalPages = firstResponse.data?.pagination?.pages || 1
-      } else if (
-        firstResponse?.data?.data &&
-        Array.isArray(firstResponse.data.data)
-      ) {
-        firstPageOrders = firstResponse.data.data || []
-      }
-
-      if (totalPages <= 1) {
-        return firstPageOrders
-      }
+    // Every page on first load; a refresh only needs the newest page, since
+    // that is where orders that can still change are.
+    const fetchOrdersData = async ({ firstPageOnly = false } = {}) => {
+      const firstResponse = await orderAPI.getOrders({ limit: FETCH_LIMIT, page: 1 })
+      const firstPageOrders = pageOrders(firstResponse)
+      const totalPages = pageCount(firstResponse)
+      if (firstPageOnly || totalPages <= 1) return firstPageOrders
 
       const pagePromises = []
       for (let p = 2; p <= totalPages; p += 1) {
         pagePromises.push(orderAPI.getOrders({ limit: FETCH_LIMIT, page: p }))
       }
-
       const pageResponses = await Promise.all(pagePromises)
-      const remainingOrders = pageResponses.flatMap((resp) => {
-        if (resp?.data?.success && resp?.data?.data?.orders) {
-          return resp.data.data.orders || []
-        }
-        if (resp?.data?.orders) {
-          return resp.data.orders || []
-        }
-        if (resp?.data?.data && Array.isArray(resp.data.data)) {
-          return resp.data.data || []
-        }
-        return []
-      })
-
-      return [...firstPageOrders, ...remainingOrders]
+      return [...firstPageOrders, ...pageResponses.flatMap(pageOrders)]
     }
 
-    const fetchOrders = async () => {
+    // Transform an API order to the shape this page renders.
+    const transformOrder = (order) => {
+      const createdAt = order.createdAt ? new Date(order.createdAt) : new Date()
+
+      const backendStatus = order.orderStatus || order.status
+      const isCancelled =
+        backendStatus === 'cancelled' ||
+        backendStatus === 'cancelled_by_user' ||
+        backendStatus === 'cancelled_by_seller' ||
+        backendStatus === 'cancelled_by_admin'
+      const cancellationReason = order.cancellationReason || ''
+      // The API says who cancelled: 'customer' | 'seller' | 'admin'; older orders only have the status or reason.
+      const isSellerCancelled = isCancelled && (
+        order.cancelledBy === 'seller' ||
+        backendStatus === 'cancelled_by_seller' ||
+        /rejected by seller|seller rejected|seller cancelled|seller is too busy|item not available|outside delivery area|kitchen closing|technical issue|order not accepted within time limit|seller did not respond/i.test(cancellationReason)
+      )
+      const isUserCancelled = isCancelled && !isSellerCancelled && (
+        order.cancelledBy === 'customer' ||
+        order.cancelledBy === 'user' ||
+        backendStatus === 'cancelled_by_user'
+      )
+
+      const originalStatus = backendStatus
+      const sellerRating = order.ratings?.seller?.rating || null
+      const deliveryPartnerRating = order.ratings?.deliveryPartner?.rating || null
+
+      const pricing = order.pricing || {}
+      const itemSubtotal = (order.items || []).reduce((sum, item) => {
+        const qty = toNum(item?.quantity || 1)
+        const price = toNum(item?.price || item?.unitPrice || 0)
+        return sum + (qty * price)
+      }, 0)
+      const subtotal = toNum(pricing.subtotal ?? pricing.itemTotal ?? pricing.itemsTotal ?? itemSubtotal)
+      // Delivery shown with its GST, as at checkout.
+      const deliveryFee = toNum(pricing.deliveryFee ?? pricing.deliveryCharge ?? pricing.shippingFee ?? 0) + toNum(pricing.deliveryFeeGst ?? 0)
+      const packagingFee = toNum(pricing.packagingFee ?? pricing.packagingCharges ?? 0)
+      const platformFee = toNum(pricing.platformFee ?? pricing.serviceFee ?? pricing.convenienceFee ?? 0)
+      const quickDeliveryFee = toNum(pricing.quickDeliveryFee ?? 0)
+      const tax = toNum(pricing.tax ?? pricing.taxesAndCharges ?? pricing.taxAndCharges ?? 0)
+      const discount = toNum(pricing.discount ?? 0)
+      const coinsDiscount = toNum(order.coinsDiscount ?? pricing.coinsDiscount ?? 0)
+      const computedTotal = Math.max(0, subtotal + deliveryFee + packagingFee + platformFee + tax - discount - coinsDiscount)
+      const total = toNum(pricing.total ?? order.total ?? computedTotal) || computedTotal
+
+      return {
+        id: order._id?.toString() || order.orderId || `ORD-${order._id}`,
+        mongoId: order._id,
+        orderId: order.order_id || order.orderId || order._id?.toString(), // Keep orderId for display
+        status: isSellerCancelled ? 'seller_cancelled' : getOrderStatus({ ...order, status: backendStatus }),
+        originalStatus: originalStatus, // Keep original status for reference
+        statusText: orderStatusLabel(order),
+        fulfilmentMode: order.fulfilmentMode,
+        createdAt: createdAt.toISOString(),
+        address: order.address || order.deliveryAddress || {},
+        items: (order.items || []).map(item => ({
+          itemId: item.itemId || item._id || item.id,
+          name: item.name || item.productName || 'Item',
+          variantName: variantText(item),
+          quantity: item.quantity || 1,
+          price: item.price || 0,
+          image: item.image || null,
+          description: item.description || null,
+          isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null,
+          _id: item._id || item.id,
+          id: item.id || item._id
+        })),
+        total,
+        subtotal,
+        deliveryFee,
+        packagingFee,
+        platformFee,
+        quickDeliveryFee,
+        basePlatformFee: Math.max(0, platformFee - quickDeliveryFee),
+        tax,
+        coinsDiscount,
+        pricing: { ...pricing, discount }, // Keep full pricing object for discounts, coupons
+        payment: order.payment || {},
+        paymentMethod: order.payment?.method || order.paymentMethod,
+        paymentMethodText: paymentMethodLabel(order),
+        seller: order.sellerId?.sellerName || order.sellerId?.name || order.sellerName || 'Seller',
+        sellerId: order.sellerId?._id || order.sellerId,
+        sellerSlug: order.sellerId?.slug || null,
+        sellerImage: order.sellerId?.profileImage?.url || order.sellerId?.profileImage || null,
+        sellerLocation: order.sellerId?.location?.area || order.sellerId?.location?.city || order.address?.city || order.deliveryAddress?.city || '',
+        sellerRating,
+        deliveryPartnerRating,
+        ratings: order.ratings || {},
+        rating: sellerRating || null,
+        review: order.review || null,
+        tracking: order.tracking || {},
+        cancellationReason: cancellationReason,
+        // Shop (courier) orders say where they are in their own words.
+        shopLabel: isShopOrder(order) ? shopStatusLabel(order) : null,
+        isSellerCancelled: isSellerCancelled,
+        isUserCancelled: isUserCancelled,
+        cancelledBy: order.cancelledBy,
+        eta: order.eta || { min: order.estimatedDeliveryTime || 30, max: order.estimatedDeliveryTime || 30 },
+        estimatedDeliveryTime: order.estimatedDeliveryTime || 30,
+        preparationTime: order.preparationTime || 0,
+        deliveredAt: order.deliveredAt || null,
+        deliveryPartnerId: order.deliveryPartnerId?._id || order.deliveryPartnerId || null,
+        deliveryPartnerName: order.deliveryPartnerId?.name || order.deliveryPartnerName || null,
+        deliveryPartnerPhone: order.deliveryPartnerId?.phone || order.deliveryPartnerPhone || null,
+        note: order.note || null
+      }
+    }
+
+    const byNewest = (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+
+    // quiet: a background refresh. It keeps what is on screen (open menus,
+    // the rating sheet), merges the newest page in, and says nothing if the
+    // network hiccups.
+    const fetchOrders = async ({ quiet = false } = {}) => {
       try {
-        setLoading(true)
-        const ordersData = await fetchAllOrders()
+        if (!quiet) setLoading(true)
+        const ordersData = await fetchOrdersData({ firstPageOnly: quiet })
+        if (!alive) return
+        const fresh = ordersData.map(transformOrder)
 
-        if (ordersData.length > 0) {
-          debugLog('?? Raw orders from API:', ordersData.slice(0, 3).map(o => ({
-            id: o.orderId || o._id,
-            status: o.orderStatus || o.status,
-            sellerRating: o.ratings?.seller?.rating || null,
-            deliveryPartnerRating: o.ratings?.deliveryPartner?.rating || null,
-            deliveredAt: o.deliveredAt,
-            seller: o.sellerId?.sellerName || o.sellerId?.name || o.sellerName
-          })))
-
-          // Transform API orders to match UI structure
-          const transformedOrders = ordersData.map(order => {
-            const createdAt = order.createdAt ? new Date(order.createdAt) : new Date()
-
-            // Check if cancelled by seller or user
-            const backendStatus = order.orderStatus || order.status
-            const isCancelled =
-              backendStatus === 'cancelled' ||
-              backendStatus === 'cancelled_by_user' ||
-              backendStatus === 'cancelled_by_seller' ||
-              backendStatus === 'cancelled_by_admin'
-            const cancellationReason = order.cancellationReason || ''
-            // Check cancelledBy field first, then fallback to cancellation reason pattern
-            const isSellerCancelled = isCancelled && (
-              order.cancelledBy === 'seller' ||
-              /rejected by seller|seller rejected|seller cancelled|seller is too busy|item not available|outside delivery area|kitchen closing|technical issue|order not accepted within time limit|seller did not respond/i.test(cancellationReason)
-            )
-            const isUserCancelled = isCancelled && order.cancelledBy === 'user'
-
-            // Get original status from backend before transformation
-            const originalStatus = backendStatus
-            const sellerRating = order.ratings?.seller?.rating || null
-            const deliveryPartnerRating = order.ratings?.deliveryPartner?.rating || null
-
-            const pricing = order.pricing || {}
-            const itemSubtotal = (order.items || []).reduce((sum, item) => {
-              const qty = toNum(item?.quantity || 1)
-              const price = toNum(item?.price || item?.unitPrice || 0)
-              return sum + (qty * price)
-            }, 0)
-            const subtotal = toNum(pricing.subtotal ?? pricing.itemTotal ?? pricing.itemsTotal ?? itemSubtotal)
-            const deliveryFee = toNum(pricing.deliveryFee ?? pricing.deliveryCharge ?? pricing.shippingFee ?? 0)
-            const packagingFee = toNum(pricing.packagingFee ?? pricing.packagingCharges ?? 0)
-            const platformFee = toNum(pricing.platformFee ?? pricing.serviceFee ?? pricing.convenienceFee ?? 0)
-            const quickDeliveryFee = toNum(pricing.quickDeliveryFee ?? 0)
-            const tax = toNum(pricing.tax ?? pricing.taxesAndCharges ?? pricing.taxAndCharges ?? 0)
-            const discount = toNum(pricing.discount ?? 0)
-            const computedTotal = Math.max(0, subtotal + deliveryFee + packagingFee + platformFee + tax - discount)
-            const total = toNum(pricing.total ?? order.total ?? computedTotal) || computedTotal
-
-            return {
-              id: order._id?.toString() || order.orderId || `ORD-${order._id}`,
-              mongoId: order._id,
-              orderId: order.orderId || order._id?.toString(), // Keep orderId for display
-              status: isSellerCancelled ? 'seller_cancelled' : getOrderStatus({ ...order, status: backendStatus }),
-              originalStatus: originalStatus, // Keep original status for reference
-              createdAt: createdAt.toISOString(),
-              address: order.address || order.deliveryAddress || {},
-              items: (order.items || []).map(item => ({
-                itemId: item.itemId || item._id || item.id,
-                name: item.name || item.productName || 'Item',
-                variantName: item.variantName || '',
-                quantity: item.quantity || 1,
-                price: item.price || 0,
-                image: item.image || null,
-                description: item.description || null,
-                isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null,
-                _id: item._id || item.id,
-                id: item.id || item._id
-              })),
-              total,
-              subtotal,
-              deliveryFee,
-              packagingFee,
-              platformFee,
-              quickDeliveryFee,
-              basePlatformFee: Math.max(0, platformFee - quickDeliveryFee),
-              tax,
-              pricing: { ...pricing, discount }, // Keep full pricing object for discounts, coupons
-              payment: order.payment || {},
-              paymentMethod: order.payment?.method || order.paymentMethod,
-              seller: order.sellerId?.sellerName || order.sellerId?.name || order.sellerName || 'Seller',
-              sellerId: order.sellerId?._id || order.sellerId,
-              sellerSlug: order.sellerId?.slug || null,
-              sellerImage: order.sellerId?.profileImage?.url || order.sellerId?.profileImage || null,
-              sellerLocation: order.sellerId?.location?.area || order.sellerId?.location?.city || order.address?.city || order.deliveryAddress?.city || '',
-              sellerRating,
-              deliveryPartnerRating,
-              ratings: order.ratings || {},
-              rating: sellerRating || null,
-              review: order.review || null,
-              tracking: order.tracking || {},
-              cancellationReason: cancellationReason,
-              // Shop (courier) orders say where they are in their own words.
-              shopLabel: isShopOrder(order) ? shopStatusLabel(order) : null,
-              isSellerCancelled: isSellerCancelled,
-              isUserCancelled: isUserCancelled,
-              cancelledBy: order.cancelledBy,
-              eta: order.eta || { min: order.estimatedDeliveryTime || 30, max: order.estimatedDeliveryTime || 30 },
-              estimatedDeliveryTime: order.estimatedDeliveryTime || 30,
-              preparationTime: order.preparationTime || 0,
-              deliveredAt: order.deliveredAt || null,
-              deliveryPartnerId: order.deliveryPartnerId?._id || order.deliveryPartnerId || null,
-              deliveryPartnerName: order.deliveryPartnerId?.name || order.deliveryPartnerName || null,
-              deliveryPartnerPhone: order.deliveryPartnerId?.phone || order.deliveryPartnerPhone || null,
-              note: order.note || null
-            }
+        if (quiet) {
+          setOrders((prev) => {
+            const freshById = new Map(fresh.map((o) => [o.id, o]))
+            const kept = prev.map((o) => {
+              const next = freshById.get(o.id)
+              if (!next) return o
+              freshById.delete(o.id)
+              // Keep a rating given on this page if the server hasn't caught up.
+              return { ...next, sellerRating: next.sellerRating ?? o.sellerRating, deliveryPartnerRating: next.deliveryPartnerRating ?? o.deliveryPartnerRating }
+            })
+            return [...freshById.values(), ...kept].sort(byNewest)
           })
-
-          // Sort by date (newest first)
-          transformedOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-
-          debugLog('? Orders fetched and transformed:', {
-            total: transformedOrders.length,
-            delivered: transformedOrders.filter(o => o.status === 'delivered' || o.originalStatus === 'delivered').length,
-            withRating: transformedOrders.filter(o => o.sellerRating && (!o.deliveryPartnerId || o.deliveryPartnerRating)).length,
-            sample: transformedOrders.slice(0, 2).map(o => ({
-              id: o.id,
-              status: o.status,
-              originalStatus: o.originalStatus,
-              sellerRating: o.sellerRating,
-              deliveryPartnerRating: o.deliveryPartnerRating,
-              deliveredAt: o.deliveredAt
-            }))
-          })
-
-          setOrders(transformedOrders)
-        } else {
-          debugLog('?? No orders data in response')
-          setOrders([])
+          return
         }
+
+        fresh.sort(byNewest)
+        debugLog('Orders fetched:', fresh.length)
+        setOrders(fresh)
       } catch (error) {
+        if (quiet || !alive) {
+          debugWarn('Background order refresh failed:', error)
+          return
+        }
         debugError('Error fetching user orders:', error)
         let errorMessage = 'Failed to load orders'
         if (error?.response?.status === 401) {
@@ -405,28 +420,31 @@ export default function Orders() {
         toast.error(errorMessage)
         setOrders([])
       } finally {
-        setLoading(false)
+        if (!quiet && alive) setLoading(false)
       }
     }
 
     fetchOrders()
 
-    // Poll for order updates every 20 seconds to detect delivered orders.
-    // Pause polling in background tabs to reduce unnecessary CPU/network usage.
+    // Refresh every 20 seconds while an order is still on its way, so a
+    // delivery shows up without reloading. Paused in background tabs and once
+    // every order is delivered or cancelled.
     const pollInterval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return
-      fetchOrders()
-    }, 20000) // Poll every 20 seconds
+      if (!hasActiveOrderRef.current) return
+      fetchOrders({ quiet: true })
+    }, 20000)
 
-    // When user returns to tab, refresh immediately for fresh status.
+    // When user returns to tab, refresh quietly for fresh status.
     const handleVisibilityChange = () => {
-      if (typeof document !== "undefined" && !document.hidden) {
-        fetchOrders()
+      if (typeof document !== "undefined" && !document.hidden && hasActiveOrderRef.current) {
+        fetchOrders({ quiet: true })
       }
     }
     document.addEventListener("visibilitychange", handleVisibilityChange)
 
     return () => {
+      alive = false
       clearInterval(pollInterval)
       document.removeEventListener("visibilitychange", handleVisibilityChange)
     }
@@ -464,42 +482,10 @@ export default function Orders() {
     (ratingModalHasDeliveryPartner && selectedDeliveryRating === null)
 
   // Handle reorder
+  // Same items and sizes back in the right cart (Shop or Quick) at today's
+  // prices; ReorderIntake on the cart page adds them and says what made it.
   const handleReorder = (order) => {
-    const sellerTarget = order.sellerSlug || order.sellerId
-
-    if (!sellerTarget || !order.items?.length) {
-      toast.info('Order items or seller information not available')
-      return
-    }
-
-    const reorderItems = order.items
-      .map((item, index) => {
-        const itemId = item.id || item.itemId || item._id
-        if (!itemId) return null
-
-        return {
-          id: itemId,
-          name: item.name || item.productName || "Item",
-          price: Number(item.price) || 0,
-          image: item.image || "",
-          seller: order.seller || "Seller",
-          sellerId: order.sellerId,
-          description: item.description || "",
-          isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null,
-          quantity: Math.max(1, Number(item.quantity) || 1),
-          reorderIndex: index,
-        }
-      })
-      .filter(Boolean)
-
-    if (!reorderItems.length) {
-      toast.error("No reorderable items found in this order")
-      return
-    }
-
-    replaceCart(reorderItems)
-    toast.success("Items added to cart")
-    navigate(`/sellers/${sellerTarget}`)
+    navigate(reorderPath({ _id: order.mongoId || order.id, fulfilmentMode: order.fulfilmentMode }))
   }
 
   // Three-dots menu handlers
@@ -626,7 +612,7 @@ Order again from this seller in the ${companyName} app.`
 
   const handleViewOrderDetails = (order) => {
     setActiveMenuOrderId(null)
-    navigate(`/user/orders/${order.id}/details`)
+    navigate(`/orders/${order.id}/details`)
   }
 
   // Open rating modal for an order
@@ -706,7 +692,7 @@ Order again from this seller in the ${companyName} app.`
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-10">
         <div className="bg-white dark:bg-zinc-900 p-4 flex items-center shadow-sm sticky top-0 z-10 border-b border-gray-100 dark:border-zinc-800">
-          <Link to="/user">
+          <Link to="/">
             <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-200 cursor-pointer" />
           </Link>
           <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
@@ -722,14 +708,14 @@ Order again from this seller in the ${companyName} app.`
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-10">
         <div className="bg-white dark:bg-zinc-900 p-4 flex items-center shadow-sm sticky top-0 z-10 border-b border-gray-100 dark:border-zinc-800">
-          <Link to="/user">
+          <Link to="/">
             <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-200 cursor-pointer" />
           </Link>
           <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
         </div>
         <div className="px-4 py-8 text-center">
           <p className="text-gray-600 dark:text-gray-400">You haven't placed any orders yet</p>
-          <Link to="/user">
+          <Link to="/">
             <button className="mt-4 text-wh-brand-ink font-medium">Start Ordering</button>
           </Link>
         </div>
@@ -741,7 +727,7 @@ Order again from this seller in the ${companyName} app.`
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-10 font-sans">
       {/* Header */}
       <div className="bg-white dark:bg-slate-900 p-4 flex items-center shadow-sm sticky top-0 z-10 border-b border-gray-100 dark:border-slate-800">
-        <Link to="/user">
+        <Link to="/">
           <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-200 cursor-pointer" />
         </Link>
         <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
@@ -785,8 +771,9 @@ Order again from this seller in the ${companyName} app.`
               (order.payment?.status === 'failed')
 
             const isDelivered = order.status === 'delivered'
+            const paymentBadge = paymentBadgeFor(order, { delivered: isDelivered, cancelled: isCancelled })
             const isSellerCancelled = order.isSellerCancelled || order.status === 'seller_cancelled'
-            const isUserCancelled = order.isUserCancelled || (isCancelled && order.cancelledBy === 'user')
+            const isUserCancelled = order.isUserCancelled || (isCancelled && (order.cancelledBy === 'customer' || order.cancelledBy === 'user'))
             // Prefer food image from first item; fallback to seller image, then generic food photo
             const firstItemImage = order.items?.[0]?.image
             const sellerImage = firstItemImage
@@ -824,9 +811,9 @@ Order again from this seller in the ${companyName} app.`
                         </p>
                       )}
                       {order.sellerId && (
-                        <Link to={`/user/sellers/${order.sellerId}`}>
+                        <Link to={`/sellers/${order.sellerId}`}>
                           <button className="text-xs text-wh-brand-ink font-medium flex items-center mt-1 hover:text-wh-brand-ink">
-                            View menu <span className="ml-0.5">&gt;</span>
+                            Visit store <span className="ml-0.5">&gt;</span>
                           </button>
                         </Link>
                       )}
@@ -948,6 +935,12 @@ Order again from this seller in the ${companyName} app.`
                         <span className="text-wh-brand-ink">{"\u20B9"}{order.quickDeliveryFee.toFixed(2)}</span>
                       </div>
                     )}
+                    {order.packagingFee > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">Packaging</span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">{"\u20B9"}{order.packagingFee.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-600 dark:text-gray-400">Platform Fee</span>
                       <span className="text-gray-800 dark:text-gray-200 font-medium">
@@ -964,6 +957,12 @@ Order again from this seller in the ${companyName} app.`
                       <div className="flex justify-between text-xs">
                         <span className="text-green-600 dark:text-green-400">Discount</span>
                         <span className="text-green-600 dark:text-green-400 font-medium">-{"\u20B9"}{order.pricing.discount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {order.coinsDiscount > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-green-600 dark:text-green-400">Coins</span>
+                        <span className="text-green-600 dark:text-green-400 font-medium">-{"₹"}{order.coinsDiscount.toFixed(2)}</span>
                       </div>
                     )}
                     {order.pricing?.couponCode && (
@@ -990,19 +989,10 @@ Order again from this seller in the ${companyName} app.`
                     )}
                     {order.payment && (
                       <p className="text-xs text-gray-500 mt-1">
-                        Payment: <span className="font-medium capitalize">
-                          {order.payment.method === 'cash' || order.payment.method === 'cod' ? 'Cash on Delivery' :
-                            order.payment.method === 'wallet' ? 'Wallet' :
-                              order.payment.method === 'razorpay' ? 'Online' :
-                                order.payment.method || 'N/A'}
-                        </span>
-                        {order.payment.status && (
-                          <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${order.payment.status === 'completed' || (order.payment.status === 'cod_pending' && isDelivered) ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                            order.payment.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                              order.payment.status === 'pending' || order.payment.status === 'cod_pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300'
-                            }`}>
-                            {(order.payment.status === 'cod_pending' && isDelivered) ? 'paid' : order.payment.status}
+                        Payment: <span className="font-medium">{order.paymentMethodText}</span>
+                        {paymentBadge && (
+                          <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${PAYMENT_BADGE_TONE[paymentBadge.tone]}`}>
+                            {paymentBadge.text}
                           </span>
                         )}
                       </p>
@@ -1025,7 +1015,7 @@ Order again from this seller in the ${companyName} app.`
                     </>)}
                   </div>
                   <div className="flex items-center ml-4">
-                    <Link to={`/user/orders/${order.id}`}>
+                    <Link to={`/orders/${order.id}`}>
                       <button className="text-xs text-wh-brand-ink font-medium hover:text-wh-brand-ink flex items-center gap-1">
                         View Details
                         <ChevronRight className="w-4 h-4" />
@@ -1091,7 +1081,13 @@ Order again from this seller in the ${companyName} app.`
                     </div>
                   ) : (
                     <div>
-                      <p className="text-xs text-gray-500">{order.status === 'pending_payment' ? 'Payment pending — tap to complete' : order.status === 'preparing' ? 'Preparing' : order.status === 'outForDelivery' ? 'Out for Delivery' : order.status === 'confirmed' ? 'Order confirmed' : ''}</p>
+                      {order.status === 'pending_payment' ? (
+                        <Link to={`/orders/${order.id}`} className="text-xs font-medium text-wh-brand-ink underline-offset-2 hover:underline">
+                          Payment pending — tap to complete
+                        </Link>
+                      ) : (
+                        <p className="text-xs text-gray-500">{order.statusText}</p>
+                      )}
                       {/* Countdown Timer */}
                       {countdowns[order.id] && countdowns[order.id] > 0 && (
                         <div className="flex items-center gap-1 mt-1 text-xs text-wh-brand-ink font-medium">

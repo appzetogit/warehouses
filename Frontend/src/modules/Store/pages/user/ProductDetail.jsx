@@ -35,6 +35,46 @@ import MobileProductView from "@store/components/user/mobile/MobileProductView"
 import { ProductDetailSkeleton } from "@store/components/user/desktop/HomeSkeletons"
 import { CHANNEL_COPY, channelAvailability, otherChannel, productInChannel, stockLabel, variantInChannel } from "@store/utils/channelStock"
 
+// A variant's value for one option; attributes are either [{ name, value }] or
+// a plain { name: value } object.
+const attrOf = (variant, key) => {
+  const a = variant?.attributes
+  if (!a) return undefined
+  if (Array.isArray(a)) return a.find((x) => x.name === key)?.value
+  return a[key]
+}
+
+/**
+ * A product with several variants but no `options` list had no picker, and the
+ * page silently used the first variant. Build the options from the variants'
+ * attributes (or, failing that, their names) so the customer chooses.
+ */
+const withPickableOptions = (product) => {
+  const variants = Array.isArray(product?.variants) ? product.variants.filter((v) => v && v.isActive !== false) : []
+  if ((Array.isArray(product?.options) && product.options.length > 0) || variants.length < 2) return product
+  const byName = new Map()
+  for (const v of variants) {
+    const a = v.attributes
+    const pairs = Array.isArray(a) ? a.map((x) => [x.name, x.value]) : Object.entries(a || {})
+    for (const [name, value] of pairs) {
+      if (!name || value == null || value === "") continue
+      if (!byName.has(name)) byName.set(name, [])
+      if (!byName.get(name).includes(value)) byName.get(name).push(value)
+    }
+  }
+  if (byName.size > 0) {
+    return { ...product, options: [...byName].map(([name, values]) => ({ name, values })) }
+  }
+  // No attributes at all: one "Option" picked by variant name.
+  const names = [...new Set(variants.map((v) => String(v.name || "").trim()).filter(Boolean))]
+  if (names.length !== variants.length) return product
+  return {
+    ...product,
+    options: [{ name: "Option", values: names }],
+    variants: product.variants.map((v) => ({ ...v, attributes: { Option: String(v.name || "").trim() } })),
+  }
+}
+
 export default function ProductDetail() {
   const { storePath, fulfilmentMode, isQuick } = useStoreMode()
   const { id } = useParams()
@@ -57,28 +97,34 @@ export default function ProductDetail() {
 
   useEffect(() => {
     async function loadProduct() {
+      // A new product starts with nothing chosen and a quantity of 1; the
+      // previous product's size must not carry over.
+      setSelectedAttrs({})
+      setQuantity(1)
+      setChoiceHint(false)
       try {
         setLoading(true)
         const res = await catalogAPI.getProduct(id)
         const data = res?.data?.data || res?.data
         if (data?.product) {
-          setProduct(data.product)
+          const loaded = withPickableOptions(data.product)
+          setProduct(loaded)
           setSeller(data.seller)
 
           // Only an option with a single value is chosen up front. A size has
           // to be picked by the customer, as on any fashion store; choosing S
           // for them sent the wrong size to anyone who didn't notice.
           setChoiceHint(false)
-          if (Array.isArray(data.product.options) && data.product.options.length > 0) {
-            const initialAttrs = {}
-            data.product.options.forEach((opt) => {
+          const initialAttrs = {}
+          if (Array.isArray(loaded.options) && loaded.options.length > 0) {
+            loaded.options.forEach((opt) => {
               if (opt.values && opt.values.length === 1) {
                 const firstVal = typeof opt.values[0] === "object" ? opt.values[0].value : opt.values[0]
                 initialAttrs[opt.name] = firstVal
               }
             })
-            setSelectedAttrs(initialAttrs)
           }
+          setSelectedAttrs(initialAttrs)
         }
       } catch (err) {
         toast.error("Product not found or currently unavailable")
@@ -90,52 +136,90 @@ export default function ProductDetail() {
     if (id) loadProduct()
   }, [id])
 
-  // Resolve matching active variant based on selected attributes
+  // Options with a real choice the customer hasn't made yet.
+  const missingOptions = (Array.isArray(product?.options) ? product.options : [])
+    .filter((opt) => (opt.values?.length || 0) > 1 && !selectedAttrs[opt.name])
+    .map((opt) => opt.name)
+
+  // Variants switched off by the seller are ignored everywhere on this page.
+  const activeVariants = useMemo(
+    () => (Array.isArray(product?.variants) ? product.variants.filter((v) => v && v.isActive !== false) : []),
+    [product],
+  )
+  const hasVariants = activeVariants.length > 0
+  // Options with one value are pre-chosen; a variant that doesn't spell that
+  // value out still matches it.
+  const singleValueOptions = useMemo(
+    () => new Set((Array.isArray(product?.options) ? product.options : []).filter((o) => (o.values?.length || 0) <= 1).map((o) => o.name)),
+    [product],
+  )
+  const variantMatches = (variant, attrs) =>
+    Object.keys(attrs).every((key) => {
+      const value = attrOf(variant, key)
+      if (value === undefined) return singleValueOptions.has(key)
+      return value === attrs[key]
+    })
+
+  // The chosen variant: only once every option with a real choice is chosen.
+  // Until then the page shows the range ("From" price, in stock if any size is).
   const currentVariant = useMemo(() => {
-    if (!product || !Array.isArray(product.variants) || product.variants.length === 0) {
-      return null
-    }
+    if (!hasVariants) return null
+    if (missingOptions.length > 0) return null
+    if (Object.keys(selectedAttrs).length === 0) return activeVariants.length === 1 ? activeVariants[0] : null
+    return activeVariants.find((variant) => variantMatches(variant, selectedAttrs)) || null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeVariants, hasVariants, missingOptions.length, selectedAttrs, singleValueOptions])
+  // Every option chosen, but no variant has that size + colour.
+  const combinationMissing = hasVariants && missingOptions.length === 0 && !currentVariant
 
-    const selectedKeys = Object.keys(selectedAttrs)
-    if (selectedKeys.length === 0) return product.variants[0]
-
-    return (
-      product.variants.find((variant) => {
-        if (!variant.attributes) return false
-        // Variant attributes can be array [{ name, value }] or key-value object
-        if (Array.isArray(variant.attributes)) {
-          return selectedKeys.every((key) => {
-            const match = variant.attributes.find((a) => a.name === key)
-            return match && match.value === selectedAttrs[key]
-          })
-        }
-        return selectedKeys.every((key) => variant.attributes[key] === selectedAttrs[key])
-      }) || null
-    )
-  }, [product, selectedAttrs])
-
-  // Current pricing & stock resolution
-  const displayPrice = currentVariant ? currentVariant.price : (product?.price ?? 0)
-  // A variant without its own MRP uses the product's.
-  const displayMrp = (currentVariant ? currentVariant.mrp ?? product?.mrp : product?.mrp) ?? 0
-  const hasDiscount = displayMrp > displayPrice
-  const discountPercent = hasDiscount ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100) : 0
   // Stock and availability for this store's channel (see CHANNELS_CONTRACT.md).
   const channel = isQuick ? "quick" : "shop"
   const altChannel = otherChannel(channel)
-  const avail = channelAvailability(product, channel, currentVariant)
+  // Variants still possible with what is chosen so far, and sold here.
+  const candidates = hasVariants && !currentVariant
+    ? activeVariants.filter((v) => variantMatches(v, selectedAttrs) && variantInChannel(v, product, channel))
+    : []
+  const cheapest = candidates.reduce(
+    (best, v) => (Number.isFinite(Number(v.price)) && (!best || Number(v.price) < Number(best.price)) ? v : best),
+    null,
+  )
+  const priceFrom = !!cheapest && candidates.some((v) => Number(v.price) !== Number(cheapest.price))
+
+  // Current pricing & stock resolution
+  const priceSource = currentVariant || cheapest
+  const displayPrice = priceSource ? Number(priceSource.price) : (product?.price ?? 0)
+  // A variant without its own MRP uses the product's.
+  const displayMrp = (priceSource ? priceSource.mrp ?? product?.mrp : product?.mrp) ?? 0
+  const hasDiscount = displayMrp > displayPrice
+  const discountPercent = hasDiscount ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100) : 0
+  const avail = (() => {
+    if (currentVariant || !hasVariants) return channelAvailability(product, channel, currentVariant)
+    const base = channelAvailability(product, channel, null)
+    if (combinationMissing) return { enabled: base.enabled, inStock: false, qty: null, low: false }
+    // Not everything chosen yet: in stock if any variant still possible is.
+    return {
+      enabled: base.enabled && candidates.length > 0,
+      inStock: base.enabled && candidates.some((v) => channelAvailability(product, channel, v).inStock),
+      qty: null,
+      low: false,
+    }
+  })()
   const isAvailable = avail.inStock
   const notInThisStore = !!product && !avail.enabled
   const altAvail = channelAvailability(product, altChannel, currentVariant)
   const altPath = altChannel === "quick" ? `/quick/product/${id}` : `/product/${id}`
+  // A value is on offer when some active variant with it (and with the other
+  // values already chosen) is sold here and in stock; sold-out sizes show
+  // struck through before they are tapped.
   const isValueEnabled = (optName, val) => {
-    if (!Array.isArray(product?.variants) || product.variants.length === 0) return true
-    const matches = product.variants.filter((v) => {
-      const a = v.attributes
-      if (!a) return false
-      return Array.isArray(a) ? a.some((x) => x.name === optName && x.value === val) : a[optName] === val
-    })
-    return matches.length === 0 || matches.some((v) => variantInChannel(v, product, channel))
+    if (!hasVariants) return true
+    // Variants that don't describe this option can't rule a value out.
+    if (!activeVariants.some((v) => attrOf(v, optName) !== undefined)) return true
+    const others = { ...selectedAttrs }
+    delete others[optName]
+    return activeVariants.some(
+      (v) => variantMatches(v, { ...others, [optName]: val }) && channelAvailability(product, channel, v).inStock,
+    )
   }
 
   // Images list: the selected variant's own photos first, then the product's
@@ -160,15 +244,15 @@ export default function ProductDetail() {
     setSelectedAttrs((prev) => ({ ...prev, [optName]: val }))
   }
 
-  // Options with a real choice the customer hasn't made yet.
-  const missingOptions = (Array.isArray(product?.options) ? product.options : [])
-    .filter((opt) => (opt.values?.length || 0) > 1 && !selectedAttrs[opt.name])
-    .map((opt) => opt.name)
-
   const handleAddToCart = () => {
     if (missingOptions.length > 0) {
       setChoiceHint(true)
       toast.error(`Please choose a ${missingOptions.map((n) => n.toLowerCase()).join(" and ")}`)
+      return false
+    }
+    if (combinationMissing || (hasVariants && !currentVariant)) {
+      // Never add a product with sizes as "no size" at the product price.
+      toast.error("This combination isn't available")
       return false
     }
     if (notInThisStore) {
@@ -198,10 +282,9 @@ export default function ProductDetail() {
       // the "replace cart?" dialog.
       seller: seller?.sellerName || "Store",
       sellerName: seller?.sellerName || "Store",
-      quantity,
       selectedAttributes: selectedAttrs,
       channels: product.channels,
-    })
+    }, null, { quantity })
 
     if (result?.ok === false) {
       // A cart from another seller puts up the replace dialog; nothing was
@@ -266,6 +349,7 @@ export default function ProductDetail() {
             isValueEnabled={isValueEnabled}
             allImages={allImages}
             displayPrice={displayPrice}
+            priceFrom={priceFrom}
             displayMrp={displayMrp}
             discountPercent={discountPercent}
             onAddToCart={handleAddToCart}
@@ -296,6 +380,7 @@ export default function ProductDetail() {
           quantity={quantity}
           setQuantity={setQuantity}
           displayPrice={displayPrice}
+          priceFrom={priceFrom}
           displayMrp={displayMrp}
           discountPercent={discountPercent}
           onAddToCart={handleAddToCart}
@@ -426,6 +511,7 @@ export default function ProductDetail() {
               {/* Price Row */}
               <div className="flex items-baseline gap-3 mt-3">
                 <span className="text-3xl font-black text-gray-900 dark:text-white">
+                  {priceFrom ? <span className="mr-1 text-base font-semibold text-gray-500">From</span> : null}
                   ₹{displayPrice.toLocaleString()}
                 </span>
                 {hasDiscount && (
@@ -553,7 +639,7 @@ export default function ProductDetail() {
 
               <Button
                 onClick={handleAddToCart}
-                disabled={!isAvailable || notInThisStore}
+                disabled={(!isAvailable || notInThisStore) && missingOptions.length === 0}
                 className="flex-1 py-3.5 px-8 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold shadow-lg shadow-orange-500/25 transition-all text-sm flex items-center justify-center gap-2"
               >
                 <ShoppingBag className="w-5 h-5" />

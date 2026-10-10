@@ -15,7 +15,6 @@ import {
   ArrowRight,
   FileText,
   Shield,
-  Clock,
   MapPin
 } from "lucide-react"
 import AnimatedPage from "@store/components/user/AnimatedPage"
@@ -24,7 +23,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@stor
 import { Button } from "@store/components/ui/button"
 import { Input } from "@store/components/ui/input"
 import { Badge } from "@store/components/ui/badge"
-import { getSupportEmail } from "@store/utils/businessSettings"
+import { useBusinessSettings } from "@store/components/user/desktop/useDesktopShell"
 
 const helpCategories = [
   {
@@ -171,7 +170,7 @@ const helpCategories = [
       },
       {
         question: "How do I contact customer support?",
-        answer: "You can contact us via phone, email, or live chat. Visit the 'Contact Support' section below for all contact options."
+        answer: "Use the 'Still Need Help?' section below: send us a message and track our reply, or reach us by phone or email where listed."
       },
       {
         question: "Is there a mobile app?",
@@ -186,6 +185,7 @@ const helpCategories = [
 ]
 
 export default function Help() {
+  const { supportPhone, supportEmail } = useBusinessSettings()
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedCategory, setExpandedCategory] = useState(null)
   const [expandedQuestion, setExpandedQuestion] = useState(null)
@@ -375,70 +375,65 @@ export default function Help() {
                 Still Need Help?
               </CardTitle>
               <CardDescription className="text-sm md:text-base">
-                Our support team is here to assist you 24/7
+                Our support team is here to help
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 md:space-y-5 lg:space-y-6 p-4 md:p-5 lg:p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
-                <div className="flex items-start gap-3 p-4 bg-white rounded-lg">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Phone className="h-5 w-5 text-wh-brand-ink" />
+                {supportPhone ? (
+                  <div className="flex items-start gap-3 p-4 bg-white rounded-lg">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <Phone className="h-5 w-5 text-wh-brand-ink" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-1">Phone Support</h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Call us
+                      </p>
+                      <a
+                        href={`tel:${supportPhone.replace(/s+/g, "")}`}
+                        className="text-sm text-primary hover:underline font-medium"
+                      >
+                        {supportPhone}
+                      </a>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold mb-1">Phone Support</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Call us anytime
-                    </p>
-                    <a
-                      href="tel:+1-800-123-4567"
-                      className="text-sm text-primary hover:underline font-medium"
-                    >
-                      +1 (800) 123-4567
-                    </a>
+                ) : null}
+                {supportEmail ? (
+                  <div className="flex items-start gap-3 p-4 bg-white rounded-lg">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <Mail className="h-5 w-5 text-wh-brand-ink" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold mb-1">Email Support</h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        We'll respond within 24 hours
+                      </p>
+                      <a
+                        href={`mailto:${supportEmail}`}
+                        className="text-sm text-primary hover:underline font-medium break-all"
+                      >
+                        {supportEmail}
+                      </a>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3 p-4 bg-white rounded-lg">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Mail className="h-5 w-5 text-wh-brand-ink" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-1">Email Support</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      We'll respond within 24 hours
-                    </p>
-                    <a
-                      href={`mailto:${getSupportEmail()}`}
-                      className="text-sm text-primary hover:underline font-medium"
-                    >
-                      {getSupportEmail()}
-                    </a>
-                  </div>
-                </div>
+                ) : null}
                 <div className="flex items-start gap-3 p-4 bg-white rounded-lg">
                   <div className="p-2 bg-orange-100 rounded-lg">
                     <MessageCircle className="h-5 w-5 text-wh-brand-ink" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Live Chat</h3>
+                    <h3 className="font-semibold mb-1">Message Us</h3>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Available 24/7
+                      Raise a request and track our reply
                     </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-1"
-                      onClick={() => alert("Live chat would open here")}
-                    >
-                      Start Chat
-                    </Button>
+                    <Link to="/profile/support">
+                      <Button variant="outline" size="sm" className="mt-1">
+                        Get Help
+                      </Button>
+                    </Link>
                   </div>
                 </div>
-              </div>
-              <div className="pt-4 border-t">
-                <p className="text-sm text-muted-foreground mb-3">
-                  <Clock className="h-4 w-4 inline mr-1" />
-                  Average response time: Less than 5 minutes
-                </p>
               </div>
             </CardContent>
           </Card>

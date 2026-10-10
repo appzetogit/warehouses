@@ -26,6 +26,32 @@ const sizeOf = (variant) =>
   (variant?.attributes || []).find((a) => /^size$/i.test(String(a?.name || "")))?.value ||
   String(variant?.name || "").split("/")[0].trim()
 
+const attrPairs = (variant) => {
+  const a = variant?.attributes
+  if (Array.isArray(a)) return a.map((x) => [String(x?.name || ""), x?.value])
+  return a && typeof a === "object" ? Object.entries(a) : []
+}
+
+// The full name of a variant ("M / Red"): its own name, else its values.
+const variantLabel = (variant) =>
+  String(variant?.name || "").trim() ||
+  attrPairs(variant).map(([, value]) => value).filter(Boolean).join(" / ") ||
+  "Option"
+
+// True when variants differ on something besides size (a colour, say). A size
+// chip would then stand for several variants and add an arbitrary colour.
+const differsBeyondSize = (variants) => {
+  const values = new Map()
+  for (const v of variants) {
+    for (const [name, value] of attrPairs(v)) {
+      if (!name || /^size$/i.test(name)) continue
+      if (!values.has(name)) values.set(name, new Set())
+      values.get(name).add(String(value))
+    }
+  }
+  return [...values.values()].some((set) => set.size > 1)
+}
+
 export default function ProductTile({ product, showSizes = true }) {
   const navigate = useNavigate()
   const { isQuick, storePath } = useStoreMode()
@@ -45,8 +71,12 @@ export default function ProductTile({ product, showSizes = true }) {
     [product],
   )
 
-  // One chip per size, in stock if any variant of that size is.
+  const multiAttribute = useMemo(() => differsBeyondSize(variants), [variants])
+
+  // One chip per size, in stock if any variant of that size is. Not offered
+  // when variants also differ by colour etc.: the sheet lists every variant.
   const sizes = useMemo(() => {
+    if (multiAttribute) return []
     const seen = new Map()
     for (const v of variants) {
       const size = sizeOf(v)
@@ -55,12 +85,19 @@ export default function ProductTile({ product, showSizes = true }) {
       if (!seen.has(size) || (ok && !seen.get(size).ok)) seen.set(size, { size, variant: v, ok })
     }
     return [...seen.values()]
-  }, [variants, product, channel])
+  }, [variants, product, channel, multiAttribute])
 
   const [size, setSize] = useState("")
   const [imageLoaded, setImageLoaded] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const chosen = sizes.find((s) => s.size === size)
+  // `size` holds the picked size, or the picked variant's id for a product
+  // whose variants differ beyond size.
+  const chosen = multiAttribute
+    ? (() => {
+        const v = variants.find((x) => String(x._id || x.id || "") === size)
+        return v ? { size, variant: v } : undefined
+      })()
+    : sizes.find((s) => s.size === size)
   const variant = chosen?.variant || (variants.length === 1 ? variants[0] : null)
 
   const price = Number(variant?.price ?? product?.displayPrice ?? product?.price ?? 0)
@@ -134,8 +171,9 @@ export default function ProductTile({ product, showSizes = true }) {
       if (!result.needsConfirmation) toast.error(result.error || "Could not add this item")
       return
     }
-    const label = v ? sizeOf(v) : ""
-    if (label) setSize(label)
+    const label = v ? (multiAttribute ? variantLabel(v) : sizeOf(v)) : ""
+    if (v && multiAttribute) setSize(String(v._id || v.id || ""))
+    else if (label) setSize(label)
     toast.success(`Added ${product?.name}${label ? ` (${label})` : ""}`)
   }
 
@@ -143,7 +181,7 @@ export default function ProductTile({ product, showSizes = true }) {
   // on the tile was already picked.
   const sheetOptions = sizes.length
     ? sizes.map((s) => ({ key: s.size, label: s.size, ok: s.ok, variant: s.variant }))
-    : variants.map((v) => ({ key: String(v._id || v.name), label: v.name || "Option", ok: channelAvailability(product, channel, v).inStock, variant: v }))
+    : variants.map((v) => ({ key: String(v._id || v.name), label: variantLabel(v), ok: channelAvailability(product, channel, v).inStock, variant: v }))
 
   const add = (e) => {
     e.preventDefault()

@@ -9,7 +9,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react"
+import { toast } from "sonner"
 import { useCart } from "@store/context/CartContext"
+import { lineQuantityCap } from "@store/utils/channelStock"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { ImagePlaceholder, isRealImage } from "../ui"
 import { useQuickEta } from "../useDeliveryEstimates"
@@ -53,7 +55,15 @@ function CartLineStepper({ line }) {
       <span className="flex flex-1 items-center justify-center tabular-nums">{qty}</span>
       <button
         type="button"
-        onClick={() => updateQuantity(line.id, qty + 1)}
+        onClick={() => {
+          // Stop at what the line says can be ordered rather than failing at checkout.
+          const cap = lineQuantityCap(line)
+          if (qty >= cap) {
+            toast.error(`Only ${cap} of ${line.name} can be ordered`)
+            return
+          }
+          updateQuantity(line.id, qty + 1)
+        }}
         aria-label={`Increase quantity of ${line.name}`}
         className={cx("flex w-[26px] items-center justify-center hover:bg-[#93400a]", focusRing)}
       >

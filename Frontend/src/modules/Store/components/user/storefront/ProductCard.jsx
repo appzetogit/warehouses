@@ -27,6 +27,7 @@ export default function ProductCard({
   const hasOptions = Array.isArray(product?.variants) && product.variants.length > 0
   const [picking, setPicking] = useState(false)
   const ref = useRef(null)
+  const triggerRef = useRef(null)
   const id = product?._id || product?.id
 
   // Every photo the product has, so the card can cycle through them.
@@ -99,7 +100,15 @@ export default function ProductCard({
   }, [canHover, gallery.length])
 
   const price = Number(product?.displayPrice ?? product?.price ?? 0)
-  const mrp = Number(product?.mrp ?? 0)
+  // Active variants' prices: more than one means the shown price is "From".
+  const activeVariants = hasOptions ? product.variants.filter((v) => v && v.isActive !== false) : []
+  const variantPrices = new Set(activeVariants.map((v) => Number(v.price)).filter((n) => Number.isFinite(n) && n > 0))
+  const fromPrice = variantPrices.size > 1
+  // No product MRP: the MRP of the variant at the shown price, else the cheapest variant's.
+  const priceVariant =
+    activeVariants.find((v) => Number(v.price) === price) ||
+    [...activeVariants].sort((a, b) => Number(a.price) - Number(b.price))[0]
+  const mrp = Number(product?.mrp) || Number(priceVariant?.mrp) || 0
   const off = percentOff(price, mrp)
   const rating = Number(product?.rating) > 0 ? Number(product.rating) : null
   const ratingCount = Number(product?.ratingCount ?? product?.totalRatings) || 0
@@ -153,6 +162,7 @@ export default function ProductCard({
           ) : null}
 
           <div className="flex flex-wrap items-baseline gap-x-1.5">
+            {fromPrice ? <span className="text-[11px] text-wh-muted">From</span> : null}
             {mrp > price ? (
               <span className="text-[11px] text-wh-muted line-through">₹{mrp.toLocaleString("en-IN")}</span>
             ) : null}
@@ -187,6 +197,7 @@ export default function ProductCard({
       {onAction ? (
         <div className="px-2 pb-2 sm:px-2.5 sm:pb-2.5">
           <button
+            ref={triggerRef}
             type="button"
             disabled={disabled}
             onClick={(e) => {
@@ -207,6 +218,7 @@ export default function ProductCard({
         <CardSizePicker
           product={product}
           channel={isQuick ? "quick" : "shop"}
+          triggerRef={triggerRef}
           onClose={() => setPicking(false)}
           onPick={(variant) => {
             setPicking(false)

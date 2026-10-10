@@ -18,7 +18,7 @@ import { orderAPI, sellerAPI, adminAPI, userAPI, coinsAPI, API_ENDPOINTS } from 
 import { API_BASE_URL } from "@store/api/config"
 import { catalogAPI } from "@/services/api"
 import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
-import { CHANNEL_COPY, addToOtherStoreCart, channelAvailability, findUnavailableCartItem, otherChannel } from "@store/utils/channelStock"
+import { CHANNEL_COPY, addToOtherStoreCart, channelAvailability, findUnavailableCartItem, isQuantityRefusal, lineQuantityCap, otherChannel } from "@store/utils/channelStock"
 import { initRazorpayPayment } from "@store/utils/razorpay"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@store/utils/businessSettings"
@@ -1108,6 +1108,69 @@ export default function Cart() {
     fetchCouponsForCartItems()
   }, [cart, sellerId])
 
+  // The coupon code whose refusal was last shown, so it is said once.
+  const couponRefusalShownRef = useRef(null)
+
+  /**
+   * Price the cart with `code` the way checkout will: the cart-wide quote for
+   * a split (Shop / several stores / coins) checkout, else the one-store
+   * calculation for this storefront's mode. A Shop cart priced as one Quick
+   * store refused every coupon ("not available in Quick", "different seller").
+   */
+  const quoteWithCoupon = async (code) => {
+    if (usesSplitCheckout) {
+      const res = await orderAPI.calculateCheckout({
+        items: cart.map((item) => ({
+          itemId: item.itemId || item.id,
+          sellerId: item.sellerId || item.seller?._id,
+          variantId: item.variantId || undefined,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity || 1,
+        })),
+        deliveryAddress: pricingAddress,
+        fulfilmentMode: storeFulfilmentMode,
+        couponCode: code || undefined,
+        coins: useCoins ? Math.floor(Number(coinBalance?.usable) || 0) : 0,
+      })
+      const quote = res?.data?.data || null
+      return {
+        ok: !!quote,
+        appliedCoupon: quote?.appliedCoupon || null,
+        couponRefusal: quote?.couponRefusal || null,
+        discount: Number(quote?.appliedCoupon?.discount ?? quote?.discount) || 0,
+        commit: () => setCheckoutQuote(quote),
+      }
+    }
+    const res = await orderAPI.calculateOrder({
+      items: cart.map(item => ({
+        itemId: item.itemId || item.id,
+        name: item.name,
+        price: item.price,
+        variantId: item.variantId || undefined,
+        variantName: item.variantName || undefined,
+        variantPrice: item.variantPrice || item.price,
+        quantity: item.quantity || 1,
+        image: item.image,
+        description: item.description,
+        isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null
+      })),
+      sellerId: sellerData?.sellerId || sellerData?._id || sellerId || null,
+      deliveryAddress: pricingAddress,
+      couponCode: code || null,
+      deliveryMode,
+      fulfilmentMode: storeFulfilmentMode,
+    })
+    const pricingData = res?.data?.data?.pricing || null
+    return {
+      ok: !!pricingData,
+      appliedCoupon: pricingData?.appliedCoupon || null,
+      couponRefusal: pricingData?.couponRefusal || null,
+      discount: Number(pricingData?.appliedCoupon?.discount) || 0,
+      commit: () => setPricing(pricingData),
+    }
+  }
+
   const usesSplitCheckout = useMemo(() => {
     const sellers = new Set(
       cart.map((item) => String(item.sellerId || item.seller?._id || "")).filter(Boolean),
@@ -1138,7 +1201,23 @@ export default function Cart() {
           // Ask for as many as the customer has; the server caps it.
           coins: useCoins ? Math.floor(Number(coinBalance?.usable) || 0) : 0,
         })
-        if (!cancelled) setCheckoutQuote(res?.data?.data || null)
+        const nextQuote = res?.data?.data || null
+        if (cancelled) return
+        setCheckoutQuote(nextQuote)
+        // The cart-wide quote refused the coupon on the cart (e.g. a first-order
+        // offer on a second order): say why and stop showing it as applied.
+        const refusal = nextQuote?.couponRefusal
+        if (refusal && appliedCoupon?.code && String(refusal.code || "").toUpperCase() === String(appliedCoupon.code).toUpperCase()) {
+          if (couponRefusalShownRef.current !== refusal.code) {
+            couponRefusalShownRef.current = refusal.code
+            toast.error(refusal.reason || "This coupon can't be used on this order")
+          }
+          const resolvedSellerId = sellerData?.sellerId || sellerData?._id || cart[0]?.sellerId
+          if (resolvedSellerId) markManualCouponOptOut(resolvedSellerId, getCartSignature(cart))
+          setAppliedCoupon(null)
+          setCouponCode("")
+          setManualCouponCode("")
+        }
       } catch (error) {
         debugError("Checkout quote failed:", error)
         if (!cancelled) setCheckoutQuote(null)
@@ -1197,12 +1276,15 @@ export default function Cart() {
             ? response.data.data.items
             : []
           if (resolvedItems.length > 0) {
+            // Keyed by product and size: two sizes of one product can cost
+            // different amounts and carry different labels.
+            const lineKey = (itemId, variantId) => `${String(itemId || "")}::${String(variantId || "")}`
             const priceById = new Map(
-              resolvedItems.map((item) => [String(item.itemId), item]),
+              resolvedItems.map((item) => [lineKey(item.itemId, item.variantId), item]),
             )
             const nextCart = cart.map((cartItem) => {
-              const itemId = String(cartItem.itemId || cartItem.id || "")
-              const resolved = priceById.get(itemId)
+              const itemId = String(cartItem.itemId || cartItem.productId || cartItem.id || "")
+              const resolved = priceById.get(lineKey(itemId, cartItem.variantId))
               if (!resolved) return cartItem
 
               const nextPrice = Number(resolved.price)
@@ -1516,6 +1598,8 @@ export default function Cart() {
   const finalPayable = checkoutQuote
     ? Number(checkoutQuote.grandTotal) || 0
     : Math.max(0, total - coinDiscount)
+  // Wallet chosen but it can't cover what is payable: the button says so.
+  const walletTooLow = selectedPaymentMethod === "wallet" && walletBalance < finalPayable
 
   const sellerGroups = useMemo(() => {
     const groups = new Map()
@@ -1778,37 +1862,25 @@ export default function Cart() {
       return
     }
 
+    // Coupons are checked against a delivery address; without one, ask for it.
+    if (!hasSavedAddress) {
+      toast.error("Add a delivery address to apply a coupon")
+      setShowOffersView(false)
+      setShowAddressSheet(true)
+      return
+    }
+
     // Validate with backend first; only set applied if backend accepts
-    if (cart.length > 0 && hasSavedAddress) {
+    if (cart.length > 0) {
       try {
-        const items = cart.map(item => ({
-          itemId: item.itemId || item.id,
-          name: item.name,
-          price: item.price,
-          variantId: item.variantId || undefined,
-          variantName: item.variantName || undefined,
-          variantPrice: item.variantPrice || item.price,
-          quantity: item.quantity || 1,
-          image: item.image,
-          description: item.description,
-          isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null
-        }))
-
-        const response = await orderAPI.calculateOrder({
-          items,
-          sellerId: sellerData?.sellerId || sellerData?._id || sellerId || null,
-          deliveryAddress: pricingAddress,
-          couponCode: coupon.code,
-          deliveryMode,
-        })
-
-        const pricingData = response?.data?.data?.pricing
-        if (!pricingData || !pricingData.appliedCoupon) {
-          toast.error("Coupon not applicable")
+        const result = await quoteWithCoupon(coupon.code)
+        if (!result.ok || !result.appliedCoupon) {
+          toast.error(result.couponRefusal?.reason || "Coupon not applicable")
           return
         }
 
-        setPricing(pricingData)
+        result.commit()
+        couponRefusalShownRef.current = null
         setAppliedCoupon({ ...coupon, autoApplied: false })
         setCouponCode(coupon.code)
         setManualCouponCode(coupon.code)
@@ -1820,7 +1892,7 @@ export default function Cart() {
         setShowOffersView(false)
       } catch (error) {
         debugError("Error recalculating pricing:", error)
-        toast.error("Failed to apply coupon")
+        toast.error(error?.response?.data?.message || "Failed to apply coupon")
       }
     }
   }
@@ -1834,6 +1906,7 @@ export default function Cart() {
 
     if (cart.length === 0 || !hasSavedAddress) {
       toast.error("Add items and delivery address first")
+      if (!hasSavedAddress && cart.length > 0) setShowAddressSheet(true)
       return
     }
 
@@ -1848,46 +1921,26 @@ export default function Cart() {
     }
 
     try {
-      const items = cart.map(item => ({
-        itemId: item.itemId || item.id,
-        name: item.name,
-        price: item.price,
-        variantId: item.variantId || undefined,
-        variantName: item.variantName || undefined,
-        variantPrice: item.variantPrice || item.price,
-        quantity: item.quantity || 1,
-        image: item.image,
-        description: item.description,
-        isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null
-      }))
-
-      const response = await orderAPI.calculateOrder({
-        items,
-        sellerId: sellerData?.sellerId || sellerData?._id || sellerId || null,
-        deliveryAddress: pricingAddress,
-        couponCode: inputCode,
-        deliveryMode,
-      })
-
-      const pricingData = response?.data?.data?.pricing
-      if (!pricingData) {
+      const result = await quoteWithCoupon(inputCode)
+      if (!result.ok) {
         toast.error("Unable to validate coupon")
         return
       }
 
-      if (!pricingData.appliedCoupon) {
-        toast.error("Invalid or unavailable coupon code")
+      if (!result.appliedCoupon) {
+        toast.error(result.couponRefusal?.reason || "Invalid or unavailable coupon code")
         setCouponCode("")
         return
       }
 
-      setPricing(pricingData)
+      result.commit()
+      couponRefusalShownRef.current = null
       setCouponCode(inputCode)
       setAppliedCoupon(
         {
           ...(matchedCoupon || {
             code: inputCode,
-            discount: pricingData.appliedCoupon.discount || 0,
+            discount: result.appliedCoupon.discount || 0,
             minOrder: 0,
             customerGroup: "all",
           }),
@@ -1904,7 +1957,7 @@ export default function Cart() {
       toast.success("Coupon applied")
     } catch (error) {
       debugError("Error applying coupon code:", error)
-      toast.error("Failed to apply coupon")
+      toast.error(error?.response?.data?.message || "Failed to apply coupon")
     }
   }
 
@@ -1923,30 +1976,8 @@ export default function Cart() {
     // Recalculate pricing without coupon
     if (cart.length > 0 && hasSavedAddress) {
       try {
-        const items = cart.map(item => ({
-          itemId: item.itemId || item.id,
-          name: item.name,
-          price: item.price,
-          variantId: item.variantId || undefined,
-          variantName: item.variantName || undefined,
-          variantPrice: item.variantPrice || item.price,
-          quantity: item.quantity || 1,
-          image: item.image,
-          description: item.description,
-          isVeg: typeof item.isVeg === "boolean" ? item.isVeg : null
-        }))
-
-        const response = await orderAPI.calculateOrder({
-          items,
-          sellerId: sellerData?.sellerId || sellerData?._id || sellerId || null,
-          deliveryAddress: pricingAddress,
-          couponCode: null,
-          deliveryMode,
-        })
-
-        if (response?.data?.success && response?.data?.data?.pricing) {
-          setPricing(response.data.data.pricing)
-        }
+        const result = await quoteWithCoupon(null)
+        if (result.ok) result.commit()
       } catch (error) {
         debugError("Error recalculating pricing:", error)
       }
@@ -1954,7 +1985,20 @@ export default function Cart() {
   }
 
 
+  // Set synchronously, so a double tap can't start two orders before
+  // isPlacingOrder has re-rendered the button as disabled.
+  const placingOrderRef = useRef(false)
   const handlePlaceOrder = async () => {
+    if (placingOrderRef.current) return
+    placingOrderRef.current = true
+    try {
+      await placeOrder()
+    } finally {
+      placingOrderRef.current = false
+    }
+  }
+
+  const placeOrder = async () => {
     // Guests can build a cart, but an order needs an account: send them to
     // sign in and bring them straight back here.
     if (!isModuleAuthenticated("user")) {
@@ -2050,8 +2094,21 @@ export default function Cart() {
           coins: useCoins ? Number(checkoutQuote?.coinsUsed) || 0 : 0,
           paymentMethod: selectedPaymentMethod === "wallet" ? "wallet" : (selectedPaymentMethod === "cash" ? "cash" : "razorpay"),
           note: String(note || "").trim(),
+          // The recipient edited at checkout and the delivery instructions go
+          // on every store's order, as they do for a single-store order.
+          customerName: recipientName || defaultAddress?.fullName || defaultAddress?.name || "",
+          customerPhone: recipientPhone || defaultAddress?.phone || "",
+          deliveryInstructions: deliveryInstructionText,
           scheduledAt: isScheduled ? new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString() : undefined,
         };
+        const recipientAddress = {
+          ...pricingAddress,
+          phone: recipientPhone || defaultAddress?.phone || pricingAddress?.phone || "",
+          name: recipientName || defaultAddress?.name || defaultAddress?.fullName || pricingAddress?.name || "",
+          fullName: recipientName || defaultAddress?.fullName || defaultAddress?.name || pricingAddress?.fullName || "",
+        };
+        checkoutPayload.deliveryAddress = recipientAddress;
+        checkoutPayload.address = recipientAddress;
 
         const checkoutRes = await orderAPI.createCheckout(checkoutPayload);
         const checkoutData = checkoutRes?.data?.data?.checkout || checkoutRes?.data?.data;
@@ -2413,6 +2470,21 @@ export default function Cart() {
         return
       }
 
+      // Cash on delivery: the order is placed when the server answers. Without
+      // this it fell through to the online-payment check below, said "Failed
+      // to initialize payment" for an order that existed, and a second tap
+      // placed it again.
+      if (selectedPaymentMethod === "cash") {
+        toast.success("Order placed successfully!")
+        setPlacedOrderId(order?._id || order?.orderId || order?.id || null)
+        setShowOrderSuccess(true)
+        window.dispatchEvent(new CustomEvent('order-placed', { detail: { order } }))
+        clearCart()
+        resetCartPreferences()
+        setIsPlacingOrder(false)
+        return
+      }
+
       if (!razorpay || !razorpay.orderId || !razorpay.key) {
         debugError("? Razorpay initialization failed:", { razorpay, order })
         throw new Error(razorpay ? "Razorpay payment gateway is not configured. Please contact support." : "Failed to initialize payment")
@@ -2561,6 +2633,29 @@ export default function Cart() {
       // Handle timeout errors
       else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         errorMessage = "Request timed out. The server is taking too long to respond. Please try again."
+      }
+      // Too many of an item (stock or per-order limit): bring the line down to
+      // what can be ordered and say so, instead of "not available here".
+      else if (isQuantityRefusal(findUnavailableCartItem(error, cart))) {
+        const hit = findUnavailableCartItem(error, cart)
+        const label = `${hit.item.name}${hit.item.variantName ? ` (${hit.item.variantName})` : ""}`
+        // null means the server didn't say how many are left: keep the line.
+        const available = hit.available == null ? NaN : Number(hit.available)
+        if (Number.isFinite(available) && available > 0) {
+          updateQuantity(hit.item.id, Math.min(Number(hit.item.quantity) || 1, available))
+          toast.error(
+            hit.reason === "max_per_order"
+              ? `You can order at most ${available} of ${label} — quantity reduced`
+              : `Only ${available} left of ${label} — quantity reduced`,
+          )
+        } else if (Number.isFinite(available) && available === 0) {
+          removeFromCart(hit.item.id)
+          toast.error(`${label} just went out of stock and was removed from your cart`)
+        } else {
+          toast.error(hit.message || `Please reduce the quantity of ${label}`)
+        }
+        setIsPlacingOrder(false)
+        return
       }
       // An item not sold in this store's channel: let the customer fix the cart.
       else if (findUnavailableCartItem(error, cart)) {
@@ -2838,7 +2933,14 @@ export default function Cart() {
                                   type="button"
                                   aria-label={`Increase quantity of ${item.name}`}
                                   className="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-r-lg transition-colors"
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                  onClick={() => {
+                                    const cap = lineQuantityCap(item)
+                                    if (item.quantity >= cap) {
+                                      toast.error(`Only ${cap} of ${item.name}${item.variantName ? ` (${item.variantName})` : ""} can be ordered`)
+                                      return
+                                    }
+                                    updateQuantity(item.id, item.quantity + 1)
+                                  }}
                                 >
                                   <Plus className="h-3.5 w-3.5" />
                                 </button>
@@ -3177,7 +3279,7 @@ export default function Cart() {
                     isPlacingOrder ||
                     loadingSeller ||
                     !canPlaceOrder ||
-                    (selectedPaymentMethod === "wallet" && walletBalance < finalPayable)
+                    walletTooLow
                   }
                   proceedLabel={
                     isPlacingOrder
@@ -3186,6 +3288,8 @@ export default function Cart() {
                         ? "Loading..."
                         : !canPlaceOrder
                           ? "Store Offline"
+                          : walletTooLow
+                            ? "Wallet balance too low"
                           : !hasSavedAddress
                             ? "Add Delivery Address"
                             : "Proceed to Buy"
@@ -3435,7 +3539,7 @@ export default function Cart() {
               isPlacingOrder ||
               loadingSeller ||
               !canPlaceOrder ||
-              (selectedPaymentMethod === "wallet" && walletBalance < finalPayable)
+              walletTooLow
             }
             className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-base shadow-lg shadow-orange-500/25 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -3448,6 +3552,8 @@ export default function Cart() {
               <span>Loading...</span>
             ) : !canPlaceOrder ? (
               <span>Store Currently Offline</span>
+            ) : walletTooLow ? (
+              <span>Wallet balance too low</span>
             ) : !hasSavedAddress ? (
               <span>Add Delivery Address</span>
             ) : (
@@ -4052,7 +4158,7 @@ export default function Cart() {
                           color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
                           selectedColor: 'bg-blue-500 text-white',
                           subInfo: `Bal: ${RUPEE_SYMBOL}${walletBalance.toFixed(0)}`,
-                          disabled: walletBalance < total,
+                          disabled: walletBalance < finalPayable,
                           disabledText: 'Low Balance'
                         },
                       ].filter(Boolean).map((option) => (

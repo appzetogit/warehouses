@@ -231,7 +231,7 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
               <QuickProductRail
                 title="Deals of the Day"
                 products={deals.slice(0, 20)}
-                seeAllTo={storePath("/offers")}
+                seeAllTo={`${storePath("/search")}?minDiscount=10`}
                 etaMinutes={eta}
               />
             )}

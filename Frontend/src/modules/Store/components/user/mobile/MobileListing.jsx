@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { ArrowUpDown, ChevronDown, SlidersHorizontal, X } from "lucide-react"
 import { catalogAPI, searchAPI } from "@/services/api"
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
@@ -8,6 +8,7 @@ import { usePublicCategories } from "../desktop/useDesktopShell"
 import FilterSheet, { EMPTY_MOBILE_FILTERS, activeFilterCount } from "./FilterSheet"
 import MobileTopBar from "./MobileTopBar"
 import ProductTile from "./ProductTile"
+import { categorySlugOf, findCategoryBySlug, isCategoryId } from "@store/utils/categorySlug"
 
 /**
  * The product listing from the mobile mockup (screen 2), for a category, a
@@ -23,13 +24,67 @@ const SORTS = [
   ["rating", "Customer Rating"],
   ["newest", "Newest First"],
 ]
+const SORT_KEYS = SORTS.map(([key]) => key)
 
-const slugify = (name) =>
-  String(name || "")
-    .toLowerCase()
-    .replace(/&/g, " ")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+/*
+ * Sort and filters live in the address (?sort=price_asc&brand=A&size=M,L&
+ * colour=Red&minPrice=500), so Back from a product comes back to the same
+ * list. How many pages were loaded is kept per history entry (sessionStorage),
+ * not in the address: changing the address scrolls the page to the top, which
+ * "Show More" must not do.
+ */
+const PARAM_KEYS = ["sort", "brand", "size", "colour", "minPrice", "maxPrice"]
+const splitList = (v) => String(v || "").split(",").map((x) => x.trim()).filter(Boolean)
+const toNum = (v) => (v == null || v === "" || !Number.isFinite(Number(v)) ? null : Number(v))
+
+function readListParams(sp) {
+  const sort = sp.get("sort")
+  return {
+    sort: SORT_KEYS.includes(sort) ? sort : "relevance",
+    filters: {
+      ...EMPTY_MOBILE_FILTERS,
+      brands: splitList(sp.get("brand")),
+      sizes: splitList(sp.get("size")),
+      colours: splitList(sp.get("colour")),
+      minPrice: toNum(sp.get("minPrice")),
+      maxPrice: toNum(sp.get("maxPrice")),
+    },
+  }
+}
+
+function writeListParams(sp, { sort, filters }) {
+  const out = new URLSearchParams()
+  for (const [k, v] of sp.entries()) if (!PARAM_KEYS.includes(k)) out.append(k, v)
+  if (sort && sort !== "relevance") out.set("sort", sort)
+  if (filters.brands.length) out.set("brand", filters.brands.join(","))
+  if (filters.sizes.length) out.set("size", filters.sizes.join(","))
+  if (filters.colours.length) out.set("colour", filters.colours.join(","))
+  if (filters.minPrice != null) out.set("minPrice", String(filters.minPrice))
+  if (filters.maxPrice != null) out.set("maxPrice", String(filters.maxPrice))
+  return out
+}
+
+const PAGES_KEY = "store_listing_pages_v1"
+function readLoadedPages(key) {
+  try {
+    const n = Number(JSON.parse(sessionStorage.getItem(PAGES_KEY) || "{}")[key])
+    return Number.isFinite(n) && n > 1 ? Math.min(Math.floor(n), 10) : 1
+  } catch {
+    return 1
+  }
+}
+function saveLoadedPages(key, n) {
+  try {
+    const all = JSON.parse(sessionStorage.getItem(PAGES_KEY) || "{}") || {}
+    delete all[key]
+    if (n > 1) all[key] = n
+    const keys = Object.keys(all)
+    for (const old of keys.slice(0, Math.max(0, keys.length - 40))) delete all[old]
+    sessionStorage.setItem(PAGES_KEY, JSON.stringify(all))
+  } catch {
+    // private mode: Back just shows the first page
+  }
+}
 
 /** Search API params for a set of filters. */
 const filterParams = (f) => ({
@@ -75,23 +130,42 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
   const navigate = useNavigate()
   const { storePath, fulfilmentMode, isQuick } = useStoreMode()
   const { zoneId } = useDeliveryLocation()
-  const { categories } = usePublicCategories(zoneId)
+  const { categories, loading: categoriesLoading } = usePublicCategories(zoneId)
+  const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const paramString = PARAM_KEYS.map((k) => `${k}=${searchParams.get(k) || ""}`).join("&")
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { sort, filters } = useMemo(() => readListParams(searchParams), [paramString])
+  /** Rewrites sort/filters in place (replace), so Back goes to the previous page, not the previous filter. */
+  const setList = useCallback(
+    (change) => setSearchParams((prev) => writeListParams(prev, change(readListParams(prev))), { replace: true }),
+    [setSearchParams],
+  )
+  const setSort = (value) => { setList((c) => ({ ...c, sort: value })); setPage(1) }
+  const setFilters = (value) => { setList((c) => ({ ...c, filters: value })); setPage(1) }
 
-  const [filters, setFilters] = useState(EMPTY_MOBILE_FILTERS)
-  const [sort, setSort] = useState("relevance")
-  const [page, setPage] = useState(1)
+  // Pages loaded: as many as this history entry had, when coming back to it.
+  const [page, setPage] = useState(() => readLoadedPages(location.key))
   const [state, setState] = useState({ loading: true, products: [], total: 0, facets: null })
+  const loaded = useRef({ key: "", pages: 0 })
   const [sheet, setSheet] = useState("")
   const [swatches, setSwatches] = useState({})
 
+  useEffect(() => {
+    saveLoadedPages(location.key, page)
+  }, [location.key, page])
+
   // The category this page is about, its parent, and the chips to show.
   const current = useMemo(
-    () => categories.find((c) => slugify(c.name) === String(categorySlug).toLowerCase() || c.id === categorySlug) || null,
+    () => (categorySlug && categorySlug !== "all" ? findCategoryBySlug(categories, categorySlug) : null),
     [categories, categorySlug],
   )
   const parent = current?.parentId ? categories.find((c) => c.id === current.parentId) : current
   const chips = parent ? categories.filter((c) => c.parentId === parent.id) : []
-  const waiting = Boolean(categorySlug) && categorySlug !== "all" && !current && !categories.length
+  const unresolved = Boolean(categorySlug) && categorySlug !== "all" && !current && !isCategoryId(categorySlug)
+  const waiting = unresolved && (categoriesLoading || !categories.length)
+  // Categories loaded and none of them is this one: say so rather than list everything.
+  const notFound = unresolved && !categoriesLoading && categories.length > 0
 
   useEffect(() => {
     catalogAPI
@@ -107,11 +181,17 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
       .catch(() => {})
   }, [])
 
-  // A new category or query starts from the top with no filters.
+  // A new category or query starts from the top with no filters (on a
+  // change, not when coming back to this page).
+  const scopeKey = `${categorySlug}|${q}|${minDiscount || ""}`
+  const lastScope = useRef(scopeKey)
   useEffect(() => {
-    setFilters(EMPTY_MOBILE_FILTERS)
+    if (lastScope.current === scopeKey) return
+    lastScope.current = scopeKey
     setPage(1)
-  }, [categorySlug, q, minDiscount])
+    if (activeFilterCount(filters)) setList((c) => ({ ...c, filters: EMPTY_MOBILE_FILTERS }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeKey])
 
   const baseParams = useMemo(
     () => ({
@@ -120,7 +200,7 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
       // loaded) still filters, rather than falling back to everything.
       ...(current
         ? { categoryId: current.id }
-        : /^[a-f0-9]{24}$/i.test(String(categorySlug))
+        : isCategoryId(categorySlug)
           ? { categoryId: categorySlug }
           : {}),
       ...(minDiscount > 0 ? { minDiscount } : {}),
@@ -132,20 +212,32 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
 
   useEffect(() => {
     if (waiting) return undefined
+    if (notFound) {
+      setState({ loading: false, products: [], total: 0, facets: null })
+      return undefined
+    }
     let cancelled = false
     setState((s) => ({ ...s, loading: true }))
-    searchAPI
-      .searchProducts({ ...baseParams, ...filterParams(filters), sort, page, limit: PAGE, facets: true })
-      .then((res) => {
+    // The next page of what is showing is appended; anything else (a new
+    // search, or coming back with three pages loaded) loads pages 1..page.
+    const key = JSON.stringify([baseParams, filters, sort])
+    const append = page > 1 && loaded.current.key === key && loaded.current.pages === page - 1
+    const pages = append ? [page] : Array.from({ length: page }, (_, i) => i + 1)
+    Promise.all(
+      pages.map((n) => searchAPI.searchProducts({ ...baseParams, ...filterParams(filters), sort, page: n, limit: PAGE, facets: n === 1 })),
+    )
+      .then((responses) => {
         if (cancelled) return
-        const d = res?.data?.data || {}
-        const list = Array.isArray(d.products) ? d.products : []
+        const data = responses.map((res) => res?.data?.data || {})
+        const list = data.flatMap((d) => (Array.isArray(d.products) ? d.products : []))
+        const first = data[0] || {}
+        loaded.current = { key, pages: page }
         setState((s) => ({
           loading: false,
-          products: page === 1 ? list : [...s.products, ...list],
-          total: Number(d.total) || 0,
+          products: append ? [...s.products, ...list] : list,
+          total: Number(first.total) || 0,
           // Facets from the unfiltered first page, so options don't vanish as you pick.
-          facets: page === 1 && !activeFilterCount(filters) ? d.facets || s.facets : s.facets || d.facets,
+          facets: !append && !activeFilterCount(filters) ? first.facets || s.facets : s.facets || first.facets,
         }))
       })
       .catch(() => {
@@ -154,7 +246,7 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
     return () => {
       cancelled = true
     }
-  }, [baseParams, filters, sort, page, waiting])
+  }, [baseParams, filters, sort, page, waiting, notFound])
 
   const countFor = useCallback(
     (draft) =>
@@ -164,8 +256,10 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
     [baseParams],
   )
 
-  const heading = title || current?.name || (q ? `"${q}"` : /^[a-f0-9]{24}$/i.test(String(categorySlug)) ? "Products" : "All Products")
+  const heading = title || current?.name || (q ? `"${q}"` : notFound ? "Category not found" : isCategoryId(categorySlug) ? "Products" : "All Products")
   const nFilters = activeFilterCount(filters)
+  // Loading with nothing to show yet (also when coming back with several pages to reload).
+  const firstLoad = state.loading && (page === 1 || !state.products.length)
   const chip = (on) =>
     `flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors ${
       on ? "border-[#EA580C] bg-[#FFF1E7] text-[#C2410C]" : "border-gray-200 bg-white text-gray-700"
@@ -176,7 +270,7 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
       {withTopBar ? (
         <MobileTopBar
           title={heading}
-          subtitle={state.loading && page === 1 ? "Loading…" : `${state.total.toLocaleString("en-IN")} product${state.total === 1 ? "" : "s"}`}
+          subtitle={firstLoad ? "Loading…" : `${state.total.toLocaleString("en-IN")} product${state.total === 1 ? "" : "s"}`}
         />
       ) : null}
 
@@ -184,7 +278,7 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
       <div className={`${withTopBar ? "sticky top-14 z-30" : ""} space-y-2 border-b border-gray-100 bg-white pb-2 pt-2`}>
         {!withTopBar ? (
           <p className="px-3 text-[13px] text-gray-600">
-            {state.loading && page === 1 ? "Searching…" : (
+            {firstLoad ? "Searching…" : (
               <>
                 <span className="font-bold text-gray-900">{state.total.toLocaleString("en-IN")}</span> result{state.total === 1 ? "" : "s"}
                 {q ? <> for <span className="font-semibold text-gray-900">&ldquo;{q}&rdquo;</span></> : title ? <> · {title}</> : null}
@@ -196,7 +290,7 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
           <div className="flex gap-2 overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
-              onClick={() => parent && navigate(storePath(`/category/${slugify(parent.name)}`))}
+              onClick={() => parent && navigate(storePath(`/category/${categorySlugOf(parent)}`))}
               className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold ${
                 current?.id === parent?.id ? "bg-[#EA580C] text-white" : "bg-gray-100 text-gray-700"
               }`}
@@ -207,7 +301,7 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
               <button
                 key={c.id}
                 type="button"
-                onClick={() => navigate(storePath(`/category/${slugify(c.name)}`))}
+                onClick={() => navigate(storePath(`/category/${categorySlugOf(c)}`))}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold ${
                   current?.id === c.id ? "bg-[#EA580C] text-white" : "bg-gray-100 text-gray-700"
                 }`}
@@ -243,7 +337,7 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
       </div>
 
       <div className="px-3 pt-3">
-        {state.loading && page === 1 ? (
+        {firstLoad ? (
           <div className="grid grid-cols-2 gap-3" aria-hidden="true">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="overflow-hidden rounded-2xl bg-white">
@@ -255,6 +349,14 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
                 </div>
               </div>
             ))}
+          </div>
+        ) : notFound ? (
+          <div className="rounded-2xl bg-white p-8 text-center">
+            <p className="text-[15px] font-semibold text-gray-900">Category not found</p>
+            <p className="mt-1 text-[13px] text-gray-500">It may have been renamed or removed.</p>
+            <Link to={storePath("/")} className="mt-4 inline-block rounded-full border border-[#EA580C] px-5 py-2 text-[13px] font-bold text-[#EA580C]">
+              Back to home
+            </Link>
           </div>
         ) : state.products.length ? (
           <>

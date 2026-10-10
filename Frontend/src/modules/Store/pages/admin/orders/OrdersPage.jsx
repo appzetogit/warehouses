@@ -63,6 +63,187 @@ const EMPTY_ORDER_FILTERS = {
   sellerId: "",
 }
 
+/**
+ * Ask the admin for a rejection / cancellation reason. The reason is shown to the
+ * customer, so it starts empty (no internal default) and is required.
+ * Returns the trimmed reason, or "" when the admin cancels or leaves it empty.
+ */
+function askCustomerFacingReason(kind, orderId) {
+  const input = window.prompt(
+    `Enter the ${kind} reason for order ${orderId}.
+The customer will see this (e.g. "Item out of stock").`,
+    "",
+  )
+  if (input === null) return ""
+  const reason = String(input).trim()
+  if (!reason) {
+    toast.error(`Please enter a ${kind} reason`)
+    return ""
+  }
+  return reason
+}
+
+/** One admin list row: display labels on top of the raw backend order (raw status in statusCode). */
+function normalizeAdminOrderRow(order) {
+  const createdAtRaw = order.createdAt || order.created_at || order.orderDate || null
+  const createdAtCandidate = createdAtRaw ? new Date(createdAtRaw) : null
+  const createdAt =
+    createdAtCandidate && !Number.isNaN(createdAtCandidate.getTime())
+      ? createdAtCandidate
+      : null
+  const date = createdAt
+    ? createdAt.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).toUpperCase()
+    : ""
+  const time = createdAt
+    ? createdAt.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }).toUpperCase()
+    : ""
+
+  const pricing = order.pricing || {}
+  const subtotal = Number(pricing.subtotal || 0)
+  const deliveryFee = Number(pricing.deliveryFee || 0)
+  const deliveryFeeGst = Number(pricing.deliveryFeeGst || 0)
+  const platformFee = Number(pricing.platformFee || 0)
+  const quickDeliveryFee = Number(pricing.quickDeliveryFee || 0)
+  const taxAmount = Number(pricing.tax || 0)
+  const discountAmount = Number(pricing.discount || 0)
+  const computedTotal = subtotal + deliveryFee + deliveryFeeGst + platformFee + taxAmount - discountAmount
+  const totalAmount = Number(
+    pricing.total != null ? pricing.total : computedTotal
+  )
+
+  const paymentMethod = order.payment?.method || order.paymentMethod || ""
+  let paymentType = order.paymentType
+  if (!paymentType) {
+    if (paymentMethod === "cash" || paymentMethod === "cod") paymentType = "Cash on Delivery"
+    else if (paymentMethod === "wallet") paymentType = "Wallet"
+    else if (paymentMethod) paymentType = "Online"
+    else paymentType = "N/A"
+  }
+
+  const backendStatus = String(order.orderStatus || "").toLowerCase()
+
+  const paymentStatusRaw = order.payment?.status || ""
+  let paymentStatus = order.paymentStatus
+  if (!paymentStatus) {
+    const s = String(paymentStatusRaw || "").toLowerCase()
+    
+    if (s === "refunded") {
+      paymentStatus = "Refunded"
+    } else if (s === "paid" || s === "authorized" || s === "captured" || s === "settled") {
+      paymentStatus = (paymentType === "Cash on Delivery") ? "Collected" : "Paid"
+    } else if (paymentType === "Cash on Delivery" && backendStatus === "delivered") {
+      paymentStatus = "Collected"
+    } else if (s === "failed") {
+      paymentStatus = "Failed"
+    } else {
+      paymentStatus = "Pending"
+    }
+  }
+
+  let displayStatus = order.orderStatus
+  if (backendStatus === "pending_payment") {
+    displayStatus = "Pending Payment"
+  } else if (!backendStatus || backendStatus === "created") {
+    displayStatus = "Pending"
+  } else if (backendStatus === "confirmed") {
+    // Accepted by the store (or admin); Accept/Reject no longer apply.
+    displayStatus = "Accepted"
+  } else if (
+    backendStatus === "preparing" ||
+    backendStatus === "ready_for_pickup" ||
+    backendStatus === "reached_pickup"
+  ) {
+    displayStatus = "Processing"
+  } else if (backendStatus === "picked_up") {
+    displayStatus = "Out For Delivery"
+  } else if (backendStatus === "delivered") {
+    displayStatus = "Delivered"
+  } else if (backendStatus === "cancelled_by_seller") {
+    displayStatus = "Cancelled by Seller"
+  } else if (backendStatus === "cancelled_by_user") {
+    displayStatus = "Cancelled by User"
+  } else if (backendStatus === "cancelled_by_admin") {
+    displayStatus = "Canceled"
+  }
+
+  const dp = order.dispatch?.deliveryPartnerId
+  const deliveryPartnerName =
+    order.deliveryPartnerName ||
+    dp?.name ||
+    ""
+  const deliveryPartnerPhone =
+    order.deliveryPartnerPhone ||
+    dp?.phone ||
+    ""
+
+  const items = Array.isArray(order.items)
+    ? order.items.map((item) => ({
+        ...item,
+        quantity: item.quantity || 1,
+        name: item.name || item.productName || item.title || "Item",
+        price: item.price || 0,
+        // Size / colour the customer picked — the store must ship exactly this.
+        variantName: item.variantName || "",
+        variantAttributes: Array.isArray(item.variantAttributes) ? item.variantAttributes : [],
+      }))
+    : []
+
+  const customerName = order.customerName || order.userId?.name || "N/A"
+  const customerPhone = order.customerPhone || order.userId?.phone || "N/A"
+  const seller =
+    order.seller ||
+    order.sellerName ||
+    order.sellerId?.sellerName ||
+    ""
+
+  return {
+    ...order,
+    id: order._id || order.id,
+    orderId: order.orderId || order.id,
+    date,
+    time,
+    customerName,
+    customerPhone,
+    seller,
+    items,
+    subtotal,
+    totalItemAmount: subtotal,
+    couponDiscount: discountAmount,
+    itemDiscount: 0,
+    deliveryCharge: deliveryFee,
+    deliveryFeeGst,
+    vatTax: taxAmount,
+    platformFee,
+    quickDeliveryFee,
+    pricing,
+    totalAmount,
+    paymentType,
+    paymentStatus,
+    orderStatus: displayStatus,
+    // The backend status code (e.g. "cancelled_by_admin"); orderStatus above is a display label.
+    statusCode: backendStatus,
+    // Shop orders have no acceptance deadline: show how long one has waited on its store.
+    storeWaitHours:
+      order.fulfilmentMode === "standard" && backendStatus === "created"
+        ? Math.max(0, Math.floor((Date.now() - new Date(order.awaitingSellerSince || createdAtRaw || Date.now()).getTime()) / 3600000))
+        : null,
+    deliveryPartnerName,
+    deliveryPartnerPhone,
+    deliveryType: order.deliveryType || "Home Delivery",
+    orderOtp: order.deliveryOtp,
+    address: order.address || order.customerAddress || order.deliveryAddress,
+    refundStatus: order.payment?.refund?.status || (order.payment?.status === 'refunded' ? 'processed' : null)
+  }
+}
+
 export default function OrdersPage({ statusKey = "all" }) {
   const config = statusConfig[statusKey] || statusConfig["all"]
   const [orders, setOrders] = useState([])
@@ -599,158 +780,7 @@ export default function OrdersPage({ statusKey = "all" }) {
   const normalizedOrders = useMemo(() => {
     const safeOrders = Array.isArray(orders) ? orders : []
 
-    return safeOrders.filter(Boolean).map((order) => {
-      const createdAtRaw = order.createdAt || order.created_at || order.orderDate || null
-      const createdAtCandidate = createdAtRaw ? new Date(createdAtRaw) : null
-      const createdAt =
-        createdAtCandidate && !Number.isNaN(createdAtCandidate.getTime())
-          ? createdAtCandidate
-          : null
-      const date = createdAt
-        ? createdAt.toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          }).toUpperCase()
-        : ""
-      const time = createdAt
-        ? createdAt.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          }).toUpperCase()
-        : ""
-
-      const pricing = order.pricing || {}
-      const subtotal = Number(pricing.subtotal || 0)
-      const deliveryFee = Number(pricing.deliveryFee || 0)
-      const deliveryFeeGst = Number(pricing.deliveryFeeGst || 0)
-      const platformFee = Number(pricing.platformFee || 0)
-      const quickDeliveryFee = Number(pricing.quickDeliveryFee || 0)
-      const taxAmount = Number(pricing.tax || 0)
-      const discountAmount = Number(pricing.discount || 0)
-      const computedTotal = subtotal + deliveryFee + deliveryFeeGst + platformFee + taxAmount - discountAmount
-      const totalAmount = Number(
-        pricing.total != null ? pricing.total : computedTotal
-      )
-
-      const paymentMethod = order.payment?.method || order.paymentMethod || ""
-      let paymentType = order.paymentType
-      if (!paymentType) {
-        if (paymentMethod === "cash" || paymentMethod === "cod") paymentType = "Cash on Delivery"
-        else if (paymentMethod === "wallet") paymentType = "Wallet"
-        else if (paymentMethod) paymentType = "Online"
-        else paymentType = "N/A"
-      }
-
-      const backendStatus = String(order.orderStatus || "").toLowerCase()
-
-      const paymentStatusRaw = order.payment?.status || ""
-      let paymentStatus = order.paymentStatus
-      if (!paymentStatus) {
-        const s = String(paymentStatusRaw || "").toLowerCase()
-        
-        if (s === "refunded") {
-          paymentStatus = "Refunded"
-        } else if (s === "paid" || s === "authorized" || s === "captured" || s === "settled") {
-          paymentStatus = (paymentType === "Cash on Delivery") ? "Collected" : "Paid"
-        } else if (paymentType === "Cash on Delivery" && backendStatus === "delivered") {
-          paymentStatus = "Collected"
-        } else if (s === "failed") {
-          paymentStatus = "Failed"
-        } else {
-          paymentStatus = "Pending"
-        }
-      }
-
-      let displayStatus = order.orderStatus
-      if (backendStatus === "pending_payment") {
-        displayStatus = "Pending Payment"
-      } else if (!backendStatus || backendStatus === "created" || backendStatus === "confirmed") {
-        displayStatus = "Pending"
-      } else if (
-        backendStatus === "preparing" ||
-        backendStatus === "ready_for_pickup" ||
-        backendStatus === "reached_pickup"
-      ) {
-        displayStatus = "Processing"
-      } else if (backendStatus === "picked_up") {
-        displayStatus = "Out For Delivery"
-      } else if (backendStatus === "delivered") {
-        displayStatus = "Delivered"
-      } else if (backendStatus === "cancelled_by_seller") {
-        displayStatus = "Cancelled by Seller"
-      } else if (backendStatus === "cancelled_by_user") {
-        displayStatus = "Cancelled by User"
-      } else if (backendStatus === "cancelled_by_admin") {
-        displayStatus = "Canceled"
-      }
-
-      const dp = order.dispatch?.deliveryPartnerId
-      const deliveryPartnerName =
-        order.deliveryPartnerName ||
-        dp?.name ||
-        ""
-      const deliveryPartnerPhone =
-        order.deliveryPartnerPhone ||
-        dp?.phone ||
-        ""
-
-      const items = Array.isArray(order.items)
-        ? order.items.map((item) => ({
-            quantity: item.quantity || 1,
-            name: item.name || item.productName || item.title || "Item",
-            price: item.price || 0,
-          }))
-        : []
-
-      const customerName = order.customerName || order.userId?.name || "N/A"
-      const customerPhone = order.customerPhone || order.userId?.phone || "N/A"
-      const seller =
-        order.seller ||
-        order.sellerName ||
-        order.sellerId?.sellerName ||
-        ""
-
-      return {
-        ...order,
-        id: order._id || order.id,
-        orderId: order.orderId || order.id,
-        date,
-        time,
-        customerName,
-        customerPhone,
-        seller,
-        items,
-        subtotal,
-        totalItemAmount: subtotal,
-        couponDiscount: discountAmount,
-        itemDiscount: 0,
-        deliveryCharge: deliveryFee,
-        deliveryFeeGst,
-        vatTax: taxAmount,
-        platformFee,
-        quickDeliveryFee,
-        pricing,
-        totalAmount,
-        paymentType,
-        paymentStatus,
-        orderStatus: displayStatus,
-        // The backend status code (e.g. "cancelled_by_admin"); orderStatus above is a display label.
-        statusCode: backendStatus,
-        // Shop orders have no acceptance deadline: show how long one has waited on its store.
-        storeWaitHours:
-          order.fulfilmentMode === "standard" && backendStatus === "created"
-            ? Math.max(0, Math.floor((Date.now() - new Date(order.awaitingSellerSince || createdAtRaw || Date.now()).getTime()) / 3600000))
-            : null,
-        deliveryPartnerName,
-        deliveryPartnerPhone,
-        deliveryType: order.deliveryType || "Home Delivery",
-        orderOtp: order.deliveryOtp,
-        address: order.address || order.customerAddress || order.deliveryAddress,
-        refundStatus: order.payment?.refund?.status || (order.payment?.status === 'refunded' ? 'processed' : null)
-      }
-    })
+    return safeOrders.filter(Boolean).map(normalizeAdminOrderRow)
   }, [orders])
 
   const {
@@ -982,14 +1012,38 @@ export default function OrdersPage({ statusKey = "all" }) {
   const [searchParams] = useSearchParams()
   const orderIdFromUrl = searchParams.get("orderId")
 
+  // Open ?orderId=… once. If the order isn't on the loaded page (e.g. a link from
+  // "Awaiting store"), fetch it by id.
+  const openedOrderIdFromUrlRef = useRef(null)
   useEffect(() => {
-    if (orderIdFromUrl && normalizedOrders.length > 0) {
-      const order = normalizedOrders.find(o => o.id === orderIdFromUrl || o._id === orderIdFromUrl || o.orderId === orderIdFromUrl)
-      if (order) {
-        handleViewOrder(order)
-      }
+    if (!orderIdFromUrl || openedOrderIdFromUrlRef.current === orderIdFromUrl) return
+    const order = normalizedOrders.find(o => o.id === orderIdFromUrl || o._id === orderIdFromUrl || o.orderId === orderIdFromUrl)
+    if (order) {
+      openedOrderIdFromUrlRef.current = orderIdFromUrl
+      handleViewOrder(order)
+      return
     }
-  }, [orderIdFromUrl, normalizedOrders, handleViewOrder])
+    // Wait for the first list load (the order is usually on it), then fetch by id.
+    if (!hasLoadedOnceRef.current) return
+    openedOrderIdFromUrlRef.current = orderIdFromUrl
+    const requestedId = orderIdFromUrl
+    adminAPI
+      .getOrderById(requestedId)
+      .then((res) => {
+        if (openedOrderIdFromUrlRef.current !== requestedId) return
+        const raw = res?.data?.data?.order || res?.data?.order || res?.data?.data
+        if (raw && typeof raw === "object" && (raw._id || raw.orderId)) {
+          handleViewOrder(normalizeAdminOrderRow(raw))
+        } else {
+          toast.error("Order not found")
+        }
+      })
+      .catch((error) => {
+        if (openedOrderIdFromUrlRef.current !== requestedId) return
+        debugError("Error loading order from link:", error)
+        toast.error(error?.response?.data?.message || "Could not open that order")
+      })
+  }, [orderIdFromUrl, normalizedOrders, handleViewOrder, isTableLoading])
 
   const handleAcceptOrder = async (order) => {
     const orderIdToUse = order.id || order._id || order.orderId
@@ -1022,12 +1076,8 @@ export default function OrdersPage({ statusKey = "all" }) {
       return
     }
 
-    const reason = prompt(
-      `Enter rejection reason for order ${order.orderId}:`,
-      "Order rejected by admin",
-    )
-
-    if (reason === null) return
+    const reason = askCustomerFacingReason("rejection", order.orderId)
+    if (!reason) return
 
     try {
       setProcessingActionOrderId(order.id || order.orderId)
@@ -1053,12 +1103,8 @@ export default function OrdersPage({ statusKey = "all" }) {
       return
     }
 
-    const reason = prompt(
-      `Enter cancellation reason for order ${order.orderId}:`,
-      "Order cancelled by admin",
-    )
-
-    if (reason === null) return
+    const reason = askCustomerFacingReason("cancellation", order.orderId)
+    if (!reason) return
 
     try {
       setProcessingActionOrderId(order.id || order.orderId)
@@ -1092,9 +1138,11 @@ export default function OrdersPage({ statusKey = "all" }) {
     try {
       setProcessingActionOrderId(order.id || order.orderId)
       await adminAPI.markOrderDelivered(orderIdToUse)
+      toast.success(`Order ${order.orderId} marked as delivered`)
       await fetchOrdersRef.current({ silent: true, withRingCheck: false, force: true })
     } catch (error) {
       debugError("Error marking order as delivered:", error)
+      toast.error(error?.response?.data?.message || "Failed to mark order as delivered")
     } finally {
       setProcessingActionOrderId(null)
     }

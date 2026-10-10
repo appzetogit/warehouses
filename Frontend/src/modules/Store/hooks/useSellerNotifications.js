@@ -181,8 +181,14 @@ export const useSellerNotifications = () => {
         // REST layer normalizes backend statuses so:
         // - backend "created" -> UI "confirmed"
         // We alert only for "confirmed/new order waiting for review".
+        // A Shop (courier) order the store has accepted is "confirmed" too; only
+        // one still waiting on the store ("created") should ring.
         const confirmed = (rows || [])
-          .filter((o) => String(o?.status || "").toLowerCase() === "confirmed")
+          .filter((o) =>
+            o?.fulfilmentMode === "standard"
+              ? String(o?.orderStatus || "").toLowerCase() === "created"
+              : String(o?.status || "").toLowerCase() === "confirmed",
+          )
           .sort((a, b) => {
             const at = a?.updatedAt || a?.createdAt || 0;
             const bt = b?.updatedAt || b?.createdAt || 0;

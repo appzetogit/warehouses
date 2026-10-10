@@ -7,6 +7,12 @@ import { setAuthData as setUserAuthData } from "@store/utils/auth"
 import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@store/utils/firebaseMessaging"
 import { motion, AnimatePresence } from "framer-motion"
 import { useCompanyName } from "@store/hooks/useCompanyName"
+import { safeRedirectPath } from "./authRedirect"
+
+const RESEND_SECONDS = 60
+
+// Seconds left until `deadline` (a Date.now() timestamp), never negative.
+const secondsUntil = (deadline) => Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
 
 const FULL_NAME_REGEX = /^[A-Za-z ]+$/
 
@@ -17,6 +23,9 @@ export default function OTP() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  // The countdown runs off a deadline, so it keeps time while the tab is hidden
+  // (the user switching to their SMS app) and restarts after every resend.
+  const [resendDeadline, setResendDeadline] = useState(0)
   const [resendTimer, setResendTimer] = useState(0)
   const [authData, setAuthData] = useState(null)
   const [showNameInput, setShowNameInput] = useState(false)
@@ -31,20 +40,26 @@ export default function OTP() {
   const submittingRef = useRef(false)
 
   useEffect(() => {
-    // Redirect to home if already authenticated
+    // Get auth data from sessionStorage
+    const stored = sessionStorage.getItem("userAuthData")
+    let data = null
+    try {
+      data = stored ? JSON.parse(stored) : null
+    } catch {
+      data = null
+    }
+
+    // Already signed in: go where the user was headed.
     const isAuthenticated = localStorage.getItem("user_authenticated") === "true"
     if (isAuthenticated) {
-      navigate("/", { replace: true })
+      navigate(safeRedirectPath(data?.from) || "/", { replace: true })
       return
     }
 
-    // Get auth data from sessionStorage
-    const stored = sessionStorage.getItem("userAuthData")
-    if (!stored) {
+    if (!data) {
       navigate("/auth/login", { replace: true })
       return
     }
-    const data = JSON.parse(stored)
     setAuthData(data)
 
     if (data.method === "email" && data.email) {
@@ -63,20 +78,36 @@ export default function OTP() {
       }
     }
 
-    setResendTimer(60)
-    const timer = setInterval(() => {
-      if (typeof document !== "undefined" && document.hidden) return
-      setResendTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(timer)
+    setResendDeadline(Date.now() + RESEND_SECONDS * 1000)
   }, [navigate])
+
+  useEffect(() => {
+    if (!resendDeadline) return undefined
+    const tick = () => {
+      const left = secondsUntil(resendDeadline)
+      setResendTimer(left)
+      return left
+    }
+    if (tick() === 0) return undefined
+    const timer = setInterval(() => {
+      if (tick() === 0) clearInterval(timer)
+    }, 1000)
+    // Browsers throttle timers in background tabs; catch up as soon as the user is back.
+    const onVisible = () => {
+      if (!document.hidden) tick()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [resendDeadline])
+
+  const finishSignIn = () => {
+    setSuccess(true)
+    const target = safeRedirectPath(authData?.from) || "/"
+    setTimeout(() => navigate(target, { replace: true }), 600)
+  }
 
   useEffect(() => {
     if (inputRefs.current[0] && !showNameInput) {
@@ -198,7 +229,8 @@ export default function OTP() {
       }
 
       const hasName = user.name && String(user.name).trim().length > 0 && String(user.name).toLowerCase() !== "null";
-      const needsName = data.isNewUser === true || !hasName;
+      // Ask only when there is no saved name (a new sign-up already gave theirs on the previous screen).
+      const needsName = !hasName;
 
       if (needsName) {
         setVerifiedData(data)
@@ -213,12 +245,12 @@ export default function OTP() {
       window.dispatchEvent(new Event("userAuthChanged"))
       // Force sync after login (bypass throttle / recover after logout).
       await registerWebPushForCurrentModule("/", { force: true }).catch(() => {})
-      setSuccess(true)
-      setTimeout(() => navigate("/"), 600)
+      finishSignIn()
     } catch (err) {
       const status = err?.response?.status
-      let message = err?.response?.data?.message || err?.response?.data?.error || err?.message || "Verification failed."
-      if (status === 401) message = "Invalid or expired code."
+      const serverMessage = err?.response?.data?.message || err?.response?.data?.error
+      let message = serverMessage || err?.message || "Verification failed."
+      if (status === 401 && !serverMessage) message = "Invalid or expired code."
       setError(message)
     } finally {
       setIsLoading(false)
@@ -258,8 +290,7 @@ export default function OTP() {
       setUserAuthData("user", accessToken, { ...user, name: normalizedName }, refreshToken)
       window.dispatchEvent(new Event("userAuthChanged"))
       await registerWebPushForCurrentModule("/", { force: true }).catch(() => {})
-      setSuccess(true)
-      setTimeout(() => navigate("/"), 600)
+      finishSignIn()
     } catch (err) {
       setError("Failed to complete registration. Please try again.")
     } finally {
@@ -276,7 +307,7 @@ export default function OTP() {
       const email = authData?.method === "email" ? authData.email : null
       const purpose = authData?.isSignUp ? "register" : "login"
       await authAPI.sendOTP(phone, purpose, email)
-      setResendTimer(60)
+      setResendDeadline(Date.now() + RESEND_SECONDS * 1000)
     } catch (err) {
       setError("Failed to resend OTP.")
     } finally {

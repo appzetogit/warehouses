@@ -1,46 +1,89 @@
 import { useParams, Link } from "react-router-dom"
 
-import { Download, ArrowLeft, FileText, Printer } from "lucide-react"
-import { useRef, useState, useEffect } from "react"
+import { Download, ArrowLeft, FileText, Printer, RefreshCw } from "lucide-react"
+import { useRef, useState, useEffect, useCallback } from "react"
 import AnimatedPage from "@store/components/user/AnimatedPage"
 import ScrollReveal from "@store/components/user/ScrollReveal"
-import { Card, CardHeader, CardTitle, CardContent } from "@store/components/ui/card"
+import { Card, CardContent } from "@store/components/ui/card"
 import { Button } from "@store/components/ui/button"
 import { Badge } from "@store/components/ui/badge"
-import { useOrders } from "@store/context/OrdersContext"
 import { useCompanyName } from "@store/hooks/useCompanyName"
 import { orderAPI } from "@store/api"
+import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
+import {
+  orderStatusLabel,
+  paymentMethodLabel,
+  rupees,
+  storeNameOf,
+  totalLabel,
+  variantText,
+} from "@store/utils/shopOrderFlow"
+import { PriceRows, ShopAddressBlock } from "./ShopOrderDetails"
+
+const formatDate = (dateString) =>
+  dateString
+    ? new Date(dateString).toLocaleString("en-IN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    })
+    : ""
+
+// The print window has no Tailwind, so the few classes the invoice uses are spelled out.
+const PRINT_CSS = `
+  body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+  img { display: none; }
+  .invoice-header { border-bottom: 2px solid #FD920B; padding-bottom: 20px; margin-bottom: 30px; }
+  .invoice-title { font-size: 32px; font-weight: bold; color: #B45309; margin: 0 0 10px; }
+  .invoice-details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+  th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+  th { background-color: #fed7aa; font-weight: bold; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .total-section { margin-top: 30px; max-width: 360px; margin-left: auto; }
+  .flex { display: flex; }
+  .justify-between { justify-content: space-between; }
+  .gap-3 { gap: 12px; }
+  .space-y-1\\.5 > * + * { margin-top: 6px; }
+  .border-t { border-top: 1px solid #ddd; }
+  .mt-2 { margin-top: 8px; }
+  .pt-2 { padding-top: 8px; }
+  .font-bold { font-weight: bold; }
+  .text-green-700 { color: #15803d; }
+  .text-wh-muted, .text-muted-foreground { color: #666; }
+  .sm\\:hidden { display: none; }
+  @media print { body { margin: 0; padding: 20px; } .no-print { display: none; } }
+`
 
 export default function OrderInvoice() {
   const companyName = useCompanyName()
   const { orderId } = useParams()
-  const { getOrderById } = useOrders()
-  const [order, setOrder] = useState(() => getOrderById(orderId))
-  const [loading, setLoading] = useState(!order)
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const invoiceRef = useRef(null)
 
-  useEffect(() => {
-    if (order) return
-
-    const fetchOrder = async () => {
-      try {
-        setLoading(true)
-        const response = await orderAPI.getOrderDetails(orderId)
-        if (response.data?.success && response.data.data?.order) {
-          setOrder(response.data.data.order)
-        } else {
-          setError("Order not found")
-        }
-      } catch (err) {
-        setError("Failed to load invoice details")
-      } finally {
-        setLoading(false)
-      }
+  const load = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await orderAPI.getOrderDetails(orderId)
+      const next = response?.data?.data?.order || null
+      if (next) setOrder(next)
+      else setError("Order not found")
+    } catch (err) {
+      setError(err?.response?.status === 404 ? "Order not found" : err?.response?.data?.message || "Couldn't load the invoice")
+    } finally {
+      setLoading(false)
     }
+  }, [orderId])
 
-    fetchOrder()
-  }, [orderId, order])
+  useEffect(() => {
+    load()
+  }, [load])
 
   if (loading) {
     return (
@@ -57,95 +100,41 @@ export default function OrderInvoice() {
     return (
       <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] p-4">
         <div className="max-w-4xl mx-auto text-center py-20">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-4">{error || 'Order Not Found'}</h1>
-          <Link to="/user/orders">
-            <Button>Back to Orders</Button>
-          </Link>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-4">{error || "Order not found"}</h1>
+          <div className="flex justify-center gap-2">
+            <Button variant="outline" onClick={load} className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" /> Try again
+            </Button>
+            <Link to="/orders">
+              <Button>Back to Orders</Button>
+            </Link>
+          </div>
         </div>
       </AnimatedPage>
     )
   }
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const id = String(order._id || orderId)
+  const displayId = order.order_id || order.orderId || id
+  const items = Array.isArray(order.items) ? order.items : []
+  const store = storeNameOf(order)
 
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank')
+    const printWindow = window.open("", "_blank")
+    if (!printWindow || !invoiceRef.current) {
+      window.print()
+      return
+    }
     const printContent = invoiceRef.current.innerHTML
+    const title = `Invoice - ${displayId}`.replace(/[<>&"]/g, "")
 
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Invoice - ${order.id}</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 40px;
-              color: #333;
-            }
-            .invoice-header {
-              border-bottom: 2px solid #FD920B;
-              padding-bottom: 20px;
-              margin-bottom: 30px;
-            }
-            .invoice-title {
-              font-size: 32px;
-              font-weight: bold;
-              color: #B45309;
-              margin-bottom: 10px;
-            }
-            .invoice-details {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 20px;
-              margin: 30px 0;
-            }
-            .invoice-items {
-              margin: 30px 0;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 20px 0;
-            }
-            th, td {
-              padding: 12px;
-              text-align: left;
-              border-bottom: 1px solid #ddd;
-            }
-            th {
-              background-color: #fed7aa;
-              font-weight: bold;
-            }
-            .total-section {
-              margin-top: 30px;
-              text-align: right;
-            }
-            .total-row {
-              padding: 10px 0;
-              font-size: 18px;
-            }
-            .grand-total {
-              font-size: 24px;
-              font-weight: bold;
-              color: #B45309;
-              border-top: 2px solid #FD920B;
-              padding-top: 10px;
-            }
-            @media print {
-              body { margin: 0; padding: 20px; }
-              .no-print { display: none; }
-            }
-          </style>
+          <meta charset="utf-8" />
+          <title>${title}</title>
+          <style>${PRINT_CSS}</style>
         </head>
         <body>
           ${printContent}
@@ -159,24 +148,20 @@ export default function OrderInvoice() {
     }, 250)
   }
 
-  const handleDownloadPDF = () => {
-    handlePrint()
-  }
-
   return (
     <AnimatedPage className="min-h-screen bg-gradient-to-b from-yellow-50/30 via-white to-orange-50/20 dark:from-[#0a0a0a] dark:via-[#1a1a1a] dark:to-[#0a0a0a] p-3 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
         <ScrollReveal>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="flex items-center gap-3 sm:gap-4">
-              <Link to={`/user/orders/${orderId}`}>
+              <Link to={`/orders/${id}`} aria-label="Back to order">
                 <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 sm:h-10 sm:w-10">
                   <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
               <div>
                 <h1 className="text-lg sm:text-xl md:text-2xl font-bold">Invoice</h1>
-                <p className="text-muted-foreground text-sm sm:text-base">Order {order.id}</p>
+                <p className="text-muted-foreground text-sm sm:text-base">Order {displayId}</p>
               </div>
             </div>
             <div className="flex gap-2 no-print">
@@ -189,11 +174,11 @@ export default function OrderInvoice() {
                 <span className="hidden sm:inline">Print</span>
               </Button>
               <Button
-                onClick={handleDownloadPDF}
+                onClick={handlePrint}
                 className="bg-wh-brand hover:bg-wh-brand-600 flex items-center gap-2 text-xs sm:text-sm h-9 sm:h-10"
               >
                 <Download className="h-3 w-3 sm:h-4 sm:w-4 text-wh-text" />
-                <span className="hidden sm:inline text-wh-text">Download PDF</span>
+                <span className="hidden sm:inline text-wh-text">Save as PDF</span>
                 <span className="sm:hidden text-wh-text">PDF</span>
               </Button>
             </div>
@@ -212,10 +197,10 @@ export default function OrderInvoice() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                   <div>
                     <p className="text-xs sm:text-sm text-muted-foreground">{companyName}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Online Store</p>
+                    {store ? <p className="text-xs sm:text-sm text-muted-foreground">Sold by {store}</p> : null}
                   </div>
-                  <Badge className="bg-wh-brand text-wh-text text-sm sm:text-base md:text-lg px-3 sm:px-4 py-1.5 sm:py-2 w-fit">
-                    {order.status.toUpperCase()}
+                  <Badge className="bg-wh-brand text-wh-text text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2 w-fit">
+                    {orderStatusLabel(order)}
                   </Badge>
                 </div>
               </div>
@@ -223,20 +208,14 @@ export default function OrderInvoice() {
               {/* Invoice Details */}
               <div className="invoice-details grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mt-4 sm:mt-6">
                 <div>
-                  <h3 className="font-bold mb-2 text-sm sm:text-base">Bill To:</h3>
-                  <p className="text-xs sm:text-sm">{order.address?.street}</p>
-                  {order.address?.additionalDetails && (
-                    <p className="text-xs sm:text-sm">{order.address.additionalDetails}</p>
-                  )}
-                  <p className="text-xs sm:text-sm">
-                    {order.address?.city}, {order.address?.state} {order.address?.zipCode}
-                  </p>
+                  <h3 className="font-bold mb-2 text-sm sm:text-base">Deliver To:</h3>
+                  <ShopAddressBlock address={order.deliveryAddress || order.address || {}} />
                 </div>
                 <div className="text-left sm:text-right">
                   <h3 className="font-bold mb-2 text-sm sm:text-base">Invoice Details:</h3>
-                  <p className="text-xs sm:text-sm"><strong>Invoice #:</strong> {order.id}</p>
+                  <p className="text-xs sm:text-sm"><strong>Order #:</strong> {displayId}</p>
                   <p className="text-xs sm:text-sm"><strong>Date:</strong> {formatDate(order.createdAt)}</p>
-                  <p className="text-xs sm:text-sm"><strong>Payment:</strong> {order.paymentMethod?.type?.toUpperCase() || "Card"}</p>
+                  <p className="text-xs sm:text-sm"><strong>Payment:</strong> {paymentMethodLabel(order)}</p>
                 </div>
               </div>
 
@@ -254,59 +233,50 @@ export default function OrderInvoice() {
                       </tr>
                     </thead>
                     <tbody>
-                      {order.items.map((item) => (
-                        <tr key={item.id} className="border-b">
-                          <td className="px-2 sm:px-3 py-2 sm:py-3">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                              <img
-                                src={item.image}
-                                alt={item.name}
-                                className="w-8 h-8 sm:w-12 sm:h-12 object-cover rounded flex-shrink-0"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <span className="font-medium block">{item.name}</span>
-                                {item.variantName ? (
-                                  <span className="text-xs text-gray-500">{item.variantName}</span>
+                      {items.map((item, i) => {
+                        const qty = Number(item.quantity) || 1
+                        const price = Number(item.price) || 0
+                        const variant = variantText(item)
+                        const src = item.image ? resolveMediaUrl(item.image) : ""
+                        return (
+                          <tr key={`${item.itemId || item.name}-${item.variantId || ""}-${i}`} className="border-b">
+                            <td className="px-2 sm:px-3 py-2 sm:py-3">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                {src ? (
+                                  <img
+                                    src={src}
+                                    alt=""
+                                    className="w-8 h-8 sm:w-12 sm:h-12 object-cover rounded flex-shrink-0"
+                                  />
                                 ) : null}
-                                <span className="text-muted-foreground sm:hidden text-xs">
-                                  Qty: {item.quantity} � ${item.price.toFixed(2)}
-                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-medium block">{item.name}</span>
+                                  {variant ? <span className="block text-xs text-gray-500">{variant}</span> : null}
+                                  <span className="text-muted-foreground sm:hidden text-xs">
+                                    Qty: {qty} × {rupees(price)}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-3 text-center hidden sm:table-cell">{item.quantity}</td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-3 text-right hidden md:table-cell">${item.price.toFixed(2)}</td>
-                          <td className="px-2 sm:px-3 py-2 sm:py-3 text-right font-medium">${(item.price * item.quantity).toFixed(2)}</td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="px-2 sm:px-3 py-2 sm:py-3 text-center hidden sm:table-cell">{qty}</td>
+                            <td className="px-2 sm:px-3 py-2 sm:py-3 text-right hidden md:table-cell">{rupees(price)}</td>
+                            <td className="px-2 sm:px-3 py-2 sm:py-3 text-right font-medium">{rupees(price * qty)}</td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* Total Section */}
-              <div className="total-section mt-4 sm:mt-6">
-                <div className="total-row flex justify-between text-xs sm:text-sm sm:text-base py-1 sm:py-2">
-                  <span>Subtotal:</span>
-                  <span>${order.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="total-row flex justify-between text-xs sm:text-sm sm:text-base py-1 sm:py-2">
-                  <span>Delivery Fee:</span>
-                  <span>${order.deliveryFee.toFixed(2)}</span>
-                </div>
-                <div className="total-row flex justify-between text-xs sm:text-sm sm:text-base py-1 sm:py-2">
-                  <span>Tax:</span>
-                  <span>${order.tax.toFixed(2)}</span>
-                </div>
-                <div className="grand-total flex justify-between text-base sm:text-lg md:text-xl md:text-2xl pt-2 sm:pt-3 mt-2 sm:mt-3 border-t-2 border-wh-brand">
-                  <span>Total:</span>
-                  <span>${order.total.toFixed(2)}</span>
-                </div>
+              {/* Totals: rows that add up to the order total */}
+              <div className="total-section mt-4 sm:mt-6 sm:ml-auto sm:max-w-sm">
+                <PriceRows order={order} totalText={totalLabel(order)} />
               </div>
 
               {/* Footer */}
               <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t text-center text-xs sm:text-sm text-muted-foreground">
-                <p>Thank you for your order!</p>
+                <p>Thank you for shopping with {companyName}!</p>
                 <p className="mt-1 sm:mt-2">For any queries, please contact our support team.</p>
               </div>
             </CardContent>
@@ -315,12 +285,12 @@ export default function OrderInvoice() {
 
         <ScrollReveal delay={0.2}>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 no-print">
-            <Link to={`/user/orders/${orderId}`} className="flex-1">
+            <Link to={`/orders/${id}`} className="flex-1">
               <Button variant="outline" className="w-full text-sm sm:text-base h-10 sm:h-11">
                 Track Order
               </Button>
             </Link>
-            <Link to="/user/orders" className="flex-1">
+            <Link to="/orders" className="flex-1">
               <Button variant="outline" className="w-full text-sm sm:text-base h-10 sm:h-11">
                 Back to Orders
               </Button>

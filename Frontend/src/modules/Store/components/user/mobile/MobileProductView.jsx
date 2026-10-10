@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, ChevronRight, Heart, Search, Share2, ShoppingCart, Star, Store, Truck, Zap } from "lucide-react"
 import { toast } from "sonner"
@@ -36,6 +36,7 @@ export default function MobileProductView({
   isValueEnabled,
   allImages = [],
   displayPrice,
+  priceFrom = false,
   displayMrp,
   discountPercent,
   onAddToCart,
@@ -48,6 +49,18 @@ export default function MobileProductView({
   const gallery = useRef(null)
   const [index, setIndex] = useState(0)
   const [justAdded, setJustAdded] = useState(false)
+  // Choosing another size or colour after an add is a new item, so the bar
+  // goes back to "Add to Cart" rather than "Add One More".
+  const attrsKey = JSON.stringify(selectedAttrs || {})
+  useEffect(() => {
+    setJustAdded(false)
+  }, [attrsKey, product?._id])
+
+  // Opened straight from a link there is no page to go back to.
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) navigate(-1)
+    else navigate(storePath("/"))
+  }
 
   const id = String(product?._id || "")
   const sellerId = String(seller?._id || product?.sellerId || "")
@@ -128,7 +141,7 @@ export default function MobileProductView({
           )}
         </div>
         <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className={round}>
+          <button type="button" onClick={goBack} aria-label="Back" className={round}>
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </button>
           <div className="flex gap-2">
@@ -172,7 +185,10 @@ export default function MobileProductView({
 
         <div>
           <p className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-[26px] font-bold text-gray-900">₹{Number(displayPrice || 0).toLocaleString("en-IN")}</span>
+            <span className="text-[26px] font-bold text-gray-900">
+              {priceFrom ? <span className="mr-1 text-[15px] font-semibold text-gray-500">From</span> : null}
+              ₹{Number(displayPrice || 0).toLocaleString("en-IN")}
+            </span>
             {displayMrp > displayPrice ? (
               <span className="text-[14px] text-gray-400 line-through">₹{Number(displayMrp).toLocaleString("en-IN")}</span>
             ) : null}

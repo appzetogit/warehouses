@@ -211,21 +211,34 @@ export async function getPublicProduct(productId, query = {}) {
     const variants = serializeProductVariants(product.variants, { product, channel });
 
     // The attributes this product actually uses, in the category's order, with
-    // the category's swatches; attributes outside any set come after.
+    // the category's swatches; attributes outside any set come after. Only
+    // active variants count: a retired size is not something to pick.
     const used = new Map();
     for (const variant of variants) {
-        for (const { name, value } of variant.attributes) {
+        if (variant.isActive === false) continue;
+        for (const { name, value } of variant.attributes || []) {
+            if (!name || value === undefined || value === null || value === '') continue;
             if (!used.has(name)) used.set(name, new Set());
             used.get(name).add(value);
         }
     }
     const known = new Map(attributes.map((a) => [a.name, a]));
+    const lower = (s) => String(s ?? '').trim().toLowerCase();
     const options = [...used].map(([name, values]) => {
         const attribute = known.get(name);
-        const ordered = attribute
-            ? attribute.values.filter((v) => values.has(v.value)).map((v) => ({ value: v.value, hex: v.hex || '' }))
-            : [...values].map((value) => ({ value, hex: '' }));
-        return { name, type: attribute?.type || 'select', values: ordered };
+        if (!attribute) return { name, type: 'select', values: [...values].map((value) => ({ value, hex: '' })) };
+        // The category's order and swatches (matched case-insensitively), then
+        // any value the variants use that the category does not list.
+        const byLower = new Map([...values].map((v) => [lower(v), v]));
+        const ordered = [];
+        for (const v of attribute.values || []) {
+            const actual = byLower.get(lower(v.value));
+            if (actual === undefined) continue;
+            ordered.push({ value: actual, hex: v.hex || '' });
+            byLower.delete(lower(v.value));
+        }
+        for (const value of byLower.values()) ordered.push({ value, hex: '' });
+        return { name, type: attribute.type || 'select', values: ordered };
     }).sort((a, b) => {
         const ia = attributes.findIndex((x) => x.name === a.name);
         const ib = attributes.findIndex((x) => x.name === b.name);

@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react"
-import { useNavigate, Link, useSearchParams } from "react-router-dom"
+import { useNavigate, Link, useSearchParams, useLocation } from "react-router-dom"
 import { AlertCircle, Loader2 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { authAPI } from "@store/api"
 import AuthShell, { primaryBtn, secondaryBtn } from "@store/components/user/auth/AuthShell"
+import { isModuleAuthenticated } from "@store/utils/auth"
+import { pickRedirectPath } from "./authRedirect"
 
 const NAME_REGEX = /^[A-Za-z ]+$/
 
@@ -14,7 +16,25 @@ const NAME_REGEX = /^[A-Za-z ]+$/
  */
 export default function SignIn() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
+
+  // Where to go once signed in: the page that sent the user here (state.from),
+  // a ?next= link, or the target kept from an earlier visit ("Edit Number").
+  const [returnTo] = useState(() => {
+    let storedFrom = null
+    try {
+      storedFrom = JSON.parse(sessionStorage.getItem("userAuthData") || "null")?.from || null
+    } catch {
+      /* ignore a bad stored value */
+    }
+    return pickRedirectPath(location.state?.from, searchParams.get("next"), storedFrom)
+  })
+
+  // Already signed in: nothing to do here.
+  useEffect(() => {
+    if (isModuleAuthenticated("user")) navigate(returnTo || "/", { replace: true })
+  }, [navigate, returnTo])
 
   // welcome -> login | signup
   const [step, setStep] = useState("welcome")
@@ -77,6 +97,7 @@ export default function SignIn() {
           referralCode: ref || null,
           isSignUp,
           module: "user",
+          from: returnTo,
         }),
       )
       navigate("/auth/otp")

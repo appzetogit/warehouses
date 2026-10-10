@@ -24,6 +24,15 @@ const DEFAULT_SLIDES = [
  */
 const isArtwork = (b) => Boolean(b?.imageUrl) && !String(b?.title || "").trim()
 
+/** A banner link: a full http(s) address opens in a new tab as written; a path stays in this store. */
+function BannerLink({ link, storePath, children, ...rest }) {
+  const target = String(link || "").trim() || "/categories"
+  if (/^https?:\/\//i.test(target)) {
+    return <a href={target} target="_blank" rel="noopener noreferrer" {...rest}>{children}</a>
+  }
+  return <Link to={storePath(target)} {...rest}>{children}</Link>
+}
+
 export default function HeroCarousel({ banners = [], onOpen }) {
   const { storePath } = useStoreMode()
   const rawSlides = banners.filter((b) => b && typeof b.imageUrl === "string" && b.imageUrl)
@@ -78,7 +87,7 @@ export default function HeroCarousel({ banners = [], onOpen }) {
       })}
 
       {artwork ? (
-        <Link to={storePath(current.ctaLink || "/categories")} className="absolute inset-0 z-10" aria-label={current.ctaText || "Shop the offer"} />
+        <BannerLink link={current.ctaLink} storePath={storePath} className="absolute inset-0 z-10" aria-label={current.ctaText || "Shop the offer"} />
       ) : null}
 
       {/* Hero Content Overlay (Left) */}
@@ -94,13 +103,14 @@ export default function HeroCarousel({ banners = [], onOpen }) {
             {current.subtitle || "Trendy styles. Everyday comfort. Unbeatable prices."}
           </p>
           <div className="mt-4 sm:mt-6">
-            <Link
-              to={storePath(current.ctaLink || "/categories")}
+            <BannerLink
+              link={current.ctaLink}
+              storePath={storePath}
               className="inline-flex items-center gap-2 rounded-full bg-[#f59e0b] px-4 py-2 text-[13px] font-bold text-gray-950 shadow-lg sm:px-6 sm:py-2.5 sm:text-[14px] hover:bg-[#ea8c00] hover:scale-105 active:scale-95 transition-all"
             >
               {current.ctaText || "Shop Now"}
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </BannerLink>
           </div>
         </div>
       </div>

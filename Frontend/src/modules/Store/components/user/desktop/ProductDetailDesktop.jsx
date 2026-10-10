@@ -52,6 +52,7 @@ export default function ProductDetailDesktop({
   quantity,
   setQuantity,
   displayPrice,
+  priceFrom = false,
   displayMrp,
   discountPercent,
   onAddToCart,
@@ -94,9 +95,11 @@ export default function ProductDetailDesktop({
     <p className="text-[18px] text-wh-success">In Stock</p>
   )
 
+  // Same slug the category pages are linked with (header, footer).
+  const categorySlug = product.category?.slug || String(product.categoryName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
   const breadcrumb = [
     { label: isQuick ? "Quick" : "Home", to: storePath("/") },
-    product.categoryName && { label: product.categoryName },
+    product.categoryName && { label: product.categoryName, to: storePath(`/category/${categorySlug}`) },
     { label: product.name },
   ].filter(Boolean)
 
@@ -177,6 +180,7 @@ export default function ProductDetailDesktop({
 
             <div className="flex items-start gap-2">
               {discountPercent > 0 && <span className="text-[28px] font-light leading-none text-wh-deal">-{discountPercent}%</span>}
+              {priceFrom && <span className="text-[14px] leading-7 text-wh-muted">From</span>}
               <PriceTag price={displayPrice} size="lg" />
             </div>
             {displayMrp > displayPrice && (
@@ -275,6 +279,7 @@ export default function ProductDetailDesktop({
 
           {/* 3. Buy box */}
           <aside aria-label="Buy" className="self-start rounded-[8px] border border-wh-border p-[18px]">
+            {priceFrom && <span className="mr-1 text-[14px] text-wh-muted">From</span>}
             <PriceTag price={displayPrice} size="lg" />
             <div className="mt-2">
               {isQuick ? (
@@ -331,7 +336,7 @@ export default function ProductDetailDesktop({
               <dt className="text-wh-muted">Returns</dt>
               <dd className="inline-flex items-center gap-1">
                 <RotateCcw className="h-3 w-3" aria-hidden="true" />
-                <Link to="/user/orders" className="text-wh-link hover:text-wh-link-hover hover:underline">Per our returns policy</Link>
+                <Link to="/profile/refund" className="text-wh-link hover:text-wh-link-hover hover:underline">Per our returns policy</Link>
               </dd>
             </dl>
           </aside>

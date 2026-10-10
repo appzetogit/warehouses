@@ -11,8 +11,30 @@ import {
 const CHANNEL_LABEL = { quick: 'Quick', shop: 'Shop' };
 
 /** A 400 whose body says which line failed and why, for the storefront to act on. */
-const lineError = (message, { productId, variantId = null, channel, reason }) =>
-  new ValidationError(message, { productId: String(productId), variantId: variantId ? String(variantId) : null, channel, reason });
+const lineError = (message, { productId, variantId = null, channel, reason, available }) =>
+  new ValidationError(message, {
+    productId: String(productId),
+    variantId: variantId ? String(variantId) : null,
+    channel,
+    reason,
+    // How many can still be ordered, when the refusal is about quantity.
+    ...(available !== undefined ? { available } : {}),
+  });
+
+/**
+ * Units asked for per product across all its lines. maxQtyPerOrder is a cap
+ * per product, and two sizes of one product are two lines.
+ */
+export function quantityByProduct(items = []) {
+  const totals = new Map();
+  for (const rawItem of Array.isArray(items) ? items : []) {
+    const itemId = String(rawItem?.itemId || rawItem?.id || '').trim();
+    if (!itemId) continue;
+    const quantity = Math.max(1, Number(rawItem?.quantity) || 1);
+    totals.set(itemId, (totals.get(itemId) || 0) + quantity);
+  }
+  return totals;
+}
 
 function toObjectIds(ids = []) {
   return [...new Set(ids)]
@@ -88,6 +110,7 @@ export async function resolveOrderCartItems(sellerId, rawItems = [], { channel =
   const productById = new Map(productDocs.map((doc) => [String(doc._id), doc]));
 
   const resolved = [];
+  const totalByProduct = quantityByProduct(items);
 
   for (const rawItem of items) {
     const itemId = String(rawItem?.itemId || rawItem?.id || '').trim();
@@ -119,8 +142,12 @@ export async function resolveOrderCartItems(sellerId, rawItems = [], { channel =
       // the reservation fails. Stock is still claimed atomically at order
       // creation -- this read is a courtesy, not the guard.
       const cap = Number(productDoc.maxQtyPerOrder);
-      if (Number.isFinite(cap) && cap > 0 && quantity > cap) {
-        throw new ValidationError(`You can order at most ${cap} of ${productDoc.name}`);
+      const productTotal = totalByProduct.get(itemId) || quantity;
+      if (Number.isFinite(cap) && cap > 0 && productTotal > cap) {
+        throw lineError(
+          `You can order at most ${cap} of ${productDoc.name}`,
+          { productId: itemId, variantId: rawItem?.variantId || null, channel, reason: 'max_per_order', available: cap },
+        );
       }
 
       const { variant, ...pricing } = resolveProductPrice(productDoc, rawItem);
@@ -139,7 +166,7 @@ export async function resolveOrderCartItems(sellerId, rawItems = [], { channel =
           Number(onHand) > 0
             ? `Only ${Number(onHand)} left of ${label}. Please reduce the quantity.`
             : `${label} just went out of stock`,
-          { productId: itemId, variantId: variant?._id || null, channel, reason: 'out_of_stock' },
+          { productId: itemId, variantId: variant?._id || null, channel, reason: 'out_of_stock', available: Math.max(0, Number(onHand)) },
         );
       }
 

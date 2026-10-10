@@ -85,29 +85,42 @@ const buildFormDataFromProfile = (profile = {}) => ({
   gender: profile.gender || "",
 })
 
-const loadEditProfileDraft = () => {
+const profileUserId = (profile) => {
+  const id = profile?._id || profile?.id || profile?.userId
+  return id ? String(id) : null
+}
+
+// Unsaved edits survive a reload of this tab only (sessionStorage), and only
+// for the account that made them: { userId, data }.
+const loadEditProfileDraft = (userId) => {
   try {
-    const saved = localStorage.getItem(EDIT_PROFILE_DRAFT_KEY)
-    return saved ? JSON.parse(saved) : null
+    // Drafts used to live in localStorage, shared by every account on the device.
+    localStorage.removeItem(EDIT_PROFILE_DRAFT_KEY)
+    const saved = JSON.parse(sessionStorage.getItem(EDIT_PROFILE_DRAFT_KEY) || "null")
+    if (saved && userId && saved.userId === userId && saved.data) return saved.data
+    if (saved) sessionStorage.removeItem(EDIT_PROFILE_DRAFT_KEY)
+    return null
   } catch (error) {
-    debugError('Error loading edit profile draft from localStorage:', error)
+    debugError('Error loading edit profile draft:', error)
     return null
   }
 }
 
-const saveEditProfileDraft = (data) => {
+const saveEditProfileDraft = (userId, data) => {
+  if (!userId) return
   try {
-    localStorage.setItem(EDIT_PROFILE_DRAFT_KEY, JSON.stringify(data))
+    sessionStorage.setItem(EDIT_PROFILE_DRAFT_KEY, JSON.stringify({ userId, data }))
   } catch (error) {
-    debugError('Error saving edit profile draft to localStorage:', error)
+    debugError('Error saving edit profile draft:', error)
   }
 }
 
 const clearEditProfileDraft = () => {
   try {
+    sessionStorage.removeItem(EDIT_PROFILE_DRAFT_KEY)
     localStorage.removeItem(EDIT_PROFILE_DRAFT_KEY)
   } catch (error) {
-    debugError('Error clearing edit profile draft from localStorage:', error)
+    debugError('Error clearing edit profile draft:', error)
   }
 }
 
@@ -118,13 +131,17 @@ export default function EditProfile() {
 
   // Load from localStorage or use context
   const storedProfile = loadProfileFromStorage()
-  const draftProfile = loadEditProfileDraft()
-  const initialProfile = draftProfile || storedProfile || userProfile || {}
+  const savedProfile = storedProfile || userProfile || {}
+  const userId = profileUserId(userProfile) || profileUserId(storedProfile)
+  const [draftProfile] = useState(() => loadEditProfileDraft(userId))
+  const initialProfile = draftProfile || savedProfile
 
   const initialFormData = buildFormDataFromProfile(initialProfile)
 
   const [formData, setFormData] = useState(initialFormData)
-  const [initialData] = useState(initialFormData)
+  // What is saved on the account; "changed" means different from this.
+  const [initialData, setInitialData] = useState(() => buildFormDataFromProfile(savedProfile))
+  const [savedProfileImage, setSavedProfileImage] = useState(savedProfile?.profileImage || "")
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
@@ -142,11 +159,14 @@ export default function EditProfile() {
 
   // Update form data when profile changes
   useEffect(() => {
-    if (hydratedFromDraftRef.current) return
-
     const storedProfile = loadProfileFromStorage()
     const profile = storedProfile || userProfile || {}
     const newFormData = buildFormDataFromProfile(profile)
+    // The baseline always follows the account; the form keeps a restored draft.
+    setInitialData(newFormData)
+    setSavedProfileImage(profile.profileImage || "")
+    if (hydratedFromDraftRef.current) return
+
     setFormData(newFormData)
 
     // Update profile image
@@ -155,19 +175,6 @@ export default function EditProfile() {
       setImagePreview(resolveMediaUrl(profile.profileImage))
     }
   }, [userProfile])
-
-  useEffect(() => {
-    saveEditProfileDraft({
-      name: formData.name,
-      phone: formData.mobile,
-      mobile: formData.mobile,
-      email: formData.email,
-      profileImage,
-      dateOfBirth: formData.dateOfBirth || null,
-      anniversary: formData.anniversary || null,
-      gender: formData.gender || "",
-    })
-  }, [formData, profileImage])
 
   // Get avatar initial
   const avatarInitial = formData.name?.charAt(0).toUpperCase() || 'A'
@@ -178,6 +185,25 @@ export default function EditProfile() {
     const savedData = JSON.stringify(initialData)
     setHasChanges(currentData !== savedData)
   }, [formData, initialData])
+
+  // Keep a draft only while there are unsaved edits.
+  useEffect(() => {
+    const changed = JSON.stringify(formData) !== JSON.stringify(initialData) || (profileImage || "") !== (savedProfileImage || "")
+    if (!changed) {
+      clearEditProfileDraft()
+      return
+    }
+    saveEditProfileDraft(userId, {
+      name: formData.name,
+      phone: formData.mobile,
+      mobile: formData.mobile,
+      email: formData.email,
+      profileImage,
+      dateOfBirth: formData.dateOfBirth || null,
+      anniversary: formData.anniversary || null,
+      gender: formData.gender || "",
+    })
+  }, [formData, initialData, profileImage, savedProfileImage, userId])
 
   const validateName = (value) => {
     const trimmedName = String(value || "").trim()
@@ -467,6 +493,7 @@ export default function EditProfile() {
 
         // Save to localStorage with complete data
         saveProfileToStorage({
+          ...updatedUser, // keeps the account id, which per-account caches are keyed by
           name: updatedUser.name || formData.name,
           phone: updatedUser.phone || formData.mobile,
           mobile: updatedUser.phone || formData.mobile,

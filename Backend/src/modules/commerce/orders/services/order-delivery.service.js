@@ -248,6 +248,7 @@ export async function listOrdersAvailableDelivery(deliveryPartnerId, query) {
               },
             },
             orderStatus: { $in: ['confirmed', 'preparing', 'ready_for_pickup'] },
+            fulfilmentMode: { $ne: 'standard' },
           },
           {
             'dispatch.deliveryPartnerId': partnerId,
@@ -462,6 +463,8 @@ export async function acceptOrderDelivery(orderId, deliveryPartnerId) {
     {
       ...identity,
       orderStatus: { $in: acceptedStatuses },
+      // Shop orders go by courier; a rider can never take one.
+      fulfilmentMode: { $ne: 'standard' },
       $or: [
         {
           'dispatch.status': 'unassigned',

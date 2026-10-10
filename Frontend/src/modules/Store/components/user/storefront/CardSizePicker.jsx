@@ -7,14 +7,20 @@ import { channelAvailability } from "@store/utils/channelStock"
  * the customer picks and adds without leaving the list. Sold-out options are
  * shown but can't be picked. Closes on Escape, on a click outside, or with ×.
  */
-export default function CardSizePicker({ product, channel = "shop", onPick, onClose }) {
+export default function CardSizePicker({ product, channel = "shop", onPick, onClose, triggerRef = null }) {
   const ref = useRef(null)
   const variants = (Array.isArray(product?.variants) ? product.variants : []).filter((v) => v && v.isActive !== false)
   const optionName = variants[0]?.attributes?.[0]?.name || "size"
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose() }
-    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
+    const onDown = (e) => {
+      if (!ref.current || ref.current.contains(e.target)) return
+      // The button that opened the picker toggles it itself: closing here too
+      // would let its click open it straight back up.
+      if (triggerRef?.current && triggerRef.current.contains(e.target)) return
+      onClose()
+    }
     document.addEventListener("keydown", onKey)
     document.addEventListener("mousedown", onDown)
     ref.current?.querySelector("button:not([disabled])")?.focus()
@@ -22,7 +28,7 @@ export default function CardSizePicker({ product, channel = "shop", onPick, onCl
       document.removeEventListener("keydown", onKey)
       document.removeEventListener("mousedown", onDown)
     }
-  }, [onClose])
+  }, [onClose, triggerRef])
 
   return (
     <div

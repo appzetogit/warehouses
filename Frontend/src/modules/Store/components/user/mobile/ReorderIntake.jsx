@@ -77,7 +77,13 @@ export default function ReorderIntake() {
             channels: product.channels,
           }, null, { quantity: Number(item.quantity) || 1 })
           // A Quick cart holds one store; the cart is now asking to replace it.
-          if (result?.needsConfirmation) return
+          // Say why the rest didn't go in, so they can tap Buy Again once the cart is cleared.
+          if (result?.needsConfirmation) {
+            if (items.length > 1) {
+              toast.info("Your cart has items from another store. Replace it, then tap Buy Again to add the rest of this order.")
+            }
+            return
+          }
           if (result?.ok !== false) added += 1
         }
         if (!items.length) toast.error("Couldn't find that order")

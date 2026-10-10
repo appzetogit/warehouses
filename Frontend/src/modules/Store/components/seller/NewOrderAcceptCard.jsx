@@ -9,6 +9,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { getSellerCookingNote } from "@store/utils/orderCookingNote";
+import { formatItemVariant } from "@store/utils/orderItemVariant";
 import {
   formatAgo,
   getAwaitingSince,
@@ -342,6 +343,11 @@ export default function NewOrderAcceptCard({
                     </span>
                     <span className="text-sm font-bold text-gray-800 leading-tight">
                       {item.name}
+                      {formatItemVariant(item) && (
+                        <span className="block text-xs font-black text-indigo-700 mt-0.5">
+                          {formatItemVariant(item)}
+                        </span>
+                      )}
                     </span>
                   </div>
                   <span className="text-sm font-medium text-gray-400 shrink-0">

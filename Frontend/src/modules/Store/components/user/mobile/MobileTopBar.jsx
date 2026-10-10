@@ -41,7 +41,7 @@ export default function MobileTopBar({ title, subtitle, actions = ["search", "wi
           </Link>
         ) : null}
         {actions.includes("wishlist") ? (
-          <Link to="/profile/favorites" aria-label="Wishlist" className={icon}>
+          <Link to={storePath("/wishlist")} aria-label="Wishlist" className={icon}>
             <Heart className="h-5 w-5" aria-hidden="true" />
           </Link>
         ) : null}

@@ -109,9 +109,32 @@ export function shopTimeline(order) {
   }))
 }
 
+/** The customer's money actually moved: paid, held (authorized) or already refunded. */
+export const isOrderPaid = (order) => ["paid", "authorized", "refunded"].includes(String(order?.payment?.status || "").toLowerCase())
+
+/** Where a refund lands: "coins", "wallet" or "original" (the card/UPI it was paid with). */
+export function refundDestination(order) {
+  const payment = order?.payment || {}
+  if (String(payment.refund?.method || "").toLowerCase() === "coins") return "coins"
+  if (String(payment.method || "").toLowerCase() === "wallet") return "wallet"
+  return "original"
+}
+
+/** The sentence saying where a refund goes, by destination. */
+export function refundWhereText(order, { done = false } = {}) {
+  const to = refundDestination(order)
+  if (to === "coins") return done ? "It has been credited to your account as coins." : "It will be credited to your account as coins."
+  if (to === "wallet") return done ? "It has been credited to your wallet." : "It will be credited to your wallet."
+  return done
+    ? "It reaches your original payment method in 5–7 working days if you haven't seen it yet."
+    : "It reaches your original payment method in 5–7 working days."
+}
+
 /**
  * Where the money stands on a cancelled order paid online:
- * { state: "none" | "pending" | "processed", amount, at }.
+ * { state: "none" | "pending" | "failed" | "processed", amount, at }.
+ * "failed" means the automatic refund didn't go through and our team
+ * processes it by hand.
  */
 export function shopRefund(order) {
   const payment = order?.payment || {}
@@ -121,7 +144,10 @@ export function shopRefund(order) {
   if (refund.status === "processed" || payment.status === "refunded") {
     return { state: "processed", amount, at: toDate(refund.processedAt) }
   }
-  if (refund.status === "pending" || refund.status === "failed") {
+  if (refund.status === "failed") {
+    return { state: "failed", amount, at: toDate(order?.cancelledAt) }
+  }
+  if (refund.status === "pending") {
     return { state: "pending", amount, at: toDate(refund.processedAt) || toDate(order?.cancelledAt) }
   }
   return { state: "none", amount: 0, at: null }
@@ -135,6 +161,7 @@ export function shopStatusLabel(order) {
     const refund = shopRefund(order)
     if (refund.state === "processed") return "Refunded"
     if (refund.state === "pending") return "Refund started"
+    if (refund.state === "failed") return "Refund delayed"
     return isRejected(order) ? "Rejected by store" : "Cancelled"
   }
   return LABELS[Math.max(reachedRank(order), 0)]
@@ -198,3 +225,66 @@ export const storeNameOf = (order) =>
   order?.sellerName ||
   (typeof order?.seller === "string" ? order.seller : order?.seller?.sellerName) ||
   ""
+
+const QUICK_LABELS = {
+  pending_payment: "Waiting for payment",
+  created: "Order placed",
+  confirmed: "Order confirmed",
+  preparing: "Being packed",
+  ready_for_pickup: "Packed, waiting for the rider",
+  reached_pickup: "Rider at the store",
+  picked_up: "On the way",
+  reached_drop: "Rider has arrived",
+  delivered: "Delivered",
+  cancelled_by_user: "Cancelled by you",
+  cancelled_by_seller: "Cancelled by the store",
+  cancelled_by_admin: "Cancelled",
+}
+
+/** One line for any order: the Shop wording for courier orders, a plain label for Quick ones. */
+export function orderStatusLabel(order) {
+  if (isShopOrder(order)) return shopStatusLabel(order)
+  const status = statusOf(order)
+  if (QUICK_LABELS[status]) return QUICK_LABELS[status]
+  return status ? status.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()) : "Processing"
+}
+
+/**
+ * The cart page that puts this order's lines back in, same sizes, at
+ * today's prices (ReorderIntake does the work). Shop and Quick keep
+ * separate carts.
+ */
+export const reorderPath = (order) =>
+  `${isShopOrder(order) ? "" : "/quick"}/cart?reorder=${encodeURIComponent(String(order?._id || order?.id || ""))}`
+
+/**
+ * The price breakdown as [label, amount, zeroText] rows that add up to
+ * pricing.total: delivery includes its GST, discount and coins are
+ * negative. Zero rows are left out except Items and Delivery ("Free").
+ */
+export function priceRows(order) {
+  const p = order?.pricing || {}
+  const coins = Number(order?.coinsDiscount ?? p.coinsDiscount) || 0
+  return [
+    ["Items", Number(p.subtotal) || 0],
+    ["Delivery", (Number(p.deliveryFee) || 0) + (Number(p.deliveryFeeGst) || 0), "Free"],
+    ["Packaging", Number(p.packagingFee) || 0],
+    ["Platform fee", Number(p.platformFee) || 0],
+    ["Taxes", Number(p.tax) || 0],
+    ["Discount", -(Number(p.discount) || 0)],
+    ["Coins", -coins],
+  ].filter(([label, value, zero]) => label === "Items" || value !== 0 || zero)
+}
+
+/** The label for an order's total: "Paid", "To pay on delivery", "Refunded"… */
+export function totalLabel(order) {
+  const method = String(order?.payment?.method || "").toLowerCase()
+  const pay = String(order?.payment?.status || "").toLowerCase()
+  const status = statusOf(order)
+  if (pay === "refunded") return "Refunded"
+  if (pay === "paid" || pay === "authorized") return "Paid"
+  if ((method === "cash" || method === "cod") && !isCancelledStatus(status)) {
+    return status === "delivered" ? "Paid on delivery" : "To pay on delivery"
+  }
+  return "Order total"
+}

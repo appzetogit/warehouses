@@ -23,6 +23,7 @@ const ProductDetail = lazy(() => import("@store/pages/user/ProductDetail"))
 
 // Cart
 const Cart = lazy(() => import("@store/pages/user/cart/Cart"))
+// eslint-disable-next-line no-unused-vars -- /cart/select-address now redirects to the address selector
 const SelectAddress = lazy(() => import("@store/pages/user/cart/SelectAddress"))
 const AddressSelectorPage = lazy(() => import("@store/pages/user/cart/AddressSelectorPage"))
 
@@ -63,6 +64,7 @@ const ReportSafetyEmergency = lazy(() => import("@store/pages/user/profile/Repor
 const Accessibility = lazy(() => import("@store/pages/user/profile/Accessibility"))
 const Logout = lazy(() => import("@store/pages/user/profile/Logout"))
 const ReferEarn = lazy(() => import("@store/pages/user/profile/ReferEarn"))
+const NotFound = lazy(() => import("@store/pages/user/profile/NotFound"))
 
 // Auth
 const SignIn = lazy(() => import("@store/pages/user/auth/SignIn"))
@@ -119,8 +121,10 @@ export default function UserRouter() {
               <Route path="search" element={<SearchResults />} />
               <Route path="product/:id" element={<ProductDetail />} />
               <Route path="cart" element={<Cart />} />
-              <Route path="cart/select-address" element={<SelectAddress />} />
+              {/* The old picker saved addresses without a map pin; the address selector does both. */}
+              <Route path="cart/select-address" element={<Navigate to={`${base ? `/${base}` : ""}/cart/address-selector`} replace />} />
               <Route path="cart/address-selector" element={<AddressSelectorPage />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
           ))}
 

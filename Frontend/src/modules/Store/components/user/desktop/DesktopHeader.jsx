@@ -481,7 +481,8 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
               {c.name}
             </Link>
           ))}
-          <Link to="/offers" className={subnavLink}>Today&apos;s Deals</Link>
+          {/* Stays in the current store (Quick or Shop); /offers is Shop-only. */}
+          <Link to={storePath("/search?minDiscount=10")} className={subnavLink}>Today&apos;s Deals</Link>
           <Link to="/coins" className={subnavLink}>Coins</Link>
           {onOpenSpin ? (
             <button type="button" onClick={onOpenSpin} className={subnavLink}>Spin &amp; Win</button>

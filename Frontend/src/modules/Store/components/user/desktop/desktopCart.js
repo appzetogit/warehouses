@@ -41,8 +41,11 @@ export function useDesktopAddToCart() {
       return
     }
     const variantPrice = variant ? Number(variant.price) || (product.displayPrice ?? product.price) : null
-    const seller = sellerOverride || product.seller || {}
-    const sellerName = seller.name || seller.sellerName || "Store"
+    const rawSeller = sellerOverride || product.seller || {}
+    const seller = typeof rawSeller === "string" ? { name: rawSeller } : rawSeller
+    // A made-up name would make the Quick cart's seller check (names first)
+    // see a different store, so fall back to the product's own seller name.
+    const sellerName = seller.name || seller.sellerName || product.sellerName || product.storeName || "Store"
     const result = addToCart({
       id,
       itemId: id,

@@ -223,10 +223,12 @@ export function CartProvider({ children, mode = "shop" }) {
   // Persist to localStorage whenever cart changes
   useEffect(() => {
     try {
-      // Only save if we have items or user is authenticated to avoid cluttering localStorage for every guest visitor
-      const isAuthenticated = localStorage.getItem("user_authenticated") === "true" || !!localStorage.getItem("user_accessToken");
-      if (cart.length > 0 || isAuthenticated) {
+      // An empty cart drops the key, so removing the last item stays removed
+      // after a reload (a guest's old cart used to come back).
+      if (cart.length > 0) {
         localStorage.setItem(storageKey, JSON.stringify(normalizeCartData(cart)))
+      } else {
+        localStorage.removeItem(storageKey)
       }
     } catch {
       // ignore storage errors (private mode, quota, etc.)
@@ -234,6 +236,10 @@ export function CartProvider({ children, mode = "shop" }) {
   }, [cart, storageKey])
 
   const cartSyncTimerRef = useRef(null)
+  // False until the account's saved cart has been read (on start and on each
+  // sign-in). Pushing before that would overwrite the saved cart with this
+  // device's (often empty) one, or merge the guest cart into itself.
+  const serverCartReadRef = useRef(false)
 
   const scheduleCartSync = useCallback(() => {
     if (typeof window === "undefined") return
@@ -242,7 +248,7 @@ export function CartProvider({ children, mode = "shop" }) {
       localStorage.getItem("user_authenticated") === "true" ||
       !!localStorage.getItem("user_accessToken")
 
-    if (!isAuthenticated) return
+    if (!isAuthenticated || !serverCartReadRef.current) return
 
     if (cartSyncTimerRef.current) {
       clearTimeout(cartSyncTimerRef.current)
@@ -285,25 +291,58 @@ export function CartProvider({ children, mode = "shop" }) {
   // nothing is doubled).
   const cartRef = useRef(cart)
   cartRef.current = cart
+  const readAuthenticated = () =>
+    typeof window !== "undefined" &&
+    (localStorage.getItem("user_authenticated") === "true" || !!localStorage.getItem("user_accessToken"))
+  // Signed in at the last check; tells a sign-out and a fresh sign-in apart
+  // from other "userAuthChanged" events (a profile edit fires it too).
+  const authRef = useRef(readAuthenticated())
   useEffect(() => {
     if (typeof window === "undefined") return undefined
     let alive = true
     const restore = async () => {
-      const isAuthenticated =
-        localStorage.getItem("user_authenticated") === "true" ||
-        !!localStorage.getItem("user_accessToken")
-      if (!isAuthenticated || normalizeCartData(cartRef.current).length > 0) return
+      const isAuthenticated = readAuthenticated()
+      const wasAuthenticated = authRef.current
+      authRef.current = isAuthenticated
+      if (isAuthenticated !== wasAuthenticated) serverCartReadRef.current = false
+      if (!isAuthenticated) {
+        // Signed out: the previous account's lines must not stay on screen
+        // or be synced into whoever signs in next.
+        if (wasAuthenticated) {
+          setCart([])
+          try { localStorage.removeItem(storageKey) } catch { /* storage unavailable */ }
+        }
+        return
+      }
+      // Just signed in with a guest cart: keep it and add the account's saved
+      // cart to it (same line, quantities added) instead of dropping either.
+      const mergeGuestCart = !wasAuthenticated && normalizeCartData(cartRef.current).length > 0
+      if (!mergeGuestCart && normalizeCartData(cartRef.current).length > 0) {
+        serverCartReadRef.current = true
+        return
+      }
       try {
         const res = await userAPI.getCart(mode === "quick" ? "quick" : "shop")
         const saved = res?.data?.data
         if (!alive || !Array.isArray(saved?.items) || saved.items.length === 0) return
+        const savedLines = normalizeCartData(
+          saved.items.map((item) => ({ ...item, seller: item.sellerName || item.seller || "" })),
+        )
+        if (mergeGuestCart) {
+          setCart((prev) => {
+            const local = normalizeCartData(prev)
+            // A Quick cart holds one store; a saved cart from another store
+            // stays on the server rather than being mixed in.
+            if (mode === "quick" && local.length > 0 && savedLines.some((line) => isDifferentSeller(local[0], line))) {
+              return local
+            }
+            return mergeDuplicateLines([...local, ...savedLines])
+          })
+          return
+        }
         // The user may have added something while the request was in flight.
         if (normalizeCartData(cartRef.current).length > 0) return
-        setCart(
-          normalizeCartData(
-            saved.items.map((item) => ({ ...item, seller: item.sellerName || item.seller || "" })),
-          ),
-        )
+        setCart(savedLines)
         const removed = Array.isArray(saved.removed) ? saved.removed : []
         const changed = Array.isArray(saved.changed) ? saved.changed : []
         window.dispatchEvent(new CustomEvent("store_cart_restored", { detail: { mode, removed, changed } }))
@@ -313,6 +352,13 @@ export function CartProvider({ children, mode = "shop" }) {
         }
       } catch {
         // offline or not signed in: keep the local cart as it is
+      } finally {
+        if (alive && readAuthenticated()) {
+          serverCartReadRef.current = true
+          // Push what the device now holds (merged guest cart, or a change
+          // made while the saved cart was loading).
+          window.dispatchEvent(new Event("store_cart_pricing_updated"))
+        }
       }
     }
     restore()
@@ -321,10 +367,14 @@ export function CartProvider({ children, mode = "shop" }) {
       alive = false
       window.removeEventListener("userAuthChanged", restore)
     }
-  }, [mode])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, storageKey])
 
   const addToCart = (item, sourcePosition = null, options = {}) => {
-    const { forceReplace = false, quantity: requestedQuantity = 1 } = options
+    // onReplaceCancelled: called if the "Replace cart?" prompt this add opens
+    // is dismissed, so a caller that already took the item from somewhere
+    // (saved for later) can put it back.
+    const { forceReplace = false, quantity: requestedQuantity = 1, onReplaceCancelled = null } = options
     const parsedQuantity = Number(requestedQuantity)
     const addQuantity =
       Number.isFinite(parsedQuantity) && parsedQuantity > 0
@@ -342,6 +392,7 @@ export function CartProvider({ children, mode = "shop" }) {
           item,
           sourcePosition,
           quantity: addQuantity,
+          onReplaceCancelled,
           existingSellerName: firstItemSellerName || 'another seller',
           newSellerName: newItemSellerName || 'this seller',
         })
@@ -401,7 +452,9 @@ export function CartProvider({ children, mode = "shop" }) {
         return safePrev;
       }
       
-      const newItem = { ...item, quantity: addQuantity }
+      // Stored normalised, so the line's id is "<product>::<size>" straight
+      // away; +/-/remove resolve against that id.
+      const newItem = normalizeCartLines([{ ...item, quantity: addQuantity }])[0]
       
       // Set last add event for animation if sourcePosition is provided
       if (sourcePosition) {
@@ -424,7 +477,11 @@ export function CartProvider({ children, mode = "shop" }) {
   }
 
   const cancelReplaceCart = () => {
+    const onCancelled = cartReplacePrompt?.onReplaceCancelled
     setCartReplacePrompt(null)
+    if (typeof onCancelled === "function") {
+      try { onCancelled() } catch { /* the prompt is closed either way */ }
+    }
   }
 
   const confirmReplaceCart = () => {
@@ -441,7 +498,7 @@ export function CartProvider({ children, mode = "shop" }) {
         ? Math.floor(parsedQuantity)
         : 1
 
-    setCart([{ ...item, quantity: addQuantity }])
+    setCart(normalizeCartLines([{ ...item, quantity: addQuantity }]))
 
     if (sourcePosition) {
       setLastAddEvent({
@@ -603,6 +660,9 @@ export function CartProvider({ children, mode = "shop" }) {
       return
     }
     if (safeCart.length === 0) return;
+    // Only the Quick cart is single-seller; the Shop cart is multi-vendor and
+    // checks out split by seller, so it is left as it is.
+    if (mode !== "quick") return;
     
     // Get unique seller IDs and names
     const sellerIds = safeCart.map(item => item.sellerId).filter(Boolean);
@@ -615,16 +675,21 @@ export function CartProvider({ children, mode = "shop" }) {
     const uniqueSellerNamesNormalized = uniqueSellerNames.map(normalizeName);
     const uniqueSellerNamesSet = new Set(uniqueSellerNamesNormalized);
     
-    // Check if cart has items from multiple sellers
-    if (uniqueSellerIds.length > 1 || uniqueSellerNamesSet.size > 1) {
+    // Check if cart has items from multiple sellers (ids decide when every line
+    // has one; names are only the fallback)
+    const allHaveIds = sellerIds.length === safeCart.length
+    const hasMultipleSellers = allHaveIds
+      ? new Set(uniqueSellerIds.map(String)).size > 1
+      : uniqueSellerNamesSet.size > 1
+    if (hasMultipleSellers) {
       debugWarn('⚠️ Cart contains items from multiple sellers. Cleaning cart...', {
         sellerIds: uniqueSellerIds,
         sellerNames: uniqueSellerNames
       });
       
       // Keep items from the first seller (most recent or first in cart)
-      const firstSellerId = uniqueSellerIds[0];
-      const firstSellerName = uniqueSellerNames[0];
+      const firstSellerId = safeCart[0]?.sellerId || uniqueSellerIds[0];
+      const firstSellerName = safeCart[0]?.seller || uniqueSellerNames[0];
       
       setCart((prev) => {
         const safePrev = normalizeCartData(prev)
@@ -636,15 +701,15 @@ export function CartProvider({ children, mode = "shop" }) {
           const itemSellerName = item?.seller;
           const itemSellerNameNormalized = normalizeName(itemSellerName);
           
-          // Check by seller name first
+          // Check by seller id first. The same seller can reach the cart under
+          // more than one id format (see isDifferentSeller), so a matching name
+          // still keeps the line rather than dropping it.
+          if (firstSellerId && itemSellerId && String(itemSellerId) === String(firstSellerId)) {
+            return true;
+          }
+          // Fallback to name comparison
           if (firstSellerNameNormalized && itemSellerNameNormalized) {
             return itemSellerNameNormalized === firstSellerNameNormalized;
-          }
-          // Fallback to ID comparison
-          if (firstSellerId && itemSellerId) {
-            return itemSellerId === firstSellerId || 
-                   itemSellerId === firstSellerId.toString() ||
-                   itemSellerId.toString() === firstSellerId;
           }
           return false;
         });

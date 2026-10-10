@@ -1744,16 +1744,48 @@ export const sellerAPI = {
       if (inFlight && inFlightKey === key) return inFlight;
 
       inFlightKey = key;
-      inFlight = apiClient
-        .get("/seller/orders", {
+      // The dashboard call (no filters) only gets the newest 50. Fetch still-open orders
+      // separately too, so an older Shop order waiting on the store (no deadline) or an
+      // accepted one waiting for a courier never drops off the list. Paginated / filtered
+      // callers keep exact pages.
+      const isDashboardCall = !params || Object.keys(params).length === 0;
+      const openOrdersRequest = isDashboardCall
+        ? apiClient
+          .get("/seller/orders", {
+            params: {
+              limit: 100,
+              page: 1,
+              orderStatus: "created,confirmed,preparing,ready_for_pickup",
+            },
+            contextModule: "seller",
+          })
+          .then((r) => (Array.isArray(r?.data?.data?.data) ? r.data.data.data : []))
+          .catch(() => [])
+        : Promise.resolve([]);
+      inFlight = Promise.all([
+        apiClient.get("/seller/orders", {
           params: { limit: 50, page: 1, ...params },
           contextModule: "seller",
-        })
-        .then((res) => {
+        }),
+        openOrdersRequest,
+      ])
+        .then(([res, openRows]) => {
           // Backend paginated shape: { data: { data: [...], meta: {...} } }
           // Normalize to { data: { data: { orders: [...], meta } } } for seller UI pages.
           const payload = res?.data?.data || {};
-          const rowsRaw = Array.isArray(payload.data) ? payload.data : [];
+          const latestRows = Array.isArray(payload.data) ? payload.data : [];
+          const seenIds = new Set(latestRows.map((o) => String(o?._id || o?.orderId || "")));
+          const extraRows = openRows.filter((o) => {
+            const id = String(o?._id || o?.orderId || "");
+            if (!id || seenIds.has(id)) return false;
+            seenIds.add(id);
+            return true;
+          });
+          const rowsRaw = extraRows.length
+            ? [...latestRows, ...extraRows].sort(
+              (a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime(),
+            )
+            : latestRows;
 
           // Normalize backend order fields to match existing seller UI expectations.
           // UI historically uses: order.status, order.address, order.total, order.paymentMethod

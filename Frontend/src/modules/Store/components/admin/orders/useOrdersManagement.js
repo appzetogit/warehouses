@@ -3,6 +3,7 @@ import { exportToCSV, exportToExcel, exportToPDF, exportToJSON } from "./ordersE
 import brandMark from "@/config/brandMark"
 import { APP_CONFIG } from "@/config/constants"
 import { getCachedSettings, loadBusinessSettings } from "@store/utils/businessSettings"
+import { formatItemVariant } from "@store/utils/orderItemVariant"
 const debugError = () => {}
 
 
@@ -498,7 +499,9 @@ export function useOrdersManagement(orders, statusKey, title, options = {}) {
       const tableBody = items.length > 0
         ? items.map((item) => {
           const qty = toNumber(item.quantity || 1)
-          const title = item.name || item.itemName || item.title || "Item"
+          const baseTitle = item.name || item.itemName || item.title || "Item"
+          const variant = formatItemVariant(item)
+          const title = variant ? `${baseTitle} (${variant})` : baseTitle
           const unitPrice = toNumber(item.price)
           const lineTotal = qty * unitPrice
           return [qty, title, formatMoney(unitPrice), formatMoney(lineTotal)]

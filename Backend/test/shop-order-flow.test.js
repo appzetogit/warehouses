@@ -177,3 +177,52 @@ test('admin can accept a waiting Shop order, or reject one with a reason the cus
     assert.equal(saved.cancellationReason, 'Store closed for Diwali');
     assert.equal(saved.cancelledBy, 'admin');
 });
+
+test('an accepted Shop order is never offered to riders', async () => {
+    const shop = await order({ orderStatus: 'confirmed', dispatch: { status: 'unassigned' } });
+    await M.service.tryAutoAssign(shop._id);
+    const saved = await M.Order.findById(shop._id).lean();
+    assert.equal(saved.dispatch.status, 'unassigned');
+    assert.equal((saved.dispatch.offeredTo || []).length, 0);
+    assert.equal(saved.dispatch.dispatchingAt, undefined);
+
+    const resend = await call('POST', `/admin/orders/${shop._id}/resend-notification`, { as: tokens.admin });
+    assert.notEqual(resend.status, 200);
+});
+
+test('a store can only accept, reject or pack a Shop order', async () => {
+    const shop = await order();
+    for (const target of ['delivered', 'picked_up', 'ready_for_pickup']) {
+        const res = await call('PATCH', `/seller/orders/${shop._id}/status`, { as: tokens.seller, body: { orderStatus: target } });
+        assert.equal(res.status, 400, target);
+    }
+    assert.equal((await M.Order.findById(shop._id).lean()).orderStatus, 'created');
+
+    ok(await call('PATCH', `/seller/orders/${shop._id}/status`, { as: tokens.seller, body: { orderStatus: 'confirmed' } }), 'accept');
+    ok(await call('PATCH', `/seller/orders/${shop._id}/status`, { as: tokens.seller, body: { orderStatus: 'ready_for_pickup' } }), 'pack');
+    const delivered = await call('PATCH', `/seller/orders/${shop._id}/status`, { as: tokens.seller, body: { orderStatus: 'delivered' } });
+    assert.equal(delivered.status, 400);
+});
+
+test('no courier is booked before the store accepts, and none for a Quick order', async () => {
+    const shop = await order();
+    await assert.rejects(M.service.bookOrderShipment(shop), /Accept the order/);
+    const quick = await order({ fulfilmentMode: 'quick', orderStatus: 'confirmed' });
+    await assert.rejects(M.service.bookOrderShipment(quick), /rider/);
+    const cancelled = await order({ orderStatus: 'cancelled_by_user' });
+    await assert.rejects(M.service.bookOrderShipment(cancelled), /can't be booked/);
+});
+
+test('once a courier has the parcel, neither the store nor support can cancel it', async () => {
+    const shop = await order({ orderStatus: 'ready_for_pickup', shipment: { awb: 'AWB123', courierName: 'Test' } });
+    const store = await call('PATCH', `/seller/orders/${shop._id}/status`, { as: tokens.seller, body: { orderStatus: 'cancelled_by_seller', reason: 'cannot_ship' } });
+    assert.equal(store.status, 400);
+    await assert.rejects(M.service.updateOrderStatusAdmin(shop._id, 'cancelled_by_admin', 'test', new mongoose.Types.ObjectId()), /courier/);
+    assert.equal((await M.Order.findById(shop._id).lean()).orderStatus, 'ready_for_pickup');
+});
+
+test('support accepting a Quick order retires its acceptance deadline', async () => {
+    const quick = await order({ fulfilmentMode: 'quick', acceptanceDeadlineAt: new Date(Date.now() + 60 * 1000) });
+    await M.service.updateOrderStatusAdmin(quick._id, 'confirmed', '', new mongoose.Types.ObjectId());
+    assert.equal((await M.Order.findById(quick._id).lean()).acceptanceDeadlineAt, null);
+});

@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react"
 import { getGoogleMapsApiKeySync } from '@store/utils/googleMapsApiKey'
 import { useLocation, useNavigate } from "react-router-dom"
-import { ChevronLeft, ChevronRight, Plus, MapPin, MoreHorizontal, Navigation, Home, Building2, Briefcase, Phone, X, Crosshair, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, MapPin, Navigation, Home, Building2, Briefcase, Search, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@store/components/ui/button"
 import { Input } from "@store/components/ui/input"
 import { Label } from "@store/components/ui/label"
@@ -43,6 +43,32 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c // Distance in meters
 }
 
+// A saved address's map pin, or null when it has none.
+const getAddressCoords = (address) => {
+  const coords = address?.location?.coordinates
+  const lng =
+    Array.isArray(coords) && coords.length >= 2
+      ? Number(coords[0])
+      : Number(address?.longitude ?? address?.lng)
+  const lat =
+    Array.isArray(coords) && coords.length >= 2
+      ? Number(coords[1])
+      : Number(address?.latitude ?? address?.lat)
+  // [0, 0] is the "no location" placeholder, not a real address.
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) return null
+  return { lat, lng }
+}
+
+const EMPTY_ADDRESS_FORM = {
+  street: "",
+  city: "",
+  state: "",
+  zipCode: "",
+  additionalDetails: "",
+  label: "Home",
+  phone: "",
+}
+
 // Get icon based on address type/label
 const getAddressIcon = (address) => {
   const label = (address.label || address.additionalDetails || "").toLowerCase()
@@ -57,21 +83,22 @@ export default function AddressSelectorPage() {
   const routerLocation = useLocation()
   const goBack = useAppBackNavigation()
   const { liveLocation: location, loading, requestLiveLocation } = useDeliveryLocation()
-  const { addresses = [], addAddress, updateAddress, setDefaultAddress, userProfile } = useProfile()
+  const { addresses = [], addAddress, updateAddress, deleteAddress, setDefaultAddress } = useProfile()
   const [showAddressForm, setShowAddressForm] = useState(false)
+  // Editing a saved address (null = adding a new one). needsPin: it has no map
+  // location yet, so it can't be delivered to until the customer pins it.
+  const [editingAddress, setEditingAddress] = useState(null)
+  const [pinConfirmed, setPinConfirmed] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
+  // Opening the editor centres the map on the saved pin; that first map move
+  // must not overwrite the saved street with a reverse-geocoded one.
+  const skipNextMapMoveRef = useRef(false)
   const [mapPosition, setMapPosition] = useState([
     Number.isFinite(location?.latitude) ? location.latitude : 20.5937,
     Number.isFinite(location?.longitude) ? location.longitude : 78.9629,
   ])
-  const [addressFormData, setAddressFormData] = useState({
-    street: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    additionalDetails: "",
-    label: "Home",
-    phone: "",
-  })
+  const [addressFormData, setAddressFormData] = useState(EMPTY_ADDRESS_FORM)
   const [loadingAddress, setLoadingAddress] = useState(false)
   const [mapLoading, setMapLoading] = useState(false)
   const mapContainerRef = useRef(null)
@@ -418,6 +445,7 @@ export default function AddressSelectorPage() {
         try {
           setDeliveryAddressMode("current")
         } catch {}
+        setPinConfirmed(true)
         toast.success("Location updated", { id: "geo" })
       }
     } catch (e) {
@@ -425,44 +453,67 @@ export default function AddressSelectorPage() {
     }
   }
 
+  const openEditAddressForm = (address, { needsPin = false } = {}) => {
+    const pin = getAddressCoords(address)
+    setEditingAddress({ ...address, needsPin: needsPin || !pin })
+    setPinConfirmed(false)
+    setConfirmDeleteId(null)
+    setAddressFormData({
+      ...EMPTY_ADDRESS_FORM,
+      street: address?.street || address?.address || "",
+      city: address?.city || "",
+      state: address?.state || "",
+      zipCode: address?.zipCode || "",
+      additionalDetails: address?.additionalDetails || "",
+      label: address?.label === "Office" ? "Work" : address?.label || "Home",
+      phone: address?.phone || "",
+    })
+    setAddressAutocompleteValue("")
+    setCurrentAddress(
+      address?.formattedAddress ||
+        [address?.additionalDetails, address?.street, address?.city, address?.state, address?.zipCode].filter(Boolean).join(", "),
+    )
+    if (pin) setMapPosition([pin.lat, pin.lng])
+    skipNextMapMoveRef.current = true
+    setShowAddressForm(true)
+  }
+
   const handleSelectSavedAddress = async (address) => {
     const id = getAddressId(address)
     if (id) {
-      await setDefaultAddress(id)
+      const pin = getAddressCoords(address)
+      if (!pin) {
+        // Without a map location checkout can't deliver here; ask for it now
+        // rather than letting the order fail later.
+        toast.info("Pin this address on the map so we can deliver to it")
+        openEditAddressForm(address, { needsPin: true })
+        return
+      }
+      const ok = await setDefaultAddress(id)
+      if (ok === false) return
       try {
-        const coords = address?.location?.coordinates
-        const lng =
-          Array.isArray(coords) && coords.length >= 2
-            ? Number(coords[0])
-            : Number(address?.longitude || address?.lng)
-        const lat =
-          Array.isArray(coords) && coords.length >= 2
-            ? Number(coords[1])
-            : Number(address?.latitude || address?.lat)
-
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-          const locationData = {
-            latitude: lat,
-            longitude: lng,
-            address: address?.street || address?.address || "",
-            city: address?.city || "",
-            state: address?.state || "",
-            area: address?.additionalDetails || "",
-            formattedAddress:
-              address?.formattedAddress ||
-              [
-                address?.additionalDetails,
-                address?.street,
-                address?.city,
-                address?.state,
-                address?.zipCode,
-              ]
-                .filter(Boolean)
-                .join(", "),
-          }
-          localStorage.setItem("userLocation", JSON.stringify(locationData))
-          notifyUserLocationChanged(locationData)
+        const { lat, lng } = pin
+        const locationData = {
+          latitude: lat,
+          longitude: lng,
+          address: address?.street || address?.address || "",
+          city: address?.city || "",
+          state: address?.state || "",
+          area: address?.additionalDetails || "",
+          formattedAddress:
+            address?.formattedAddress ||
+            [
+              address?.additionalDetails,
+              address?.street,
+              address?.city,
+              address?.state,
+              address?.zipCode,
+            ]
+              .filter(Boolean)
+              .join(", "),
         }
+        localStorage.setItem("userLocation", JSON.stringify(locationData))
+        notifyUserLocationChanged(locationData)
 
         setDeliveryAddressMode("saved")
       } catch {}
@@ -476,11 +527,33 @@ export default function AddressSelectorPage() {
       navigate("/auth/login", { state: { from: routerLocation.pathname } })
       return
     }
+    setEditingAddress(null)
+    setConfirmDeleteId(null)
+    setAddressFormData(EMPTY_ADDRESS_FORM)
+    setCurrentAddress("")
+    skipNextMapMoveRef.current = false
     setShowAddressForm(true)
   }
 
   const handleCancelAddressForm = () => {
     setShowAddressForm(false)
+    setEditingAddress(null)
+    skipNextMapMoveRef.current = false
+  }
+
+  const handleDeleteAddress = async (address) => {
+    const id = getAddressId(address)
+    if (!id || deletingId) return
+    setDeletingId(String(id))
+    try {
+      await deleteAddress(id)
+      setConfirmDeleteId(null)
+      toast.success("Address deleted")
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Couldn't delete the address. Please try again.")
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const scrollFieldIntoView = useCallback((fieldName) => {
@@ -526,6 +599,11 @@ export default function AddressSelectorPage() {
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 
   const handleMapMoveEnd = async (lat, lng) => {
+    if (skipNextMapMoveRef.current) {
+      skipNextMapMoveRef.current = false
+      return
+    }
+    setPinConfirmed(true)
     if (!ENABLE_LOCATION_REVERSE_GEOCODE) return
     try {
       // Use Nominatim for free reverse geocoding on the client side
@@ -624,6 +702,7 @@ export default function AddressSelectorPage() {
       const zipCode = getComponent(["postal_code"])
 
       setMapPosition([lat, lng])
+      setPinConfirmed(true)
       googleMapRef.current?.panTo({ lat, lng })
       googleMapRef.current?.setZoom(17)
       suppressSuggestionFetchRef.current = true
@@ -673,6 +752,7 @@ export default function AddressSelectorPage() {
       ""
 
     setMapPosition([lat, lng])
+    setPinConfirmed(true)
     googleMapRef.current?.panTo({ lat, lng })
     googleMapRef.current?.setZoom(17)
     suppressSuggestionFetchRef.current = true
@@ -695,6 +775,10 @@ export default function AddressSelectorPage() {
       toast.error("Please fill required fields")
       return
     }
+    if (editingAddress?.needsPin && !pinConfirmed) {
+      toast.error("Move the map to this address, or use your location, to pin it")
+      return
+    }
     setLoadingAddress(true)
     try {
       const payload = {
@@ -703,6 +787,16 @@ export default function AddressSelectorPage() {
         location: { type: "Point", coordinates: [mapPosition[1], mapPosition[0]] },
         latitude: mapPosition[0],
         longitude: mapPosition[1]
+      }
+      if (editingAddress) {
+        const updated = await updateAddress(getAddressId(editingAddress), payload)
+        const wasPinning = editingAddress.needsPin
+        setEditingAddress(null)
+        setShowAddressForm(false)
+        toast.success("Address updated")
+        // They were choosing this address when we asked for the pin: finish that.
+        if (wasPinning && updated) await handleSelectSavedAddress(updated)
+        return
       }
       const created = await addAddress(payload)
       if (created) {
@@ -764,7 +858,7 @@ export default function AddressSelectorPage() {
           <Button variant="ghost" size="icon" onClick={handleCancelAddressForm} className="rounded-full">
             <ChevronLeft className="h-6 w-6" />
           </Button>
-          <h1 className="text-lg font-bold">Add Delivery Location</h1>
+          <h1 className="text-lg font-bold">{editingAddress ? "Edit Delivery Location" : "Add Delivery Location"}</h1>
         </div>
 
         <div
@@ -877,8 +971,13 @@ export default function AddressSelectorPage() {
             <div className="bg-orange-50/50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/20 rounded-xl p-4 flex gap-3">
                <MapPin className="h-5 w-5 text-wh-brand-ink mt-0.5" />
                <div className="min-w-0">
-                  <p className="text-xs font-bold text-orange-800 dark:text-orange-200 uppercase mb-1">Pinnned Location</p>
+                  <p className="text-xs font-bold text-orange-800 dark:text-orange-200 uppercase mb-1">Pinned Location</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{currentAddress || "Select a location on map"}</p>
+                  {editingAddress?.needsPin && !pinConfirmed ? (
+                    <p className="mt-1 text-xs font-semibold text-red-600 dark:text-red-400">
+                      This address has no map location yet. Move the map to it, or use your location.
+                    </p>
+                  ) : null}
                </div>
             </div>
 
@@ -971,7 +1070,7 @@ export default function AddressSelectorPage() {
             onClick={handleAddressFormSubmit}
             disabled={loadingAddress}
           >
-            {loadingAddress ? "Saving..." : "Save Address \u0026 Proceed"}
+            {loadingAddress ? "Saving..." : editingAddress ? "Save Changes" : "Save Address \u0026 Proceed"}
           </Button>
         </div>
       </AnimatedPage>
@@ -1021,25 +1120,92 @@ export default function AddressSelectorPage() {
             ) : (
               addresses.map((addr, idx) => {
                 const Icon = getAddressIcon(addr)
+                const id = getAddressId(addr)
+                const confirming = Boolean(id) && confirmDeleteId === String(id)
+                const deleting = Boolean(id) && deletingId === String(id)
                 return (
-                  <button
-                    key={getAddressId(addr) || idx}
-                    onClick={() => handleSelectSavedAddress(addr)}
-                    className="w-full flex items-start gap-4 p-4 bg-slate-50 dark:bg-[#1a1a1a] rounded-xl hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors text-left group"
+                  <div
+                    key={id || idx}
+                    className="bg-slate-50 dark:bg-[#1a1a1a] rounded-xl overflow-hidden"
                   >
-                    <div className="h-10 w-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm">
-                      <Icon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-900 dark:text-white capitalize">{addr.label || "Address"}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
-                        {[addr.additionalDetails, addr.street, addr.city, addr.state].filter(Boolean).join(", ")}
-                      </p>
-                    </div>
-                    <div className="h-6 w-6 rounded-full border border-gray-200 dark:border-gray-700 mt-2 flex items-center justify-center group-hover:border-wh-brand">
-                       <ChevronRight className="h-3 w-3 text-gray-400 group-hover:text-wh-brand-ink" />
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectSavedAddress(addr)}
+                      className="w-full flex items-start gap-4 p-4 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors text-left group"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm">
+                        <Icon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="flex items-center gap-2 font-bold text-gray-900 dark:text-white capitalize">
+                          {addr.label || "Address"}
+                          {addr.isDefault ? (
+                            <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">
+                              Default
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
+                          {[addr.additionalDetails, addr.street, addr.city, addr.state].filter(Boolean).join(", ")}
+                        </p>
+                        {!getAddressCoords(addr) ? (
+                          <p className="mt-1 text-[11px] font-semibold text-red-600 dark:text-red-400">Needs a map location</p>
+                        ) : null}
+                      </div>
+                      <div className="h-6 w-6 rounded-full border border-gray-200 dark:border-gray-700 mt-2 flex items-center justify-center group-hover:border-wh-brand">
+                         <ChevronRight className="h-3 w-3 text-gray-400 group-hover:text-wh-brand-ink" />
+                      </div>
+                    </button>
+                    {id ? (
+                      confirming ? (
+                        <div className="flex items-center justify-between gap-2 border-t border-gray-200 dark:border-gray-800 px-4 py-2.5" role="group" aria-label="Confirm delete">
+                          <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Delete this address?</p>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              disabled={deleting}
+                              onClick={() => setConfirmDeleteId(null)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-8 bg-red-600 text-white hover:bg-red-700"
+                              disabled={deleting}
+                              onClick={() => handleDeleteAddress(addr)}
+                            >
+                              {deleting ? "Deleting..." : "Delete"}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-1 border-t border-gray-200 dark:border-gray-800 px-2 py-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs font-semibold text-gray-700 dark:text-gray-300"
+                            onClick={() => openEditAddressForm(addr)}
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-1" aria-hidden="true" /> Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400"
+                            onClick={() => setConfirmDeleteId(String(id))}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1" aria-hidden="true" /> Delete
+                          </Button>
+                        </div>
+                      )
+                    ) : null}
+                  </div>
                 )
               })
             )}

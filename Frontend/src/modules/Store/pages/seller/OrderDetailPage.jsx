@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
@@ -35,6 +35,10 @@ import {
   isShopOrderAwaitingStore,
 } from "@store/utils/shopOrder"
 import RejectOrderReasonModal from "@store/components/seller/RejectOrderReasonModal"
+import { formatItemVariant } from "@store/utils/orderItemVariant"
+
+/** Shop order statuses in which the store may book the courier. */
+const COURIER_BOOKABLE_STATUSES = ["confirmed", "preparing", "ready_for_pickup"]
 
 const formatMoney = (value) => `₹${Number(value || 0).toFixed(2)}`
 const toNumber = (value) => {
@@ -54,6 +58,7 @@ export default function OrderDetailPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [generatingShipment, setGeneratingShipment] = useState(false)
+  const bookingCourierRef = useRef(false)
   const [trackingData, setTrackingData] = useState(null)
   const [loadingTracking, setLoadingTracking] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
@@ -118,6 +123,8 @@ export default function OrderDetailPage({
   }
 
   const handleGenerateShipment = async () => {
+    if (bookingCourierRef.current) return
+    bookingCourierRef.current = true
     try {
       setGeneratingShipment(true)
       const res = await sellerAPI.createOrderShipment(order.orderId || order._id || id)
@@ -136,6 +143,7 @@ export default function OrderDetailPage({
       toast.error(err.response?.data?.message || "Failed to generate courier shipment")
     } finally {
       setGeneratingShipment(false)
+      bookingCourierRef.current = false
     }
   }
 
@@ -226,6 +234,10 @@ export default function OrderDetailPage({
   const isShop = isShopOrder(order)
   const awaitingStore = isShopOrderAwaitingStore(order)
   const cancellationText = order.rejectionReason || getCancellationReasonText(order.cancellationReason)
+  const canBookCourier =
+    isShop &&
+    !order.shipment?.awb &&
+    COURIER_BOOKABLE_STATUSES.includes(String(order.orderStatus || "").toLowerCase())
 
   return (
     <div className={`${isSidebar ? "h-full flex flex-col overflow-hidden" : "min-h-screen"} bg-[#F8F9FB] ${isSidebar ? "" : "pb-[calc(5rem+env(safe-area-inset-bottom))]"}`}>
@@ -343,7 +355,8 @@ export default function OrderDetailPage({
           </div>
         </div>
 
-        {/* Courier Fulfilment & Shipping Label */}
+        {/* Courier Fulfilment & Shipping Label (Shop orders only; Quick orders go by rider) */}
+        {isShop && (
         <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm shadow-gray-100/50 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -429,12 +442,16 @@ export default function OrderDetailPage({
           ) : (
             <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-4 text-center space-y-3">
               <p className="text-xs font-bold text-gray-500">
-                Pack this order and generate an automated courier AWB and printable shipping label.
+                {canBookCourier
+                  ? "Pack this order and generate an automated courier AWB and printable shipping label."
+                  : awaitingStore
+                    ? "Accept the order first, then pack it and book the courier."
+                    : "A courier can't be booked for this order in its current status."}
               </p>
               <button
                 type="button"
                 onClick={handleGenerateShipment}
-                disabled={generatingShipment || awaitingStore || String(status || '').toLowerCase().includes('cancel')}
+                disabled={generatingShipment || !canBookCourier}
                 className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 hover:bg-black active:scale-[0.98] text-white rounded-xl text-xs font-black shadow-lg shadow-gray-200 transition-all disabled:opacity-50"
               >
                 {generatingShipment ? (
@@ -452,6 +469,7 @@ export default function OrderDetailPage({
             </div>
           )}
         </div>
+        )}
 
         {/* Order Items */}
         <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm shadow-gray-100/50 space-y-5">
@@ -482,6 +500,9 @@ export default function OrderDetailPage({
                     <p className="text-sm font-black text-gray-900 leading-tight pr-2">{item.name}</p>
                     <p className="text-sm font-black text-gray-900 whitespace-nowrap">{formatMoney(item.price * item.quantity)}</p>
                   </div>
+                  {formatItemVariant(item) && (
+                    <p className="text-xs font-black text-indigo-700 mt-1">{formatItemVariant(item)}</p>
+                  )}
                   <p className="text-[11px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">
                     {item.quantity} × {formatMoney(item.price)}
                   </p>

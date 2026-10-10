@@ -13,6 +13,7 @@ import { adminAPI } from "@/services/api"
 import { getTimelineStatusLabel, getTimelineRoleLabel } from "@store/utils/orderStatus"
 import { computeDeliveryFeeGst, formatDeliveryFeeBreakdownSubtext, getDeliveryFeeTotal, resolveDeliveryFeeGst } from "@store/utils/deliveryFeeDisplay"
 import { getCartCompareItemTotal, getLineCompareUnitPrice } from "@store/utils/productVariants"
+import { formatItemVariant } from "@store/utils/orderItemVariant"
 import { DualMoney } from "@store/components/user/ProductPriceDisplay"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
@@ -368,6 +369,9 @@ export default function ViewOrderDialog({ isOpen, onOpenChange, order }) {
                           </span>
                         )}
                       </div>
+                      {formatItemVariant(item) && (
+                        <p className="text-xs font-semibold text-indigo-700 mt-1 ml-8">{formatItemVariant(item)}</p>
+                      )}
                       {item.description && (
                         <p className="text-xs text-slate-500 mt-1 ml-8">{item.description}</p>
                       )}

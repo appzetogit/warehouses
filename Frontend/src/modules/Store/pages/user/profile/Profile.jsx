@@ -496,19 +496,6 @@ export default function Profile() {
           </Link>
 
           <Link
-            to="/user/profile/activity"
-            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
-          >
-            <div className="flex items-center gap-3.5">
-              <Star className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                My Reviews
-              </span>
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-          </Link>
-
-          <Link
             to="/orders"
             className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
           >

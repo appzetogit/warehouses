@@ -22,6 +22,37 @@ const AUTH_CHANGED_EVENTS = {
 
 const USER_SESSION_PREFERENCE_KEYS = ["userVegMode"];
 
+// The signed-in customer's cached account data: profile, addresses, payment
+// methods, and the edit-profile draft (and its old device-wide location).
+const USER_ACCOUNT_CACHE_KEYS = [
+  "userProfile",
+  "userAddresses",
+  "userPaymentMethods",
+  "store_user_notifications",
+  "user_edit_profile_draft",
+];
+// Per-account caches keyed "<prefix><userId>": wishlist, on-device notifications.
+const USER_ACCOUNT_CACHE_PREFIXES = ["userDishFavorites:", "store_user_notifications:"];
+
+function clearUserAccountCaches() {
+  try {
+    USER_ACCOUNT_CACHE_KEYS.forEach((key) => localStorage.removeItem(key));
+    const prefixed = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key && USER_ACCOUNT_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix))) prefixed.push(key);
+    }
+    prefixed.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // ignore
+  }
+  try {
+    sessionStorage.removeItem("user_edit_profile_draft");
+  } catch {
+    // ignore
+  }
+}
+
 async function signOutFirebaseAuthBestEffort() {
   try {
     const { firebaseAuth, ensureFirebaseInitialized } = await import("@store/firebase");
@@ -88,6 +119,7 @@ function clearModuleLocalExtras(module) {
     } catch {
       // ignore
     }
+    clearUserAccountCaches();
     return;
   }
 

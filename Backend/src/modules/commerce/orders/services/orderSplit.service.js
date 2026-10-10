@@ -294,6 +294,16 @@ export async function createSplitCheckout(userId, dto = {}) {
         }
     }
 
+    // The recipient the customer typed at checkout (someone else receiving the
+    // parcel) and their delivery instructions go on every store's order, as
+    // they do for a single-store order.
+    const text = (value, max) => String(value ?? '').trim().slice(0, max);
+    const recipient = {
+        customerName: text(dto.customerName, 120) || undefined,
+        customerPhone: text(dto.customerPhone, 20) || undefined,
+        deliveryInstructions: text(dto.deliveryInstructions, 500) || undefined,
+    };
+
     const orders = [];
     try {
         for (const child of quote.childPricings) {
@@ -307,6 +317,7 @@ export async function createSplitCheckout(userId, dto = {}) {
                     deliveryMode: quote.fulfilmentMode === 'quick' ? 'quick' : 'basic',
                     scheduledAt: dto.scheduledAt,
                     note: dto.note,
+                    ...recipient,
                 },
                 {
                     checkout: {

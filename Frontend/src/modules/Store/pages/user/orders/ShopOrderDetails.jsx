@@ -15,6 +15,7 @@ import {
   MapPin,
   Package,
   RefreshCw,
+  RotateCcw,
   Store,
   Truck,
   XCircle,
@@ -24,12 +25,18 @@ import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
 import { useBusinessSettings } from "@store/components/user/desktop/useDesktopShell"
 import CancelOrderSheet, { canCancelOrder } from "@store/components/user/orders/CancelOrderSheet"
 import CompletePaymentCard from "@store/components/user/CompletePaymentCard"
+import OrderItemsReviewPanel from "@store/components/user/reviews/OrderItemsReviewPanel"
+import OrderReturnsSection from "./OrderReturnsSection"
 import {
   arrivalText,
   expectedDelivery,
   isCancelledStatus,
+  isOrderPaid,
   isShopOrderFinished,
   paymentMethodLabel,
+  priceRows,
+  refundWhereText,
+  reorderPath,
   rupees,
   shopRefund,
   shopStatusLabel,
@@ -142,18 +149,10 @@ function Timeline({ steps }) {
   )
 }
 
-function PriceRows({ order }) {
+/** Price breakdown whose rows add up to the order total. */
+export function PriceRows({ order, totalText = "Order total" }) {
   const p = order?.pricing || {}
-  const coins = Number(order?.coinsDiscount) || 0
-  const rows = [
-    ["Items", Number(p.subtotal) || 0],
-    ["Delivery", (Number(p.deliveryFee) || 0) + (Number(p.deliveryFeeGst) || 0), "Free"],
-    ["Packaging", Number(p.packagingFee) || 0],
-    ["Platform fee", Number(p.platformFee) || 0],
-    ["Taxes", Number(p.tax) || 0],
-    ["Discount", -(Number(p.discount) || 0)],
-    ["Coins", -coins],
-  ].filter(([label, value, zero]) => label === "Items" || value !== 0 || zero)
+  const rows = priceRows(order)
   return (
     <div className="space-y-1.5 text-[13px]">
       {rows.map(([label, value, zero]) => (
@@ -165,7 +164,7 @@ function PriceRows({ order }) {
         </div>
       ))}
       <div className="mt-2 flex justify-between border-t border-wh-border pt-2 text-[15px] font-bold text-wh-text">
-        <span>Order total</span>
+        <span>{totalText}</span>
         <span>{rupees(p.total)}</span>
       </div>
     </div>
@@ -179,6 +178,7 @@ function StatusBanner({ order }) {
   const cancelled = isCancelledStatus(status)
   const refund = shopRefund(order)
   const cash = String(order?.payment?.method || "") === "cash"
+  const charged = !cash && status !== "pending_payment" && isOrderPaid(order)
 
   if (cancelled) {
     return (
@@ -189,12 +189,14 @@ function StatusBanner({ order }) {
         {order.cancellationReason ? <p className="mt-1 text-[13px] text-red-800 dark:text-red-200">Reason: {order.cancellationReason}</p> : null}
         <p className="mt-2 text-[13px] text-wh-text">
           {refund.state === "processed"
-            ? `Refund of ${rupees(refund.amount)} completed${refund.at ? ` on ${dateOnly(refund.at)}` : ""}. It reaches your original payment method in 5–7 working days if you haven't seen it yet.`
+            ? `Refund of ${rupees(refund.amount)} completed${refund.at ? ` on ${dateOnly(refund.at)}` : ""}. ${refundWhereText(order, { done: true })}`
             : refund.state === "pending"
-              ? `Refund of ${rupees(refund.amount)} started${refund.at ? ` on ${dateOnly(refund.at)}` : ""}; it reaches your original payment method in 5–7 working days.`
-              : cash || status === "pending_payment"
-                ? "Nothing was charged, so there's nothing to refund."
-                : "Any amount you paid will be refunded to your original payment method."}
+              ? `Refund of ${rupees(refund.amount)} started${refund.at ? ` on ${dateOnly(refund.at)}` : ""}. ${refundWhereText(order)}`
+              : refund.state === "failed"
+                ? `Your refund of ${rupees(refund.amount)} is delayed. Our team will process it, and we'll let you know once it's done.`
+                : !charged
+                  ? "Nothing was charged, so there's nothing to refund."
+                  : `The amount you paid will be refunded. ${refundWhereText(order)}`}
         </p>
       </section>
     )
@@ -264,6 +266,14 @@ export default function ShopOrderDetails({ initialOrder = null }) {
     return () => clearInterval(t)
   }, [order, finished, load])
 
+  // A link with #returns lands on the returns section once it has rendered.
+  const hasOrder = Boolean(order)
+  useEffect(() => {
+    if (!hasOrder || window.location.hash !== "#returns") return undefined
+    const t = setTimeout(() => document.getElementById("returns")?.scrollIntoView({ behavior: "smooth", block: "start" }), 400)
+    return () => clearTimeout(t)
+  }, [hasOrder])
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center bg-wh-page text-wh-muted">
@@ -296,6 +306,7 @@ export default function ShopOrderDetails({ initialOrder = null }) {
   const days = settings?.standardDeliveryDays || {}
   const range = !isCancelledStatus(status) && status !== "delivered" ? expectedDelivery(order, { min: Number(days.min) || 2, max: Number(days.max) || 4 }) : null
   const canCancel = canCancelOrder(order)
+  const delivered = status === "delivered"
 
   const copyAwb = async () => {
     try {
@@ -370,6 +381,16 @@ export default function ShopOrderDetails({ initialOrder = null }) {
               ) : null}
               <ShopItemList items={order.items || []} />
             </Card>
+
+            {delivered ? (
+              <>
+                {/* Return or replace (the orders list links here with #returns) */}
+                <div id="returns" className="-mx-4 scroll-mt-20">
+                  <OrderReturnsSection order={order} />
+                </div>
+                <OrderItemsReviewPanel order={order} />
+              </>
+            ) : null}
           </div>
 
           <aside className="space-y-4">
@@ -393,6 +414,14 @@ export default function ShopOrderDetails({ initialOrder = null }) {
             </Card>
 
             <div className="space-y-2">
+              {delivered ? (
+                <Link
+                  to={reorderPath(order)}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-wh-brand text-[14px] font-bold text-wh-brand-ink"
+                >
+                  <RotateCcw className="h-4 w-4" aria-hidden="true" /> Buy again
+                </Link>
+              ) : null}
               {canCancel ? (
                 <button
                   type="button"

@@ -12,18 +12,23 @@ export const CHANNEL_COPY = {
 
 const num = (v) => (v == null || v === "" || !Number.isFinite(Number(v)) ? null : Number(v))
 
-// Is the product enabled for (and sold in) this channel?
+// Is the product enabled for (listed in) this channel? `availableIn` is not
+// used here: the server sets it false for a sold-out product too, which made a
+// sold-out item read "Not sold in Shop" instead of "Out of stock". It is the
+// in-stock signal in channelAvailability below.
 export function productInChannel(product, channel) {
   if (!product) return false
-  if (product.availableIn && typeof product.availableIn[channel] === "boolean") {
-    return product.availableIn[channel]
-  }
   if (product.channels && typeof product.channels[channel] === "boolean") {
     return product.channels[channel]
   }
   if (channel === "quick" && product.quickEligible === false) return false
+  if (product.availableIn && typeof product.availableIn[channel] === "boolean") return true
   return product.isAvailable !== false
 }
+
+// The server's own "can be bought here now" flag (enabled + stock), when sent.
+const listedAsSellable = (product, channel) =>
+  !(product?.availableIn && product.availableIn[channel] === false)
 
 // null = not counted (always in stock).
 export function productStock(product, channel) {
@@ -64,7 +69,7 @@ export function variantStock(variant, product, channel) {
 export function channelAvailability(product, channel, variant = null) {
   const enabled = productInChannel(product, channel) && (!variant || variantInChannel(variant, product, channel))
   const qty = variant ? variantStock(variant, product, channel) : productStock(product, channel)
-  const inStock = enabled && (qty == null ? !variant || variant.inStock !== false : qty > 0)
+  const inStock = enabled && listedAsSellable(product, channel) && (qty == null ? !variant || variant.inStock !== false : qty > 0)
   const threshold = productLowThreshold(product, channel) ?? 5
   const low = inStock && qty != null && qty <= threshold
   return { enabled, inStock, qty, low }
@@ -106,6 +111,9 @@ export function findUnavailableCartItem(error, cart = []) {
     .filter(Boolean)
     .map(String)
   const variantId = String(data.variantId || d.variantId || d.items?.[0]?.variantId || "")
+  const reason = String(data.reason || d.reason || "")
+  const availableRaw = data.available ?? d.available
+  const available = availableRaw == null || !Number.isFinite(Number(availableRaw)) ? null : Number(availableRaw)
   let line = null
   if (ids.length) {
     line = cart.find((c) => ids.includes(String(c.productId || c.itemId || c.id)) && (!variantId || String(c.variantId || "") === variantId))
@@ -115,5 +123,20 @@ export function findUnavailableCartItem(error, cart = []) {
   if (!line && /channel|not enabled|not available|quick|shop/i.test(message)) {
     line = cart.find((c) => c.name && message.toLowerCase().includes(String(c.name).toLowerCase())) || null
   }
-  return line ? { item: line, message } : null
+  return line ? { item: line, message, reason, available } : null
+}
+
+// A refusal about how many were asked for (stock short, per-order limit),
+// not about the item being sold here. These clamp the line instead of opening
+// the "not available in Shop/Quick" dialog.
+export const isQuantityRefusal = (hit) =>
+  !!hit && (hit.reason === "out_of_stock" || hit.reason === "max_per_order")
+
+// The most of a cart line that can be ordered, when the line knows it
+// (stock for the channel, a per-order limit). Infinity when it doesn't.
+export function lineQuantityCap(line) {
+  const caps = [line?.maxQtyPerOrder, line?.stockForChannel, line?.maxQuantity]
+    .map((v) => (v == null || v === "" ? NaN : Number(v)))
+    .filter((n) => Number.isFinite(n) && n > 0)
+  return caps.length ? Math.min(...caps) : Number.POSITIVE_INFINITY
 }

@@ -159,8 +159,8 @@ function getRefreshApiUrl() {
       ? String(import.meta.env.VITE_API_BASE_URL).replace(/\/$/, "")
       : "";
   return baseURL
-    ? `${baseURL}/food/auth/refresh-token`
-    : "/api/v1/food/auth/refresh-token";
+    ? `${baseURL}/auth/refresh-token`
+    : "/api/v1/auth/refresh-token";
 }
 
 /**
@@ -195,6 +195,8 @@ export async function ensureValidAccessToken(module) {
         }
 
         localStorage.setItem(`${module}_accessToken`, newAccessToken);
+        const newRefreshToken = data?.data?.refreshToken || data?.refreshToken;
+        if (newRefreshToken) localStorage.setItem(`${module}_refreshToken`, newRefreshToken);
         localStorage.setItem(`${module}_authenticated`, "true");
 
         if (typeof window !== "undefined") {
@@ -206,7 +208,11 @@ export async function ensureValidAccessToken(module) {
         }
 
         return newAccessToken;
-      } catch {
+      } catch (err) {
+        // Only a refused refresh ends the session; a dropped connection or a
+        // server hiccup must not sign the user out.
+        const status = err?.response?.status;
+        if (status !== 401 && status !== 403) return accessToken || null;
         clearModuleAuth(module);
         if (typeof window !== "undefined") {
           window.dispatchEvent(

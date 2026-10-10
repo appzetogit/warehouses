@@ -1380,7 +1380,7 @@ function SellerDetailsContent() {
 
     const dishId = item.id || item._id
     if (!dishId) {
-      toast.error("Dish information is missing")
+      toast.error("Product information is missing")
       return
     }
 
@@ -1389,7 +1389,7 @@ function SellerDetailsContent() {
     if (isFavorite) {
       // If already bookmarked, remove it
       removeDishFavorite(dishId, sellerId)
-      toast.success("Dish removed from favorites")
+      toast.success("Removed from your wishlist")
     } else {
       // Add to favorites
       const dishData = {
@@ -1407,7 +1407,7 @@ function SellerDetailsContent() {
         customisable: item.customisable,
       }
       addDishFavorite(dishData)
-      toast.success("Dish added to favorites")
+      toast.success("Added to your wishlist")
     }
   }
 
@@ -1505,7 +1505,7 @@ function SellerDetailsContent() {
 
     const shared = await tryNativeShare(payload)
     if (shared) {
-      toast.success("Dish shared successfully")
+      toast.success("Shared")
       return
     }
 

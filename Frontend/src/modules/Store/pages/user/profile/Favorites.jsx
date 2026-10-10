@@ -7,6 +7,7 @@ import ScrollReveal from "@store/components/user/ScrollReveal"
 import { Card, CardHeader, CardTitle, CardContent } from "@store/components/ui/card"
 import { Button } from "@store/components/ui/button"
 import { useProfile } from "@store/context/ProfileContext"
+import { storePathFor } from "@store/context/StoreModeContext"
 import { toast } from "sonner"
 import { imagePlaceholder } from "@store/constants/images"
 
@@ -30,7 +31,7 @@ export default function Favorites() {
     e.stopPropagation()
     if (window.confirm("Remove this item from favorites?")) {
       removeDishFavorite(dishId, sellerId)
-      toast.success("Dish removed from favorites")
+      toast.success("Removed from your wishlist")
     }
   }
 
@@ -222,10 +223,11 @@ export default function Favorites() {
               </div>
             ) : (
               dishFavorites.map((dish, index) => {
-                const sellerSlug = dish.sellerSlug || ""
+                // Saved from the Quick store or the shop; open the product in that store.
+                const productPath = storePathFor(dish.mode === "quick" ? "quick" : "shop", `/product/${encodeURIComponent(String(dish.id))}`)
                 return (
                   <ScrollReveal key={`${dish.id}-${dish.sellerId}`} delay={index * 0.1}>
-                    <Link to={`/sellers/${sellerSlug}?dish=${dish.id}`}>
+                    <Link to={productPath}>
                       <Card className="overflow-hidden h-full cursor-pointer hover:shadow-lg transition-shadow">
                         <div className="h-32 w-full relative overflow-hidden">
                           <img

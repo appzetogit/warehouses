@@ -12,11 +12,16 @@ const toProductPath = (value) => {
   return null
 }
 
+// The rules below are written against the old "/user/..." addresses; the
+// customer pages now live at the root ("/orders/...", "/profile/..."), so
+// root paths are read as if they had the "/user" prefix.
 const getNormalizedUserPath = (pathname) => {
-  if (pathname.startsWith("/food")) {
-    return pathname.slice(5) || "/"
+  let path = pathname || "/"
+  if (path.startsWith("/food")) {
+    path = path.slice(5) || "/"
   }
-  return pathname || "/"
+  if (path === "/" || path === "/user" || path.startsWith("/user/")) return path
+  return `/user${path}`
 }
 
 const resolveBackPath = ({ pathname, state }) => {

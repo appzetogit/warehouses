@@ -537,10 +537,18 @@ export async function tryAutoAssign(orderId, options = {}) {
     return null;
   }
 
+  // Shop orders go by courier: never offered to riders, in any dispatch mode.
+  if (!isRiderDeliveredOrder(order)) {
+    await Order.updateOne({ _id: order._id }, { $unset: { 'dispatch.dispatchingAt': '' } });
+    logger.info(`tryAutoAssign: Skip for ${orderId} (Shop order, delivered by courier).`);
+    return order;
+  }
+
   // Decoupling: Ensure order is accepted by seller before dispatching to delivery boys
   const DISPATCHABLE_STATUSES = ['confirmed', 'preparing', 'ready_for_pickup', 'ready', 'reached_pickup', 'picked_up', 'reached_drop'];
   if (!DISPATCHABLE_STATUSES.includes(order.orderStatus)) {
     logger.info(`tryAutoAssign: Skip for ${orderId} (status ${order.orderStatus} not dispatchable yet).`);
+    await Order.updateOne({ _id: order._id }, { $unset: { 'dispatch.dispatchingAt': '' } });
     return order;
   }
 
@@ -835,6 +843,9 @@ export async function resendDeliveryNotificationSeller(orderId, sellerId) {
   });
 
   if (!order) throw new NotFoundError('Order not found');
+  if (!isRiderDeliveredOrder(order)) {
+    throw new ValidationError('Shop orders go by courier, not with a delivery partner.');
+  }
 
   const activeStatuses = ['confirmed', 'preparing', 'ready_for_pickup', 'ready'];
   if (!activeStatuses.includes(order.orderStatus)) {
@@ -859,6 +870,9 @@ export async function resendDeliveryNotificationAdmin(orderId) {
   const order = await Order.findOne(identity);
 
   if (!order) throw new NotFoundError('Order not found');
+  if (!isRiderDeliveredOrder(order)) {
+    throw new ValidationError('Shop orders go by courier, not with a delivery partner.');
+  }
 
   const activeStatuses = ['confirmed', 'preparing', 'ready_for_pickup', 'ready', 'reached_pickup'];
   if (!activeStatuses.includes(order.orderStatus)) {

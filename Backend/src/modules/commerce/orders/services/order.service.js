@@ -313,6 +313,17 @@ function buildCancellationRefundDescription(order, cancelledBy = 'system') {
   }
 }
 
+/** The refund line a customer is told when a store or support cancels a paid order. */
+function cancellationRefundDetail(order) {
+  const status = String(order?.payment?.status || '').toLowerCase();
+  if (status !== 'paid' && status !== 'refunded') return '';
+  const amount = `₹${order.pricing?.total}`;
+  const method = String(order.payment?.method || '').toLowerCase();
+  if (method === 'wallet') return ` ${amount} has been credited back to your wallet.`;
+  if (method === 'razorpay') return ` Your refund of ${amount} is being processed and will reach your original payment method in 5-7 working days.`;
+  return '';
+}
+
 /**
  * `partial` (returns): refunds `refundAmount` without marking the whole payment
  * refunded, gives back `coinsToReturn` coins instead of all spent, and keys the
@@ -1568,7 +1579,7 @@ function notifyStatusPerAudience(order, status, targets, { seller, note = '', by
     let copy = null;
     if (target.ownerType === 'USER') {
       copy = statusForCustomer(order, status, { seller, note, bySupport, storeRejected });
-      if (copy && refundDetail && String(status).includes('cancel') && (storeRejected || !String(note || '').trim())) {
+      if (copy && refundDetail && String(status).includes('cancel') && (storeRejected || bySupport || !String(note || '').trim())) {
         copy = { ...copy, body: `${copy.body}${refundDetail}` };
       }
     } else if (target.ownerType === 'SELLER') {
@@ -2062,6 +2073,51 @@ export async function listOrdersSeller(sellerId, query) {
   };
 }
 
+/**
+ * What a store may move an order to from where it is. isStatusAdvance alone
+ * let a store take a brand-new order straight to "delivered" (customer told
+ * it arrived, COD marked paid, counted toward payout).
+ *
+ * Shop orders: the store accepts or rejects, then packs; the courier and
+ * support take it from there. Quick orders: nothing past the store's own
+ * steps until the order has been accepted. Nobody cancels a parcel a courier
+ * already has: that shipment has to be cancelled first.
+ */
+/**
+ * Moves the stored status only if it is still `from`. The order was loaded a
+ * moment ago; a customer cancelling in between must not have that cancel
+ * overwritten by an accept, nor stock restored and money refunded twice.
+ */
+async function claimStatusChange(orderMongoId, from, to) {
+  const res = await Order.updateOne({ _id: orderMongoId, orderStatus: from }, { $set: { orderStatus: to } });
+  if (!res.matchedCount) {
+    throw new ValidationError("This order was just updated by someone else. Refresh to see its current status.");
+  }
+}
+
+const SHOP_SELLER_TRANSITIONS = {
+  created: ["confirmed", "cancelled_by_seller"],
+  confirmed: ["preparing", "ready_for_pickup", "cancelled_by_seller"],
+  preparing: ["ready_for_pickup", "cancelled_by_seller"],
+  ready_for_pickup: ["cancelled_by_seller"],
+};
+
+function assertSellerTransitionAllowed(order, targetStatus) {
+  const from = String(order.orderStatus || "");
+  if (targetStatus.includes("cancel") && order.shipment?.awb) {
+    throw new ValidationError("A courier is already booked for this order. Cancel the shipment first.");
+  }
+  if (order.fulfilmentMode === "standard") {
+    if (!(SHOP_SELLER_TRANSITIONS[from] || []).includes(targetStatus)) {
+      throw new ValidationError(`A Shop order can't be moved from '${from}' to '${targetStatus}' by the store.`);
+    }
+    return;
+  }
+  if (from === "created" && ["ready_for_pickup", "picked_up", "delivered"].includes(targetStatus)) {
+    throw new ValidationError("Accept the order before moving it on.");
+  }
+}
+
 export async function updateOrderStatusSeller(
   orderId,
   sellerId,
@@ -2102,6 +2158,7 @@ export async function updateOrderStatusSeller(
       `Current order status '${from}' is further ahead than '${orderStatus}'. Order cannot be moved backwards.`
     );
   }
+  assertSellerTransitionAllowed(order, targetStatus);
 
   // A store turning down a Shop order says why: the customer has waited for
   // it, possibly for days, and is told the reason along with the refund.
@@ -2145,6 +2202,7 @@ export async function updateOrderStatusSeller(
     note: note || "",
   });
 
+  await claimStatusChange(order._id, from, orderStatus);
   if (String(orderStatus).includes("cancel")) {
     await restoreOrderStock(order);
   }
@@ -2169,12 +2227,9 @@ export async function updateOrderStatusSeller(
   }
 
   // Customer-facing wording, also sent with the socket update below.
-  const sellerRefundDetail =
-    String(orderStatus).includes("cancel") &&
-    order.payment?.method === "razorpay" &&
-    (order.payment?.status === "paid" || order.payment?.status === "refunded")
-      ? ` Your refund of ₹${order.pricing?.total} is being processed and will reach your original payment method in 5-7 working days.`
-      : "";
+  const sellerRefundDetail = String(orderStatus).includes("cancel")
+    ? cancellationRefundDetail(order)
+    : "";
   const customerCopy =
     statusForCustomer(order, orderStatus, { note, storeRejected }) ||
     { title: `Order ${orderNo(order)} updated`, body: `Status: ${String(orderStatus).replace(/_/g, " ")}.` };
@@ -2859,7 +2914,13 @@ export async function updateOrderStatusAdmin(orderId, orderStatus, note = "", ad
     }
 
     const from = order.orderStatus;
+    if (String(orderStatus).includes("cancel") && order.shipment?.awb) {
+        throw new ValidationError("A courier is already booked for this order. Cancel the shipment first.");
+    }
     order.orderStatus = orderStatus;
+    // Support has acted on it: the auto-cancel for orders nobody accepted no
+    // longer applies (it sweeps 'confirmed' too, and would cancel this one).
+    order.acceptanceDeadlineAt = null;
 
     const normalizedPaymentMethod = String(order.payment?.method || "cash").toLowerCase();
     const prevPaymentStatus = String(order.payment?.status || "cod_pending").toLowerCase();
@@ -2876,6 +2937,7 @@ export async function updateOrderStatusAdmin(orderId, orderStatus, note = "", ad
         note: note || "Status updated by admin",
     });
 
+    await claimStatusChange(order._id, from, orderStatus);
     if (String(orderStatus).includes("cancel")) {
         // The customer's order page shows why, as it does for a store's rejection.
         const why = String(note || "").trim().slice(0, 300);
@@ -2928,6 +2990,7 @@ export async function updateOrderStatusAdmin(orderId, orderStatus, note = "", ad
     notifyStatusPerAudience(order, orderStatus, notifyList, {
         note,
         bySupport: true,
+        refundDetail: String(orderStatus).includes("cancel") ? cancellationRefundDetail(order) : "",
         data: {
             type: "order_status_update",
             orderId: order._id.toString(),
@@ -2954,32 +3017,34 @@ export async function updateOrderStatusAdmin(orderId, orderStatus, note = "", ad
                 io.to(rooms.delivery(order.dispatch.deliveryPartnerId)).emit("order_status_update", payload);
             }
 
-            // On accept (confirmed or preparing) -> request delivery partners via central logic
-            if (
-                (String(orderStatus) === "preparing" || String(orderStatus) === "confirmed") && 
-                (String(from) !== "preparing" && String(from) !== "confirmed")
-            ) {
-                console.log(
-                    `[DEBUG] Order ${order._id.toString()} status changed to '${orderStatus}' by Admin. Triggering central delivery dispatch.`,
-                );
-                
-                try {
-                    await tryAutoAssign(order._id);
-                    // Refresh local order state after assignment search
-                    order = await Order.findById(order._id); 
-                } catch (err) {
-                    console.error(`[DEBUG] Auto-assign in updateOrderStatusAdmin failed:`, err);
-                }
-            }
         }
     } catch (err) {
         logger.warn(`Admin status update socket emit failed: ${err?.message || err}`);
     }
 
+    // On accept (confirmed or preparing), a Quick order goes out to riders. It
+    // must not wait on the socket server being up; Shop orders go by courier.
+    if (
+        order.fulfilmentMode !== "standard" &&
+        (String(orderStatus) === "preparing" || String(orderStatus) === "confirmed") &&
+        (String(from) !== "preparing" && String(from) !== "confirmed")
+    ) {
+        try {
+            await tryAutoAssign(order._id);
+            order = await Order.findById(order._id);
+        } catch (err) {
+            logger.warn(`Auto-assign in updateOrderStatusAdmin failed: ${err?.message || err}`);
+        }
+    }
+
     return normalizeOrderForClient(order);
 }
 
-export async function markOrderDeliveredAdmin(orderId, adminId, note = "") {
+/**
+ * `source: 'courier'` is the courier's tracking reporting the parcel
+ * delivered: the customer is told it arrived, not that support stepped in.
+ */
+export async function markOrderDeliveredAdmin(orderId, adminId, note = "", { source = "admin" } = {}) {
     const identity = buildOrderIdentityFilter(orderId);
     const order = await Order.findOne(identity);
     if (!order) throw new NotFoundError("Order not found");
@@ -2991,11 +3056,19 @@ export async function markOrderDeliveredAdmin(orderId, adminId, note = "") {
     if (from.includes("cancel") || from === "pending_payment") {
         throw new ValidationError(`Cannot mark order as delivered from status '${from}'`);
     }
+    if (from === "created" && source !== "courier") {
+        throw new ValidationError("The store hasn't accepted this order yet. Accept it first.");
+    }
+    const byCourier = source === "courier";
+    const deliveredCopy = byCourier
+        ? { title: `Order ${orderNo(order)} delivered ✅`, body: "Your parcel has been delivered. Hope you love it!" }
+        : deliveredBySupport(order);
 
     const normalizedPaymentMethod = String(order.payment?.method || "cash").toLowerCase();
     const prevPaymentStatus = String(order.payment?.status || "cod_pending").toLowerCase();
 
     order.orderStatus = "delivered";
+    order.acceptanceDeadlineAt = null;
     order.deliveryState = {
         ...(order.deliveryState?.toObject?.() || order.deliveryState || {}),
         currentPhase: "delivered",
@@ -3008,7 +3081,7 @@ export async function markOrderDeliveredAdmin(orderId, adminId, note = "") {
     }
 
     pushStatusHistory(order, {
-        byRole: "ADMIN",
+        byRole: byCourier ? "SYSTEM" : "ADMIN",
         byId: adminId,
         from,
         to: "delivered",
@@ -3042,7 +3115,7 @@ export async function markOrderDeliveredAdmin(orderId, adminId, note = "") {
     }
 
     await notifyOwnersSafely(notifyList, {
-        ...deliveredBySupport(order),
+        ...deliveredCopy,
         data: {
             type: "order_status_update",
             orderId: order._id.toString(),
@@ -3058,8 +3131,8 @@ export async function markOrderDeliveredAdmin(orderId, adminId, note = "") {
                 orderId: order._id.toString(),
                 orderStatus: "delivered",
                 deliveryState: order.deliveryState,
-                message: deliveredBySupport(order).body,
-                title: deliveredBySupport(order).title,
+                message: deliveredCopy.body,
+                title: deliveredCopy.title,
             };
             io.to(rooms.user(order.userId)).emit("order_status_update", payload);
             io.to(rooms.seller(order.sellerId)).emit("order_status_update", payload);
@@ -3079,7 +3152,7 @@ export async function markOrderDeliveredAdmin(orderId, adminId, note = "") {
         payMethod: normalizedPaymentMethod,
         prevPayStatus: prevPaymentStatus,
         paymentStatus: order.payment?.status,
-        source: "admin_override",
+        source: byCourier ? "courier_tracking" : "admin_override",
     });
 
     return normalizeOrderForClient(order);
@@ -3153,10 +3226,37 @@ export async function createOrderShipmentSeller(orderId, sellerId) {
  * Books a courier shipment for an order already loaded and checked by the
  * caller (seller or admin). Returns the existing shipment when one is booked.
  */
+const SHIPMENT_BOOKABLE = ['confirmed', 'preparing', 'ready_for_pickup'];
+// Orders with a booking in flight in this process: a double tap books once.
+const shipmentBookingsInFlight = new Set();
+
 export async function bookOrderShipment(order, { byRole = 'SELLER', byId = null } = {}) {
   if (order.shipment?.awb) {
     return { order: normalizeOrderForClient(order), shipment: order.shipment };
   }
+  if (order.fulfilmentMode !== 'standard') {
+    throw new ValidationError('Quick orders are delivered by a rider, not a courier.');
+  }
+  if (!SHIPMENT_BOOKABLE.includes(String(order.orderStatus))) {
+    throw new ValidationError(
+      order.orderStatus === 'created'
+        ? 'Accept the order before booking a courier.'
+        : `A courier can't be booked for an order that is '${order.orderStatus}'.`,
+    );
+  }
+  const key = String(order._id);
+  if (shipmentBookingsInFlight.has(key)) {
+    throw new ValidationError('A courier is already being booked for this order.');
+  }
+  shipmentBookingsInFlight.add(key);
+  try {
+    return await bookOrderShipmentNow(order, { byRole, byId });
+  } finally {
+    shipmentBookingsInFlight.delete(key);
+  }
+}
+
+async function bookOrderShipmentNow(order, { byRole, byId }) {
   const sellerId = order.sellerId;
 
   const seller = await Seller.findById(sellerId).select('sellerName location addressLine1 city state').lean();
@@ -3178,7 +3278,8 @@ export async function bookOrderShipment(order, { byRole = 'SELLER', byId = null 
 
   order.shipment = shipmentData;
   const prevStatus = order.orderStatus;
-  if (prevStatus === 'confirmed' || prevStatus === 'preparing' || prevStatus === 'created') {
+  order.acceptanceDeadlineAt = null;
+  if (prevStatus === 'confirmed' || prevStatus === 'preparing') {
     order.orderStatus = 'ready_for_pickup';
     pushStatusHistory(order, {
       from: prevStatus,
@@ -3194,8 +3295,8 @@ export async function bookOrderShipment(order, { byRole = 'SELLER', byId = null 
     notifyOwnerSafely(
       { ownerType: 'USER', ownerId: String(order.userId) },
       {
-        title: 'Your order is on its way',
-        body: `Shipped with ${shipmentData.courierName}. Tracking number ${shipmentData.awb}.`,
+        title: 'Your order is packed',
+        body: `${shipmentData.courierName} will pick it up soon. Tracking number ${shipmentData.awb}.`,
         data: { type: 'shipment_booked', orderId: String(order._id), awb: String(shipmentData.awb || '') },
       },
     ).catch(() => {});
