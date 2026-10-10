@@ -1095,8 +1095,9 @@ function SellerDetailsContent() {
       return;
     }
 
+    // Shop (courier) orders wait for the store to accept; only Quick needs it open now.
     const availability = getSellerAvailabilityStatus(seller)
-    if (!availability.isOpen) {
+    if (fulfilmentMode === "quick" && !availability.isOpen) {
       toast.error("Seller is currently offline. Please try again later.")
       return
     }
@@ -1954,7 +1955,7 @@ function SellerDetailsContent() {
   }
 
   const availabilityStatus = getSellerAvailabilityStatus(seller, new Date(availabilityTick))
-  const isSellerOffline = !availabilityStatus.isOpen
+  const isSellerOffline = fulfilmentMode === "quick" && !availabilityStatus.isOpen
   const shouldShowGrayscale = isOutOfService || isSellerOffline
   const displayHeroImages = heroImages.length > 0 ? heroImages : [PRODUCT_IMAGE_FALLBACK]
   const safeHighlightIndex = highlightOffers.length > 0 ? highlightIndex % highlightOffers.length : 0

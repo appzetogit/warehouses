@@ -79,7 +79,13 @@ export async function loadSellerForOrdering(sellerId) {
   return withTimings;
 }
 
-export function assertSellerOpenForOrdering(seller, at = new Date()) {
+/**
+ * Quick orders need the store open now: it packs within minutes. A Shop
+ * (courier) order waits for the store to accept, with no time limit, so the
+ * store's hours or online switch never stop one being placed.
+ */
+export function assertSellerOpenForOrdering(seller, at = new Date(), fulfilmentMode = 'quick') {
+  if (String(fulfilmentMode || 'quick') === 'standard') return { isOpen: true, reason: 'courier' };
   const availability = getSellerAvailabilityStatus(seller, at);
   if (availability.isOpen) return availability;
 
@@ -552,7 +558,7 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
     options.seller || (await loadSellerForOrdering(dto.sellerId));
 
   if (!options.skipAvailabilityCheck) {
-    assertSellerOpenForOrdering(seller, at);
+    assertSellerOpenForOrdering(seller, at, dto.fulfilmentMode);
   }
 
   const deliveryAddress = normalizeDeliveryAddress(

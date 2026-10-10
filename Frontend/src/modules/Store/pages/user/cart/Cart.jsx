@@ -557,7 +557,11 @@ export default function Cart() {
     return getSellerAvailabilityStatus(sellerData, targetDate)
   }, [sellerData, availabilityTick, scheduledOrderAt])
 
-  const canPlaceOrder = Boolean(sellerData) && cartSellerAvailability.isOpen === true
+  // Shop (courier) orders wait for the store to accept, however long that
+  // takes, so its hours and online switch only gate Quick checkouts.
+  const canPlaceOrder =
+    storeFulfilmentMode === "standard" ||
+    (Boolean(sellerData) && cartSellerAvailability.isOpen === true)
 
 
   const availableTimeSlots = useMemo(() => {

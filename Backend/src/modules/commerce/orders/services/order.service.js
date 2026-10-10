@@ -590,7 +590,7 @@ export async function createOrder(userId, dto, options = {}) {
     if (dto.scheduledAt && Number.isNaN(orderAt.getTime())) {
       throw new ValidationError('Invalid scheduled time');
     }
-    assertSellerOpenForOrdering(seller, orderAt);
+    assertSellerOpenForOrdering(seller, orderAt, checkout?.fulfilmentMode || dto.fulfilmentMode || "quick");
 
     const settings = await getDispatchSettings();
     const dispatchMode = settings.dispatchMode;

@@ -226,3 +226,10 @@ test('support accepting a Quick order retires its acceptance deadline', async ()
     await M.service.updateOrderStatusAdmin(quick._id, 'confirmed', '', new mongoose.Types.ObjectId());
     assert.equal((await M.Order.findById(quick._id).lean()).acceptanceDeadlineAt, null);
 });
+
+test('an offline or closed store still takes Shop orders, but not Quick ones', async () => {
+    const { assertSellerOpenForOrdering } = await import('../src/modules/commerce/orders/services/order-pricing.service.js');
+    const offline = { isAcceptingOrders: false, openingTime: '10:00 AM', closingTime: '11:00 AM' };
+    assert.doesNotThrow(() => assertSellerOpenForOrdering(offline, new Date(), 'standard'));
+    assert.throws(() => assertSellerOpenForOrdering(offline, new Date(), 'quick'), /offline|closed/i);
+});
