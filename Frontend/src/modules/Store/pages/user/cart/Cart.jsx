@@ -348,7 +348,11 @@ export default function Cart() {
   const [showOffersView, setShowOffersView] = useState(false)
   const { fulfilmentMode: storeFulfilmentMode, storePath } = useStoreMode()
   const inQuick = storeFulfilmentMode === "quick"
-  const { returnWindowDays } = useBusinessSettings()
+  const { returnWindowDays, settings: shopSettings } = useBusinessSettings()
+  // Ways to pay the server allows (business settings `payments`). Online is on
+  // unless switched off; cash on delivery only when the server says so.
+  const payOnline = shopSettings?.payments?.online !== false
+  const payCash = shopSettings?.payments?.cashOnDelivery === true
   const quickEta = useQuickEta()
   const shopEstimate = useShopDeliveryEstimate({ enabled: !inQuick })
   const deliveryBadge = inQuick
@@ -527,12 +531,14 @@ export default function Cart() {
     [deliveryInstructionMode, selectedDeliveryInstruction, customDeliveryInstruction],
   )
 
-  // Cash on Delivery has been removed; coerce any stale selection to online payment.
+  // Keep the selection on a way to pay the store currently takes.
   useEffect(() => {
-    if (selectedPaymentMethod === "cash") {
-      setSelectedPaymentMethod("razorpay")
+    if (selectedPaymentMethod === "cash" && !payCash) {
+      setSelectedPaymentMethod(payOnline ? "razorpay" : "wallet")
+    } else if (selectedPaymentMethod === "razorpay" && !payOnline && payCash) {
+      setSelectedPaymentMethod("cash")
     }
-  }, [selectedPaymentMethod])
+  }, [selectedPaymentMethod, payCash, payOnline])
 
   useEffect(() => {
     const timer = setInterval(() => setAvailabilityTick(Date.now()), 60000)
@@ -1529,7 +1535,7 @@ export default function Cart() {
   const otherSavings = Math.max(0, savings - itemDiscountAmount)
   const compareItemTotal = getCartCompareItemTotal(cart)
   const selectedPaymentLabel =
-    selectedPaymentMethod === "wallet" ? "Wallet" : "Online Payment"
+    selectedPaymentMethod === "wallet" ? "Wallet" : selectedPaymentMethod === "cash" ? "Cash on Delivery" : "Online Payment"
 
   const headerAddressLabel = defaultAddress ? getDisplayAddressLabel(defaultAddress.label) : "Select Address"
   const headerAddressText = defaultAddress
@@ -4021,7 +4027,15 @@ export default function Cart() {
 
                     <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar pb-4 flex-1 min-h-0">
                       {[
-                        {
+                        payCash && {
+                          id: 'cash',
+                          name: 'Cash on Delivery',
+                          description: 'Pay when your order arrives',
+                          icon: <Banknote className="w-5 h-5" />,
+                          color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400',
+                          selectedColor: 'bg-amber-500 text-white',
+                        },
+                        payOnline && {
                           id: 'razorpay',
                           name: 'Online Payment',
                           description: 'UPI, Cards, Netbanking',
@@ -4041,7 +4055,7 @@ export default function Cart() {
                           disabled: walletBalance < total,
                           disabledText: 'Low Balance'
                         },
-                      ].map((option) => (
+                      ].filter(Boolean).map((option) => (
                         <button
                           key={option.id}
                           onClick={() => {

@@ -28,6 +28,7 @@ import {
     isRazorpayConfigured,
     verifyPaymentSignature,
 } from '../helpers/razorpay.helper.js';
+import { onlinePaymentsEnabled } from '../../../../core/payments/paymentSwitches.js';
 import { UserCart } from '../../user/models/userCart.model.js';
 import { claimFirstOrder, releaseFirstOrderClaim, recordPaymentFingerprint } from './firstOrderGuard.service.js';
 
@@ -241,8 +242,8 @@ export async function createSplitCheckout(userId, dto = {}) {
     if (!readAddressPoint(deliveryAddress)) {
         throw new ValidationError('This address has no location saved. Please re-select it on the map.');
     }
-    if (paymentMethod === 'razorpay' && !isRazorpayConfigured()) {
-        throw new ValidationError('Online payment is not available right now');
+    if (paymentMethod === 'razorpay' && (!onlinePaymentsEnabled() || !isRazorpayConfigured())) {
+        throw new ValidationError('Online payment is not available right now. Please choose Cash on Delivery.');
     }
 
     const quote = await calculateCheckoutPricing(userId, { ...dto, deliveryAddress });

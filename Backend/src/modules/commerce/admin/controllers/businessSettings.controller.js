@@ -1,4 +1,5 @@
 import { BusinessSettings } from '../models/businessSettings.model.js';
+import { cashOnDeliveryEnabled, onlinePaymentsEnabled } from '../../../../core/payments/paymentSwitches.js';
 import { sendResponse } from '../../../../utils/response.js';
 import { uploadImageBufferDetailed } from '../../../../services/cloudinary.service.js';
 
@@ -182,6 +183,8 @@ export async function getBusinessSettings(req, res, next) {
             payload.firebaseServiceAccount = describeServiceAccount(withSecret?.firebaseServiceAccount);
         }
 
+        // Which ways to pay checkout offers (server switches, not admin settings).
+        payload.payments = { online: onlinePaymentsEnabled(), cashOnDelivery: cashOnDeliveryEnabled() };
         return sendResponse(res, 200, 'Business settings fetched successfully', payload);
     } catch (error) {
         next(error);

@@ -138,7 +138,12 @@ export const config = {
         '',
 
     // Socket.io
-    socketCorsOrigin: process.env.SOCKET_CORS_ORIGIN || '*',
+    // One origin, or several separated by commas (the store answers on more than one domain).
+    socketCorsOrigin: (() => {
+        const raw = String(process.env.SOCKET_CORS_ORIGIN || '*').trim();
+        if (!raw.includes(',')) return raw;
+        return raw.split(',').map((o) => o.trim()).filter(Boolean);
+    })(),
 
     // Razorpay (payments)
     razorpayKeyId: process.env.RAZORPAY_KEY_ID,
