@@ -169,7 +169,7 @@ export default function MobileProductView({
         <div>
           <h1 className="text-[19px] font-bold leading-snug text-gray-900">{product?.name}</h1>
           {sellerName ? (
-            <Link to={storePath(`/sellers/${seller?.slug || sellerId}`)} className="mt-0.5 inline-flex items-center gap-0.5 text-[13px] font-medium text-[#EA580C]">
+            <Link to={storePath(`/sellers/${seller?.slug || sellerId}`)} className="mt-0.5 inline-flex items-center gap-0.5 text-[13px] font-medium text-[#0F766E]">
               By {sellerName} <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           ) : null}
@@ -257,7 +257,7 @@ export default function MobileProductView({
                         aria-pressed={selected}
                         aria-label={value}
                         onClick={() => onSelectAttribute(opt.name, value)}
-                        className={`h-14 w-12 overflow-hidden rounded-lg border-2 p-0.5 disabled:opacity-35 ${selected ? "border-[#EA580C]" : "border-gray-200"}`}
+                        className={`h-14 w-12 overflow-hidden rounded-lg border-2 p-0.5 disabled:opacity-35 ${selected ? "border-[#0D9488]" : "border-gray-200"}`}
                       >
                         {photo ? (
                           <img src={photo} alt="" className="h-full w-full rounded-md object-cover" />
@@ -275,7 +275,7 @@ export default function MobileProductView({
                       aria-pressed={selected}
                       onClick={() => onSelectAttribute(opt.name, value)}
                       className={`min-w-[46px] rounded-lg border px-3 py-2 text-[14px] font-semibold transition-colors disabled:line-through disabled:opacity-35 ${
-                        selected ? "border-[#EA580C] bg-[#FFF1E7] text-[#C2410C]" : "border-gray-200 text-gray-800"
+                        selected ? "border-[#0D9488] bg-[#F0FDFA] text-[#0F766E]" : "border-gray-200 text-gray-800"
                       }`}
                     >
                       {value}
@@ -310,12 +310,12 @@ export default function MobileProductView({
       <div className="fixed inset-x-0 bottom-0 z-[95] border-t border-gray-100 bg-white p-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] lg:hidden">
         {justAdded ? (
           <div className="flex gap-2">
-            <button type="button" onClick={add} className="h-12 flex-1 rounded-xl border-2 border-[#EA580C] text-[14px] font-bold text-[#EA580C]">
+            <button type="button" onClick={add} className="h-12 flex-1 rounded-xl border-2 border-[#0D9488] text-[14px] font-bold text-[#0F766E]">
               Add One More
             </button>
             <Link
               to={storePath("/cart")}
-              className="wh-pop flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#EA580C] text-[14px] font-bold text-white shadow-md"
+              className="wh-pop flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#0D9488] text-[14px] font-bold text-white shadow-md"
             >
               <ShoppingCart className="h-4 w-4" aria-hidden="true" /> Go to cart ({cartCount})
             </Link>
@@ -325,7 +325,7 @@ export default function MobileProductView({
             type="button"
             onClick={add}
             disabled={notInThisStore || !isAvailable}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#EA580C] text-[15px] font-bold text-white shadow-md active:scale-[0.99] disabled:bg-gray-300"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0D9488] text-[15px] font-bold text-white shadow-md active:scale-[0.99] disabled:bg-gray-300"
           >
             <ShoppingCart className="h-5 w-5" aria-hidden="true" />
             {notInThisStore ? "Not sold here" : !isAvailable ? (currentVariant ? "Out of Stock" : "Select Options") : "Add to Cart"}

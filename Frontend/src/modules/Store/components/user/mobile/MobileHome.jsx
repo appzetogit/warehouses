@@ -15,6 +15,7 @@ import { CampaignBanner, FeaturedRail } from "../quick-mobile/QuickFeed"
 import QuickRateNudge from "../quick-mobile/QuickRateNudge"
 import OfferBannerStrip from "../home/OfferBannerStrip"
 import ShopPlanSection from "../home/ShopPlanSection"
+import { AccessoriseIt, DealsOnRepeat, FindYourFit } from "../home/ShopFitSections"
 import { categorySlugOf } from "@store/utils/categorySlug"
 
 /**
@@ -390,10 +391,12 @@ export default function MobileHome({ heroBanners = [], products = [], loading = 
         subtitle={isQuick ? "Popular with shoppers near you" : "What everyone is buying"}
         products={trending}
       />
+      {isQuick ? null : <FindYourFit products={products} />}
+      {isQuick ? null : <AccessoriseIt products={products} />}
       {isQuick ? <FeaturedRail items={layout.featured} /> : null}
       <BrandRow brands={brands} />
       <FeaturedStores stores={featuredStores} />
-      {isQuick ? <CampaignBanner campaign={layout.campaigns[0]} /> : null}
+      {isQuick ? <CampaignBanner campaign={layout.campaigns[0]} /> : <DealsOnRepeat products={products} />}
       <ProductRail title="Deals of the Day" subtitle="The biggest savings right now" products={deals} to={`${storePath("/search")}?minDiscount=10`} />
 
       {products.length ? (

@@ -6,6 +6,7 @@ import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
 import HeroCarousel from "./HeroCarousel"
 import OfferBannerStrip from "../home/OfferBannerStrip"
 import ShopPlanSection from "../home/ShopPlanSection"
+import { AccessoriseIt, DealsOnRepeat, FindYourFit } from "../home/ShopFitSections"
 import { HomeSkeleton } from "./HomeSkeletons"
 import {
   FeatureBand,
@@ -284,6 +285,10 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
           subtitle="The best price in every category, from stores near you"
           tiles={collectionTiles}
         />
+
+        {isQuick ? null : <FindYourFit products={products} />}
+        {isQuick ? null : <AccessoriseIt products={products} />}
+        {isQuick ? null : <DealsOnRepeat products={products} />}
 
         {/* New Arrivals, with a tab per busy category (the old shop's home led with this) */}
         <TabbedRailSection

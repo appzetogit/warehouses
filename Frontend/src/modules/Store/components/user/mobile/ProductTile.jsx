@@ -277,7 +277,7 @@ export default function ProductTile({ product, showSizes = true }) {
                 onClick={() => setSize((cur) => (cur === s.size ? "" : s.size))}
                 className={`min-w-[28px] rounded-md border px-1.5 py-0.5 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:line-through ${
                   size === s.size
-                    ? "border-[#EA580C] bg-[#FFF1E7] text-[#C2410C]"
+                    ? "border-[#0D9488] bg-[#F0FDFA] text-[#0F766E]"
                     : "border-gray-200 text-gray-700"
                 }`}
               >
@@ -289,7 +289,7 @@ export default function ProductTile({ product, showSizes = true }) {
 
         <div className="mt-auto pt-1.5">
           {qty > 0 ? (
-            <div className="flex h-9 items-center justify-between rounded-lg bg-[#EA580C] px-1 text-white">
+            <div className="flex h-9 items-center justify-between rounded-lg bg-[#0D9488] px-1 text-white">
               <button type="button" onClick={step(-1)} aria-label="One fewer" className="flex h-7 w-7 items-center justify-center rounded-md active:bg-black/10">
                 <Minus className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -305,7 +305,7 @@ export default function ProductTile({ product, showSizes = true }) {
               type="button"
               onClick={add}
               disabled={!stock.enabled}
-              className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-[#EA580C] text-[13px] font-bold text-white shadow-sm transition active:scale-[0.98] disabled:bg-gray-300"
+              className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-[#0D9488] text-[13px] font-bold text-white shadow-sm transition active:scale-[0.98] disabled:bg-gray-300"
             >
               <ShoppingCart className="h-4 w-4" aria-hidden="true" /> Add
             </button>

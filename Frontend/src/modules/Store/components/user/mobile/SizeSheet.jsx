@@ -47,7 +47,7 @@ export default function SizeSheet({ title, optionName = "size", price, options =
               onClick={() => onPick(o)}
               className={`min-w-[52px] rounded-xl border px-3 py-2.5 text-[14px] font-semibold transition-colors ${
                 o.ok
-                  ? "border-gray-300 text-gray-900 active:border-[#EA580C] active:bg-[#FFF1E7]"
+                  ? "border-gray-300 text-gray-900 active:border-[#0D9488] active:bg-[#F0FDFA]"
                   : "cursor-not-allowed border-dashed border-gray-200 text-gray-400 line-through"
               }`}
             >

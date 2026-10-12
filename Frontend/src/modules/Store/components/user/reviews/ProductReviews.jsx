@@ -186,6 +186,9 @@ export default function ProductReviews({ productId, productName, variant = "mobi
   const desktop = variant === "desktop"
   const myReview = data?.myReview
 
+  // No reviews and nothing this shopper can write: no empty box on the page.
+  if (!total && !myReview && !eligible && !star && !reviews.length) return null
+
   return (
     <section
       aria-labelledby={`reviews-${productId}`}
