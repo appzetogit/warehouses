@@ -5,6 +5,7 @@ import { isModuleAuthenticated } from "@store/utils/auth"
 import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
 import HeroCarousel from "./HeroCarousel"
 import OfferBannerStrip from "../home/OfferBannerStrip"
+import ShopPlanSection from "../home/ShopPlanSection"
 import { HomeSkeleton } from "./HomeSkeletons"
 import {
   FeatureBand,
@@ -274,7 +275,7 @@ export default function DesktopHome({ heroBanners = [], categories = [], zoneId,
       <div className="mx-auto max-w-[1500px] space-y-6 px-3 py-4 sm:px-5 sm:space-y-8">
         <TrustStrip />
 
-        <OfferBannerStrip />
+        {isQuick ? <OfferBannerStrip /> : <ShopPlanSection products={products} />}
 
         <Marquee items={marqueeItems} />
 

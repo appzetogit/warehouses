@@ -95,7 +95,7 @@ export default function MobileHeader() {
 
   return (
     <>
-    <header className="wh-desktop sticky top-0 z-50 w-full overflow-x-hidden bg-gradient-to-r from-[#EA580C] via-[#F97316] to-[#EA580C] pb-2.5 pt-2.5 text-white shadow-md lg:hidden">
+    <header className="wh-desktop sticky top-0 z-50 w-full overflow-x-hidden bg-gradient-to-r from-[#0D9488] via-[#14B8A6] to-[#0D9488] pb-2.5 pt-2.5 text-white shadow-md lg:hidden">
       <div className="flex items-center gap-1.5 px-3">
         {isHome ? (
           <button
@@ -166,7 +166,7 @@ export default function MobileHeader() {
         >
           <ShoppingCart className="h-5 w-5" aria-hidden="true" />
           {cartCount > 0 ? (
-            <span key={cartCount} className="wh-pop absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-white px-1 text-[10px] font-black leading-none text-[#EA580C]">
+            <span key={cartCount} className="wh-pop absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-white px-1 text-[10px] font-black leading-none text-[#0D9488]">
               {cartCount > 9 ? "9+" : cartCount}
             </span>
           ) : null}
@@ -203,7 +203,7 @@ export default function MobileHeader() {
                 type="button"
                 onClick={listen}
                 aria-label={listening ? "Listening" : "Search by voice"}
-                className={`shrink-0 p-1 text-[#EA580C] ${listening ? "wh-blink" : ""}`}
+                className={`shrink-0 p-1 text-[#0D9488] ${listening ? "wh-blink" : ""}`}
               >
                 <Mic className="h-4 w-4" aria-hidden="true" />
               </button>

@@ -14,6 +14,7 @@ import { useQuickLayout } from "../quick-mobile/QuickLayoutContext"
 import { CampaignBanner, FeaturedRail } from "../quick-mobile/QuickFeed"
 import QuickRateNudge from "../quick-mobile/QuickRateNudge"
 import OfferBannerStrip from "../home/OfferBannerStrip"
+import ShopPlanSection from "../home/ShopPlanSection"
 import { categorySlugOf } from "@store/utils/categorySlug"
 
 /**
@@ -382,7 +383,7 @@ export default function MobileHome({ heroBanners = [], products = [], loading = 
     <div className="space-y-6 bg-[#F7F7F8] pb-8 pt-3 lg:hidden">
       <BannerCarousel banners={heroBanners} />
       <Promises storeCount={featuredStores.length} />
-      <OfferBannerStrip />
+      {isQuick ? <OfferBannerStrip /> : <ShopPlanSection products={products} />}
       <CategoryRow categories={categoryRow} />
       <ProductRail
         title={isQuick ? "Trending Near You" : "Trending Now"}
