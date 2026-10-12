@@ -160,7 +160,7 @@ export function StorefrontShellSkeleton() {
   return (
     <div className="min-h-screen bg-gray-100/70" role="status" aria-label="Loading the storefront">
       {/* Top bar: two rows on a phone, one from lg */}
-      <div className="bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316]">
+      <div className="bg-gradient-to-r from-[#0F766E] via-[#0D9488] to-[#14B8A6]">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-2 gap-y-1.5 px-2.5 py-2 lg:h-[62px] lg:flex-nowrap lg:px-[20px] lg:py-[6px]">
           <div className="h-[28px] w-[74px] rounded bg-white/25 lg:h-[42px] lg:w-[145px]" />
           <div className="h-5 w-24 rounded bg-white/25" />

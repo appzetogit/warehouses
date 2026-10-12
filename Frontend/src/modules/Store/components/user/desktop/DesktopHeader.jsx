@@ -156,7 +156,7 @@ export function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
         }`}
       >
         {/* The band carries the header's colour, so the drawer reads as part of it. */}
-        <div className="flex h-[56px] items-center justify-between gap-2 bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316] px-5 text-[17px] font-bold text-white">
+        <div className="flex h-[56px] items-center justify-between gap-2 bg-gradient-to-r from-[#0F766E] via-[#0D9488] to-[#14B8A6] px-5 text-[17px] font-bold text-white">
           <span className="truncate">Hello, shop {brandName}</span>
           <button type="button" onClick={onClose} aria-label="Close" className="shrink-0 rounded-full p-1 hover:bg-black/15">
             <X className="h-6 w-6" aria-hidden />
@@ -305,7 +305,7 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
     <>
       <span className="relative">
         <ShoppingCart className="h-6 w-6 text-white lg:h-7 lg:w-7" aria-hidden />
-        <span className="absolute -top-1.5 left-1/2 min-w-[20px] -translate-x-1/2 rounded-full bg-white px-1 text-center text-[12px] font-black leading-5 text-[#ea580c] shadow-xs">
+        <span className="absolute -top-1.5 left-1/2 min-w-[20px] -translate-x-1/2 rounded-full bg-white px-1 text-center text-[12px] font-black leading-5 text-[#0D9488] shadow-xs">
           {cartCount > 99 ? "99+" : cartCount}
         </span>
       </span>
@@ -320,7 +320,7 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
     // desktopOnly: on Quick, phones get QuickMobileHeader instead (QUICK_MOBILE_SPEC.md).
     <header className={`wh-desktop sticky top-0 z-50 ${desktopOnly ? "hidden lg:block" : ""}`}>
       {/* Top bar (Rich Orange Gradient) */}
-      <div className="bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316] shadow-sm">
+      <div className="bg-gradient-to-r from-[#0F766E] via-[#0D9488] to-[#14B8A6] shadow-sm">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-1 gap-y-2 px-2.5 py-2 lg:h-[62px] lg:flex-nowrap lg:gap-x-1 lg:px-[20px] lg:py-[6px]">
           {/* The category drawer's trigger; from lg it lives on the orange bar. */}
           <button
@@ -472,7 +472,7 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            className="flex h-[32px] items-center gap-1.5 rounded-[4px] bg-gradient-to-r from-[#ea580c] to-[#f97316] px-3.5 font-bold text-white shadow-xs hover:opacity-95 transition-opacity"
+            className="flex h-[32px] items-center gap-1.5 rounded-[4px] bg-gradient-to-r from-[#0D9488] to-[#14B8A6] px-3.5 font-bold text-white shadow-xs hover:opacity-95 transition-opacity"
           >
             <Menu className="h-4 w-4" aria-hidden /> All
           </button>
