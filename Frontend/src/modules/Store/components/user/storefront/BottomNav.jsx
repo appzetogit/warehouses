@@ -1,17 +1,47 @@
+import { useEffect, useRef, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { Home, LayoutGrid, Store, Package, User } from "lucide-react"
 import { useCart } from "@store/context/CartContext"
 import { useStoreMode } from "@store/context/StoreModeContext"
 
 /**
- * Modern 5-tab bottom navigation matching the fashion multi-vendor reference design:
+ * The phone tab bar, styled after the customer app's (warehouse_user
+ * app_shell.dart, _NavItem): cream bar, 24px icons, a bold label and a short
+ * indicator under the active tab. It slides away while scrolling down and
+ * comes back on scroll up or near the top.
  * Home | Categories | Stores | Orders | Account
  */
+
+const SHOW_NEAR_TOP = 80 // px: always shown this close to the top
+const MIN_DELTA = 6 // px of scroll before it reacts, so jitter does not flicker it
+
+function useHideOnScrollDown() {
+  const [hidden, setHidden] = useState(false)
+  const lastY = useRef(0)
+
+  useEffect(() => {
+    lastY.current = window.scrollY
+    const onScroll = () => {
+      const y = window.scrollY
+      const delta = y - lastY.current
+      if (y < SHOW_NEAR_TOP) setHidden(false)
+      else if (delta > MIN_DELTA) setHidden(true)
+      else if (delta < -MIN_DELTA) setHidden(false)
+      if (Math.abs(delta) > MIN_DELTA || y < SHOW_NEAR_TOP) lastY.current = y
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  return hidden
+}
+
 export default function BottomNav() {
   const { pathname } = useLocation()
   const { storePath } = useStoreMode()
   const { getCartCount } = useCart()
   const cartCount = getCartCount()
+  const hidden = useHideOnScrollDown()
 
   const home = storePath("/")
   const isHome = (p) => p === home || p === "/" || p === "/quick" || p === "/shop"
@@ -53,9 +83,11 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Main Navigation"
-      className="fixed inset-x-0 bottom-0 z-[90] border-t border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-[#161616]/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.04)]"
+      className={`fixed inset-x-0 bottom-0 z-[90] border-t border-app-line bg-app-cream pb-[env(safe-area-inset-bottom)] font-app transition-transform duration-300 ease-in-out motion-reduce:transition-none md:hidden ${
+        hidden ? "translate-y-full" : "translate-y-0"
+      }`}
     >
-      <ul className="mx-auto flex h-[58px] max-w-lg items-stretch">
+      <ul className="mx-auto flex h-[68px] max-w-lg items-stretch">
         {items.map(({ to, label, icon: Icon, match }) => {
           const active = match(pathname)
           return (
@@ -63,24 +95,32 @@ export default function BottomNav() {
               <Link
                 to={to}
                 aria-current={active ? "page" : undefined}
-                className={`flex h-full flex-col items-center justify-center gap-1 text-[11px] transition-all duration-200 ${
-                  active
-                    ? "text-orange-500 font-bold"
-                    : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 font-medium"
-                }`}
+                tabIndex={hidden ? -1 : undefined}
+                className="flex h-full flex-col items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-app-brown"
               >
-                <div className="relative">
+                <span className="relative">
                   <Icon
-                    className={`h-5 w-5 transition-transform duration-200 ${
-                      active ? "scale-110 stroke-[2.2]" : "stroke-[1.8]"
-                    }`}
+                    className={`h-6 w-6 ${active ? "text-app-brown" : "text-app-muted"}`}
+                    strokeWidth={active ? 2.1 : 1.7}
+                    fill={active ? "currentColor" : "none"}
+                    fillOpacity={active ? 0.18 : undefined}
                     aria-hidden="true"
                   />
                   {label === "Orders" && cartCount > 0 ? (
                     <span className="sr-only">({cartCount} items in cart)</span>
                   ) : null}
-                </div>
-                <span className="leading-none">{label}</span>
+                </span>
+                <span
+                  className={`mt-[3px] truncate text-[10.5px] leading-tight ${
+                    active ? "font-extrabold text-app-brown-ink" : "font-medium text-app-muted"
+                  }`}
+                >
+                  {label}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={`mt-0.5 h-[3px] w-4 rounded-[2px] ${active ? "bg-app-brown-ink" : "bg-transparent"}`}
+                />
               </Link>
             </li>
           )
@@ -89,4 +129,3 @@ export default function BottomNav() {
     </nav>
   )
 }
-

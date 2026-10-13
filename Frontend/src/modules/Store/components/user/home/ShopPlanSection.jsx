@@ -6,6 +6,7 @@ import { sellerAPI } from "@/services/api"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { slugifyCategory } from "@store/utils/categorySlug"
 import { mediaUrl } from "../desktop/desktopCart"
+import AppSectionHeading from "./AppSectionHeading"
 
 /**
  * "What's the plan?": occasion tiles that open a category, each showing one of
@@ -104,69 +105,62 @@ export default function ShopPlanSection({ products = [], className = "" }) {
   }
 
   return (
-    <section aria-label="What's the plan?" className={className}>
-      <div className="mx-4 rounded-3xl bg-gradient-to-b from-[#E6FAF7] to-white px-3 pb-4 pt-5 ring-1 ring-[#14B8A6]/15 lg:mx-0 lg:px-6">
-        <div className="mb-4 text-center">
-          <h2 className="text-[22px] font-black uppercase italic tracking-tight text-[#0F766E] lg:text-3xl">What&apos;s the plan?</h2>
-          <span aria-hidden="true" className="mx-auto mt-1 block h-1 w-12 rounded-full bg-[#F97316]" />
+    <section aria-label="What's the plan?" className={`font-app ${className}`}>
+      <AppSectionHeading title="What's the plan?" />
+
+      {tiles.length ? (
+        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:grid lg:grid-cols-7 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
+          {tiles.map((t) => (
+            <Link
+              key={t.label}
+              to={storePath(`/category/${slugifyCategory(t.category)}`)}
+              className="group relative block h-[196px] w-[136px] shrink-0 snap-start overflow-hidden rounded-2xl bg-app-alt shadow-[0_4px_10px_rgba(25,20,17,0.10)] lg:h-auto lg:w-auto lg:aspect-[136/196]"
+            >
+              <img
+                src={t.image}
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+              />
+              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-2 pb-2.5 pt-10 text-center text-[12.5px] font-extrabold uppercase leading-tight text-white">
+                {t.label}
+              </span>
+            </Link>
+          ))}
         </div>
+      ) : null}
 
-        {tiles.length ? (
-          <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [scrollbar-width:none] lg:grid lg:grid-cols-7 lg:overflow-visible [&::-webkit-scrollbar]:hidden">
-            {tiles.map((t) => (
-              <Link
-                key={t.label}
-                to={storePath(`/category/${slugifyCategory(t.category)}`)}
-                className="group w-[26%] shrink-0 snap-start text-center lg:w-auto"
+      {coupons.length ? (
+        <div className="mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 [scrollbar-width:none] lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
+          {coupons.map((c) => {
+            const head = couponHeadline(c)
+            const note = couponNote(c)
+            return (
+              <button
+                key={c.couponCode}
+                type="button"
+                onClick={() => onCoupon(c.couponCode)}
+                aria-label={`${head.big} ${head.small}: copy code ${c.couponCode}`}
+                className="flex min-h-16 w-[78%] shrink-0 snap-start items-stretch overflow-hidden rounded-xl border-[1.5px] border-[#8A5A3C] bg-white text-left active:scale-[0.99] lg:w-auto"
               >
-                <span className="block overflow-hidden rounded-2xl border-2 border-[#14B8A6] bg-white p-0.5 shadow-sm">
-                  <img
-                    src={t.image}
-                    alt=""
-                    loading="lazy"
-                    className="aspect-[4/5] w-full rounded-xl object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
-                  />
+                <span className="flex items-center gap-1 bg-app-cream px-2.5">
+                  <span className="text-[9px] font-extrabold uppercase leading-none text-[#52525B]">Extra</span>
+                  <span className="text-[22px] font-black leading-none text-app-brown-deep">{head.big}</span>
+                  <span className="text-[9px] font-extrabold uppercase leading-none text-[#52525B]">{head.small}</span>
                 </span>
-                <span className="mt-1.5 block text-[11px] font-extrabold uppercase leading-tight tracking-wide text-gray-900 lg:text-[13px]">
-                  {t.label}
+                <span className="flex min-w-0 flex-1 flex-col justify-center border-l-[1.5px] border-[#8A5A3C]/50 px-2.5 py-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold uppercase text-[#71717A]">Code</span>
+                    <span className="truncate text-[14px] font-black text-app-ink">{c.couponCode}</span>
+                    <Copy className="h-3.5 w-3.5 shrink-0 text-[#8A5A3C]" aria-hidden="true" />
+                  </span>
+                  {note ? <span className="line-clamp-2 text-[10.5px] leading-snug text-[#71717A]">{note}</span> : null}
                 </span>
-              </Link>
-            ))}
-          </div>
-        ) : null}
-
-        {coupons.length ? (
-          <div className="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto [scrollbar-width:none] lg:grid lg:grid-cols-3 lg:overflow-visible [&::-webkit-scrollbar]:hidden">
-            {coupons.map((c) => {
-              const head = couponHeadline(c)
-              const note = couponNote(c)
-              return (
-                <button
-                  key={c.couponCode}
-                  type="button"
-                  onClick={() => onCoupon(c.couponCode)}
-                  aria-label={`${head.big} ${head.small}: copy code ${c.couponCode}`}
-                  className="flex w-[88%] shrink-0 snap-start items-stretch overflow-hidden rounded-xl border-2 border-dashed border-[#14B8A6] bg-white text-left active:scale-[0.99] lg:w-auto"
-                >
-                  <span className="flex items-center gap-1 bg-[#F0FDFA] px-3 py-2">
-                    <span className="text-[10px] font-bold uppercase leading-none text-gray-600">Extra</span>
-                    <span className="text-[24px] font-black leading-none text-[#0F766E]">{head.big}</span>
-                    <span className="text-[10px] font-bold uppercase leading-none text-gray-600">{head.small}</span>
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col justify-center border-l-2 border-dashed border-[#14B8A6]/60 px-3 py-2">
-                    <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-gray-500">
-                      Code
-                      <span className="text-[15px] font-black tracking-wide text-gray-900">{c.couponCode}</span>
-                      <Copy className="h-3.5 w-3.5 text-[#F97316]" aria-hidden="true" />
-                    </span>
-                    {note ? <span className="line-clamp-2 text-[11px] leading-snug text-gray-500">{note}</span> : null}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        ) : null}
-      </div>
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
     </section>
   )
 }

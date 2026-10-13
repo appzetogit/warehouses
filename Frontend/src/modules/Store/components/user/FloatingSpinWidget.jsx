@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import { Sparkles, X } from "lucide-react"
+import { Dices, Sparkles, X } from "lucide-react"
 
 /**
  * FloatingSpinWidget
@@ -46,7 +46,7 @@ export default function FloatingSpinWidget({ onOpenSpin }) {
 
   return (
     <div
-      className="group/spin fixed bottom-[124px] right-3 lg:bottom-8 lg:left-8 lg:right-auto z-40 select-none lg:animate-float"
+      className="group/spin fixed bottom-[calc(142px+env(safe-area-inset-bottom))] right-3 lg:bottom-8 lg:left-8 lg:right-auto z-40 select-none lg:animate-float"
       onMouseEnter={() => setCollapsed(false)}
       onFocus={() => setCollapsed(false)}
     >
@@ -64,15 +64,17 @@ export default function FloatingSpinWidget({ onOpenSpin }) {
         onClick={onOpenSpin}
         type="button"
         aria-label="Spin & Win Daily Rewards"
-        className={`group relative flex items-center gap-3 rounded-full ${
-          collapsed ? "p-0.5 lg:p-1" : "p-0.5 lg:pl-2 lg:pr-4 lg:py-2"
-        } bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-2xl hover:shadow-[0_10px_25px_-5px_rgba(245,158,11,0.6)] border-2 border-amber-300/80 cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95`}
+        className={`group relative flex h-[52px] w-[52px] items-center justify-center gap-3 rounded-full border-2 border-white bg-[linear-gradient(90deg,#E9C19A,#B3261E)] shadow-[0_3px_10px_rgba(0,0,0,0.25)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown lg:h-auto lg:w-auto lg:justify-start ${
+          collapsed ? "lg:p-1" : "lg:pl-2 lg:pr-4 lg:py-2"
+        } lg:bg-gradient-to-r lg:from-amber-500 lg:via-orange-500 lg:to-amber-600 text-white lg:shadow-2xl lg:hover:shadow-[0_10px_25px_-5px_rgba(245,158,11,0.6)] lg:border-amber-300/80 cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95`}
       >
+        {/* Phones: the app's round launcher with a dice icon (shop_home_screen _FloatingButtons) */}
+        <Dices className="h-6 w-6 lg:hidden" aria-hidden="true" />
         {/* Pulsing Outer Glow Aura */}
         <span className="absolute -inset-1 hidden lg:block rounded-full bg-gradient-to-r from-amber-400 to-orange-500 opacity-60 blur-md group-hover:opacity-90 animate-pulse transition duration-500 -z-10" />
 
         {/* Rotating Wheel Graphics */}
-        <div className="relative flex items-center justify-center w-9 h-9 lg:w-11 lg:h-11 rounded-full bg-gradient-to-br from-amber-300 to-yellow-500 p-0.5 shadow-md">
+        <div className="relative hidden lg:flex items-center justify-center lg:w-11 lg:h-11 rounded-full bg-gradient-to-br from-amber-300 to-yellow-500 p-0.5 shadow-md">
           {/* SVG Fortune Wheel with colorful slices */}
           <svg
             viewBox="0 0 100 100"

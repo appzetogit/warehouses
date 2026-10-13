@@ -164,15 +164,16 @@ export default function GeminiAssistantWidget() {
   return (
     <>
       {/* Floating Pill Button */}
-      <div className="fixed bottom-[72px] right-3 lg:bottom-6 lg:right-5 z-40">
+      {/* Phones: the app's 52px round launcher under the spin one (shop_home_screen _FloatingButtons) */}
+      <div className="fixed bottom-[calc(80px+env(safe-area-inset-bottom))] right-3 lg:bottom-6 lg:right-5 z-40">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Ask the assistant"
-          className="flex h-11 w-11 items-center justify-center gap-2 lg:h-auto lg:w-auto lg:px-4 lg:py-2.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-500 text-white font-semibold text-sm shadow-xl hover:shadow-purple-500/25 transition-all border border-white/20 cursor-pointer"
+          className="flex h-[52px] w-[52px] items-center justify-center gap-2 rounded-full border-2 border-white bg-[linear-gradient(90deg,#58321D,#6D28D9)] text-white font-semibold text-sm shadow-[0_3px_10px_rgba(0,0,0,0.25)] transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown lg:h-auto lg:w-auto lg:px-4 lg:py-2.5 lg:border lg:border-white/20 lg:bg-gradient-to-r lg:from-purple-600 lg:via-indigo-600 lg:to-amber-500 lg:shadow-xl lg:hover:shadow-purple-500/25"
         >
-          <Sparkles className="w-5 h-5 lg:w-4 lg:h-4 text-amber-300 animate-pulse" aria-hidden="true" />
+          <Sparkles className="w-6 h-6 lg:w-4 lg:h-4 lg:text-amber-300 lg:animate-pulse" aria-hidden="true" />
           <span className="hidden lg:inline">Ask the Assistant</span>
         </motion.button>
       </div>

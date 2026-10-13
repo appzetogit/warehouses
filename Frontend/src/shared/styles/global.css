@@ -67,6 +67,28 @@
   --wh-success: #0B7B3C;
   --wh-border: #D5D9D9;
   --wh-quick: #0B7B3C;
+
+  /* app-*: the customer app's palette (warehouse_user, AppColors + shop
+     screens), so the phone site looks like the app: brown on cream. */
+  --app-brown: #58321D;        /* primary: buttons, active icons, flags */
+  --app-brown-light: #864C2C;
+  --app-brown-mid: #A15C35;    /* end of the brown button gradient */
+  --app-brown-deep: #3A2619;   /* headings on tiles, footer bar */
+  --app-brown-darker: #2A1A11; /* footer band */
+  --app-brown-ink: #2A180E;    /* active bottom-nav label + indicator */
+  --app-brown-chip: #6B3A22;
+  --app-brown-badge: #7B4B2A;  /* cart badge, "View All" */
+  --app-champagne: #E9C19A;
+  --app-cream: #F8F1EA;        /* page background */
+  --app-sand: #F1E4D6;         /* pills, header top */
+  --app-alt: #F5F1EE;          /* image placeholders, chips */
+  --app-line: #EDE6E0;         /* borders */
+  --app-tint: #F9F3F0;         /* selected chip fill */
+  --app-tint-strong: #F2E5DE;
+  --app-ink: #191411;
+  --app-muted: #7B7773;
+  --app-ok: #3F7D55;           /* delivery line, rating star, % off on PDP */
+  --app-sale: #CC0C39;
 }
 
 @theme inline {
@@ -94,6 +116,28 @@
   --color-wh-success: var(--wh-success);
   --color-wh-border: var(--wh-border);
   --color-wh-quick: var(--wh-quick);
+  /* app-* customer-app palette: bg-app-cream, text-app-brown, ... */
+  --color-app-brown: var(--app-brown);
+  --color-app-brown-light: var(--app-brown-light);
+  --color-app-brown-mid: var(--app-brown-mid);
+  --color-app-brown-deep: var(--app-brown-deep);
+  --color-app-brown-darker: var(--app-brown-darker);
+  --color-app-brown-ink: var(--app-brown-ink);
+  --color-app-brown-chip: var(--app-brown-chip);
+  --color-app-brown-badge: var(--app-brown-badge);
+  --color-app-champagne: var(--app-champagne);
+  --color-app-cream: var(--app-cream);
+  --color-app-sand: var(--app-sand);
+  --color-app-alt: var(--app-alt);
+  --color-app-line: var(--app-line);
+  --color-app-tint: var(--app-tint);
+  --color-app-tint-strong: var(--app-tint-strong);
+  --color-app-ink: var(--app-ink);
+  --color-app-muted: var(--app-muted);
+  --color-app-ok: var(--app-ok);
+  --color-app-sale: var(--app-sale);
+  --font-app-display: 'Cormorant Garamond', Georgia, serif;
+  --font-app: 'Poppins', system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -493,4 +537,23 @@
 .wh-range::-webkit-slider-runnable-track,
 .wh-range::-moz-range-track {
   background: transparent;
+}
+
+/* Champagne sheen across an app section heading (AppSectionHeading): crosses
+   in the first 55% of a 3.6s loop, then rests. Off for reduced motion. */
+.app-sheen {
+  background-image: linear-gradient(90deg, var(--app-brown) 0%, var(--app-brown) 40%, var(--app-champagne) 50%, var(--app-brown) 60%, var(--app-brown) 100%);
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: app-sheen 3.6s linear infinite;
+}
+@keyframes app-sheen {
+  0% { background-position: 100% 0; }
+  55%, 100% { background-position: 0% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-sheen { animation: none; background-position: 0 0; }
 }

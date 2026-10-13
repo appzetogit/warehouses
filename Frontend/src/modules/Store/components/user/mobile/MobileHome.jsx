@@ -288,7 +288,7 @@ const shimmer = "animate-pulse bg-gray-200/80"
 
 export function MobileHomeSkeleton() {
   return (
-    <div role="status" aria-label="Loading" className="space-y-5 bg-[#F7F7F8] py-4">
+    <div role="status" aria-label="Loading" className="space-y-5 bg-app-cream py-4">
       <div className={`mx-4 aspect-[16/9] rounded-2xl ${shimmer}`} />
       <div className="grid grid-cols-4 gap-2 px-4">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -381,7 +381,7 @@ export default function MobileHome({ heroBanners = [], products = [], loading = 
   if (loading && !products.length) return <MobileHomeSkeleton />
 
   return (
-    <div className="space-y-6 bg-[#F7F7F8] pb-8 pt-3 lg:hidden">
+    <div className="space-y-6 bg-app-cream pb-8 pt-3 font-app lg:hidden">
       <BannerCarousel banners={heroBanners} />
       <Promises storeCount={featuredStores.length} />
       {isQuick ? <OfferBannerStrip /> : <ShopPlanSection products={products} />}

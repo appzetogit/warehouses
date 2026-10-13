@@ -2,7 +2,9 @@ import { useMemo } from "react"
 import { Link } from "react-router-dom"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { slugifyCategory } from "@store/utils/categorySlug"
+import { ArrowRight } from "lucide-react"
 import { mediaUrl } from "../desktop/desktopCart"
+import AppSectionHeading from "./AppSectionHeading"
 
 /**
  * Shop home sections in the "What's the plan?" style, built from the catalogue
@@ -30,14 +32,9 @@ const offOf = (p) => {
 }
 const rupees = (n) => `₹${Math.round(n).toLocaleString("en-IN")}`
 
+/** The app's section heading; kept under this name for existing imports. */
 export function SectionHeading({ title, subtitle }) {
-  return (
-    <div className="mb-4 text-center">
-      <h2 className="text-[22px] font-black uppercase italic tracking-tight text-[#0F766E] lg:text-3xl">{title}</h2>
-      {subtitle ? <p className="mt-0.5 text-[13px] font-extrabold uppercase tracking-wide text-[#EA580C] lg:text-[15px]">{subtitle}</p> : null}
-      <span aria-hidden="true" className="mx-auto mt-1.5 block h-1 w-12 rounded-full bg-[#F97316]" />
-    </div>
-  )
+  return <AppSectionHeading title={title} subtitle={subtitle} />
 }
 
 /** Per category: a photo (best-rated with an image), lowest price, best discount. */
@@ -61,33 +58,64 @@ function useCategoryStats(products, names) {
 
 const ribbonFor = (s) => (s.maxOff >= 30 ? `Up to ${s.maxOff}% off` : Number.isFinite(s.minPrice) ? `From ${rupees(s.minPrice)}` : "")
 
+// Pastel wash behind each photo and its ribbon colour (warehouse_user _tilePalette).
+const TILE_PALETTE = [
+  ["#FCE3A6", "#D9674A"],
+  ["#EBCBD0", "#B02A4A"],
+  ["#F8D2C2", "#D9674A"],
+  ["#D4DFF3", "#5C74B4"],
+  ["#D6E6DA", "#5E8C4A"],
+  ["#EBD5BC", "#C08A1E"],
+]
+
 function CategoryGrid({ title, products, names, className = "" }) {
   const { storePath } = useStoreMode()
   const stats = useCategoryStats(products, names)
   const bestOff = stats.reduce((m, s) => Math.max(m, s.maxOff), 0)
   if (stats.length < 2) return null
   return (
-    <section aria-label={title} className={`px-4 lg:px-0 ${className}`}>
-      <SectionHeading title={title} subtitle={bestOff >= 30 ? `Up to ${bestOff}% off` : ""} />
-      <div className="grid grid-cols-3 gap-2.5 lg:grid-cols-6 lg:gap-4">
-        {stats.map((s) => (
-          <Link key={s.name} to={storePath(`/category/${slugifyCategory(s.name)}`)} className="group block overflow-hidden rounded-2xl border-2 border-[#14B8A6] bg-white shadow-sm">
-            <span className="relative block">
-              <img
-                src={imageOf(s.cover)}
-                alt=""
-                loading="lazy"
-                className="aspect-[3/4] w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
-              />
-              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-6 text-center text-[12px] font-extrabold uppercase tracking-wide text-white lg:text-[14px]">
-                {s.name}
+    <section aria-label={title} className={`font-app ${className}`}>
+      <AppSectionHeading title={title} />
+      {bestOff >= 30 ? (
+        <p className="mx-auto mb-3.5 w-fit rounded-full bg-app-sand px-4 py-1 text-[14px] font-medium text-app-brown-deep">
+          Up to {bestOff}% Off
+        </p>
+      ) : null}
+      <div className="grid grid-cols-3 gap-2.5 px-4 lg:grid-cols-6 lg:gap-4 lg:px-0">
+        {stats.map((s, i) => {
+          const [wash, ribbon] = TILE_PALETTE[i % TILE_PALETTE.length]
+          return (
+            <Link
+              key={s.name}
+              to={storePath(`/category/${slugifyCategory(s.name)}`)}
+              className="group flex aspect-[3/5] flex-col overflow-hidden rounded-[10px] bg-gradient-to-b from-white to-[#FBF3EA] shadow-[0_4px_10px_rgba(25,20,17,0.10)]"
+            >
+              <span className="relative block min-h-0 flex-1" style={{ backgroundColor: wash }}>
+                {/* The photo takes on the tile's pastel, as in the app. */}
+                <img
+                  src={imageOf(s.cover)}
+                  alt=""
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover object-top mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]"
+                />
               </span>
-            </span>
-            <span className="block bg-[#F97316] px-1 py-1 text-center text-[10.5px] font-black uppercase tracking-wide text-white lg:text-[12px]">
-              {ribbonFor(s)}
-            </span>
-          </Link>
-        ))}
+              <span className="block px-2 pb-2 pt-2">
+                <span className="block truncate font-app-display text-[14px] font-bold uppercase text-app-brown-deep">{s.name}</span>
+                <span className="mt-1.5 flex items-center gap-1.5">
+                  <span
+                    className="min-w-0 flex-1 truncate rounded-md px-1.5 py-1 text-center text-[10px] font-extrabold uppercase text-white"
+                    style={{ backgroundColor: ribbon }}
+                  >
+                    {ribbonFor(s)}
+                  </span>
+                  <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-app-brown-deep text-white">
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </span>
+              </span>
+            </Link>
+          )
+        })}
       </div>
     </section>
   )
@@ -101,11 +129,12 @@ export function AccessoriseIt({ products = [], className = "" }) {
   return <CategoryGrid title="Accessorise it" products={products} names={ACCESSORIES} className={className} />
 }
 
+// Brown diagonals, as in the app.
 const DEAL_STYLES = [
-  "from-[#0D9488] to-[#14B8A6]",
-  "from-[#EA580C] to-[#F97316]",
-  "from-[#0F766E] to-[#0D9488]",
-  "from-[#C2410C] to-[#EA580C]",
+  "from-[#58321D] to-[#8A5A3C]",
+  "from-[#58321D] to-[#8A5A3C]",
+  "from-[#3A2619] to-[#58321D]",
+  "from-[#3A2619] to-[#58321D]",
 ]
 
 export function DealsOnRepeat({ products = [], className = "" }) {
@@ -119,16 +148,16 @@ export function DealsOnRepeat({ products = [], className = "" }) {
   )
   if (levels.length < 2) return null
   return (
-    <section aria-label="Deals on repeat" className={`px-4 lg:px-0 ${className}`}>
-      <SectionHeading title="Deals on repeat" subtitle="Grab them before they go" />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+    <section aria-label="Deals on repeat" className={`font-app ${className}`}>
+      <AppSectionHeading title="Deals on repeat" subtitle="Grab them before they go" />
+      <div className="grid grid-cols-2 gap-3 px-4 lg:grid-cols-4 lg:gap-4 lg:px-0">
         {levels.map((l, i) => (
           <Link
             key={l.level}
             to={`${storePath("/search")}?minDiscount=${l.level}`}
-            className={`flex aspect-[5/3] flex-col items-center justify-center rounded-2xl bg-gradient-to-br ${DEAL_STYLES[i % DEAL_STYLES.length]} text-white shadow-sm ring-2 ring-white transition active:scale-[0.98] lg:aspect-[2/1]`}
+            className={`flex aspect-[5/3] flex-col items-center justify-center rounded-2xl bg-gradient-to-br ${DEAL_STYLES[i % DEAL_STYLES.length]} text-white shadow-[0_4px_10px_rgba(25,20,17,0.12)] transition active:scale-[0.98] lg:aspect-[2/1]`}
           >
-            <span className="text-[11px] font-extrabold uppercase tracking-[0.2em] opacity-90">Min</span>
+            <span className="text-[11px] font-extrabold uppercase tracking-[2px] opacity-90">Min</span>
             <span className="text-[34px] font-black leading-none lg:text-[44px]">{l.level}%</span>
             <span className="text-[13px] font-black uppercase tracking-wide">Off</span>
             <span className="mt-1 text-[10.5px] font-semibold opacity-90">{l.count} styles</span>
