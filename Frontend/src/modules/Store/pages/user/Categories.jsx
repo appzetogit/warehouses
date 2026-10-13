@@ -9,13 +9,16 @@ import { resolveMediaUrl } from "@/shared/utils/mediaUrl";
 import OptimizedImage from "@store/components/OptimizedImage";
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext";
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation";
-import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop";
+import useIsDesktop, { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop";
+import MobileCategories from "@store/components/user/mobile/MobileCategories";
 import { CategoriesDesktop } from "@store/components/user/desktop/IndexDesktop";
 
 export default function Categories() {
   const { storePath } = useStoreMode()
   const navigate = useNavigate();
   const isDesktop = useStorefrontLayout();
+  // Below lg: the customer app's rail-and-panel Categories tab, which loads its own list.
+  const onWideScreen = useIsDesktop();
   const goBack = useAppBackNavigation();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +31,7 @@ export default function Categories() {
   const normalizeImageUrl = (imageUrl) => resolveMediaUrl(imageUrl);
 
   useEffect(() => {
+    if (isDesktop && !onWideScreen) return;
     const fetchCategories = async () => {
       try {
         setLoading(true);
@@ -57,14 +61,17 @@ export default function Categories() {
       }
     };
     fetchCategories();
-  }, [zoneId]);
+  }, [zoneId, isDesktop, onWideScreen]);
 
   const filteredCategories = categories.filter((cat) =>
     (cat.name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Desktop (lg+): a grid of category cards; mobile below is unchanged.
-  if (isDesktop) return <CategoriesDesktop categories={categories} loading={loading} />;
+  if (isDesktop) {
+    if (!onWideScreen) return <MobileCategories />;
+    return <CategoriesDesktop categories={categories} loading={loading} />;
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] pb-10">

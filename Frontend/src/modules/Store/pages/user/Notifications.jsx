@@ -1,10 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
-import { Link } from "react-router-dom"
-import { ArrowLeft, Bell, CheckCircle2, Clock, Tag, Gift, AlertCircle, Trash2, X } from "lucide-react"
+import { Bell, CheckCircle2, Clock, Tag, Gift, AlertCircle, Trash2, X } from "lucide-react"
 import AnimatedPage from "@store/components/user/AnimatedPage"
-import { Button } from "@store/components/ui/button"
-import { Card, CardContent } from "@store/components/ui/card"
-import { Badge } from "@store/components/ui/badge"
+import AccountAppBar from "@store/components/user/account/AccountAppBar"
 import useNotificationInbox from "@store/hooks/useNotificationInbox"
 import { useProfile } from "@store/context/ProfileContext"
 
@@ -176,70 +173,90 @@ export default function Notifications() {
     setNotificationsList((prev) => prev.filter((notification) => notification.id !== id))
   }
 
+  // Today / Earlier, as in the customer app. Display only.
+  const sections = useMemo(() => {
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+    const today = []
+    const earlier = []
+    for (const n of mergedNotifications) {
+      const at = new Date(n.timestamp || n.createdAt || 0).getTime()
+      if (Number.isFinite(at) && at >= startOfToday.getTime()) today.push(n)
+      else earlier.push(n)
+    }
+    return [
+      { title: "Today", items: today },
+      { title: "Earlier", items: earlier },
+    ].filter((s) => s.items.length > 0)
+  }, [mergedNotifications])
+
   return (
-    <AnimatedPage className="min-h-screen bg-white dark:bg-[#0a0a0a]">
-      <div className="max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        {/* Header */}
-        <div className="flex items-center gap-3 sm:gap-4 mb-4 md:mb-6 lg:mb-8">
-          <Link to="/user">
-            <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 sm:h-10 sm:w-10">
-              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2 sm:gap-3 flex-1">
-            <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-wh-brand-ink fill-wh-brand" />
-            <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-800 dark:text-white">Notifications</h1>
-            {unreadCount > 0 && (
-              <Badge className="bg-wh-brand text-wh-text text-xs md:text-sm">
-                {unreadCount}
-              </Badge>
-            )}
-          </div>
-          {mergedNotifications.length > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
+    <AnimatedPage className="min-h-screen bg-app-cream font-app text-app-ink dark:bg-[#0a0a0a]">
+      <AccountAppBar
+        title="Notifications"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : ""}
+        backTo="/user"
+        right={
+          mergedNotifications.length > 0 ? (
+            <button
+              type="button"
               onClick={handleClearAll}
-              className="text-gray-500 hover:text-red-500 transition-colors flex items-center gap-1.5 px-2 md:px-3"
+              className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-app-brown active:bg-app-sand"
             >
-              <Trash2 className="h-4 w-4" />
-              <span className="text-xs md:text-sm font-medium">Clear All</span>
-            </Button>
-          )}
-        </div>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Clear all
+            </button>
+          ) : null
+        }
+      />
 
-        {/* Notifications List */}
-        <div className="space-y-3 md:space-y-4">
-          {mergedNotifications.map((notification) => {
-            const Icon = ICON_MAP[notification.icon] || Bell
-            return (
-              <Card
-                key={notification.id}
-                onClick={() => handleMarkAsRead(notification.id, notification.source)}
-                className={`relative cursor-pointer transition-all duration-200 py-1 hover:shadow-md ${!notification.read ? "bg-red-50/50 dark:bg-red-900/20 border-red-200 dark:border-red-800" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                  }`}
-              >
-                {/* Unread Dot - Top Right */}
-                {!notification.read && (
-                  <div className="absolute top-2 right-2 w-2.5 h-2.5 md:w-3 md:h-3 bg-wh-brand rounded-full" />
-                )}
+      <div className="max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-4 py-4">
+        {sections.map((section) => (
+          <section key={section.title} className="mb-5" aria-label={section.title}>
+            <h2 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wide text-app-muted">
+              {section.title}
+            </h2>
+            <div className="space-y-2.5">
+              {section.items.map((notification) => {
+                const Icon = ICON_MAP[notification.icon] || Bell
+                const tone =
+                  notification.type === "alert"
+                    ? "bg-[#B3261E]/10 text-[#B3261E]"
+                    : notification.type === "order"
+                      ? "bg-app-ok/12 text-app-ok"
+                      : "bg-app-brown/10 text-app-brown"
+                return (
+                  <div
+                    key={notification.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleMarkAsRead(notification.id, notification.source)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        handleMarkAsRead(notification.id, notification.source)
+                      }
+                    }}
+                    className={`relative flex cursor-pointer items-start gap-3 rounded-2xl border p-3.5 transition-colors ${
+                      !notification.read
+                        ? "border-app-brown/25 bg-app-tint-strong/60"
+                        : "border-app-line bg-white"
+                    }`}
+                  >
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tone}`}>
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </span>
 
-                <CardContent className="p-3 md:p-4 lg:p-5">
-                  <div className="flex items-start gap-3 sm:gap-4 md:gap-5">
-                    {/* Icon */}
-                    <div className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center ${notification.type === "order" ? "bg-green-100 dark:bg-green-900/40" :
-                        notification.type === "offer" ? "bg-red-100 dark:bg-red-900/40" :
-                          notification.type === "promotion" ? "bg-blue-100 dark:bg-blue-900/40" :
-                            "bg-orange-100 dark:bg-orange-900/40"
-                      }`}>
-                      <Icon className={`h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 ${notification.iconColor}`} />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1 md:mb-2">
-                        <h3 className={`text-sm sm:text-base md:text-lg font-semibold ${!notification.read ? "text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"
-                          }`}>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3
+                          className={`text-[14.5px] ${
+                            !notification.read ? "font-semibold text-app-ink" : "font-medium text-app-ink/80"
+                          }`}
+                        >
+                          {!notification.read ? (
+                            <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-app-brown align-middle" aria-label="Unread" />
+                          ) : null}
                           {notification.title}
                         </h3>
                         <button
@@ -249,36 +266,35 @@ export default function Notifications() {
                             e.stopPropagation()
                             handleDeleteOne(notification.id, notification.source)
                           }}
-                          className="flex-shrink-0 rounded-full p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          className="-mr-1 -mt-1 shrink-0 rounded-full p-1 text-app-muted hover:bg-app-sand hover:text-[#B3261E]"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-4 w-4" aria-hidden="true" />
                         </button>
                       </div>
-                      <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mb-2 md:mb-3 line-clamp-2">
-                        {notification.message}
+                      <p className="mt-0.5 line-clamp-2 text-[13px] text-app-muted">{notification.message}</p>
+                      <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-app-muted">
+                        <Clock className="h-3 w-3" aria-hidden="true" />
+                        {notification.time}
                       </p>
-                      <div className="flex items-center gap-1 text-xs md:text-sm text-gray-500 dark:text-gray-400">
-                        <Clock className="h-3 w-3 md:h-4 md:w-4" />
-                        <span>{notification.time}</span>
-                      </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                )
+              })}
+            </div>
+          </section>
+        ))}
 
         {/* Empty State (if no notifications) */}
         {mergedNotifications.length === 0 && (
-          <div className="text-center py-12 md:py-16 lg:py-20">
-            <Bell className="h-16 w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 text-gray-300 dark:text-gray-600 mx-auto mb-4 md:mb-5 lg:mb-6" />
-            <h3 className="text-lg md:text-xl lg:text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2 md:mb-3">No notifications</h3>
-            <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">You're all caught up!</p>
+          <div className="flex flex-col items-center py-16 text-center">
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-app-brown/10">
+              <Bell className="h-9 w-9 text-app-brown" aria-hidden="true" />
+            </span>
+            <h3 className="mt-4 text-[18px] font-semibold text-app-ink">No notifications</h3>
+            <p className="mt-1 text-[13px] text-app-muted">You're all caught up!</p>
           </div>
         )}
       </div>
     </AnimatedPage>
   )
 }
-

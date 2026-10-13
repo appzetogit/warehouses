@@ -165,7 +165,7 @@ export default function GeminiAssistantWidget() {
     <>
       {/* Floating Pill Button */}
       {/* Phones: the app's 52px round launcher under the spin one (shop_home_screen _FloatingButtons) */}
-      <div className="fixed bottom-[calc(80px+env(safe-area-inset-bottom))] right-3 lg:bottom-6 lg:right-5 z-40">
+      <div className="fixed max-lg:in-data-filter-bar:hidden bottom-[calc(80px+env(safe-area-inset-bottom))] right-3 lg:bottom-6 lg:right-5 z-40">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

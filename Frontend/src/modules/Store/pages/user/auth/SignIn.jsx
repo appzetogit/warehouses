@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link, useSearchParams, useLocation } from "react-router-dom"
-import { AlertCircle, Loader2 } from "lucide-react"
+import { AlertCircle, Loader2, User } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { authAPI } from "@store/api"
-import AuthShell, { primaryBtn, secondaryBtn } from "@store/components/user/auth/AuthShell"
+import AppAuthShell, { primaryBtn, secondaryBtn, phoneBox, fieldBox, errorLine } from "@store/components/user/auth/AppAuthShell"
 import { isModuleAuthenticated } from "@store/utils/auth"
 import { pickRedirectPath } from "./authRedirect"
 
@@ -114,30 +114,36 @@ export default function SignIn() {
     setStep(next)
   }
 
-  const inputBox =
-    "flex h-14 items-center overflow-hidden rounded-2xl bg-white text-gray-900 shadow-[0_8px_20px_rgba(0,0,0,0.15)] focus-within:ring-4 focus-within:ring-white/40"
+  const heading =
+    step === "signup" ? "Create your account" : step === "login" ? "Enter your phone number" : "Fashion Near You"
+  const explanation =
+    step === "signup"
+      ? "Tell us your name and phone number. We will send a 4-digit code to verify it."
+      : step === "login"
+        ? "We will send a 4-digit verification code to verify your phone number."
+        : "Shop local stores, delivered fast. Courier in days or quick in minutes."
 
   return (
-    <AuthShell
-      title="Fashion Near You"
-      subtitle="Shop Local Stores • Delivered Fast"
-      tagline="Courier in Days or Quick in Minutes"
+    <AppAuthShell
+      title={heading}
+      subtitle={explanation}
+      tagline="Shop Local Stores • Delivered Fast"
       onBack={step === "welcome" ? undefined : () => goTo("welcome")}
       footer={
         <>
-          <p>
+          <p className="text-[13.5px]">
             Are you a seller?{" "}
-            <Link to="/seller/login" className="font-bold text-white underline-offset-2 hover:underline">
+            <Link to="/seller/login" className="font-bold text-app-brown underline-offset-2 hover:underline">
               Open Seller App
             </Link>
           </p>
-          <p className="mt-3 text-[11px] text-white/75">
+          <p className="mt-3 text-[11.5px] leading-[1.3]">
             By continuing, you agree to our{" "}
-            <Link to="/profile/terms" className="underline">
+            <Link to="/profile/terms" className="font-semibold text-app-brown underline-offset-2 hover:underline">
               Terms
             </Link>{" "}
             and{" "}
-            <Link to="/profile/privacy" className="underline">
+            <Link to="/profile/privacy" className="font-semibold text-app-brown underline-offset-2 hover:underline">
               Privacy Policy
             </Link>
             .
@@ -152,7 +158,7 @@ export default function SignIn() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            className="mt-auto space-y-4 pb-2"
+            className="space-y-3.5 pt-2"
           >
             <button type="button" className={primaryBtn} onClick={() => goTo("login")}>
               Login
@@ -168,14 +174,13 @@ export default function SignIn() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            className="mt-auto space-y-4 pb-2"
+            className="space-y-3.5"
             noValidate
           >
-            <h2 className="text-center text-[18px] font-bold">{step === "signup" ? "Create Your Account" : "Welcome Back"}</h2>
-
             {step === "signup" ? (
-              <label className={inputBox}>
+              <label className={fieldBox}>
                 <span className="sr-only">Your name</span>
+                <User className="ml-4 h-5 w-5 shrink-0 text-[#757575]" aria-hidden="true" />
                 <input
                   type="text"
                   autoComplete="name"
@@ -186,14 +191,20 @@ export default function SignIn() {
                     setError("")
                   }}
                   placeholder="Your Name"
-                  className="h-full w-full bg-transparent px-4 text-[16px] font-semibold placeholder:font-medium placeholder:text-gray-400 focus:outline-none"
+                  className="h-full w-full bg-transparent px-3 text-[15.5px] font-semibold text-app-ink caret-app-brown placeholder:font-normal placeholder:text-[#9E9E9E] focus:outline-none"
                 />
               </label>
             ) : null}
 
-            <label className={inputBox}>
+            <label className={phoneBox}>
               <span className="sr-only">Mobile number</span>
-              <span className="flex h-full items-center border-r border-gray-200 px-4 text-[16px] font-bold text-gray-800">+91</span>
+              <span className="flex h-full shrink-0 items-center gap-1.5 pl-4 pr-3 text-[16px] font-semibold text-app-ink">
+                <span aria-hidden="true" className="text-[20px] leading-none">
+                  🇮🇳
+                </span>
+                +91
+              </span>
+              <span aria-hidden="true" className="h-7 w-px shrink-0 bg-app-line" />
               <input
                 type="tel"
                 inputMode="numeric"
@@ -205,32 +216,34 @@ export default function SignIn() {
                   setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
                   setError("")
                 }}
-                placeholder="Mobile Number"
-                className="h-full w-full bg-transparent px-4 text-[17px] font-bold tracking-wider placeholder:font-medium placeholder:tracking-normal placeholder:text-gray-400 focus:outline-none"
+                placeholder="Enter phone number"
+                className="h-full w-full bg-transparent px-3.5 text-[15.5px] font-semibold tracking-wider text-app-ink caret-app-brown placeholder:text-[14.5px] placeholder:font-normal placeholder:tracking-normal placeholder:text-[#9E9E9E] focus:outline-none"
               />
             </label>
 
             {error ? (
-              <p role="alert" className="flex items-center justify-center gap-1.5 rounded-xl bg-black/20 px-3 py-2 text-[13px] font-semibold">
+              <p role="alert" className={errorLine}>
                 <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {error}
               </p>
             ) : null}
 
-            <button type="submit" className={secondaryBtn} disabled={isLoading || phone.length !== 10 || (step === "signup" && name.trim().length < 2)}>
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : null}
-              {isLoading ? "Sending Code…" : "Get OTP"}
-            </button>
+            <div className="pt-1.5">
+              <button type="submit" className={primaryBtn} disabled={isLoading || phone.length !== 10 || (step === "signup" && name.trim().length < 2)}>
+                {isLoading ? <Loader2 className="h-[22px] w-[22px] animate-spin" aria-hidden="true" /> : null}
+                {isLoading ? "Sending OTP…" : "Continue & Send OTP"}
+              </button>
+            </div>
 
-            <p className="text-center text-[14px] text-white/90">
+            <p className="pt-1 text-center text-[13.5px] text-[#757575]">
               {step === "signup" ? "Already have an account? " : "New here? "}
-              <button type="button" onClick={() => goTo(step === "signup" ? "login" : "signup")} className="font-bold text-white underline-offset-2 hover:underline">
+              <button type="button" onClick={() => goTo(step === "signup" ? "login" : "signup")} className="font-bold text-app-brown underline-offset-2 hover:underline">
                 {step === "signup" ? "Login" : "Create Account"}
               </button>
             </p>
           </motion.form>
         )}
       </AnimatePresence>
-    </AuthShell>
+    </AppAuthShell>
   )
 }

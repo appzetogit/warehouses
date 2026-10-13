@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
-import { ArrowUpDown, ChevronDown, SlidersHorizontal, X } from "lucide-react"
+import { FilterX, PackageOpen, SearchX, X } from "lucide-react"
 import { catalogAPI, searchAPI } from "@/services/api"
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { usePublicCategories } from "../desktop/useDesktopShell"
 import FilterSheet, { EMPTY_MOBILE_FILTERS, activeFilterCount } from "./FilterSheet"
-import MobileTopBar from "./MobileTopBar"
+import FloatingFilterBar from "./FloatingFilterBar"
+import ListingHeader from "./ListingHeader"
 import ProductTile from "./ProductTile"
 import { categorySlugOf, findCategoryBySlug, isCategoryId } from "@store/utils/categorySlug"
 
 /**
- * The product listing from the mobile mockup (screen 2), for a category, a
- * search or a discount page: top bar with the count, subcategory chips, sort
- * and filter chips, a two-column grid, and more on demand.
+ * The phone product listing, for a category, a search or a discount page,
+ * styled as the customer app's (product_listing_screen.dart and
+ * sub_category_screen.dart): a serif title header, brown/sand sub-category
+ * pills, an "N items" line, a two-column grid (search results grouped by
+ * category), more on demand, and the floating Sort | Brand | Price | Filters
+ * pill that opens the Sort & filter sheet.
  */
 
 const PAGE = 20
@@ -97,36 +101,7 @@ const filterParams = (f) => ({
   },
 })
 
-function SortSheet({ open, value, onPick, onClose }) {
-  if (!open) return null
-  return (
-    <div className="fixed inset-0 z-[80] lg:hidden" role="dialog" aria-modal="true" aria-label="Sort">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/40" />
-      <div className="wh-slide-up-bar absolute inset-x-0 bottom-0 rounded-t-2xl bg-white p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-200" />
-        <h2 className="mb-2 text-[16px] font-bold text-gray-900">Sort by</h2>
-        {SORTS.map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => {
-              onPick(key)
-              onClose()
-            }}
-            className={`flex w-full items-center justify-between rounded-lg px-2 py-3 text-left text-[14px] ${
-              value === key ? "font-bold text-[#EA580C]" : "text-gray-800"
-            }`}
-          >
-            {label}
-            {value === key ? <span className="h-2 w-2 rounded-full bg-[#EA580C]" aria-hidden="true" /> : null}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-export default function MobileListing({ categorySlug = "", q = "", minDiscount = null, title, withTopBar = true }) {
+export default function MobileListing({ categorySlug = "", q = "", minDiscount = null, title, withTopBar = true, groupByCategory = false }) {
   const navigate = useNavigate()
   const { storePath, fulfilmentMode, isQuick } = useStoreMode()
   const { zoneId } = useDeliveryLocation()
@@ -141,14 +116,15 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
     (change) => setSearchParams((prev) => writeListParams(prev, change(readListParams(prev))), { replace: true }),
     [setSearchParams],
   )
-  const setSort = (value) => { setList((c) => ({ ...c, sort: value })); setPage(1) }
   const setFilters = (value) => { setList((c) => ({ ...c, filters: value })); setPage(1) }
 
   // Pages loaded: as many as this history entry had, when coming back to it.
   const [page, setPage] = useState(() => readLoadedPages(location.key))
   const [state, setState] = useState({ loading: true, products: [], total: 0, facets: null })
   const loaded = useRef({ key: "", pages: 0 })
+  // "" (closed), "sort", "brand", "price" or "all".
   const [sheet, setSheet] = useState("")
+  const closeSheet = useCallback(() => setSheet(""), [])
   const [swatches, setSwatches] = useState({})
 
   useEffect(() => {
@@ -257,142 +233,200 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
   )
 
   const heading = title || current?.name || (q ? `"${q}"` : notFound ? "Category not found" : isCategoryId(categorySlug) ? "Products" : "All Products")
+  const subtitle = minDiscount > 0 ? `Styles at ${minDiscount}% off or more` : ""
   const nFilters = activeFilterCount(filters)
   // Loading with nothing to show yet (also when coming back with several pages to reload).
   const firstLoad = state.loading && (page === 1 || !state.products.length)
-  const chip = (on) =>
-    `flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors ${
-      on ? "border-[#EA580C] bg-[#FFF1E7] text-[#C2410C]" : "border-gray-200 bg-white text-gray-700"
+
+  // Search results read in category groups ("Kurtas · 12 results") while
+  // nothing re-orders or narrows them; a sort or filter shows one flat grid.
+  const groups = useMemo(() => {
+    if (!groupByCategory || !q || sort !== "relevance" || nFilters) return null
+    const byName = new Map()
+    for (const p of state.products) {
+      const name = String(p?.categoryName || "").trim() || "More results"
+      if (!byName.has(name)) byName.set(name, [])
+      byName.get(name).push(p)
+    }
+    return byName.size > 1 ? [...byName.entries()] : null
+  }, [groupByCategory, q, sort, nFilters, state.products])
+
+  const pill = (on) =>
+    `flex h-[34px] shrink-0 items-center rounded-[20px] px-4 text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown ${
+      on ? "bg-app-brown font-bold text-white" : "bg-app-sand font-medium text-app-ink active:bg-app-champagne/50"
     }`
+  const grid = "grid grid-cols-2 gap-x-3 gap-y-4"
+  const outlined =
+    "inline-flex h-11 items-center justify-center rounded-full border border-app-brown px-6 text-[13.5px] font-bold text-app-brown active:bg-app-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown disabled:opacity-50"
 
   return (
-    <div className="min-h-screen bg-[#F7F7F8] pb-6 lg:hidden">
-      {withTopBar ? (
-        <MobileTopBar
-          title={heading}
-          subtitle={firstLoad ? "Loading…" : `${state.total.toLocaleString("en-IN")} product${state.total === 1 ? "" : "s"}`}
-        />
+    <div className="min-h-screen bg-app-cream pb-[calc(84px+env(safe-area-inset-bottom))] font-app text-app-ink lg:hidden">
+      {withTopBar ? <ListingHeader title={heading} subtitle={subtitle} /> : title ? (
+        // Under the big search header (a deals page): the title, without a second back bar.
+        <div className="px-4 pb-1 pt-3">
+          <h1 className="font-app-display text-[26px] font-bold leading-[1.1] text-app-brown">{title}</h1>
+          {subtitle ? <p className="text-[12.5px] text-app-muted">{subtitle}</p> : null}
+        </div>
       ) : null}
 
-      {/* Under the page's own top bar the chips stick; under the big search header they scroll. */}
-      <div className={`${withTopBar ? "sticky top-14 z-30" : ""} space-y-2 border-b border-gray-100 bg-white pb-2 pt-2`}>
-        {!withTopBar ? (
-          <p className="px-3 text-[13px] text-gray-600">
-            {firstLoad ? "Searching…" : (
+      {chips.length ? (
+        <nav
+          aria-label="Sub-categories"
+          className={`${withTopBar ? "sticky top-[calc(60px+env(safe-area-inset-top))] z-30" : ""} flex h-[42px] items-center gap-2 overflow-x-auto bg-app-cream/95 px-3 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
+        >
+          <button
+            type="button"
+            aria-current={current?.id === parent?.id ? "page" : undefined}
+            onClick={() => parent && navigate(storePath(`/category/${categorySlugOf(parent)}`))}
+            className={pill(current?.id === parent?.id)}
+          >
+            All
+          </button>
+          {chips.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              aria-current={current?.id === c.id ? "page" : undefined}
+              onClick={() => navigate(storePath(`/category/${categorySlugOf(c)}`))}
+              className={pill(current?.id === c.id)}
+            >
+              {c.name}
+            </button>
+          ))}
+        </nav>
+      ) : null}
+
+      {notFound ? null : (
+        <div className="flex min-h-[36px] items-center gap-2 px-4 pt-2 text-[13px]" aria-live="polite">
+          <p className="min-w-0 flex-1 truncate text-app-muted">
+            {firstLoad ? (q ? "Searching…" : "Loading…") : (
               <>
-                <span className="font-bold text-gray-900">{state.total.toLocaleString("en-IN")}</span> result{state.total === 1 ? "" : "s"}
-                {q ? <> for <span className="font-semibold text-gray-900">&ldquo;{q}&rdquo;</span></> : title ? <> · {title}</> : null}
+                <span className="font-semibold text-app-ink">{state.total.toLocaleString("en-IN")}</span> item{state.total === 1 ? "" : "s"}
+                {q && !withTopBar ? <> for <span className="font-semibold text-app-ink">&ldquo;{q}&rdquo;</span></> : null}
               </>
             )}
           </p>
-        ) : null}
-        {chips.length ? (
-          <div className="flex gap-2 overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {nFilters ? (
             <button
               type="button"
-              onClick={() => parent && navigate(storePath(`/category/${categorySlugOf(parent)}`))}
-              className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold ${
-                current?.id === parent?.id ? "bg-[#EA580C] text-white" : "bg-gray-100 text-gray-700"
-              }`}
+              onClick={() => setFilters(EMPTY_MOBILE_FILTERS)}
+              className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[12.5px] font-semibold text-app-brown focus-visible:outline-2 focus-visible:outline-app-brown"
             >
-              All
-            </button>
-            {chips.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => navigate(storePath(`/category/${categorySlugOf(c)}`))}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold ${
-                  current?.id === c.id ? "bg-[#EA580C] text-white" : "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="flex gap-2 overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <button type="button" onClick={() => setSheet("sort")} className={chip(sort !== "relevance")}>
-            <ArrowUpDown className="h-3.5 w-3.5" aria-hidden="true" /> Sort <ChevronDown className="h-3 w-3" aria-hidden="true" />
-          </button>
-          <button type="button" onClick={() => setSheet("filter")} className={chip(filters.brands.length > 0)}>
-            Brand <ChevronDown className="h-3 w-3" aria-hidden="true" />
-          </button>
-          <button type="button" onClick={() => setSheet("filter")} className={chip(filters.sizes.length > 0)}>
-            Size <ChevronDown className="h-3 w-3" aria-hidden="true" />
-          </button>
-          <button type="button" onClick={() => setSheet("filter")} className={chip(filters.minPrice != null || filters.maxPrice != null)}>
-            Price <ChevronDown className="h-3 w-3" aria-hidden="true" />
-          </button>
-          <button type="button" onClick={() => setSheet("filter")} className={chip(nFilters > 0)}>
-            <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" /> Filter{nFilters ? ` (${nFilters})` : ""}
-          </button>
-          {nFilters ? (
-            <button type="button" onClick={() => setFilters(EMPTY_MOBILE_FILTERS)} className="flex shrink-0 items-center gap-1 px-2 text-[12px] font-semibold text-[#EA580C]">
-              <X className="h-3.5 w-3.5" aria-hidden="true" /> Clear
+              <X className="h-3.5 w-3.5" aria-hidden="true" /> Clear filters
             </button>
           ) : null}
         </div>
-      </div>
+      )}
 
-      <div className="px-3 pt-3">
+      <div className="p-3">
         {firstLoad ? (
-          <div className="grid grid-cols-2 gap-3" aria-hidden="true">
+          <div className={grid} aria-hidden="true">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="overflow-hidden rounded-2xl bg-white">
-                <div className="aspect-[4/5] animate-pulse bg-gray-200/80" />
+                <div className="aspect-[4/5] animate-pulse bg-app-sand/70" />
                 <div className="space-y-1.5 p-2.5">
-                  <div className="h-3 w-4/5 animate-pulse rounded bg-gray-200/80" />
-                  <div className="h-3 w-1/2 animate-pulse rounded bg-gray-200/80" />
-                  <div className="h-8 w-full animate-pulse rounded-lg bg-gray-200/80" />
+                  <div className="h-3 w-4/5 animate-pulse rounded bg-app-sand/70" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-app-sand/70" />
+                  <div className="h-8 w-full animate-pulse rounded-full bg-app-sand/70" />
                 </div>
               </div>
             ))}
           </div>
         ) : notFound ? (
-          <div className="rounded-2xl bg-white p-8 text-center">
-            <p className="text-[15px] font-semibold text-gray-900">Category not found</p>
-            <p className="mt-1 text-[13px] text-gray-500">It may have been renamed or removed.</p>
-            <Link to={storePath("/")} className="mt-4 inline-block rounded-full border border-[#EA580C] px-5 py-2 text-[13px] font-bold text-[#EA580C]">
-              Back to home
-            </Link>
+          <div className="mt-10 flex flex-col items-center px-6 text-center">
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-app-sand text-app-brown" aria-hidden="true">
+              <SearchX className="h-9 w-9" />
+            </span>
+            <p className="mt-5 font-app-display text-[24px] font-bold leading-tight text-app-brown">Category not found</p>
+            <p className="mt-1 max-w-[260px] text-[13px] text-app-muted">It may have been renamed or removed.</p>
+            <div className="mt-6 flex gap-3">
+              <Link to={storePath("/categories")} className={outlined}>All categories</Link>
+              <Link
+                to={storePath("/")}
+                className="inline-flex h-11 items-center justify-center rounded-full bg-app-brown px-6 text-[13.5px] font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown"
+              >
+                Home
+              </Link>
+            </div>
           </div>
         ) : state.products.length ? (
           <>
-            <div className="grid grid-cols-2 gap-3">
-              {state.products.map((p) => (
-                <ProductTile key={p._id} product={p} />
-              ))}
-            </div>
+            {groups ? (
+              <div className="space-y-5">
+                {groups.map(([name, list]) => (
+                  <section key={name} aria-label={name}>
+                    <h2 className="mb-2.5 px-1 text-[15px] font-semibold text-app-ink">
+                      {name} <span className="font-normal text-app-muted">· {list.length} result{list.length === 1 ? "" : "s"}</span>
+                    </h2>
+                    <div className={grid}>
+                      {list.map((p) => (
+                        <ProductTile key={p._id} product={p} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <div className={grid}>
+                {state.products.map((p) => (
+                  <ProductTile key={p._id} product={p} />
+                ))}
+              </div>
+            )}
             {state.products.length < state.total ? (
-              <button
-                type="button"
-                disabled={state.loading}
-                onClick={() => setPage((n) => n + 1)}
-                className="mx-auto mt-4 block rounded-full border border-[#EA580C] px-6 py-2 text-[13px] font-bold text-[#EA580C] disabled:opacity-50"
-              >
-                {state.loading ? "Loading…" : "Show More"}
-              </button>
+              <div className="mt-5 text-center">
+                <button type="button" disabled={state.loading} onClick={() => setPage((n) => n + 1)} className={outlined}>
+                  {state.loading ? "Loading…" : "Show more"}
+                </button>
+              </div>
             ) : null}
           </>
         ) : (
-          <div className="rounded-2xl bg-white p-8 text-center">
-            <p className="text-[15px] font-semibold text-gray-900">Nothing matches yet</p>
-            <p className="mt-1 text-[13px] text-gray-500">
-              {nFilters ? "Try removing a filter." : isQuick ? "Try Shop for delivery across India." : "Try another category."}
+          <div className="mt-10 flex flex-col items-center px-6 text-center">
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-app-sand text-app-brown" aria-hidden="true">
+              {nFilters ? <FilterX className="h-9 w-9" /> : <PackageOpen className="h-9 w-9" />}
+            </span>
+            <p className="mt-5 text-[17px] font-bold text-app-ink">
+              {nFilters ? "Nothing matches those filters" : q ? `No results for “${q}”` : "Nothing here yet"}
             </p>
+            <p className="mt-1 max-w-[270px] text-[13px] text-app-muted">
+              {nFilters
+                ? "Try widening your price range or clearing a filter to see more."
+                : q
+                  ? "Check the spelling, or try a broader word."
+                  : isQuick
+                    ? "Try Shop for delivery across India."
+                    : "We are still stocking this. Try another category."}
+            </p>
+            {nFilters ? (
+              <button type="button" onClick={() => setFilters(EMPTY_MOBILE_FILTERS)} className={`mt-6 ${outlined}`}>
+                Clear filters
+              </button>
+            ) : (
+              <Link to={storePath("/categories")} className={`mt-6 ${outlined}`}>Browse categories</Link>
+            )}
           </div>
         )}
       </div>
 
-      <SortSheet open={sheet === "sort"} value={sort} onPick={(k) => { setSort(k); setPage(1) }} onClose={() => setSheet("")} />
+      {notFound ? null : (
+        <FloatingFilterBar
+          sortActive={sort !== "relevance"}
+          brandActive={filters.brands.length > 0}
+          priceActive={filters.minPrice != null || filters.maxPrice != null}
+          filterCount={nFilters}
+          onOpen={setSheet}
+        />
+      )}
       <FilterSheet
-        open={sheet === "filter"}
-        onClose={() => setSheet("")}
+        open={Boolean(sheet)}
+        section={sheet || "all"}
+        onClose={closeSheet}
         value={filters}
-        onApply={(f) => {
-          setFilters(f)
+        sort={sort}
+        sorts={SORTS}
+        onApply={(f, s) => {
+          setList((c) => ({ ...c, filters: f, sort: SORT_KEYS.includes(s) ? s : c.sort }))
           setPage(1)
         }}
         facets={state.facets}
@@ -402,3 +436,4 @@ export default function MobileListing({ categorySlug = "", q = "", minDiscount =
     </div>
   )
 }
+

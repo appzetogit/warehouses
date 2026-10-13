@@ -15,6 +15,7 @@ import { adminAPI, searchAPI } from "@/services/api"
 import { motion, AnimatePresence } from "framer-motion"
 import useIsDesktop, { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop"
 import MobileListing from "@store/components/user/mobile/MobileListing"
+import SearchIdle from "@store/components/user/mobile/SearchIdle"
 import { DesktopProductListing } from "@store/components/user/desktop/ListingDesktop"
 
 // Helper to resolve media URLs consistently
@@ -68,7 +69,14 @@ export default function ProfessionalSearch() {
   // Load search history
   useEffect(() => {
     const savedHistory = localStorage.getItem(SEARCH_HISTORY_KEY)
-    if (savedHistory) setHistory(JSON.parse(savedHistory))
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory)
+        if (Array.isArray(parsed)) setHistory(parsed)
+      } catch {
+        // A corrupted entry must not break the search page.
+      }
+    }
 
     // Trigger voice search if param is present
     if (searchParams.get('voice') === 'true') {
@@ -107,6 +115,31 @@ export default function ProfessionalSearch() {
       cancelled = true
     }
   }, [zoneId, zoneStatus, isDesktop])
+
+  // Phones search from the header above this page (?q=), so each search the
+  // address carries is remembered for "Recent searches".
+  const urlQuery = (searchParams.get("q") || "").trim()
+  useEffect(() => {
+    if (onWideScreen || !urlQuery) return
+    setHistory((prev) => {
+      const next = [urlQuery, ...(Array.isArray(prev) ? prev : []).filter((h) => String(h).toLowerCase() !== urlQuery.toLowerCase())].slice(0, 8)
+      try {
+        localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next))
+      } catch {
+        // private mode: the list lasts for this visit only
+      }
+      return next
+    })
+  }, [urlQuery, onWideScreen])
+
+  const clearHistory = () => {
+    setHistory([])
+    try {
+      localStorage.removeItem(SEARCH_HISTORY_KEY)
+    } catch {
+      // nothing stored
+    }
+  }
 
   const addToHistory = (term) => {
     const newHistory = [term, ...history.filter(h => h !== term)].slice(0, 5)
@@ -227,9 +260,14 @@ export default function ProfessionalSearch() {
     // Phones: the listing from the mobile mockup (screen 2).
     if (!onWideScreen) {
       const discount = Number(searchParams.get("minDiscount")) || null
+      // Nothing asked yet: recent searches and popular categories, as in the app.
+      if (!urlQuery && !discount && !selectedCategoryId) {
+        return <SearchIdle recent={Array.isArray(history) ? history.filter((h) => typeof h === "string" && h.trim()) : []} onClearRecent={clearHistory} />
+      }
       return (
         <MobileListing
           withTopBar={false}
+          groupByCategory
           q={searchParams.get("q") || ""}
           minDiscount={discount}
           title={!searchParams.get("q") && discount ? `Minimum ${discount}% off` : undefined}

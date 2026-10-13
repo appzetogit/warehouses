@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Clock, Heart, MapPin, Star } from "lucide-react"
+import { Clock, Heart, MapPin, Star, Store } from "lucide-react"
 import { catalogAPI, searchAPI, sellerAPI } from "@/services/api"
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { useProfile } from "@store/context/ProfileContext"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { mediaUrl } from "../desktop/desktopCart"
 import { useQuickEta } from "../desktop/useDeliveryEstimates"
-import MobileTopBar from "./MobileTopBar"
+import StoresHeaderBand from "../account/StoresHeaderBand"
 
 /**
  * "Stores Near You" from the mobile mockup (screen 8): nearest first when the
@@ -92,20 +92,22 @@ export default function MobileStoresList() {
   const shown = filter === "All" ? selling : selling.filter((s) => (soldBy[String(s._id)] || []).includes(filter))
 
   return (
-    <div className="min-h-screen bg-[#F7F7F8] pb-6 lg:hidden">
-      <MobileTopBar
+    <div className="min-h-screen bg-app-cream pb-6 font-app text-app-ink lg:hidden">
+      <StoresHeaderBand
         title="Stores Near You"
         subtitle={loading ? "Finding stores…" : `${selling.length} store${selling.length === 1 ? "" : "s"} delivering to ${place}`}
-        actions={["search"]}
+        searchTo={storePath("/search")}
+        homeTo={storePath("/")}
       />
-      <div className="sticky top-14 z-30 flex gap-2 overflow-x-auto border-b border-gray-100 bg-white px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="sticky top-0 z-30 flex gap-2 overflow-x-auto border-b border-app-line bg-app-cream/95 px-3 py-2.5 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {chips.map((c) => (
           <button
             key={c}
             type="button"
             onClick={() => setFilter(c)}
-            className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold ${
-              filter === c ? "bg-[#EA580C] text-white" : "bg-gray-100 text-gray-700"
+            aria-pressed={filter === c}
+            className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold shadow-[0_2px_8px_rgba(25,20,17,0.08)] ${
+              filter === c ? "bg-app-brown text-white" : "bg-white text-app-ink"
             }`}
           >
             {c}
@@ -113,14 +115,14 @@ export default function MobileStoresList() {
         ))}
       </div>
 
-      <div className="space-y-2.5 px-3 pt-3">
+      <div className="space-y-3 px-3 pt-3">
         {loading
           ? Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex gap-3 rounded-2xl bg-white p-3">
-                <div className="h-14 w-14 animate-pulse rounded-full bg-gray-200/80" />
+              <div key={i} className="flex gap-3 rounded-2xl border border-app-line bg-white p-3">
+                <div className="h-14 w-14 animate-pulse rounded-full bg-app-alt" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200/80" />
-                  <div className="h-3 w-3/4 animate-pulse rounded bg-gray-200/80" />
+                  <div className="h-4 w-1/2 animate-pulse rounded bg-app-alt" />
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-app-alt" />
                 </div>
               </div>
             ))
@@ -133,14 +135,18 @@ export default function MobileStoresList() {
                 <Link
                   key={s._id}
                   to={storePath(`/sellers/${slug}`)}
-                  className="wh-reveal is-visible flex gap-3 rounded-2xl bg-white p-3 shadow-[0_1px_4px_rgba(0,0,0,0.05)] active:scale-[0.99]"
+                  className="wh-reveal is-visible flex gap-3 rounded-2xl border border-app-line bg-white p-3 shadow-[0_2px_12px_rgba(25,20,17,0.06)] active:scale-[0.99]"
                 >
-                  <span className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-gray-100 bg-gray-50">
-                    {s.profileImage ? <img src={mediaUrl(s.profileImage)} alt="" className="h-full w-full object-cover" /> : null}
+                  <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-app-line bg-app-alt">
+                    {s.profileImage ? (
+                      <img src={mediaUrl(s.profileImage)} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <Store className="h-6 w-6 text-app-brown" aria-hidden="true" />
+                    )}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-start justify-between gap-2">
-                      <span className="truncate text-[15px] font-bold text-gray-900">{s.sellerName}</span>
+                      <span className="truncate text-[15px] font-semibold text-app-ink">{s.sellerName}</span>
                       <button
                         type="button"
                         aria-label={liked ? "Unsave store" : "Save store"}
@@ -153,13 +159,13 @@ export default function MobileStoresList() {
                         }}
                         className="-mr-1 -mt-1 shrink-0 p-1"
                       >
-                        <Heart className={`h-5 w-5 ${liked ? "fill-[#E4322B] text-[#E4322B]" : "text-gray-400"}`} aria-hidden="true" />
+                        <Heart className={`h-5 w-5 ${liked ? "fill-[#E4322B] text-[#E4322B]" : "text-app-muted"}`} aria-hidden="true" />
                       </button>
                     </span>
-                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] text-gray-600">
+                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] text-app-muted">
                       {Number(s.rating) > 0 ? (
-                        <span className="flex items-center gap-0.5 font-semibold text-gray-800">
-                          <Star className="h-3 w-3 fill-[#1E9E48] text-[#1E9E48]" aria-hidden="true" />
+                        <span className="flex items-center gap-0.5 font-semibold text-app-ink">
+                          <Star className="h-3 w-3 fill-app-ok text-app-ok" aria-hidden="true" />
                           {Number(s.rating).toFixed(1)}
                         </span>
                       ) : null}
@@ -179,7 +185,7 @@ export default function MobileStoresList() {
                     {tags.length ? (
                       <span className="mt-1.5 flex flex-wrap gap-1">
                         {tags.map((t) => (
-                          <span key={t} className="rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700">
+                          <span key={t} className="rounded-md bg-app-alt px-2 py-0.5 text-[11px] font-medium text-app-brown">
                             {t}
                           </span>
                         ))}
@@ -193,7 +199,7 @@ export default function MobileStoresList() {
               )
             })}
         {!loading && !shown.length ? (
-          <p className="rounded-2xl bg-white p-8 text-center text-[14px] text-gray-500">No stores deliver here yet.</p>
+          <p className="rounded-2xl border border-app-line bg-white p-8 text-center text-[14px] text-app-muted">No stores deliver here yet.</p>
         ) : null}
       </div>
     </div>

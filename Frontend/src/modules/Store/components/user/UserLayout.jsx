@@ -275,7 +275,10 @@ export default function UserLayout() {
                     </PageErrorBoundary>
                   </main>
                   <ReorderIntake />
-                  {showDesktopShell && <DesktopFooter />}
+                  {showDesktopShell && (
+                    // Phones have the app layout: the home page carries its own footer.
+                    <div className="hidden lg:block"><DesktopFooter /></div>
+                  )}
                   {showDesktopShell && <BottomNav />}
                 </QuickLayoutGate>
 

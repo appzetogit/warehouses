@@ -2,17 +2,17 @@ import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation"
 import {
-  ArrowLeft,
-  ShoppingBag,
+  Banknote,
   Phone,
-  Copy,
   Download,
   User,
   CreditCard,
   Calendar,
+  Headphones,
   MapPin,
   RotateCcw,
   FileText,
+  Wallet,
 } from "lucide-react"
 import { orderAPI, sellerAPI } from "@store/api"
 import { toast } from "sonner"
@@ -24,10 +24,52 @@ import CancelOrderSheet, { canCancelOrder } from "@store/components/user/orders/
 import OrderItemsReviewPanel from "@store/components/user/reviews/OrderItemsReviewPanel"
 import CompletePaymentCard from "@store/components/user/CompletePaymentCard"
 import { imagePlaceholder } from "@store/constants/images"
-import { orderStatusLabel, paymentMethodLabel, reorderPath, rupees, totalLabel } from "@store/utils/shopOrderFlow"
+import {
+  isShopOrder,
+  orderStatusLabel,
+  paymentMethodLabel,
+  reorderPath,
+  rupees,
+  shopTimeline,
+  totalLabel,
+} from "@store/utils/shopOrderFlow"
+import {
+  AddressCard,
+  BillSummaryCard,
+  BOTTOM_BAR_PAD,
+  CancelLink,
+  DetailCard,
+  ItemDetailCard,
+  ORDER_PAGE_BG,
+  OrderBottomBar,
+  OrderIdCard,
+  OrderTopBar,
+  SavedBanner,
+  SectionHeading,
+  StatusTimelineCard,
+} from "@store/components/user/orders/OrderDetailCards"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
+
+/** Timeline steps from the order's status history (Quick orders): every status it went through. */
+function historySteps(order) {
+  const history = (Array.isArray(order?.statusHistory) ? order.statusHistory : []).filter((h) => h?.to)
+  const steps = []
+  for (const h of history) {
+    const to = String(h.to)
+    if (steps.length && steps[steps.length - 1].status === to) continue
+    steps.push({ status: to, at: h.at || null })
+  }
+  return steps.map((s, i) => ({
+    key: `${s.status}-${i}`,
+    label: orderStatusLabel({ orderStatus: s.status }),
+    done: true,
+    current: i === steps.length - 1,
+    bad: s.status.startsWith("cancelled"),
+    at: s.at,
+  }))
+}
 
 
 export default function UserOrderDetails() {
@@ -109,20 +151,20 @@ export default function UserOrderDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600 text-sm">Loading order details...</p>
+      <div className={`min-h-screen ${ORDER_PAGE_BG} flex items-center justify-center font-app`}>
+        <p className="text-app-muted text-sm">Loading order details...</p>
       </div>
     )
   }
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen ${ORDER_PAGE_BG} flex items-center justify-center font-app`}>
         <div className="text-center space-y-3">
-          <p className="text-gray-700 text-sm font-medium">Order Not Found</p>
+          <p className="text-app-ink text-sm font-medium">Order Not Found</p>
           <button
             onClick={() => navigate("/orders")}
-            className="px-4 py-2 rounded-lg bg-wh-brand text-wh-text text-sm font-semibold"
+            className="px-4 py-2 rounded-xl bg-app-brown text-white text-sm font-semibold"
           >
             Back to Orders
           </button>
@@ -358,327 +400,265 @@ export default function UserOrderDetails() {
   }
 
 
+
+  const statusText = String(order.orderStatus || order.status || "")
+  const isDelivered = statusText === "delivered"
+  const isCancelled = statusText.startsWith("cancelled")
+  const statusTone = isCancelled ? "cancelled" : isDelivered ? "delivered" : "progress"
+  const timelineSteps = isShopOrder(order)
+    ? shopTimeline(order).map((step) => ({ ...step, bad: step.key === "cancelled" }))
+    : historySteps(order)
+  const firstItem = items[0]
+  const moreItems = items.length - 1
+  const itemCount = items.reduce((sum, item) => sum + (Number(item.quantity || item.qty) || 1), 0)
+  const isCash = /^(cash|cod)$/i.test(String(order?.payment?.method || order?.paymentMethod || ""))
+  const saleClass = "inline-flex items-center rounded-full border border-app-brown/30 bg-app-tint px-2 py-0.5 text-sm font-bold text-app-brown tabular-nums"
+  const helpId = String(order._id || orderId)
+
+  const billRows = [
+    {
+      label: "Item Total",
+      value: (
+        <DualMoney
+          amount={itemSubtotal}
+          compareAmount={displayCompareItemTotal}
+          decimals={2}
+          plainClassName="font-medium text-app-ink tabular-nums"
+          saleClassName={saleClass}
+        />
+      ),
+    },
+    { label: "GST (govt. taxes)", value: rupees(pricing.tax) },
+    {
+      label: `Delivery Fee${Number(pricing.deliveryFeeGst) > 0 ? " (incl. GST)" : ""}`,
+      value: deliveryTotal > 0 ? rupees(deliveryTotal) : "FREE",
+      tone: deliveryTotal > 0 ? undefined : "save",
+    },
+    quickFee > 0 ? { label: "Quick Mode", value: rupees(quickFee), tone: "brand" } : null,
+    packagingFee > 0 ? { label: "Packaging", value: rupees(packagingFee) } : null,
+    basePlatformFee > 0 ? { label: "Platform Fee", value: rupees(basePlatformFee) } : null,
+    discountAmount > 0
+      ? { label: `Discount${pricing.couponCode ? ` (${pricing.couponCode})` : ""}`, value: `− ${rupees(discountAmount)}`, tone: "save" }
+      : null,
+    coinsAmount > 0 ? { label: "Coins", value: `− ${rupees(coinsAmount)}`, tone: "save" } : null,
+  ].filter(Boolean)
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-24 font-sans relative">
-      {/* Header */}
-      <div className="bg-white dark:bg-zinc-900 p-4 flex items-center sticky top-0 z-20 shadow-sm border-b border-gray-100 dark:border-zinc-800">
-        <div className="flex items-center gap-3">
+    <div className={`relative min-h-screen ${ORDER_PAGE_BG} font-app ${BOTTOM_BAR_PAD}`}>
+      <OrderTopBar title="Order Details" onBack={goBack} />
+
+      <div className="mx-auto max-w-3xl space-y-3 px-4 pt-3">
+        <CompletePaymentCard order={order} onPaid={() => window.location.reload()} />
+
+        <OrderIdCard
+          orderNo={orderIdDisplay}
+          onCopy={handleCopyOrderId}
+          image={firstItem?.image || ""}
+          title={firstItem ? `${firstItem.name || "Item"}${moreItems > 0 ? ` + ${moreItems} more` : ""}` : ""}
+          meta={[`Qty: ${itemCount}`, firstItem?.variantName || ""].filter(Boolean).join("  |  ")}
+          chip={paymentMethod}
+          chipIcon={isCash ? Banknote : Wallet}
+          footer={
+            paymentDate ? (
+              <span className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 shrink-0 text-app-brown" aria-hidden="true" />
+                <span className="min-w-0">Placed on {paymentDate}</span>
+              </span>
+            ) : null
+          }
+        />
+
+        <StatusTimelineCard
+          tone={statusTone}
+          title={isDelivered ? "Order was delivered" : orderStatusLabel(order)}
+          subtitle={paymentDate ? `Ordered ${paymentDate}` : ""}
+          steps={timelineSteps}
+        >
+          {isCancelled && order.cancellationReason ? (
+            <p className="rounded-xl bg-[#FFF0F2] px-3.5 py-2.5 text-[12.5px] text-[#9F1239]">Cancelled: {order.cancellationReason}</p>
+          ) : null}
+        </StatusTimelineCard>
+
+        {/* Seller */}
+        <DetailCard className="flex items-center gap-3 p-4">
+          <img
+            src={
+              // Prefer the image from the first ordered item
+              (Array.isArray(items) && items[0]?.image) ||
+              sellerObj.profileImage?.url ||
+              sellerObj.profileImage ||
+              order.sellerImage ||
+              imagePlaceholder
+            }
+            alt={sellerName}
+            className="h-11 w-11 shrink-0 rounded-xl border border-app-line object-cover"
+          />
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-[14px] font-bold text-app-ink">{sellerName}</h3>
+            <p className="line-clamp-2 text-[12px] text-app-muted">{sellerLocation}</p>
+          </div>
           <button
             type="button"
-            onClick={goBack}
-            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800"
+            onClick={handleCallSeller}
+            aria-label="Call the store"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-app-line bg-[#FBF4ED] text-app-brown hover:bg-app-tint-strong"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-200 cursor-pointer" />
+            <Phone className="h-4 w-4" aria-hidden="true" />
           </button>
-          <h1 className="text-lg font-semibold text-gray-800 dark:text-white">Order Details</h1>
-        </div>
-      </div>
+        </DetailCard>
 
-      {/* Scrollable Content */}
-      <div className="p-4 space-y-4">
-        <CompletePaymentCard order={order} onPaid={() => window.location.reload()} />
-        {/* Status Card */}
-        <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl flex items-center gap-3 shadow-sm border border-gray-100 dark:border-zinc-800">
-          <div className="bg-gray-100 dark:bg-zinc-800 p-2 rounded-lg">
-            <ShoppingBag className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-gray-800 dark:text-white">
-              {(order.orderStatus || order.status) === "delivered"
-                ? "Order was delivered"
-                : "Order status: " + orderStatusLabel(order)}
-            </h2>
-          </div>
-        </div>
-
-        {/* Seller Info Card */}
-        <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-800">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <img
-                src={
-                  // Prefer the food image from the first ordered item
-                  (Array.isArray(items) && items[0]?.image) ||
-                  sellerObj.profileImage?.url ||
-                  sellerObj.profileImage ||
-                  order.sellerImage ||
-                  imagePlaceholder
-                }
-                alt={sellerName}
-                className="w-10 h-10 rounded-lg object-cover"
-              />
-              <div>
-                <h3 className="font-semibold text-gray-800 dark:text-white">{sellerName}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{sellerLocation}</p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleCallSeller}
-              className="w-8 h-8 rounded-full border border-gray-200 dark:border-zinc-700 flex items-center justify-center text-wh-brand-ink hover:bg-orange-50 dark:hover:bg-orange-950/30"
-            >
-              <Phone className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">
-              Order ID: #{orderIdDisplay}
-            </span>
-            <button type="button" onClick={handleCopyOrderId}>
-              <Copy className="w-3 h-3 text-gray-400 dark:text-gray-500 cursor-pointer" />
-            </button>
-          </div>
-
-          <div className="border-t border-dashed border-gray-200 dark:border-zinc-800 my-3" />
-
-          {/* Items */}
-          {items.map((item, idx) => {
-            const qty = Number(item.quantity || item.qty) || 1
-            const price = Number(item.price) || 0
-            const compareUnit = getLineCompareUnitPrice(item)
-            return (
-            <div key={idx} className="flex justify-between items-start mt-2 gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                {typeof item.isVeg === "boolean" && (
-                  <div
-                    className={`w-3 h-3 border shrink-0 ${item.isVeg ? "border-green-600" : "border-red-600"
-                      } flex items-center justify-center p-[1px]`}
-                  >
-                    <div
-                      className={`w-full h-full rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"
-                        }`}
-                    />
-                  </div>
-                )}
-                <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                  {qty} x {item.name}{item.variantName ? ` (${item.variantName})` : ""}
+        <SectionHeading title="Item Details" aside={`${items.length} ${items.length === 1 ? "item" : "items"}`} />
+        {items.map((item, idx) => {
+          const qty = Number(item.quantity || item.qty) || 1
+          const price = Number(item.price) || 0
+          const compareUnit = getLineCompareUnitPrice(item)
+          return (
+            <ItemDetailCard
+              key={idx}
+              image={item.image || ""}
+              name={
+                <span className="flex items-start gap-2">
+                  {typeof item.isVeg === "boolean" && (
+                    <span
+                      className={`mt-1 flex h-3 w-3 shrink-0 items-center justify-center border p-[1px] ${item.isVeg ? "border-green-600" : "border-red-600"}`}
+                    >
+                      <span className={`h-full w-full rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"}`} />
+                    </span>
+                  )}
+                  <span>
+                    {item.name}
+                    {item.variantName ? ` (${item.variantName})` : ""}
+                  </span>
                 </span>
-              </div>
-              <DualMoney
-                amount={price * qty}
-                compareAmount={compareUnit > 0 ? compareUnit * qty : 0}
-                decimals={2}
-                plainClassName="text-sm text-gray-800 dark:text-gray-200 font-medium tabular-nums"
-                saleClassName="inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-sm font-bold text-wh-brand-ink tabular-nums"
-              />
-            </div>
-            )
-          })}
-        </div>
+              }
+              qty={qty}
+              price={
+                <DualMoney
+                  amount={price * qty}
+                  compareAmount={compareUnit > 0 ? compareUnit * qty : 0}
+                  decimals={2}
+                  plainClassName="text-[15px] font-bold text-app-ink tabular-nums"
+                  saleClassName={saleClass}
+                />
+              }
+            />
+          )
+        })}
 
         {/* Delivered: write or edit a review per product */}
         <OrderItemsReviewPanel order={order} />
 
-        {/* Bill Summary Card */}
-        <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-zinc-800">
-          <div className="p-4 flex justify-between items-center border-b border-gray-100 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <h3 className="font-semibold text-gray-800 dark:text-white">Bill Summary</h3>
-            </div>
+        <SectionHeading
+          title="Bill Summary"
+          aside={
             <button
               type="button"
               onClick={handleDownloadSummary}
-              className="w-7 h-7 rounded-full bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center text-wh-brand-ink hover:bg-orange-100 dark:hover:bg-orange-900/40"
+              className="inline-flex items-center gap-1.5 rounded-full bg-app-tint-strong px-3 py-1 text-[12px] font-semibold text-app-brown hover:bg-app-sand"
             >
-              <Download className="w-4 h-4" />
+              <Download className="h-3.5 w-3.5" aria-hidden="true" /> Download
             </button>
-          </div>
+          }
+        />
+        <BillSummaryCard
+          rows={billRows}
+          totalLabel={totalLabel(order)}
+          total={
+            <DualMoney
+              amount={orderPayTotal}
+              compareAmount={compareToPay}
+              decimals={2}
+              plainClassName="font-extrabold text-app-ink tabular-nums"
+              saleClassName={saleClass}
+            />
+          }
+          footer={
+            savings > 0 ? (
+              <div className="border-t border-app-line p-3">
+                <SavedBanner amount={`₹${Number(savings).toFixed(2)}`} />
+              </div>
+            ) : null
+          }
+        />
 
-          <div className="p-4 space-y-2 text-sm">
-            <div className="flex justify-between items-start gap-3">
-              <span className="text-gray-500 dark:text-gray-400 shrink-0">Item Total</span>
-              <DualMoney
-                amount={itemSubtotal}
-                compareAmount={displayCompareItemTotal}
-                decimals={2}
-                plainClassName="text-gray-800 dark:text-gray-200 tabular-nums"
-                saleClassName="inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-sm font-bold text-wh-brand-ink tabular-nums"
-              />
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">GST (govt. taxes)</span>
-              <span className="text-gray-800 dark:text-gray-200">{rupees(pricing.tax)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">
-                Delivery Fee{Number(pricing.deliveryFeeGst) > 0 ? " (incl. GST)" : ""}
+        {/* Customer, payment and date */}
+        <DetailCard className="divide-y divide-app-line">
+          {[
+            { icon: User, title: userName || "Customer", text: userPhone },
+            { icon: CreditCard, title: "Payment Method", text: paymentMethod },
+            { icon: Calendar, title: "Order Date", text: paymentDate },
+          ].map(({ icon: Icon, title, text }) => (
+            <div key={title} className="flex items-center gap-3 px-4 py-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-app-tint-strong text-app-brown">
+                <Icon className="h-4 w-4" aria-hidden="true" />
               </span>
-              <span className={deliveryTotal > 0 ? "text-gray-800 dark:text-gray-200" : "text-wh-brand-ink font-medium uppercase"}>
-                {deliveryTotal > 0 ? rupees(deliveryTotal) : "Free"}
-              </span>
-            </div>
-            {quickFee > 0 && (
-              <div className="flex justify-between font-semibold">
-                <span className="text-wh-brand-ink">Quick Mode</span>
-                <span className="text-wh-brand-ink">{rupees(quickFee)}</span>
-              </div>
-            )}
-            {packagingFee > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Packaging</span>
-                <span className="text-gray-800 dark:text-gray-200">{rupees(packagingFee)}</span>
-              </div>
-            )}
-            {basePlatformFee > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Platform Fee</span>
-                <span className="text-gray-800 dark:text-gray-200">{rupees(basePlatformFee)}</span>
-              </div>
-            )}
-            {discountAmount > 0 && (
-              <div className="flex justify-between">
-                <span className="text-green-700 dark:text-green-400">
-                  Discount{pricing.couponCode ? ` (${pricing.couponCode})` : ""}
-                </span>
-                <span className="text-green-700 dark:text-green-400">− {rupees(discountAmount)}</span>
-              </div>
-            )}
-            {coinsAmount > 0 && (
-              <div className="flex justify-between">
-                <span className="text-green-700 dark:text-green-400">Coins</span>
-                <span className="text-green-700 dark:text-green-400">− {rupees(coinsAmount)}</span>
-              </div>
-            )}
-
-            <div className="border-t border-gray-100 dark:border-zinc-800 my-2 pt-2 flex justify-between items-start gap-3">
-              <span className="font-bold text-gray-800 dark:text-white shrink-0">{totalLabel(order)}</span>
-              <DualMoney
-                amount={orderPayTotal}
-                compareAmount={compareToPay}
-                decimals={2}
-                plainClassName="font-bold text-gray-800 dark:text-white tabular-nums"
-                saleClassName="inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-sm font-bold text-wh-brand-ink tabular-nums"
-              />
-            </div>
-          </div>
-
-          {/* Savings Banner */}
-          {savings > 0 && (
-            <div className="relative bg-orange-50 dark:bg-orange-950/20 p-3 pb-4 mt-2">
-              <div className="absolute -top-1.5 left-0 w-full overflow-hidden leading-none">
-                <svg
-                  className="relative block w-[calc(100%+1.3px)] h-[8px]"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 1200 120"
-                  preserveAspectRatio="none"
-                >
-                  <path
-                    d="M0,0V46.29c47,0,47,69.5,94,69.5s47-69.5,94-69.5,47,69.5,94,69.5,47-69.5,94-69.5,47,69.5,94,69.5,47-69.5,94-69.5,47,69.5,94,69.5,47-69.5,94-69.5,47,69.5,94,69.5V0Z"
-                    fill="currentColor"
-                    className="text-white dark:text-zinc-900"
-                  />
-                </svg>
-              </div>
-
-              <div className="flex items-center justify-center gap-2 pt-1 text-wh-brand-ink font-bold text-sm">
-                <span>
-                  You saved ₹{Number(savings).toFixed(2)} on this order!
-                </span>
+              <div className="min-w-0">
+                <h4 className="text-[13.5px] font-semibold text-app-ink">{title}</h4>
+                {text ? <p className="text-[12px] text-app-muted">{text}</p> : null}
               </div>
             </div>
-          )}
+          ))}
+        </DetailCard>
+
+        <SectionHeading title="Delivery Address" />
+        <AddressCard icon={MapPin} lines={[addressText || "Address not available"]} />
+
+        {/* Cancel until the order leaves the store */}
+        {canCancelOrder(order) ? (
+          <CancelLink onClick={() => setCancelling(true)} note="You can cancel until your order leaves the store." />
+        ) : null}
+
+        {/* Returns and replacements (delivered courier orders) */}
+        <div id="returns" className="-mx-4 scroll-mt-20">
+          <OrderReturnsSection order={order} />
         </div>
 
-        {/* User & Delivery Details */}
-        <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm space-y-5 border border-gray-100 dark:border-zinc-800">
-          {/* User */}
-          <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-zinc-800 flex items-center justify-center">
-              <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
-                {userName || "Customer"}
-              </h4>
-              <p className="text-gray-500 dark:text-gray-400 text-xs">{userPhone}</p>
-            </div>
-          </div>
-
-          {/* Payment */}
-          <div className="flex gap-3">
-            <div className="mt-0.5">
-              <CreditCard className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
-                Payment Method
-              </h4>
-              <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">
-                {paymentMethod}
-              </p>
-            </div>
-          </div>
-
-          {/* Date */}
-          <div className="flex gap-3">
-            <div className="mt-0.5">
-              <Calendar className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
-                Order Date
-              </h4>
-              <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">{paymentDate}</p>
-            </div>
-          </div>
-
-          {/* Address */}
-          <div className="flex gap-3">
-            <div className="mt-0.5">
-              <MapPin className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
-                Delivery Address
-              </h4>
-              <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5 leading-relaxed">
-                {addressText || "Address not available"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Fixed Bottom Buttons */}
-      <div className="fixed bottom-0 w-full bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-zinc-800 p-4 flex gap-3 z-20">
+        {/* Seller complaint */}
         <button
           type="button"
-          // Same items and sizes back in the right cart, at today's prices.
-          onClick={() => navigate(reorderPath({ ...order, _id: order?._id || orderId }))}
-          className="flex-1 bg-wh-brand text-wh-text py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-wh-brand-600 transition-colors"
+          onClick={() => {
+            // Use MongoDB _id (ObjectId) for the API call - backend complaint controller expects ObjectId
+            // Priority: order._id (MongoDB ObjectId) > orderId from route params
+            const orderMongoId = order._id || orderId
+
+            if (!orderMongoId) {
+              debugError("Order ID not available:", {
+                order: order ? { _id: order._id, orderId: order.orderId } : null,
+                routeOrderId: orderId
+              })
+              toast.error("Order ID not available. Please refresh the page.")
+              return
+            }
+
+            // Convert to string if it's an ObjectId object
+            const orderIdString = typeof orderMongoId === 'object' && orderMongoId.toString
+              ? orderMongoId.toString()
+              : String(orderMongoId)
+
+            debugLog("Navigating to complaint page with orderId:", orderIdString)
+            navigate(`/complaints/submit/${encodeURIComponent(orderIdString)}`)
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-app-line bg-white py-3 text-[13.5px] font-semibold text-app-brown hover:bg-app-tint"
         >
-          <RotateCcw className="w-4 h-4" />
-          Reorder
-        </button>
-        <button
-          type="button"
-          onClick={handleDownloadSummary}
-          className="flex-1 bg-white dark:bg-zinc-800 border border-wh-brand text-wh-brand-ink py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
-        >
-          <Download className="w-4 h-4" />
-          Invoice
+          <FileText className="h-4 w-4" aria-hidden="true" />
+          Seller Complaint
         </button>
       </div>
 
-      {/* Cancel until the order leaves the store */}
-      {order && canCancelOrder(order) ? (
-        <div className="px-4 pt-4">
-          <button
-            type="button"
-            onClick={() => setCancelling(true)}
-            className="w-full rounded-lg border border-[#CC0C39] py-3 font-semibold text-[#CC0C39] hover:bg-red-50"
-          >
-            Cancel Order
-          </button>
-          <p className="mt-1 text-center text-[11px] text-gray-500">You can cancel until your order leaves the store.</p>
-        </div>
-      ) : null}
-      {order && String(order.orderStatus || "").startsWith("cancelled") && order.cancellationReason ? (
-        <p className="px-4 pt-4 text-[13px] text-gray-600 dark:text-gray-300">Cancelled: {order.cancellationReason}</p>
-      ) : null}
+      <OrderBottomBar
+        actions={[
+          {
+            key: "reorder",
+            label: "Reorder",
+            icon: RotateCcw,
+            // Same items and sizes back in the right cart, at today's prices.
+            onClick: () => navigate(reorderPath({ ...order, _id: order?._id || orderId })),
+          },
+          { key: "invoice", label: "View Invoice", icon: Download, onClick: handleDownloadSummary },
+          { key: "help", label: "Get Help", icon: Headphones, to: `/help/orders/${helpId}`, tone: "help" },
+        ]}
+      />
+
       {cancelling ? (
         <CancelOrderSheet
           order={order}
@@ -695,50 +675,6 @@ export default function UserOrderDetails() {
           }}
         />
       ) : null}
-
-      {/* Returns and replacements (delivered courier orders) */}
-      {order && (
-        <div id="returns" className="scroll-mt-20 pt-4">
-          <OrderReturnsSection order={order} />
-        </div>
-      )}
-
-      {/* Seller Complaint Button - Below Order Details */}
-      {order && (
-        <div className="p-4 pb-24">
-          <button
-            type="button"
-            onClick={() => {
-              // Use MongoDB _id (ObjectId) for the API call - backend complaint controller expects ObjectId
-              // Priority: order._id (MongoDB ObjectId) > orderId from route params
-              const orderMongoId = order._id || orderId
-
-              if (!orderMongoId) {
-                debugError("Order ID not available:", {
-                  order: order ? { _id: order._id, orderId: order.orderId } : null,
-                  routeOrderId: orderId
-                })
-                toast.error("Order ID not available. Please refresh the page.")
-                return
-              }
-
-              // Convert to string if it's an ObjectId object
-              const orderIdString = typeof orderMongoId === 'object' && orderMongoId.toString
-                ? orderMongoId.toString()
-                : String(orderMongoId)
-
-              debugLog("Navigating to complaint page with orderId:", orderIdString)
-              navigate(`/complaints/submit/${encodeURIComponent(orderIdString)}`)
-            }}
-            className="w-full bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-400 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
-          >
-            <FileText className="w-4 h-4" />
-            Seller Complaint
-          </button>
-        </div>
-      )}
     </div>
   )
 }
-
-

@@ -51,6 +51,19 @@ import RecommendationRail from "@store/components/user/RecommendationRail"
 import CartSubtotalCard from "@store/components/user/desktop/CartSubtotalCard"
 import SavedForLater, { saveCartLineForLater } from "@store/components/user/cart/SavedForLater"
 import CartSwitch from "@store/components/user/cart/CartSwitch"
+import {
+  BillDetailsCard,
+  BillRow,
+  CartLineTile,
+  CouponRow,
+  DeliveryStrip,
+  PaymentMethodCard,
+  PhoneCard,
+  SellerHeader,
+  StepBottomBar,
+  StepHeader,
+  phoneCartSwitchClass,
+} from "@store/components/user/cart/PhoneCartParts"
 import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
 import { formatDeliveryWindow, useQuickEta, useShopDeliveryEstimate } from "@store/components/user/desktop/useDeliveryEstimates"
 import { useBusinessSettings } from "@store/components/user/desktop/useDesktopShell"
@@ -336,6 +349,8 @@ export default function Cart() {
   const { getDefaultAddress, getDefaultPaymentMethod, setDefaultAddress, addresses, paymentMethods, userProfile } = useProfile()
   const { createOrder } = useOrders()
   const isDesktop = useIsDesktop()
+  // Phone bill card: "VIEW PRICE DETAILS" in the bottom bar scrolls to it.
+  const phoneBillRef = useRef(null)
   const { location: currentLocation, loading: currentLocationLoading } = useUserLocation() // Get live location address
 
   const [appliedCoupon, setAppliedCoupon] = useState(null)
@@ -2701,8 +2716,80 @@ export default function Cart() {
     navigate(placedOrderId ? `/user/orders/${placedOrderId}?confirmed=true` : "/user/orders")
   }
 
+  // Ways to pay, shared by the payment sheet and the phone payment card.
+  const paymentOptions = [
+    payCash && {
+      id: 'cash',
+      name: 'Cash on Delivery',
+      description: 'Pay when your order arrives',
+      icon: <Banknote className="w-5 h-5" />,
+      color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400',
+      selectedColor: 'bg-amber-500 text-white',
+    },
+    payOnline && {
+      id: 'razorpay',
+      name: 'Online Payment',
+      description: 'UPI, Cards, Netbanking',
+      icon: <Zap className="w-5 h-5" />,
+      color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400',
+      selectedColor: 'bg-emerald-500 text-white',
+      badge: 'SECURE'
+    },
+    {
+      id: 'wallet',
+      name: 'Quick Wallet',
+      description: 'Pay from Your Wallet',
+      icon: <Wallet className="w-5 h-5" />,
+      color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
+      selectedColor: 'bg-blue-500 text-white',
+      subInfo: `Bal: ${RUPEE_SYMBOL}${walletBalance.toFixed(0)}`,
+      disabled: walletBalance < finalPayable,
+      disabledText: 'Low Balance'
+    },
+  ].filter(Boolean)
+
+  // Phone (below lg) wears the customer app's look; desktop keeps its classes.
+  const pick = (desktopClass, phoneClass) => (isDesktop ? desktopClass : phoneClass)
+  // Everything the shopper saves on this order (item and fee savings plus the coupon).
+  const phoneSavings = otherSavings + itemDiscountAmount
+  const placeOrderDisabled = isPlacingOrder || loadingSeller || !canPlaceOrder || walletTooLow
+  // "+" on a cart line (phone and desktop): stop at what may be ordered.
+  const increaseLine = (item) => {
+    const cap = lineQuantityCap(item)
+    if (item.quantity >= cap) {
+      toast.error(`Only ${cap} of ${item.name}${item.variantName ? ` (${item.variantName})` : ""} can be ordered`)
+      return
+    }
+    updateQuantity(item.id, item.quantity + 1)
+  }
+
   // Empty cart state - but don't show if order success or placing order modal is active
   if (cart.length === 0 && !showOrderSuccess && !showPlacingOrder) {
+    if (!isDesktop) {
+      return (
+        <AnimatedPage className="min-h-screen bg-app-cream font-app dark:bg-[#0a0a0a]">
+          <StepHeader title="Cart" onBack={handleBack}>
+            <CartSwitch className={phoneCartSwitchClass} />
+          </StepHeader>
+          <div className="flex flex-col items-center justify-center px-4 py-20">
+            <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-app-sand">
+              <ShoppingBag className="h-10 w-10 text-app-brown" />
+            </div>
+            <h2 className="mb-1 text-[16px] font-semibold text-app-ink dark:text-white">Your cart is empty</h2>
+            <p className="mb-5 text-center text-[12.5px] text-app-muted">Find something you like and it will show up here</p>
+            <Link
+              to={storePath("/")}
+              className="inline-flex h-[42px] items-center justify-center rounded-[10px] bg-app-brown px-6 text-[14px] font-bold text-white"
+            >
+              Start shopping
+            </Link>
+          </div>
+          <div className="mx-auto max-w-3xl px-3.5 pb-10">
+            <SavedForLater variant="mobile" />
+          </div>
+        </AnimatedPage>
+      )
+    }
     return (
       <AnimatedPage className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
         <div className="bg-white dark:bg-[#1a1a1a] border-b dark:border-gray-800 sticky top-0 z-10">
@@ -2739,37 +2826,13 @@ export default function Cart() {
   }
 
   return (
-    <div className="relative min-h-screen bg-slate-50 dark:bg-[#0a0a0a]">
-      {/* Header (mobile; clean white matching reference Screen 5) */}
-      <div className="sticky top-0 z-30 flex-shrink-0 bg-white dark:bg-[#141414] border-b border-gray-100 dark:border-gray-800 shadow-sm lg:hidden">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className="p-1 -ml-1 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-              onClick={handleBack}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <div>
-              <h1 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
-                My Cart ({getCartCount()})
-              </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {sellerGroups.length} {sellerGroups.length === 1 ? 'store' : 'stores'} • {RUPEE_SYMBOL}{Math.round(total)}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-            onClick={handleShare}
-          >
-            <Share2 className="h-4 w-4" />
-          </button>
-        </div>
-        <CartSwitch className="px-4 pb-3" />
-      </div>
+    <div className={`relative min-h-screen dark:bg-[#0a0a0a] ${pick("bg-slate-50", "bg-app-cream font-app")}`}>
+      {/* Header (phone): customer-app step bar with the Shop/Quick switch */}
+      {!isDesktop && (
+        <StepHeader title={`Cart (${getCartCount()})`} step="STEP 1/2" onBack={handleBack} onShare={handleShare}>
+          <CartSwitch className={phoneCartSwitchClass} />
+        </StepHeader>
+      )}
 
       {!canPlaceOrder && cart.length > 0 && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-4 md:px-6 py-2.5">
@@ -2782,27 +2845,14 @@ export default function Cart() {
       )}
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-10 relative z-10 bg-slate-50 dark:bg-[#0a0a0a] lg:bg-wh-page">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-10 relative z-10 bg-app-cream dark:bg-[#0a0a0a] lg:bg-wh-page">
         <CartAutoCouponBanner
           appliedCoupon={appliedCoupon?.autoApplied ? appliedCoupon : null}
           savings={itemDiscountAmount}
         />
 
-        {/* "You May Also Like": co-purchases of the first item, minus what is already in the cart */}
-        {cart.length > 0 && !isDesktop && (
-          <div className="px-4 md:px-6 max-w-7xl mx-auto">
-            <RecommendationRail
-              productId={cart[0].productId || cart[0].itemId || cart[0].id}
-              type="frequently_bought"
-              title="You May Also Like"
-              excludeIds={cart.map((item) => item.productId || item.itemId || item.id)}
-              limit={10}
-            />
-          </div>
-        )}
-
-        {/* Savings Banner */}
-        {otherSavings > 0 && (
+        {/* Savings Banner (desktop; phones show savings in the bill card and bottom bar) */}
+        {isDesktop && otherSavings > 0 && (
           <div className="bg-blue-100 dark:bg-blue-900/20 px-4 md:px-6 py-2 md:py-3 flex-shrink-0">
             <div className="max-w-7xl mx-auto">
               <p className="text-sm md:text-base font-medium text-blue-800 dark:text-blue-200">
@@ -2812,19 +2862,70 @@ export default function Cart() {
           </div>
         )}
 
-        <div className="max-w-7xl mx-auto px-4 md:px-6 pt-3 md:pt-4 pb-4 md:pb-6 lg:max-w-[1500px] lg:px-5 lg:pt-5">
+        <div className="max-w-7xl mx-auto px-3.5 md:px-6 pt-3 md:pt-4 pb-4 md:pb-6 lg:max-w-[1500px] lg:px-5 lg:pt-5">
           <div className="max-w-3xl mx-auto lg:max-w-none">
             {/* Main Cart Content */}
-            <div className="flex flex-col gap-2 md:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
+            <div className="flex flex-col gap-3 md:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
               {/* Left: cart lines, delivery and contact (desktop column; flattened on mobile) */}
               <div className="contents lg:flex lg:flex-col lg:gap-4 lg:min-w-0">
+              {/* Phone: where it goes, with Change opening the address sheet */}
+              {!isDesktop && (
+                <DeliveryStrip
+                  className="order-first"
+                  text={defaultAddress ? `${headerAddressLabel} · ${headerAddressText}` : "Select a delivery address"}
+                  onChange={() => setShowAddressSheet(true)}
+                />
+              )}
               {/* Cart Items */}
-              <div className="order-1 bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-gray-800 lg:rounded-[8px] lg:border-0 lg:shadow-none lg:px-5 lg:py-5">
+              <div className={pick(
+                "order-1 bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-gray-800 lg:rounded-[8px] lg:border-0 lg:shadow-none lg:px-5 lg:py-5",
+                "order-1",
+              )}>
                 <div className="hidden lg:flex items-end justify-between gap-6 border-b border-wh-border pb-2 mb-4">
                   <h1 className="text-[28px] font-normal leading-9 text-wh-text">Shopping Cart</h1>
                   <CartSwitch className="w-[340px]" />
                   <span className="text-[14px] text-wh-muted">Price</span>
                 </div>
+                {/* Phone: one card per seller, lines in the app's CartLineTile style */}
+                {!isDesktop && (
+                  <div className="space-y-3">
+                    {sellerGroups.map((group, gIdx) => (
+                      <PhoneCard key={group.sellerId || gIdx} className="overflow-hidden">
+                        <SellerHeader name={group.sellerName} itemCount={group.items.length} eta={deliveryBadge} />
+                        {group.items.map((item) => (
+                          <CartLineTile
+                            key={item.id}
+                            name={item.name}
+                            href={storePath(`/product/${item.productId || item.itemId || item.id}`)}
+                            image={item.image ? resolveMediaUrl(item.image) : null}
+                            price={item.price}
+                            mrp={item.otherPrice || item.mrp}
+                            variantLabel={
+                              item.variantName ||
+                              (item.selectedSize
+                                ? `${item.selectedColor || ""} • ${item.selectedSize}`
+                                : item.packSize || "Standard Fit")
+                            }
+                            quantity={item.quantity}
+                            onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
+                            onIncrease={() => increaseLine(item)}
+                            onSaveForLater={() => saveCartLineForLater({ item, storeMode: cartContext.storeMode, removeFromCart })}
+                            onRemove={() => removeFromCart(item.id)}
+                          />
+                        ))}
+                        <div className="flex items-center justify-between gap-2 bg-app-tint px-3 py-2 text-[11px] font-medium text-app-brown dark:bg-[#222] dark:text-gray-300">
+                          <span>
+                            {inQuick
+                              ? `Packed by ${group.sellerName} and brought over by a rider`
+                              : formatDeliveryWindow(shopEstimate, "Delivered in 2-4 days")}
+                          </span>
+                          <span className="font-bold">{inQuick ? "Quick" : "Courier"}</span>
+                        </div>
+                      </PhoneCard>
+                    ))}
+                  </div>
+                )}
+                {isDesktop && (
                 <div className="space-y-4">
                   {sellerGroups.map((group, gIdx) => (
                     <div
@@ -2937,14 +3038,7 @@ export default function Cart() {
                                   type="button"
                                   aria-label={`Increase quantity of ${item.name}`}
                                   className="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-r-lg transition-colors"
-                                  onClick={() => {
-                                    const cap = lineQuantityCap(item)
-                                    if (item.quantity >= cap) {
-                                      toast.error(`Only ${cap} of ${item.name}${item.variantName ? ` (${item.variantName})` : ""} can be ordered`)
-                                      return
-                                    }
-                                    updateQuantity(item.id, item.quantity + 1)
-                                  }}
+                                  onClick={() => increaseLine(item)}
                                 >
                                   <Plus className="h-3.5 w-3.5" />
                                 </button>
@@ -2978,12 +3072,16 @@ export default function Cart() {
                     </div>
                   ))}
                 </div>
+                )}
 
-                <div className="mt-4 flex items-center gap-2 overflow-x-auto scrollbar-hide pb-0.5">
+                <div className={`flex items-center gap-2 overflow-x-auto scrollbar-hide pb-0.5 ${pick("mt-4", "mt-3")}`}>
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex items-center gap-1.5 shrink-0 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] px-3 py-2 text-[12px] font-semibold text-gray-700 dark:text-gray-300"
+                    className={`flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-2 text-[12px] font-semibold ${pick(
+                      "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] text-gray-700 dark:text-gray-300",
+                      "border-app-brown/40 bg-white text-app-brown dark:border-gray-700 dark:bg-[#141414] dark:text-gray-300",
+                    )}`}
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Add Items
@@ -2993,8 +3091,11 @@ export default function Cart() {
                     onClick={() => setShowNoteSheet(true)}
                     className={`flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-2 text-[12px] font-semibold ${
                       note.trim()
-                        ? "border-wh-brand/40 bg-[#FFF1E8] text-wh-brand-ink"
-                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] text-gray-700 dark:text-gray-300"
+                        ? pick("border-wh-brand/40 bg-[#FFF1E8] text-wh-brand-ink", "border-app-brown/40 bg-app-tint text-app-brown")
+                        : pick(
+                          "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] text-gray-700 dark:text-gray-300",
+                          "border-app-brown/40 bg-white text-app-brown dark:border-gray-700 dark:bg-[#141414] dark:text-gray-300",
+                        )
                     }`}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -3002,7 +3103,7 @@ export default function Cart() {
                   </button>
                 </div>
                 {note.trim() ? (
-                  <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  <p className={`mt-3 text-xs leading-relaxed ${pick("text-gray-500 dark:text-gray-400", "px-1 text-app-muted")}`}>
                     <span className="font-semibold text-gray-700 dark:text-gray-300">Order note:</span> {note.trim()}
                   </p>
                 ) : null}
@@ -3011,10 +3112,26 @@ export default function Cart() {
               {/* Saved for later (server-side, this storefront) */}
               <SavedForLater variant={isDesktop ? "desktop" : "mobile"} className="order-1" />
 
+              {/* Phone "Add these to your order": co-purchases of the first item,
+                  minus what is already in the cart (renders nothing when empty) */}
+              {!isDesktop && cart.length > 0 && (
+                <RecommendationRail
+                  className="order-1 rounded-2xl bg-[#FFF7F2] px-3 pb-1 font-app dark:bg-[#1a1a1a]"
+                  productId={cart[0].productId || cart[0].itemId || cart[0].id}
+                  type="frequently_bought"
+                  title="Add these to your order"
+                  excludeIds={cart.map((item) => item.productId || item.itemId || item.id)}
+                  limit={10}
+                />
+              )}
+
               {/* Delivery modes & instructions */}
-              <div className="order-3 bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden">
+              <div className={`order-3 overflow-hidden ${pick(
+                "bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800",
+                "rounded-[14px] border border-[#EBEBEB] bg-white dark:border-gray-800 dark:bg-[#1a1a1a]",
+              )}`}>
                 <div className="p-3">
-                  <div className="flex items-center rounded-full bg-gray-100 dark:bg-[#222222] p-1">
+                  <div className={`flex items-center rounded-full p-1 ${pick("bg-gray-100 dark:bg-[#222222]", "bg-app-sand dark:bg-[#222222]")}`}>
                     {hasDeliveryModes ? (
                     <button
                       type="button"
@@ -3027,8 +3144,8 @@ export default function Cart() {
                     >
                       <span className="whitespace-nowrap">Delivery Modes</span>
                       <span
-                        className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wide px-1 sm:px-1.5 py-0.5 rounded-full text-wh-text shrink-0"
-                        style={{ backgroundColor: "var(--module-theme-color, #FD920B)" }}
+                        className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-wide px-1 sm:px-1.5 py-0.5 rounded-full shrink-0 ${pick("text-wh-text", "bg-app-brown text-white")}`}
+                        style={isDesktop ? { backgroundColor: "var(--module-theme-color, #FD920B)" } : undefined}
                       >
                         New
                       </span>
@@ -3039,7 +3156,7 @@ export default function Cart() {
                       onClick={() => setDeliverySectionTab("instructions")}
                       className={`flex-1 rounded-full px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] font-semibold whitespace-nowrap transition-colors ${
                         deliverySectionTab === "instructions"
-                          ? "bg-white dark:bg-[#1a1a1a] text-wh-brand-ink shadow-sm"
+                          ? pick("bg-white dark:bg-[#1a1a1a] text-wh-brand-ink shadow-sm", "bg-white dark:bg-[#1a1a1a] text-app-brown shadow-sm")
                           : "text-gray-500 dark:text-gray-400"
                       }`}
                     >
@@ -3056,16 +3173,16 @@ export default function Cart() {
                       className="w-full flex items-start gap-3 text-left pb-3 border-b border-gray-100 dark:border-gray-800"
                     >
                       <div className={`mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        deliveryMode === "quick" ? "border-wh-brand" : "border-gray-300 dark:border-gray-600"
+                        deliveryMode === "quick" ? pick("border-wh-brand", "border-app-brown") : "border-gray-300 dark:border-gray-600"
                       }`}>
-                        {deliveryMode === "quick" ? <div className="h-2.5 w-2.5 rounded-full bg-wh-brand" /> : null}
+                        {deliveryMode === "quick" ? <div className={pick("h-2.5 w-2.5 rounded-full bg-wh-brand", "h-2.5 w-2.5 rounded-full bg-app-brown")} /> : null}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            Priority <Zap className="inline h-3.5 w-3.5 text-wh-brand-ink mb-0.5" />
+                            Priority <Zap className={pick("inline h-3.5 w-3.5 text-wh-brand-ink mb-0.5", "inline h-3.5 w-3.5 text-app-brown mb-0.5")} />
                           </p>
-                          <p className={`text-xs font-semibold shrink-0 ${deliveryMode === "quick" ? "text-wh-brand-ink" : "text-gray-500"}`}>
+                          <p className={`text-xs font-semibold shrink-0 ${deliveryMode === "quick" ? pick("text-wh-brand-ink", "text-app-brown") : "text-gray-500"}`}>
                             +{RUPEE_SYMBOL}{configuredQuickDeliveryFee}
                           </p>
                         </div>
@@ -3081,9 +3198,9 @@ export default function Cart() {
                       className="w-full flex items-start gap-3 text-left pt-3"
                     >
                       <div className={`mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        deliveryMode === "basic" ? "border-wh-brand" : "border-gray-300 dark:border-gray-600"
+                        deliveryMode === "basic" ? pick("border-wh-brand", "border-app-brown") : "border-gray-300 dark:border-gray-600"
                       }`}>
-                        {deliveryMode === "basic" ? <div className="h-2.5 w-2.5 rounded-full bg-wh-brand" /> : null}
+                        {deliveryMode === "basic" ? <div className={pick("h-2.5 w-2.5 rounded-full bg-wh-brand", "h-2.5 w-2.5 rounded-full bg-app-brown")} /> : null}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -3099,7 +3216,7 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={() => setShowAddressSheet(true)}
-                        className="w-full text-left text-sm font-medium text-wh-brand-ink pt-1"
+                        className={pick("w-full text-left text-sm font-medium text-wh-brand-ink pt-1", "w-full text-left text-sm font-medium text-app-brown pt-1")}
                       >
                         Select a delivery location to continue
                       </button>
@@ -3128,12 +3245,12 @@ export default function Cart() {
                             }}
                             className={`shrink-0 w-[92px] rounded-xl border p-3 text-center transition-colors ${
                               isSelected
-                                ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20"
+                                ? pick("border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20", "border-app-brown bg-app-tint dark:bg-emerald-950/20")
                                 : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414]"
                             }`}
                           >
-                            <Icon className={`h-5 w-5 mx-auto mb-2 ${isSelected ? "text-emerald-600" : "text-gray-600 dark:text-gray-300"}`} />
-                            <p className={`text-[10px] font-semibold leading-tight ${isSelected ? "text-emerald-700 dark:text-emerald-300" : "text-gray-700 dark:text-gray-300"}`}>
+                            <Icon className={`h-5 w-5 mx-auto mb-2 ${isSelected ? pick("text-emerald-600", "text-app-brown") : "text-gray-600 dark:text-gray-300"}`} />
+                            <p className={`text-[10px] font-semibold leading-tight ${isSelected ? pick("text-emerald-700 dark:text-emerald-300", "text-app-brown dark:text-emerald-300") : "text-gray-700 dark:text-gray-300"}`}>
                               {label}
                             </p>
                           </button>
@@ -3147,12 +3264,12 @@ export default function Cart() {
                         }}
                         className={`shrink-0 w-[92px] rounded-xl border p-3 text-center transition-colors ${
                           deliveryInstructionMode === "custom"
-                            ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20"
+                            ? pick("border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20", "border-app-brown bg-app-tint dark:bg-emerald-950/20")
                             : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414]"
                         }`}
                       >
-                        <Pencil className={`h-5 w-5 mx-auto mb-2 ${deliveryInstructionMode === "custom" ? "text-emerald-600" : "text-gray-600 dark:text-gray-300"}`} />
-                        <p className={`text-[10px] font-semibold leading-tight ${deliveryInstructionMode === "custom" ? "text-emerald-700 dark:text-emerald-300" : "text-gray-700 dark:text-gray-300"}`}>
+                        <Pencil className={`h-5 w-5 mx-auto mb-2 ${deliveryInstructionMode === "custom" ? pick("text-emerald-600", "text-app-brown") : "text-gray-600 dark:text-gray-300"}`} />
+                        <p className={`text-[10px] font-semibold leading-tight ${deliveryInstructionMode === "custom" ? pick("text-emerald-700 dark:text-emerald-300", "text-app-brown dark:text-emerald-300") : "text-gray-700 dark:text-gray-300"}`}>
                           Add Custom
                         </p>
                       </button>
@@ -3164,7 +3281,7 @@ export default function Cart() {
                         onChange={(e) => setCustomDeliveryInstruction(e.target.value)}
                         rows={3}
                         placeholder="Type delivery instructions for your partner..."
-                        className="mt-3 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 resize-none"
+                        className={pick("mt-3 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 resize-none", "mt-3 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-app-brown resize-none")}
                       />
                     ) : null}
 
@@ -3180,7 +3297,7 @@ export default function Cart() {
               </div>
 
               {/* Contact */}
-              <div className="order-4 bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden">
+              <div className={`order-4 overflow-hidden ${pick("bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800", "rounded-[14px] border border-[#EBEBEB] bg-white dark:border-gray-800 dark:bg-[#1a1a1a]")}`}>
                 <div className="px-4 py-3.5 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
@@ -3195,7 +3312,7 @@ export default function Cart() {
                     type="button"
                     onClick={handleRecipientEditToggle}
                     className="text-xs font-bold uppercase tracking-wide shrink-0"
-                    style={{ color: "var(--module-theme-ink, #B45309)" }}
+                    style={{ color: isDesktop ? "var(--module-theme-ink, #B45309)" : "var(--app-brown)" }}
                   >
                     {isEditingRecipient ? "Save" : "Change"}
                   </button>
@@ -3232,14 +3349,14 @@ export default function Cart() {
                           }))
                         }
                         placeholder="Enter recipient name"
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-wh-brand"
+                        className={pick("w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-wh-brand", "w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-app-brown")}
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
                         Phone Number
                       </label>
-                      <div className="flex items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] overflow-hidden focus-within:border-wh-brand">
+                      <div className={pick("flex items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] overflow-hidden focus-within:border-wh-brand", "flex items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] overflow-hidden focus-within:border-app-brown")}>
                         <span className="px-3 text-sm text-gray-500 border-r border-gray-200 dark:border-gray-700">+91</span>
                         <input
                           type="tel"
@@ -3300,7 +3417,25 @@ export default function Cart() {
                   }
                 />
               )}
+              {/* Phone coupon row: opens the offers page; Remove takes the coupon off */}
+              {!isDesktop && (
+                <CouponRow
+                  className="order-2"
+                  appliedCode={appliedCoupon?.code}
+                  savedText={appliedCoupon ? `You saved ${RUPEE_SYMBOL}${discount.toFixed(0)} on this order` : ""}
+                  subText={
+                    loadingCoupons
+                      ? "Loading offers..."
+                      : availableCoupons.length > 0
+                        ? `${availableCoupons.length} offer${availableCoupons.length > 1 ? "s" : ""} available`
+                        : "Get extra savings on your order"
+                  }
+                  onOpen={() => setShowOffersView(true)}
+                  onRemove={handleRemoveCoupon}
+                />
+              )}
               {/* Offers row */}
+              {isDesktop && (
               <button
                 type="button"
                 onClick={() => setShowOffersView(true)}
@@ -3335,10 +3470,11 @@ export default function Cart() {
                 </div>
                 <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
               </button>
+              )}
 
               {/* Coins Redemption Widget */}
               {coinBalance?.isEnabled && (
-                <div className="order-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/50 dark:border-amber-600/30 rounded-2xl p-4 shadow-sm">
+                <div className={`order-5 ${pick("bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/50 dark:border-amber-600/30 rounded-2xl p-4 shadow-sm", "rounded-[14px] border border-[#EBEBEB] bg-white p-3.5 dark:border-gray-800 dark:bg-[#1a1a1a]")}`}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400 shadow-inner">
@@ -3377,8 +3513,8 @@ export default function Cart() {
                         onClick={() => setUseCoins(!useCoins)}
                         className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
                           useCoins
-                            ? "bg-amber-500 text-white shadow-amber-500/20 hover:bg-amber-600"
-                            : "border border-amber-500/60 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                            ? pick("bg-amber-500 text-white shadow-amber-500/20 hover:bg-amber-600", "bg-app-brown text-white")
+                            : pick("border border-amber-500/60 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30", "border border-app-brown text-app-brown dark:text-amber-300")
                         }`}
                       >
                         {useCoins ? "Applied ✓" : "Apply Coins"}
@@ -3388,7 +3524,66 @@ export default function Cart() {
                 </div>
               )}
 
+              {/* Phone bill card (same rows and figures as the desktop bill) and payment card */}
+              {!isDesktop && (
+                <BillDetailsCard
+                  ref={phoneBillRef}
+                  className="order-6"
+                  toPay={`${RUPEE_SYMBOL}${finalPayable.toFixed(2)}`}
+                  savings={phoneSavings}
+                >
+                  <BillRow
+                    label="Item total"
+                    value={
+                      <DualMoney
+                        amount={subtotal}
+                        compareAmount={compareItemTotal}
+                        decimals={2}
+                        showDiscountTag={false}
+                        plainClassName="tabular-nums"
+                        saleClassName="tabular-nums"
+                      />
+                    }
+                  />
+                  {itemDiscountAmount > 0 && (
+                    <BillRow label="Coupon discount" tone="discount" value={`-${RUPEE_SYMBOL}${itemDiscountAmount.toFixed(2)}`} />
+                  )}
+                  <BillRow
+                    label={`Delivery fee${
+                      inQuick && deliveryFeeBreakdownText && !/^(Distance:\s*)?0(\.0+)?\s*km$/i.test(deliveryFeeBreakdownText.trim())
+                        ? ` | ${deliveryFeeBreakdownText.replace(/^Distance:\s*/i, "")}`
+                        : ""
+                    }`}
+                    note={deliveryFee > 0 ? formatDeliveryFeeBreakdownSubtext(deliveryFee, deliveryFeeGst, RUPEE_SYMBOL) : ""}
+                    tone={deliveryFee === 0 ? "free" : "default"}
+                    value={
+                      deliveryFee === 0
+                        ? "FREE"
+                        : `${RUPEE_SYMBOL}${getDeliveryFeeTotal(deliveryFee, deliveryFeeGst).toFixed(2)}`
+                    }
+                  />
+                  {quickDeliveryFee > 0 && (
+                    <BillRow label="Quick mode" value={`${RUPEE_SYMBOL}${quickDeliveryFee.toFixed(2)}`} />
+                  )}
+                  <BillRow label="Platform fee" value={`${RUPEE_SYMBOL}${Math.max(0, platformFee - quickDeliveryFee).toFixed(2)}`} />
+                  <BillRow label="Government taxes" value={`${RUPEE_SYMBOL}${gstCharges.toFixed(2)}`} />
+                  {coinDiscount > 0 && (
+                    <BillRow label="Coins redeemed" tone="discount" value={`-${RUPEE_SYMBOL}${coinDiscount.toFixed(2)}`} />
+                  )}
+                </BillDetailsCard>
+              )}
+              {!isDesktop && (
+                <PaymentMethodCard
+                  className="order-6"
+                  options={paymentOptions}
+                  selected={selectedPaymentMethod}
+                  onSelect={(option) => {
+                    if (!option.disabled) setSelectedPaymentMethod(option.id)
+                  }}
+                />
+              )}
               {/* Bill Details */}
+              {isDesktop && (
               <div className="order-6 bg-white dark:bg-[#1a1a1a] px-4 py-4 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800">
                 <button
                   type="button"
@@ -3488,8 +3683,9 @@ export default function Cart() {
                   </div>
                 )}
               </div>
+              )}
 
-              <p className="order-7 text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed px-1">
+              <p className={`order-7 text-[11px] leading-relaxed px-1 ${pick("text-gray-500 dark:text-gray-400", "text-app-muted dark:text-gray-400")}`}>
                 You can cancel before your order is packed.{" "}
                 {returnWindowDays
                   ? `Eligible items can be returned within ${returnWindowDays} days of delivery.`
@@ -3515,57 +3711,31 @@ export default function Cart() {
         </div>
       </div>
 
-      {/* Bottom Sticky - Pay bar */}
-      {/* Bottom Sticky - Pay bar (Matching Screen 5) */}
-      <div
-        className="bg-white/95 dark:bg-[#161616]/95 backdrop-blur-md border-t border-gray-200/80 dark:border-gray-800 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] z-30 flex-shrink-0 fixed bottom-0 left-0 right-0 lg:hidden px-4 py-3"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
-      >
-        <div className="max-w-md mx-auto space-y-2">
-          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 px-1">
-            <button
-              type="button"
-              onClick={() => setShowPaymentSheet(true)}
-              className="flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-200 hover:text-orange-500 transition-colors"
-            >
-              <span>{selectedPaymentLabel}</span>
-              <span className="text-orange-500 font-bold text-[11px]">Change</span>
-            </button>
-            <span className="font-bold text-gray-900 dark:text-white text-sm">
-              Total: {RUPEE_SYMBOL}{finalPayable.toFixed(0)}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handlePlaceOrder}
-            disabled={
-              isPlacingOrder ||
-              loadingSeller ||
-              !canPlaceOrder ||
-              walletTooLow
-            }
-            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-base shadow-lg shadow-orange-500/25 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isPlacingOrder ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Processing...</span>
-              </>
-            ) : loadingSeller ? (
-              <span>Loading...</span>
-            ) : !canPlaceOrder ? (
-              <span>Store Currently Offline</span>
-            ) : walletTooLow ? (
-              <span>Wallet balance too low</span>
-            ) : !hasSavedAddress ? (
-              <span>Add Delivery Address</span>
-            ) : (
-              <span>Proceed to Checkout</span>
-            )}
-          </button>
-        </div>
-      </div>
+      {/* Bottom bar (phone): total, savings, price details link and the order button */}
+      {!isDesktop && (
+        <StepBottomBar
+          total={finalPayable}
+          savings={phoneSavings}
+          onViewPrice={() => phoneBillRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          onClick={handlePlaceOrder}
+          disabled={placeOrderDisabled}
+          busy={isPlacingOrder}
+          showChevron={!isPlacingOrder && !loadingSeller && canPlaceOrder && !walletTooLow}
+          label={
+            isPlacingOrder
+              ? "Processing..."
+              : loadingSeller
+                ? "Loading..."
+                : !canPlaceOrder
+                  ? "Store Currently Offline"
+                  : walletTooLow
+                    ? "Wallet balance too low"
+                    : !hasSavedAddress
+                      ? "Add Delivery Address"
+                      : "Place Order"
+          }
+        />
+      )}
 
           {/* Placing Order Modal */}
           {showPlacingOrder && (
@@ -3830,7 +4000,7 @@ export default function Cart() {
                               onClick={() => handleSelectAddressFromSheet(address)}
                               className={`w-full flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-colors ${
                                 isSelected
-                                  ? "border-wh-brand/40 bg-[#FFF7F2] dark:bg-wh-brand/10"
+                                  ? pick("border-wh-brand/40 bg-[#FFF7F2] dark:bg-wh-brand/10", "border-app-brown/40 bg-app-tint dark:bg-wh-brand/10")
                                   : "border-gray-100 dark:border-gray-800 bg-white dark:bg-[#222222] hover:border-gray-200"
                               }`}
                             >
@@ -3928,8 +4098,8 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={() => setShowNoteSheet(false)}
-                        className="flex-1 h-11 rounded-xl text-wh-text text-sm font-bold"
-                        style={{ backgroundColor: "var(--module-theme-color, #FD920B)" }}
+                        className={`flex-1 h-11 rounded-xl text-sm font-bold ${pick("text-wh-text", "text-white")}`}
+                        style={{ backgroundColor: isDesktop ? "var(--module-theme-color, #FD920B)" : "var(--app-brown)" }}
                       >
                         Save
                       </button>
@@ -3948,11 +4118,11 @@ export default function Cart() {
                 animate={{ x: 0 }}
                 exit={{ x: "100%" }}
                 transition={{ type: "spring", damping: 32, stiffness: 320 }}
-                className="fixed inset-0 z-[95] bg-slate-50 dark:bg-[#0a0a0a] flex flex-col"
+                className={`fixed inset-0 z-[95] dark:bg-[#0a0a0a] flex flex-col ${pick("bg-slate-50", "bg-app-cream font-app")}`}
               >
                 <div
                   className="sticky top-0 z-10 text-white shadow-sm"
-                  style={{ backgroundColor: "var(--wh-nav-2)" }}
+                  style={{ backgroundColor: isDesktop ? "var(--wh-nav-2)" : "var(--app-brown)" }}
                 >
                   <div className="flex items-center gap-3 px-4 py-3">
                     <Button
@@ -4007,8 +4177,8 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={handleApplyCouponCode}
-                        className="h-11 px-4 rounded-xl text-wh-text text-sm font-bold shrink-0"
-                        style={{ backgroundColor: "var(--module-theme-color, #FD920B)" }}
+                        className={`h-11 px-4 rounded-xl text-sm font-bold shrink-0 ${pick("text-wh-text", "text-white")}`}
+                        style={{ backgroundColor: isDesktop ? "var(--module-theme-color, #FD920B)" : "var(--app-brown)" }}
                       >
                         Apply
                       </button>
@@ -4062,7 +4232,7 @@ export default function Cart() {
                                 type="button"
                                 onClick={() => handleApplyCoupon(coupon)}
                                 disabled={isDisabled}
-                                className="shrink-0 border border-wh-brand text-wh-brand-ink rounded-full px-4 py-1.5 text-xs font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+                                className={`shrink-0 border rounded-full ${pick("border-wh-brand text-wh-brand-ink", "border-app-brown text-app-brown")} px-4 py-1.5 text-xs font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed`}
                               >
                                 {isApplied ? "Applied" : "Apply"}
                               </button>
@@ -4136,36 +4306,7 @@ export default function Cart() {
                     </div>
 
                     <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar pb-4 flex-1 min-h-0">
-                      {[
-                        payCash && {
-                          id: 'cash',
-                          name: 'Cash on Delivery',
-                          description: 'Pay when your order arrives',
-                          icon: <Banknote className="w-5 h-5" />,
-                          color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400',
-                          selectedColor: 'bg-amber-500 text-white',
-                        },
-                        payOnline && {
-                          id: 'razorpay',
-                          name: 'Online Payment',
-                          description: 'UPI, Cards, Netbanking',
-                          icon: <Zap className="w-5 h-5" />,
-                          color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400',
-                          selectedColor: 'bg-emerald-500 text-white',
-                          badge: 'SECURE'
-                        },
-                        {
-                          id: 'wallet',
-                          name: 'Quick Wallet',
-                          description: 'Pay from Your Wallet',
-                          icon: <Wallet className="w-5 h-5" />,
-                          color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
-                          selectedColor: 'bg-blue-500 text-white',
-                          subInfo: `Bal: ${RUPEE_SYMBOL}${walletBalance.toFixed(0)}`,
-                          disabled: walletBalance < finalPayable,
-                          disabledText: 'Low Balance'
-                        },
-                      ].filter(Boolean).map((option) => (
+                      {paymentOptions.map((option) => (
                         <button
                           key={option.id}
                           onClick={() => {
@@ -4436,7 +4577,7 @@ export default function Cart() {
                 )}
                 {unavailableLine.altAvailable && (
                   <Button
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                    className={`w-full text-white ${pick("bg-orange-500 hover:bg-orange-600", "bg-app-brown hover:bg-app-brown-light")}`}
                     onClick={() => {
                       if (addToOtherStoreCart(line, alt)) {
                         removeFromCart(line.id)

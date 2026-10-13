@@ -77,8 +77,10 @@ export default function BottomNav() {
     account,
   ]
 
-  // Pages with their own pinned action bar (Add to Cart, checkout) hide the tabs.
-  if (/\/product\/|\/cart(\/|$)/.test(pathname)) return null
+  // Pages with their own pinned action bar (Add to Cart, checkout, an order's
+  // Reorder | Invoice | Help) hide the tabs. The orders list and the "order
+  // placed" page keep them.
+  if (/\/product\/|\/cart(\/|$)|\/orders\/(?!placed\/)[^/]+/.test(pathname)) return null
 
   return (
     <nav

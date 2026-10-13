@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Check, ChevronRight, Loader2, Package, RotateCcw, Store, Truck, Zap } from "lucide-react"
+import { Check, ChevronRight, Clock, Loader2, Package, Search, ShoppingCart, Truck, X, Zap } from "lucide-react"
 import { toast } from "sonner"
 import { orderAPI } from "@/services/api"
 import { mediaUrl } from "../desktop/desktopCart"
@@ -9,12 +9,13 @@ import CancelOrderSheet, { canCancelOrder } from "../orders/CancelOrderSheet"
 import { shopStatusLabel } from "@store/utils/shopOrderFlow"
 
 /**
- * "My Orders" from the mobile mockup (screen 6): status tabs, one card per
- * store's order with its items, a four-step tracker and the next thing to do
- * (track it, buy it again, or look at the details).
+ * "My Orders" on phones, in the customer app's look (warehouse_user
+ * orders_screen): big title, a search over the loaded orders, status pills
+ * and one cream/brown card per store's order with Buy Again / View Details.
  */
 
-const TABS = ["All", "Ordered", "Shipped", "Delivered", "Returns"]
+// "Processing" is the old "Ordered" bucket (placed, packed, waiting on the store).
+const TABS = ["All", "Processing", "Shipped", "Delivered", "Cancelled", "Returns"]
 const PAGE_SIZE = 20
 
 /** The orders and pagination out of a list response. */
@@ -36,7 +37,7 @@ function bucketOf(o) {
   if (CANCELLED.includes(s)) return "Cancelled"
   if (s === "delivered") return "Delivered"
   if (MOVING.includes(s) || (isCourier(o) && o?.shipment?.awb)) return "Shipped"
-  return "Ordered"
+  return "Processing"
 }
 
 /** 0 placed, 1 packed, 2 on the way, 3 delivered. */
@@ -49,8 +50,6 @@ function stepOf(o) {
   if (["preparing", "ready_for_pickup", "reached_pickup"].includes(s)) return 1
   return 0
 }
-
-const stepsFor = (o) => (isCourier(o) ? ["Ordered", "Shipped", "Out for Delivery", "Delivered"] : ["Placed", "Packed", "On the Way", "Delivered"])
 
 const RETURN_LABEL = {
   requested: "Return Requested",
@@ -80,33 +79,28 @@ function headline(o) {
   return step >= 2 ? "On the Way" : step >= 1 ? "Being Packed" : "Order Placed"
 }
 
-function Tracker({ order }) {
-  const steps = stepsFor(order)
-  const at = stepOf(order)
-  const done = (i) => (isCourier(order) && i === 1 ? at >= 1.5 : at >= i)
-  return (
-    <ol className="mt-3 flex items-start" aria-label="Order progress">
-      {steps.map((label, i) => (
-        <li key={label} className="relative flex flex-1 flex-col items-center text-center">
-          {i > 0 ? (
-            <span
-              aria-hidden="true"
-              className={`absolute right-1/2 top-[9px] h-[3px] w-full rounded-full ${done(i) ? "bg-[#1E9E48]" : "bg-gray-200"}`}
-            />
-          ) : null}
-          <span
-            className={`relative z-[1] flex h-5 w-5 items-center justify-center rounded-full ${
-              done(i) ? "bg-[#1E9E48] text-white" : "border-2 border-gray-300 bg-white"
-            }`}
-          >
-            {done(i) ? <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" /> : null}
-          </span>
-          <span className={`mt-1 text-[10px] leading-tight ${done(i) ? "font-semibold text-gray-900" : "text-gray-500"}`}>{label}</span>
-        </li>
-      ))}
-    </ol>
-  )
+/** Chip colours: red cancelled/declined, green delivered, orange out for delivery, amber otherwise. */
+function chipTone(o) {
+  const s = statusOf(o)
+  const r = o?.latestReturn?.status
+  if (CANCELLED.includes(s) || r === "rejected") return { bg: "bg-[#FFEAED]", fg: "text-[#E11D48]", dot: "bg-[#E11D48]", Icon: X }
+  if (r === "refunded" || (s === "delivered" && !o?.latestReturn)) return { bg: "bg-[#DCFCE7]", fg: "text-[#16A34A]", dot: "bg-[#16A34A]", Icon: Check }
+  if (!o?.latestReturn && s !== "delivered" && stepOf(o) >= 2) return { bg: "bg-[#FFEDD5]", fg: "text-[#EA580C]", dot: "bg-[#EA580C]", Icon: Truck }
+  return { bg: "bg-[#FEF3C7]", fg: "text-[#D97706]", dot: "bg-[#D97706]", Icon: Clock }
 }
+
+/** What the search box matches: product names, order id/number and the store. */
+function matchesQuery(o, q) {
+  if (!q) return true
+  const hay = [o?._id, o?.id, o?.order_id, o?.orderId, o?.orderNumber, o?.sellerId?.sellerName, ...(o?.items || []).map((i) => i?.name)]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+  return hay.includes(q)
+}
+
+const BROWN_BTN = "flex h-[34px] shrink-0 items-center justify-center gap-1 rounded-[20px] px-3 text-[12px] font-bold active:scale-[0.98]"
+const BROWN_OUTLINE = `${BROWN_BTN} border-[1.2px] border-[#4A2C19] text-[#4A2C19] active:bg-[#F5EFE8]`
 
 function OrderCard({ order, onChanged }) {
   const navigate = useNavigate()
@@ -121,103 +115,90 @@ function OrderCard({ order, onChanged }) {
   const shortId = String(order.order_id || order.orderId || id).slice(-8).toUpperCase()
   const total = Number(order?.pricing?.total ?? order?.total ?? 0)
   const modePath = (path) => (courier ? path : `/quick${path}`)
-  const tone = cancelled || order?.latestReturn?.status === "rejected" ? "text-[#CC0C39]" : s === "delivered" ? "text-[#1E9E48]" : "text-[#C2410C]"
+  const qty = items.reduce((n, i) => n + (Number(i.quantity) || 1), 0)
+  const tone = chipTone(order)
+  const ToneIcon = tone.Icon
+  const canReturn = s === "delivered" && courier && (!order.latestReturn || order.latestReturn.status === "rejected")
+  const canCancel = canCancelOrder(order)
+  const date = order.createdAt
+    ? new Date(order.createdAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+    : ""
 
   return (
-    <article className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
-      <header className="flex items-center gap-2 border-b border-gray-100 px-3 py-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF1E7]">
-          {seller.profileImage ? (
-            <img src={mediaUrl(seller.profileImage)} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <Store className="h-4 w-4 text-[#EA580C]" aria-hidden="true" />
-          )}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] font-bold text-gray-900">{seller.sellerName || "Store"}</span>
-          <span className="block text-[11px] text-gray-500">
-            #{shortId} · {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-          </span>
-        </span>
-        <span className="flex shrink-0 items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-700">
-          {courier ? <Truck className="h-3 w-3" aria-hidden="true" /> : <Zap className="h-3 w-3" aria-hidden="true" />}
-          {courier ? "Shop" : "Quick"}
-        </span>
-      </header>
-
-      <Link to={`/orders/${id}/details`} className="flex gap-3 px-3 pt-3">
-        <span className="relative h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+    <article className="rounded-[18px] border border-[#EFE8E2] bg-white p-[14px] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+      <Link to={`/orders/${id}/details`} className="flex gap-[14px] rounded-[14px]">
+        <span className="relative h-[96px] w-[86px] shrink-0 overflow-hidden rounded-[14px] bg-app-alt">
           {first.image ? (
             <img src={mediaUrl(first.image)} alt="" className="h-full w-full object-cover" />
           ) : (
-            <Package className="absolute inset-0 m-auto h-6 w-6 text-gray-400" aria-hidden="true" />
+            <Package className="absolute inset-0 m-auto h-7 w-7 text-[#B9AEA6]" aria-hidden="true" />
           )}
-          {items.length > 1 ? (
-            <span className="absolute bottom-0 right-0 rounded-tl-md bg-black/70 px-1 text-[10px] font-bold text-white">+{items.length - 1}</span>
-          ) : null}
         </span>
         <span className="min-w-0 flex-1">
-          <span className={`block text-[13px] font-bold ${tone}`}>{headline(order)}</span>
-          <span className="mt-0.5 block truncate text-[13px] text-gray-900">
-            {first.name}
-            {items.length > 1 ? ` and ${items.length - 1} more` : ""}
+          <span className={`inline-flex max-w-full items-center gap-[5px] rounded-xl px-2 py-[3.5px] ${tone.bg}`}>
+            <span className={`flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full ${tone.dot}`}>
+              <ToneIcon className="h-2.5 w-2.5 text-white" strokeWidth={3} aria-hidden="true" />
+            </span>
+            <span className={`truncate text-[11.5px] font-bold ${tone.fg}`}>{headline(order)}</span>
           </span>
-          <span className="block text-[12px] text-gray-500">
-            {[first.variantName, `Qty ${items.reduce((n, i) => n + (Number(i.quantity) || 1), 0)}`, order?.replacementOf?.orderId ? "Free Replacement" : `₹${total.toLocaleString("en-IN")}`]
-              .filter(Boolean)
-              .join(" · ")}
+          <span className="mt-[5px] block truncate text-[11.5px] font-medium text-app-muted">
+            {date ? `${date}  •  ` : ""}Order #{shortId}
+          </span>
+          <span className="mt-1 flex items-center gap-1">
+            <span className="min-w-0 flex-1 truncate text-[14.5px] font-extrabold text-app-ink">
+              {first.name}
+              {items.length > 1 ? ` +${items.length - 1} more` : ""}
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0 text-[#9E958E]" aria-hidden="true" />
+          </span>
+          <span className="mt-[3px] block truncate text-[12px] font-medium text-app-muted">
+            {`Qty: ${qty}  |  Size: ${first.variantName || "Free Size"}`}
+          </span>
+          <span className="mt-[3px] flex items-center gap-1 text-[11px] text-app-muted">
+            {courier ? <Truck className="h-3 w-3 shrink-0" aria-hidden="true" /> : <Zap className="h-3 w-3 shrink-0" aria-hidden="true" />}
+            <span className="truncate">
+              {courier ? "Shop" : "Quick"} · {seller.sellerName || "Store"}
+            </span>
           </span>
           {cancelled && order.cancellationReason ? (
-            <span className="mt-0.5 block truncate text-[11px] text-gray-500">Reason: {order.cancellationReason}</span>
+            <span className="mt-0.5 block truncate text-[11px] text-app-muted">Reason: {order.cancellationReason}</span>
           ) : null}
         </span>
-        <ChevronRight className="mt-5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
       </Link>
 
-      <div className="px-3">{!cancelled && s !== "pending_payment" && !order.latestReturn ? <Tracker order={order} /> : null}</div>
-
-      <div className="mt-3 flex gap-2 border-t border-gray-100 p-3">
-        {canCancelOrder(order) ? (
-          <button
-            type="button"
-            onClick={() => setCancelling(true)}
-            className="flex h-9 flex-1 items-center justify-center rounded-lg border border-[#CC0C39] text-[13px] font-bold text-[#CC0C39] active:bg-red-50"
-          >
-            Cancel
-          </button>
-        ) : null}
+      <div className="mt-[14px] flex items-center gap-1.5">
+        <span className="min-w-0 flex-1 truncate text-[15px] font-black text-app-ink">
+          {order?.replacementOf?.orderId ? "Free Replacement" : `Total ₹${total.toLocaleString("en-IN")}`}
+        </span>
         {!cancelled && s !== "delivered" ? (
-          <Link
-            to={`/orders/${id}`}
-            className="flex h-9 flex-1 items-center justify-center rounded-lg bg-[#EA580C] text-[13px] font-bold text-white active:scale-[0.98]"
-          >
-            Track Order
+          <Link to={`/orders/${id}`} className={BROWN_OUTLINE}>
+            <Truck className="h-3.5 w-3.5" aria-hidden="true" /> Track
           </Link>
         ) : (
-          <button
-            type="button"
-            onClick={() => navigate(`${modePath("/cart")}?reorder=${encodeURIComponent(id)}`)}
-            className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#EA580C] text-[13px] font-bold text-white active:scale-[0.98]"
-          >
-            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Buy Again
+          <button type="button" onClick={() => navigate(`${modePath("/cart")}?reorder=${encodeURIComponent(id)}`)} className={BROWN_OUTLINE}>
+            <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" /> Buy Again
           </button>
         )}
-        {s === "delivered" && courier && (!order.latestReturn || order.latestReturn.status === "rejected") ? (
-          <Link
-            to={`/orders/${id}/details#returns`}
-            className="flex h-9 flex-1 items-center justify-center rounded-lg border border-gray-300 text-[13px] font-bold text-gray-800 active:bg-gray-50"
-          >
-            Return / Replace
-          </Link>
-        ) : (
-          <Link
-            to={`/orders/${id}/details`}
-            className="flex h-9 flex-1 items-center justify-center rounded-lg border border-gray-300 text-[13px] font-bold text-gray-800 active:bg-gray-50"
-          >
-            View Details
-          </Link>
-        )}
+        <Link to={`/orders/${id}/details`} className={`${BROWN_BTN} bg-[#4A2C19] text-white`}>
+          View Details
+        </Link>
       </div>
+
+      {canCancel || canReturn ? (
+        <div className="mt-2.5 flex flex-wrap justify-end gap-x-4 gap-y-1 border-t border-[#F3EDE8] pt-2.5 text-[12px] font-semibold">
+          {canReturn ? (
+            <Link to={`/orders/${id}/details#returns`} className="text-[#4A2C19] underline underline-offset-2">
+              Return / Replace
+            </Link>
+          ) : null}
+          {canCancel ? (
+            <button type="button" onClick={() => setCancelling(true)} className="text-[#E11D48] underline underline-offset-2">
+              Cancel order
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {cancelling ? (
         <CancelOrderSheet
           order={order}
@@ -240,6 +221,7 @@ export default function MobileOrders() {
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
   const [tab, setTab] = useState("All")
+  const [query, setQuery] = useState("")
   // Pages loaded so far and what the server says is there in all.
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(1)
@@ -297,12 +279,40 @@ export default function MobileOrders() {
     return c
   }, [orders])
 
-  const shown = orders.filter((o) => (tab === "All" ? true : tab === "Returns" ? !!o.latestReturn : bucketOf(o) === tab))
+  const q = query.trim().toLowerCase()
+  const shown = orders.filter(
+    (o) => (tab === "All" ? true : tab === "Returns" ? !!o.latestReturn : bucketOf(o) === tab) && matchesQuery(o, q),
+  )
 
   return (
-    <div className="min-h-screen bg-[#F7F7F8] pb-8 lg:hidden">
-      <MobileTopBar title="My Orders" subtitle={loading || failed ? "" : `${totalCount} order${totalCount === 1 ? "" : "s"}`} actions={["search", "cart"]} />
-      <div className="sticky top-14 z-30 flex gap-2 overflow-x-auto border-b border-gray-100 bg-white px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist">
+    <div className="min-h-screen bg-[#FBF8F5] pb-8 font-app lg:hidden">
+      <MobileTopBar title="" subtitle={loading || failed ? "" : `${totalCount} order${totalCount === 1 ? "" : "s"}`} actions={["search", "cart"]} />
+
+      <div className="px-4 pb-3 pt-3">
+        <h2 className="text-[28px] font-extrabold leading-tight text-[#3E271D]">My Orders</h2>
+        <p className="mt-[3px] text-[14px] font-medium text-[#8C7F77]">Track, manage and buy again</p>
+      </div>
+
+      <div className="px-4">
+        <label className="flex h-[46px] items-center gap-2 rounded-[14px] border border-[#EDE7E1] bg-white px-[14px] shadow-[0_1px_6px_rgba(0,0,0,0.024)]">
+          <Search className="h-5 w-5 shrink-0 text-[#9E958E]" aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search orders by product, order ID..."
+            aria-label="Search orders"
+            className="min-w-0 flex-1 bg-transparent text-[13.5px] text-app-ink outline-none placeholder:text-[#A79C94]"
+          />
+          {query ? (
+            <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="flex h-6 w-6 items-center justify-center rounded-full text-[#9E958E] active:bg-[#F5EFE8]">
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          ) : null}
+        </label>
+      </div>
+
+      <div className="sticky top-14 z-30 flex gap-2 overflow-x-auto bg-[#FBF8F5] px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist">
         {TABS.map((t) => (
           <button
             key={t}
@@ -310,31 +320,38 @@ export default function MobileOrders() {
             role="tab"
             aria-selected={tab === t}
             onClick={() => setTab(t)}
-            className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold ${tab === t ? "bg-[#EA580C] text-white" : "bg-gray-100 text-gray-700"}`}
+            className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold ${tab === t ? "bg-[#4A2C19] text-white" : "bg-[#F5EFE8] text-[#3E271D]"}`}
           >
             {t}
-            {!loading && counts[t] ? <span className={`ml-1 text-[11px] ${tab === t ? "text-white/80" : "text-gray-500"}`}>{counts[t]}</span> : null}
+            {!loading && counts[t] ? <span className={`ml-1 text-[11px] ${tab === t ? "text-white/75" : "text-[#8C7F77]"}`}>{counts[t]}</span> : null}
           </button>
         ))}
       </div>
 
-      <div className="space-y-3 px-3 pt-3">
+      <div className="space-y-[14px] px-4 pt-1">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-2xl bg-white p-3" role="status" aria-label="Loading orders">
-              <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200/80" />
-              <div className="mt-3 flex gap-3">
-                <div className="h-16 w-14 animate-pulse rounded-lg bg-gray-200/80" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 w-2/3 animate-pulse rounded bg-gray-200/80" />
-                  <div className="h-3 w-1/2 animate-pulse rounded bg-gray-200/80" />
+            <div key={i} className="rounded-[18px] border border-[#EFE8E2] bg-white p-[14px]" role="status" aria-label="Loading orders">
+              <div className="flex gap-[14px]">
+                <div className="h-[96px] w-[86px] animate-pulse rounded-[14px] bg-app-alt" />
+                <div className="flex-1 space-y-2 pt-1">
+                  <div className="h-4 w-24 animate-pulse rounded-xl bg-app-alt" />
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-app-alt" />
+                  <div className="h-3.5 w-3/4 animate-pulse rounded bg-app-alt" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-app-alt" />
                 </div>
               </div>
-              <div className="mt-4 h-9 animate-pulse rounded-lg bg-gray-200/80" />
+              <div className="mt-[14px] flex items-center gap-1.5">
+                <div className="h-4 flex-1 animate-pulse rounded bg-app-alt" />
+                <div className="h-[34px] w-24 animate-pulse rounded-[20px] bg-app-alt" />
+                <div className="h-[34px] w-24 animate-pulse rounded-[20px] bg-app-alt" />
+              </div>
             </div>
           ))
         ) : failed ? (
-          <p className="rounded-2xl bg-white p-8 text-center text-[14px] text-gray-600">Couldn&apos;t load your orders. Pull down or try again in a moment.</p>
+          <p className="rounded-[18px] border border-[#EFE8E2] bg-white p-8 text-center text-[14px] text-app-muted">
+            Couldn&apos;t load your orders. Pull down or try again in a moment.
+          </p>
         ) : shown.length ? (
           shown.map((o) => (
             <OrderCard
@@ -344,15 +361,25 @@ export default function MobileOrders() {
             />
           ))
         ) : (
-          <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-10 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FFF1E7]">
-              <Package className="h-7 w-7 text-[#EA580C]" aria-hidden="true" />
+          <div className="flex flex-col items-center rounded-[18px] border border-[#EFE8E2] bg-white px-6 py-10 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#F5EFE8]">
+              <Package className="h-7 w-7 text-[#4A2C19]" aria-hidden="true" />
             </span>
-            <p className="mt-3 text-[16px] font-bold text-gray-900">
-              {tab === "All" ? "No orders yet" : tab === "Returns" ? "No returns" : `Nothing ${tab.toLowerCase()} right now`}
+            <p className="mt-3 text-[16px] font-bold text-[#3E271D]">
+              {q
+                ? "No orders match your search"
+                : tab === "All"
+                  ? "No orders yet"
+                  : tab === "Returns"
+                    ? "No returns"
+                    : `Nothing ${tab.toLowerCase()} right now`}
             </p>
-            {tab === "All" ? (
-              <Link to="/" className="mt-4 rounded-xl bg-[#EA580C] px-5 py-2.5 text-[14px] font-bold text-white">
+            {q ? (
+              <button type="button" onClick={() => setQuery("")} className="mt-4 h-[38px] rounded-[20px] border-[1.2px] border-[#4A2C19] px-5 text-[13px] font-bold text-[#4A2C19]">
+                Clear search
+              </button>
+            ) : tab === "All" ? (
+              <Link to="/" className="mt-4 flex h-[40px] items-center rounded-[20px] bg-[#4A2C19] px-6 text-[14px] font-bold text-white">
                 Start Shopping
               </Link>
             ) : null}
@@ -363,7 +390,7 @@ export default function MobileOrders() {
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white text-[14px] font-bold text-gray-800 active:bg-gray-50 disabled:opacity-60"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-[20px] border-[1.2px] border-[#4A2C19] bg-white text-[14px] font-bold text-[#4A2C19] active:bg-[#F5EFE8] disabled:opacity-60"
           >
             {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
             {loadingMore ? "Loading…" : `Load more orders (${Math.max(0, totalCount - orders.length)} more)`}

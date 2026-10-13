@@ -140,23 +140,23 @@ export default function SavedForLater({ variant = "mobile", className = "" }) {
       aria-labelledby="saved-for-later-heading"
       className={`${desktop
         ? "rounded-[8px] bg-wh-surface px-5 py-5 text-wh-text"
-        : "rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-sm dark:border-gray-800 dark:bg-[#1a1a1a]"} ${className}`}
+        : "rounded-[14px] border border-[#EBEBEB] bg-white p-3.5 font-app dark:border-gray-800 dark:bg-[#1a1a1a]"} ${className}`}
     >
       <h2
         id="saved-for-later-heading"
-        className={desktop ? "border-b border-wh-border pb-2 text-[21px] font-bold" : "text-sm font-bold text-gray-900 dark:text-white"}
+        className={desktop ? "border-b border-wh-border pb-2 text-[21px] font-bold" : "text-[14px] font-bold text-app-ink dark:text-white"}
       >
         Saved for later ({items.length} item{items.length === 1 ? "" : "s"})
       </h2>
       {loading && !items.length ? (
         <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-gray-500" aria-label="Loading saved items" /></div>
       ) : (
-        <ul className={desktop ? "divide-y divide-wh-border" : "mt-3 space-y-3"}>
+        <ul className={desktop ? "divide-y divide-wh-border" : "mt-1 divide-y divide-[#EEEEEE] dark:divide-gray-800"}>
           {items.map((row) => (
-            <li key={row.id} className={`flex items-start gap-3 ${desktop ? "py-4" : ""}`}>
+            <li key={row.id} className={`flex items-start gap-3 ${desktop ? "py-4" : "py-2.5"}`}>
               <Link
                 to={storePath(`/product/${row.productId}`)}
-                className={`flex shrink-0 items-center justify-center overflow-hidden rounded bg-[#F7F7F7] focus-visible:outline-2 focus-visible:outline-wh-brand ${desktop ? "h-[120px] w-[120px]" : "h-16 w-16"}`}
+                className={`flex shrink-0 items-center justify-center overflow-hidden focus-visible:outline-2 ${desktop ? "h-[120px] w-[120px] rounded bg-[#F7F7F7] focus-visible:outline-wh-brand" : "h-[68px] w-[64px] rounded-[10px] bg-app-alt focus-visible:outline-app-brown"}`}
               >
                 {row.image ? (
                   <img src={row.image} alt={row.name} loading="lazy" className="h-full w-full object-contain" />
@@ -165,23 +165,25 @@ export default function SavedForLater({ variant = "mobile", className = "" }) {
                 )}
               </Link>
               <div className="min-w-0 flex-1">
-                <p className={desktop ? "text-[16px] leading-6" : "text-sm font-medium text-gray-800 dark:text-gray-200"}>{row.name}</p>
-                {row.variantName ? <p className="text-xs text-gray-500 dark:text-gray-400">{row.variantName}</p> : null}
-                <p className={`mt-0.5 ${desktop ? "text-[16px] font-bold" : "text-sm font-semibold text-gray-900 dark:text-white"}`}>
+                <p className={desktop ? "text-[16px] leading-6" : "line-clamp-2 text-[13px] font-semibold leading-[1.25] text-app-ink dark:text-gray-200"}>{row.name}</p>
+                {row.variantName ? <p className={desktop ? "text-xs text-gray-500 dark:text-gray-400" : "text-[11px] text-app-muted"}>{row.variantName}</p> : null}
+                <p className={`mt-0.5 ${desktop ? "text-[16px] font-bold" : "text-[14px] font-extrabold text-app-ink dark:text-white"}`}>
                   {RUPEE}{Number(row.price || 0).toLocaleString("en-IN")}
-                  <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">Qty {row.qty}</span>
+                  <span className={`ml-2 text-xs font-normal ${desktop ? "text-gray-500 dark:text-gray-400" : "text-app-muted"}`}>Qty {row.qty}</span>
                 </p>
                 {row.available ? (
-                  <p className="text-[12px] text-wh-success">In Stock</p>
+                  <p className={desktop ? "text-[12px] text-wh-success" : "text-[11px] font-medium text-[#2E7D32]"}>In Stock</p>
                 ) : (
-                  <p className="text-[12px] font-medium text-wh-deal">{row.message || "Currently unavailable"}</p>
+                  <p className={desktop ? "text-[12px] font-medium text-wh-deal" : "text-[11px] font-medium text-[#D32F2F]"}>{row.message || "Currently unavailable"}</p>
                 )}
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px]">
                   <button
                     type="button"
                     disabled={!row.available || busyId === row.id}
                     onClick={() => moveToCart(row)}
-                    className="rounded-full border border-[#FCD200] bg-wh-cta px-3 py-1 font-medium text-wh-text hover:bg-wh-cta-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-wh-brand"
+                    className={desktop
+                      ? "rounded-full border border-[#FCD200] bg-wh-cta px-3 py-1 font-medium text-wh-text hover:bg-wh-cta-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-wh-brand"
+                      : "rounded-lg border-[1.2px] border-app-brown px-3 py-1 text-[11.5px] font-bold text-app-brown disabled:cursor-not-allowed disabled:border-[#BDB5AE] disabled:text-[#BDB5AE]"}
                   >
                     Move to Cart
                   </button>
@@ -189,7 +191,9 @@ export default function SavedForLater({ variant = "mobile", className = "" }) {
                     type="button"
                     disabled={busyId === row.id}
                     onClick={() => remove(row)}
-                    className="text-wh-link hover:text-wh-link-hover hover:underline disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-wh-brand"
+                    className={desktop
+                      ? "text-wh-link hover:text-wh-link-hover hover:underline disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-wh-brand"
+                      : "text-[11.5px] font-medium text-[#222222] disabled:opacity-50 dark:text-gray-300"}
                   >
                     Remove
                   </button>

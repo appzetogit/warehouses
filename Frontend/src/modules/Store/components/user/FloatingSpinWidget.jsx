@@ -46,7 +46,7 @@ export default function FloatingSpinWidget({ onOpenSpin }) {
 
   return (
     <div
-      className="group/spin fixed bottom-[calc(142px+env(safe-area-inset-bottom))] right-3 lg:bottom-8 lg:left-8 lg:right-auto z-40 select-none lg:animate-float"
+      className="group/spin fixed max-lg:in-data-filter-bar:hidden bottom-[calc(142px+env(safe-area-inset-bottom))] right-3 lg:bottom-8 lg:left-8 lg:right-auto z-40 select-none lg:animate-float"
       onMouseEnter={() => setCollapsed(false)}
       onFocus={() => setCollapsed(false)}
     >

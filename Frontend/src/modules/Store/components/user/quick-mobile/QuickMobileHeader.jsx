@@ -134,7 +134,7 @@ function EtaBlock() {
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-wh-success" />
             </span>
             {distanceKm != null ? (
-              <span className="rounded-full bg-[#E6F4F1] px-2 py-0.5 text-[11px] font-bold text-[#0F766E]">
+              <span className="rounded-full bg-app-tint px-2 py-0.5 text-[11px] font-bold text-app-brown">
                 {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`} away
               </span>
             ) : null}

@@ -4,12 +4,14 @@ import { toast } from "sonner"
 import {
   AlertCircle,
   ArrowLeft,
+  Banknote,
   CalendarDays,
   Check,
   Copy,
   CreditCard,
   ExternalLink,
   FileText,
+  Headphones,
   HelpCircle,
   Loader2,
   MapPin,
@@ -18,12 +20,29 @@ import {
   RotateCcw,
   Store,
   Truck,
+  Wallet,
   XCircle,
 } from "lucide-react"
 import { orderAPI } from "@store/api"
 import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
 import { useBusinessSettings } from "@store/components/user/desktop/useDesktopShell"
+import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
 import CancelOrderSheet, { canCancelOrder } from "@store/components/user/orders/CancelOrderSheet"
+import {
+  AddressCard,
+  BillSummaryCard,
+  BOTTOM_BAR_PAD,
+  CancelLink,
+  CardLinkRow,
+  DetailCard,
+  ItemDetailCard,
+  ORDER_PAGE_BG,
+  OrderBottomBar,
+  OrderIdCard,
+  OrderTopBar,
+  SectionHeading,
+  StatusTimelineCard,
+} from "@store/components/user/orders/OrderDetailCards"
 import CompletePaymentCard from "@store/components/user/CompletePaymentCard"
 import OrderItemsReviewPanel from "@store/components/user/reviews/OrderItemsReviewPanel"
 import OrderReturnsSection from "./OrderReturnsSection"
@@ -42,6 +61,7 @@ import {
   shopStatusLabel,
   shopTimeline,
   storeNameOf,
+  totalLabel,
   variantText,
 } from "@store/utils/shopOrderFlow"
 
@@ -171,53 +191,217 @@ export function PriceRows({ order, totalText = "Order total" }) {
   )
 }
 
-function StatusBanner({ order }) {
+/** What the status banner says: its tone, headline and one line of detail. */
+function statusSummary(order) {
   const status = String(order?.orderStatus || "")
   const label = shopStatusLabel(order)
   const store = storeNameOf(order) || "the store"
-  const cancelled = isCancelledStatus(status)
-  const refund = shopRefund(order)
-  const cash = String(order?.payment?.method || "") === "cash"
-  const charged = !cash && status !== "pending_payment" && isOrderPaid(order)
+  const delivered = status === "delivered"
 
-  if (cancelled) {
+  if (isCancelledStatus(status)) {
+    const refund = shopRefund(order)
+    const cash = String(order?.payment?.method || "") === "cash"
+    const charged = !cash && status !== "pending_payment" && isOrderPaid(order)
+    return {
+      tone: "cancelled",
+      label,
+      reason: order?.cancellationReason || "",
+      text:
+        refund.state === "processed"
+          ? `Refund of ${rupees(refund.amount)} completed${refund.at ? ` on ${dateOnly(refund.at)}` : ""}. ${refundWhereText(order, { done: true })}`
+          : refund.state === "pending"
+            ? `Refund of ${rupees(refund.amount)} started${refund.at ? ` on ${dateOnly(refund.at)}` : ""}. ${refundWhereText(order)}`
+            : refund.state === "failed"
+              ? `Your refund of ${rupees(refund.amount)} is delayed. Our team will process it, and we'll let you know once it's done.`
+              : !charged
+                ? "Nothing was charged, so there's nothing to refund."
+                : `The amount you paid will be refunded. ${refundWhereText(order)}`,
+    }
+  }
+
+  return {
+    tone: delivered ? "delivered" : "progress",
+    label,
+    reason: "",
+    text:
+      status === "created"
+        ? `Waiting for ${store} to confirm your order. We'll notify you as soon as they do.`
+        : status === "pending_payment"
+          ? "Complete the payment to send this order to the store."
+          : delivered
+            ? `Delivered${order?.deliveredAt ? ` on ${dateOnly(order.deliveredAt)}` : ""}. Enjoy your purchase!`
+            : `${store} is getting your order to you.`,
+  }
+}
+
+function StatusBanner({ order }) {
+  const { tone, label, reason, text } = statusSummary(order)
+
+  if (tone === "cancelled") {
     return (
       <section className="rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-5 dark:border-red-900/50 dark:bg-red-950/30">
         <p className="flex items-center gap-2 text-[17px] font-bold text-red-700 dark:text-red-300">
           <AlertCircle className="h-5 w-5" aria-hidden="true" /> {label}
         </p>
-        {order.cancellationReason ? <p className="mt-1 text-[13px] text-red-800 dark:text-red-200">Reason: {order.cancellationReason}</p> : null}
-        <p className="mt-2 text-[13px] text-wh-text">
-          {refund.state === "processed"
-            ? `Refund of ${rupees(refund.amount)} completed${refund.at ? ` on ${dateOnly(refund.at)}` : ""}. ${refundWhereText(order, { done: true })}`
-            : refund.state === "pending"
-              ? `Refund of ${rupees(refund.amount)} started${refund.at ? ` on ${dateOnly(refund.at)}` : ""}. ${refundWhereText(order)}`
-              : refund.state === "failed"
-                ? `Your refund of ${rupees(refund.amount)} is delayed. Our team will process it, and we'll let you know once it's done.`
-                : !charged
-                  ? "Nothing was charged, so there's nothing to refund."
-                  : `The amount you paid will be refunded. ${refundWhereText(order)}`}
-        </p>
+        {reason ? <p className="mt-1 text-[13px] text-red-800 dark:text-red-200">Reason: {reason}</p> : null}
+        <p className="mt-2 text-[13px] text-wh-text">{text}</p>
       </section>
     )
   }
 
-  const delivered = status === "delivered"
+  const delivered = tone === "delivered"
   return (
     <section
       className={`rounded-2xl p-4 text-white sm:p-5 ${delivered ? "bg-green-600" : "bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316]"}`}
     >
       <p className="text-[18px] font-bold">{label}</p>
-      <p className="mt-1 text-[13px] text-white/90">
-        {status === "created"
-          ? `Waiting for ${store} to confirm your order. We'll notify you as soon as they do.`
-          : status === "pending_payment"
-            ? "Complete the payment to send this order to the store."
-            : delivered
-              ? `Delivered${order.deliveredAt ? ` on ${dateOnly(order.deliveredAt)}` : ""}. Enjoy your purchase!`
-              : `${store} is getting your order to you.`}
-      </p>
+      <p className="mt-1 text-[13px] text-white/90">{text}</p>
     </section>
+  )
+}
+
+/**
+ * Phone layout (below lg), after the customer app's order details screen.
+ * Same data and actions as the desktop layout; only the look differs.
+ */
+function ShopOrderPhone({ order, id, range, shipment, store, canCancel, delivered, onBack, onCancel, onCopyAwb, onPaid }) {
+  const items = order.items || []
+  const first = items[0]
+  const more = items.length - 1
+  const qty = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
+  const summary = statusSummary(order)
+  const address = order.deliveryAddress || order.address || {}
+  const cash = String(order?.payment?.method || "").toLowerCase() === "cash"
+  const rows = priceRows(order).map(([label, value, zero]) => ({
+    label,
+    value: value === 0 && zero ? zero : value < 0 ? `− ${rupees(-value)}` : rupees(value),
+    tone: value < 0 || (value === 0 && zero) ? "save" : undefined,
+  }))
+  const steps = shopTimeline(order).map((step) => ({ ...step, bad: step.key === "cancelled" }))
+
+  return (
+    <div className={`min-h-screen ${ORDER_PAGE_BG} font-app ${BOTTOM_BAR_PAD}`}>
+      <OrderTopBar title="Order Details" onBack={onBack} />
+
+      <div className="mx-auto max-w-2xl space-y-3 px-4 pt-3">
+        <CompletePaymentCard order={order} onPaid={onPaid} />
+
+        <OrderIdCard
+          orderNo={order.order_id || id}
+          image={first?.image ? resolveMediaUrl(first.image) : ""}
+          title={first ? (more > 0 ? `${first.name} + ${more} more` : first.name) : ""}
+          meta={[`Qty: ${qty}`, first ? variantText(first) : ""].filter(Boolean).join("  |  ")}
+          chip={paymentMethodLabel(order)}
+          chipIcon={cash ? Banknote : Wallet}
+          footer={
+            <span className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 shrink-0 text-app-brown" aria-hidden="true" />
+              <span className="min-w-0">
+                Placed on {dateOnly(order.createdAt)}
+                {store ? ` · Sold by ${store}` : ""}
+              </span>
+            </span>
+          }
+        />
+
+        <StatusTimelineCard tone={summary.tone} title={summary.label} subtitle={summary.text} steps={steps}>
+          {summary.reason ? (
+            <p className="rounded-xl bg-[#FFF0F2] px-3.5 py-2.5 text-[12.5px] text-[#9F1239]">Reason: {summary.reason}</p>
+          ) : null}
+          {range ? (
+            <div className="rounded-xl bg-[#F7F2EC] px-3.5 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-app-muted">Expected delivery</p>
+              <p className="mt-0.5 text-[14px] font-bold text-app-brown">{arrivalText(range)}</p>
+              {!shipment?.etd ? <p className="mt-0.5 text-[11.5px] text-app-muted">We'll update this once the courier picks it up.</p> : null}
+            </div>
+          ) : null}
+        </StatusTimelineCard>
+
+        {shipment?.awb ? (
+          <DetailCard className="space-y-3 p-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-app-tint-strong text-app-brown">
+                <Truck className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-bold text-app-ink">{shipment.courierName || "Courier partner"}</p>
+                <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-app-muted">
+                  Tracking no. <span className="font-mono text-app-ink">{shipment.awb}</span>
+                  <button type="button" onClick={onCopyAwb} aria-label="Copy tracking number" className="rounded p-1 text-app-ink hover:bg-app-tint-strong">
+                    <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                </p>
+              </div>
+            </div>
+            {shipment.trackingUrl ? (
+              <CardLinkRow href={shipment.trackingUrl} icon={ExternalLink}>
+                Track on the courier's site
+              </CardLinkRow>
+            ) : null}
+          </DetailCard>
+        ) : null}
+
+        <SectionHeading title="Item Details" aside={store ? `Sold by ${store}` : `${items.length} ${items.length === 1 ? "item" : "items"}`} />
+        {items.map((item, i) => {
+          const n = Number(item.quantity) || 1
+          return (
+            <ItemDetailCard
+              key={`${item.itemId || item.name}-${i}`}
+              image={item.image ? resolveMediaUrl(item.image) : ""}
+              name={item.name}
+              variant={variantText(item)}
+              qty={n}
+              price={rupees((Number(item.price) || 0) * n)}
+            />
+          )
+        })}
+
+        {delivered ? (
+          <>
+            {/* Return or replace (the orders list links here with #returns) */}
+            <div id="returns" className="-mx-4 scroll-mt-20">
+              <OrderReturnsSection order={order} />
+            </div>
+            <OrderItemsReviewPanel order={order} />
+          </>
+        ) : null}
+
+        <SectionHeading title="Bill Summary" />
+        <BillSummaryCard
+          rows={rows}
+          totalLabel={totalLabel(order)}
+          total={rupees(order?.pricing?.total)}
+          footer={
+            <p className="flex items-center gap-2 border-t border-app-line px-4 py-3 text-[12.5px] text-app-muted">
+              <CreditCard className="h-4 w-4 text-app-brown" aria-hidden="true" />
+              {paymentMethodLabel(order)}
+            </p>
+          }
+        />
+
+        <SectionHeading title="Delivery Address" />
+        <AddressCard
+          icon={MapPin}
+          name={address.fullName || address.name}
+          lines={[
+            [address.street, address.additionalDetails].filter(Boolean).join(", "),
+            `${[address.city, address.state].filter(Boolean).join(", ")}${address.zipCode ? ` ${address.zipCode}` : ""}`.trim(),
+          ]}
+          phone={address.phone}
+        />
+
+        {canCancel ? <CancelLink onClick={onCancel} note="You can cancel until your order leaves the store." /> : null}
+      </div>
+
+      <OrderBottomBar
+        className="lg:hidden"
+        actions={[
+          delivered ? { key: "reorder", label: "Reorder", icon: RotateCcw, to: reorderPath(order) } : null,
+          { key: "invoice", label: "View Invoice", icon: FileText, to: `/orders/${id}/invoice` },
+          { key: "help", label: "Get Help", icon: Headphones, to: `/help/orders/${id}`, tone: "help" },
+        ]}
+      />
+    </div>
   )
 }
 
@@ -234,6 +418,8 @@ export default function ShopOrderDetails({ initialOrder = null }) {
   const [loading, setLoading] = useState(!initialOrder)
   const [error, setError] = useState("")
   const [cancelling, setCancelling] = useState(false)
+  // Phones get the app-style layout; lg and up keep the two-column page.
+  const isDesktop = useIsDesktop()
 
   const load = useCallback(
     async (quiet = false) => {
@@ -317,13 +503,48 @@ export default function ShopOrderDetails({ initialOrder = null }) {
     }
   }
 
+  const goBack = () => (window.history.length > 1 ? navigate(-1) : navigate("/orders"))
+
+  const cancelSheet = cancelling ? (
+    <CancelOrderSheet
+      order={order}
+      onClose={() => setCancelling(false)}
+      onCancelled={(updated) => {
+        setCancelling(false)
+        setOrder((prev) => ({ ...prev, ...(updated && typeof updated === "object" ? updated : {}) }))
+        load(true)
+      }}
+    />
+  ) : null
+
+  if (!isDesktop) {
+    return (
+      <>
+        <ShopOrderPhone
+          order={order}
+          id={id}
+          range={range}
+          shipment={shipment}
+          store={store}
+          canCancel={canCancel}
+          delivered={delivered}
+          onBack={goBack}
+          onCancel={() => setCancelling(true)}
+          onCopyAwb={copyAwb}
+          onPaid={() => load()}
+        />
+        {cancelSheet}
+      </>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-wh-page pb-24 lg:pb-12">
       <div className="mx-auto max-w-6xl px-4 py-4 lg:py-8">
         <header className="mb-4 flex items-start gap-3">
           <button
             type="button"
-            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/orders"))}
+            onClick={goBack}
             aria-label="Back"
             className="mt-0.5 rounded-full p-1.5 text-wh-text hover:bg-wh-surface"
           >
@@ -448,17 +669,7 @@ export default function ShopOrderDetails({ initialOrder = null }) {
         </div>
       </div>
 
-      {cancelling ? (
-        <CancelOrderSheet
-          order={order}
-          onClose={() => setCancelling(false)}
-          onCancelled={(updated) => {
-            setCancelling(false)
-            setOrder((prev) => ({ ...prev, ...(updated && typeof updated === "object" ? updated : {}) }))
-            load(true)
-          }}
-        />
-      ) : null}
+      {cancelSheet}
     </div>
   )
 }

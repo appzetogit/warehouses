@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
-import AuthShell, { secondaryBtn } from "@store/components/user/auth/AuthShell"
+import { AlertCircle, CheckCircle2, Loader2, User } from "lucide-react"
+import AppAuthShell, { primaryBtn, fieldBox, errorLine } from "@store/components/user/auth/AppAuthShell"
 import apiClient, { authAPI } from "@store/api"
 import { setAuthData as setUserAuthData } from "@store/utils/auth"
 import { resolveDeviceFcmToken, registerWebPushForCurrentModule } from "@store/utils/firebaseMessaging"
@@ -319,14 +319,14 @@ export default function OTP() {
   if (!authData) return null
 
   const box =
-    "h-16 w-14 rounded-2xl border-2 bg-white text-center text-[28px] font-bold text-gray-900 shadow-[0_8px_20px_rgba(0,0,0,0.15)] outline-none transition focus:border-[#7C2D12] disabled:opacity-60"
+    "h-[60px] w-[58px] rounded-2xl border-[1.8px] bg-white text-center text-[22px] font-bold text-app-ink caret-app-brown outline-none transition focus:border-app-brown focus:shadow-[0_3px_10px_rgba(88,50,29,0.15)] disabled:opacity-60"
 
   return (
-    <AuthShell
-      title={showNameInput ? "One Last Step" : "Verify Your Number"}
+    <AppAuthShell
+      title={showNameInput ? "One last step" : "Verify OTP 🔒"}
       subtitle={showNameInput ? "Tell us what to call you" : `Enter the 4-digit code sent to ${contactInfo}`}
       onBack={() => navigate("/auth/login")}
-      footer={<p className="text-[11px] text-white/75">{companyName} keeps your number private.</p>}
+      footer={<p className="text-[11.5px]">{companyName} keeps your number private.</p>}
     >
       <AnimatePresence mode="wait">
         {!showNameInput ? (
@@ -335,9 +335,9 @@ export default function OTP() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            className="mt-auto space-y-5 pb-2"
+            className="space-y-6 pt-2"
           >
-            <div className="flex justify-center gap-3" role="group" aria-label="Verification code">
+            <div className="flex justify-center gap-3.5" role="group" aria-label="Verification code">
               {otp.map((digit, index) => (
                 <input
                   key={index}
@@ -355,13 +355,13 @@ export default function OTP() {
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={index === 0 ? handlePaste : undefined}
                   disabled={isLoading || success}
-                  className={`${box} ${digit ? "border-white" : "border-transparent"}`}
+                  className={`${box} ${digit ? "border-app-brown/60" : "border-app-line"}`}
                 />
               ))}
             </div>
 
             {error ? (
-              <p role="alert" className="flex items-center justify-center gap-1.5 rounded-xl bg-black/20 px-3 py-2 text-[13px] font-semibold">
+              <p role="alert" className={errorLine}>
                 <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {error}
               </p>
@@ -371,25 +371,28 @@ export default function OTP() {
               type="button"
               onClick={() => handleVerify()}
               disabled={isLoading || success || otp.some((d) => !d)}
-              className={secondaryBtn}
+              className={primaryBtn}
             >
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : success ? <CheckCircle2 className="h-5 w-5 text-green-600" aria-hidden="true" /> : null}
-              {success ? "Verified" : isLoading ? "Verifying…" : "Verify"}
+              {isLoading ? <Loader2 className="h-[22px] w-[22px] animate-spin" aria-hidden="true" /> : success ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : null}
+              {success ? "Verified" : isLoading ? "Verifying…" : "Verify & Continue"}
             </button>
 
-            <div className="flex items-center justify-between text-[14px]">
-              <button type="button" onClick={() => navigate("/auth/login")} className="font-semibold text-white/95 underline-offset-2 hover:underline">
+            <div className="space-y-2 text-center text-[13.5px] text-[#757575]">
+              <p>
+                Didn&apos;t receive OTP?{" "}
+                {resendTimer > 0 ? (
+                  <span className="font-bold text-app-brown">
+                    Resend in <span className="tabular-nums">{resendTimer}s</span>
+                  </span>
+                ) : (
+                  <button type="button" onClick={handleResend} disabled={isLoading} className="font-bold text-app-brown underline-offset-2 hover:underline disabled:opacity-60">
+                    Resend OTP
+                  </button>
+                )}
+              </p>
+              <button type="button" onClick={() => navigate("/auth/login")} className="font-semibold text-app-brown underline-offset-2 hover:underline">
                 Edit Number
               </button>
-              {resendTimer > 0 ? (
-                <span className="text-white/85">
-                  Resend Code in <span className="font-bold tabular-nums">{resendTimer}s</span>
-                </span>
-              ) : (
-                <button type="button" onClick={handleResend} disabled={isLoading} className="font-bold text-white underline-offset-2 hover:underline">
-                  Resend Code
-                </button>
-              )}
             </div>
           </motion.div>
         ) : (
@@ -401,10 +404,11 @@ export default function OTP() {
             }}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-auto space-y-4 pb-2"
+            className="space-y-3.5 pt-2"
           >
-            <label className="flex h-14 items-center overflow-hidden rounded-2xl bg-white text-gray-900 shadow-[0_8px_20px_rgba(0,0,0,0.15)] focus-within:ring-4 focus-within:ring-white/40">
+            <label className={fieldBox}>
               <span className="sr-only">Your name</span>
+              <User className="ml-4 h-5 w-5 shrink-0 text-[#757575]" aria-hidden="true" />
               <input
                 type="text"
                 autoFocus
@@ -416,22 +420,24 @@ export default function OTP() {
                 }}
                 disabled={isLoading}
                 placeholder="Your Name"
-                className="h-full w-full bg-transparent px-4 text-[16px] font-semibold placeholder:font-medium placeholder:text-gray-400 focus:outline-none"
+                className="h-full w-full bg-transparent px-3 text-[15.5px] font-semibold text-app-ink caret-app-brown placeholder:font-normal placeholder:text-[#9E9E9E] focus:outline-none"
               />
             </label>
             {nameError || error ? (
-              <p role="alert" className="flex items-center justify-center gap-1.5 rounded-xl bg-black/20 px-3 py-2 text-[13px] font-semibold">
+              <p role="alert" className={errorLine}>
                 <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {nameError || error}
               </p>
             ) : null}
-            <button type="submit" disabled={isLoading || name.trim().length < 2} className={secondaryBtn}>
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : null}
-              {isLoading ? "Saving…" : "Start Shopping"}
-            </button>
+            <div className="pt-1.5">
+              <button type="submit" disabled={isLoading || name.trim().length < 2} className={primaryBtn}>
+                {isLoading ? <Loader2 className="h-[22px] w-[22px] animate-spin" aria-hidden="true" /> : null}
+                {isLoading ? "Saving…" : "Start Shopping"}
+              </button>
+            </div>
           </motion.form>
         )}
       </AnimatePresence>
-    </AuthShell>
+    </AppAuthShell>
   )
 }

@@ -1,34 +1,45 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import {
+  Accessibility,
   ArrowLeft,
   ChevronRight,
   Wallet,
-  Tag,
-  User,
   Package,
   Heart,
-  Home,
   CreditCard,
-  Star,
-  RefreshCw,
   Bell,
   HelpCircle,
-  Settings as SettingsIcon,
   LogOut,
   Moon,
   Sun,
   Check,
   MapPin,
-  Share2,
   Coins,
+  Camera,
+  CheckCircle2,
+  FileText,
+  Gift,
+  Info,
+  Palette,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+  ShoppingBag,
+  TicketPercent,
+  Truck,
+  Undo2,
+  XCircle,
 } from "lucide-react";
 
 import AnimatedPage from "@store/components/user/AnimatedPage";
 import { resolveMediaUrl } from "@store/utils/common";
-import { Card, CardContent } from "@store/components/ui/card";
 import { Button } from "@store/components/ui/button";
+import ProfileRow, {
+  GroupCard,
+  OrderQuickLink,
+  StatCard,
+} from "@store/components/user/account/ProfileRow";
 import { useProfile } from "@store/context/ProfileContext";
 import { useLocationSelector } from "@store/components/user/UserLayout";
 import {
@@ -37,7 +48,6 @@ import {
   AvatarImage,
 } from "@store/components/ui/avatar";
 import { useCompanyName } from "@store/hooks/useCompanyName";
-import OptimizedImage from "@store/components/OptimizedImage";
 import {
   Dialog,
   DialogContent,
@@ -350,239 +360,268 @@ export default function Profile() {
     setLogoutConfirmOpen(true);
   };
 
+  const addressCount = addresses?.length || 0;
+
   return (
-    <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a]">
-      <div className="max-w-xl mx-auto px-4 py-4 pb-24">
-        {/* Header Bar */}
-        <div className="flex items-center justify-between mb-4">
-          <Link to="/" className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 transition-colors">
-            <ArrowLeft className="h-5 w-5" />
+    <AnimatedPage className="min-h-screen bg-app-cream font-app text-app-ink dark:bg-[#0a0a0a]">
+      <div className="max-w-xl mx-auto px-4 pt-4 pb-24 space-y-4">
+        {/* Title */}
+        <div className="flex items-start gap-2">
+          <Link
+            to="/"
+            aria-label="Back"
+            className="-ml-2 mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-app-ink active:bg-app-sand"
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </Link>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Account</h1>
-          <div className="w-8" />
+          <div className="min-w-0">
+            <h1 className="text-[26px] font-bold leading-tight text-app-ink">Profile</h1>
+            <p className="mt-1 text-[13px] text-app-muted">
+              Manage your account, orders &amp; preferences
+            </p>
+          </div>
         </div>
 
-        {/* Profile Card (Matching Screen 7) */}
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <Avatar className="h-14 w-14 rounded-full border-2 border-orange-100 dark:border-orange-950/40 shrink-0">
-              {userProfile?.profileImage && (
-                <AvatarImage
-                  src={resolveMediaUrl(userProfile.profileImage) || undefined}
-                  alt={displayName}
-                />
-              )}
-              <AvatarFallback className="bg-gradient-to-br from-orange-400 to-orange-600 text-white text-xl font-bold">
-                {avatarInitial}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">
-                {displayName}
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                {userProfile?.phone || displayEmail}
-              </p>
+        {/* User card */}
+        <div className="rounded-[20px] border border-app-brown/25 bg-app-tint-strong p-4">
+          <div className="flex items-center gap-3.5">
+            <Link to="/profile/edit" className="relative shrink-0" aria-label="Edit profile photo">
+              <Avatar className="h-16 w-16 rounded-full border-2 border-app-brown bg-app-brown/15">
+                {userProfile?.profileImage && (
+                  <AvatarImage
+                    src={resolveMediaUrl(userProfile.profileImage) || undefined}
+                    alt={displayName}
+                  />
+                )}
+                <AvatarFallback className="bg-app-brown/15 text-xl font-bold text-app-brown">
+                  {avatarInitial}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-app-brown text-white">
+                <Camera className="h-3 w-3" aria-hidden="true" />
+              </span>
+            </Link>
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-[18px] font-bold text-app-ink">{displayName}</h2>
+              {userProfile?.phone ? (
+                <p className="truncate text-[13px] text-app-muted">{userProfile.phone}</p>
+              ) : null}
+              {hasValidEmail ? (
+                <p className="truncate text-[13px] text-app-muted">{displayEmail}</p>
+              ) : null}
+              {!isComplete ? (
+                <p className="mt-1 text-[11.5px] font-medium text-app-brown">
+                  Profile {profileCompletion}% complete
+                </p>
+              ) : null}
             </div>
           </div>
-
           <Link
             to="/profile/edit"
-            className="shrink-0 text-xs sm:text-sm font-semibold text-orange-500 hover:text-orange-600 dark:text-orange-400 px-3 py-1.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
+            className="mt-3.5 flex h-[38px] w-full items-center justify-center rounded-xl border border-app-brown text-[13px] font-semibold text-app-brown active:bg-app-brown/10"
           >
             Edit Profile
           </Link>
         </div>
 
-        {/* 4 Quick-Action Cards (Matching Screen 7) */}
-        <div className="grid grid-cols-4 gap-2.5 sm:gap-3.5 mb-5">
-          <Link
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            icon={Wallet}
+            label="Wallet"
+            value={`₹${walletBalance.toFixed(2)}`}
+            to="/wallet"
+          />
+          <StatCard
+            icon={TicketPercent}
+            label="Coupons"
+            value="View offers"
+            to="/profile/coupons"
+          />
+          <StatCard
+            icon={Package}
+            label="Orders"
+            value="Track & reorder"
             to="/orders"
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all text-center group"
-          >
-            <div className="h-11 w-11 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-1.5 text-orange-500 group-hover:scale-110 transition-transform">
-              <Package className="h-5 w-5" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200">
-              My Orders
-            </span>
-          </Link>
-
-          <Link
-            to="/profile/favorites"
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all text-center group"
-          >
-            <div className="h-11 w-11 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-1.5 text-orange-500 group-hover:scale-110 transition-transform">
-              <Heart className="h-5 w-5" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200">
-              Wishlist
-            </span>
-          </Link>
-
-          <button
-            type="button"
+          />
+          <StatCard
+            icon={MapPin}
+            label="Saved Addresses"
+            value={addressCount > 0 ? `${addressCount} saved` : "Add address"}
             onClick={openLocationSelector}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all text-center group"
-          >
-            <div className="h-11 w-11 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-1.5 text-orange-500 group-hover:scale-110 transition-transform">
-              <MapPin className="h-5 w-5" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200">
-              Addresses
-            </span>
-          </button>
-
-          <Link
-            to="/user/wallet"
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 shadow-sm hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all text-center group"
-          >
-            <div className="h-11 w-11 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center mb-1.5 text-orange-500 group-hover:scale-110 transition-transform">
-              <Wallet className="h-5 w-5" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-semibold text-gray-800 dark:text-gray-200">
-              Wallet
-            </span>
-          </Link>
+          />
         </div>
 
-        {/* Menu List (Matching Screen 7) */}
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800/80 overflow-hidden mb-4">
-          <button
-            type="button"
-            onClick={openLocationSelector}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
-          >
-            <div className="flex items-center gap-3.5">
-              <Home className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              <div>
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                  My Addresses
-                </span>
-                {addresses?.length > 0 && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {addresses.length} saved address{addresses.length > 1 ? "es" : ""}
-                  </p>
-                )}
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-          </button>
-
-          <Link
-            to="/profile/payments"
-            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
-          >
-            <div className="flex items-center gap-3.5">
-              <CreditCard className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                Payment Methods
-              </span>
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-          </Link>
-
-          <Link
-            to="/coins"
-            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
-          >
-            <div className="flex items-center gap-3.5">
-              <Coins className="h-5 w-5 text-amber-500" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                Coins &amp; Rewards
-              </span>
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-          </Link>
-
-          <Link
-            to="/orders"
-            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
-          >
-            <div className="flex items-center gap-3.5">
-              <RefreshCw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                Returns &amp; Exchanges
-              </span>
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-          </Link>
-
-          <Link
+        {/* Preferences */}
+        <GroupCard title="Preferences">
+          <ProfileRow
+            icon={Bell}
+            title="Notifications"
+            subtitle="Order updates & alerts"
             to="/notifications"
-            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
-          >
-            <div className="flex items-center gap-3.5">
-              <Bell className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                Notifications
-              </span>
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-          </Link>
-
-          <Link
-            to="/profile/support"
-            className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
-          >
-            <div className="flex items-center gap-3.5">
-              <HelpCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                Help &amp; Support
-              </span>
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-          </Link>
-
-          <button
-            type="button"
+          />
+          <ProfileRow
+            icon={Palette}
+            title="Appearance"
+            subtitle={`Theme: ${appearance === "dark" ? "Dark" : "Light"}`}
             onClick={() => setAppearanceOpen(true)}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors text-left"
-          >
-            <div className="flex items-center gap-3.5">
-              <SettingsIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              <div>
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Settings
-                </span>
-                <p className="text-xs text-gray-400 capitalize">
-                  Appearance: {appearance}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-          </button>
+          />
+          <ProfileRow
+            icon={Heart}
+            title="Favorites"
+            subtitle="Your saved products"
+            to="/profile/favorites"
+          />
+          <ProfileRow
+            icon={MapPin}
+            title="My Addresses"
+            subtitle={savedAddressSummary}
+            onClick={openLocationSelector}
+          />
+          <ProfileRow
+            icon={CreditCard}
+            title="Payment Methods"
+            subtitle="Saved cards & UPI"
+            to="/profile/payments"
+          />
+        </GroupCard>
 
-          <button
-            type="button"
-            onClick={handleLogoutClick}
-            className="w-full flex items-center justify-between p-4 hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-colors text-left group"
-          >
-            <div className="flex items-center gap-3.5 text-red-500 group-hover:text-red-600">
-              <LogOut className="h-5 w-5" />
-              <span className="text-sm font-bold">
-                Log Out
-              </span>
-            </div>
-            <ChevronRight className="h-4 w-4 text-red-400" />
-          </button>
-        </div>
+        <MarketingPushToggle />
 
-        {/* Marketing toggle & extra settings */}
-        <div className="space-y-3">
-          <MarketingPushToggle />
-          <button
-            type="button"
-            onClick={() => setDeleteModalOpen(true)}
-            className="w-full text-center text-xs text-gray-400 hover:text-red-500 py-2 transition-colors"
-          >
-            Delete Account
-          </button>
-        </div>
+        {/* My Orders */}
+        <section
+          aria-label="My Orders"
+          className="rounded-2xl bg-white p-4 shadow-[0_2px_10px_rgba(0,0,0,0.06)]"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-[16px] font-bold text-app-ink">My Orders</h2>
+            <Link
+              to="/orders"
+              className="flex items-center text-[12.5px] font-semibold text-app-brown"
+            >
+              View All Orders
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+          <div className="mt-4 flex justify-around">
+            <OrderQuickLink icon={ShoppingBag} label="Upcoming" to="/orders" />
+            <OrderQuickLink icon={CheckCircle2} label="Completed" to="/orders" tone="ok" />
+            <OrderQuickLink icon={XCircle} label="Cancelled" to="/orders" tone="danger" />
+            <OrderQuickLink icon={Undo2} label="Returns" to="/orders" />
+          </div>
+        </section>
+
+        {/* Rewards */}
+        <GroupCard title="Rewards">
+          <ProfileRow
+            icon={Coins}
+            title="Coins"
+            subtitle="Balance, history & expiring coins"
+            to="/coins"
+          />
+          <ProfileRow
+            icon={TicketPercent}
+            title="Offers & Coupons"
+            subtitle="Coupons you can use right now"
+            to="/profile/coupons"
+          />
+          <ProfileRow
+            icon={RotateCcw}
+            title="Order Again"
+            subtitle="Re-buy items from past orders"
+            to="/order-again"
+          />
+          <ProfileRow
+            icon={Gift}
+            title="Refer & Earn"
+            subtitle={
+              referralReward > 0
+                ? `Earn ₹${referralReward} for every friend`
+                : "Share with friends"
+            }
+            to="/profile/refer-earn"
+          />
+        </GroupCard>
+
+        {/* Help & Legal */}
+        <GroupCard title="Help & Legal">
+          <ProfileRow
+            icon={HelpCircle}
+            title="Help & Support"
+            subtitle="FAQs, order refund status & support"
+            to="/profile/support"
+          />
+          <ProfileRow
+            icon={ShieldCheck}
+            title="Privacy Policy"
+            subtitle={`How ${companyName} handles your data`}
+            to="/profile/privacy"
+          />
+          <ProfileRow
+            icon={FileText}
+            title="Terms & Conditions"
+            subtitle="The terms you agree to when ordering"
+            to="/profile/terms"
+          />
+          <ProfileRow
+            icon={Info}
+            title={`About ${companyName}`}
+            subtitle="App version & who we are"
+            to="/profile/about"
+          />
+          <ProfileRow
+            icon={Undo2}
+            title="Refund Policy"
+            subtitle="How refunds and returns work"
+            to="/profile/refund"
+          />
+          <ProfileRow
+            icon={Truck}
+            title="Shipping Policy"
+            subtitle="Delivery times and charges"
+            to="/profile/shipping"
+          />
+          <ProfileRow
+            icon={XCircle}
+            title="Cancellation Policy"
+            subtitle="When you can cancel an order"
+            to="/profile/cancellation"
+          />
+          <ProfileRow
+            icon={Accessibility}
+            title="Accessibility"
+            subtitle="Our accessibility commitment"
+            to="/profile/accessibility"
+          />
+          <ProfileRow
+            icon={ShieldAlert}
+            title="Report a Safety Emergency"
+            subtitle="Tell us if something went wrong"
+            to="/profile/report-safety-emergency"
+          />
+        </GroupCard>
+
+        {/* Log out */}
+        <button
+          type="button"
+          onClick={handleLogoutClick}
+          disabled={isLoggingOut}
+          className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-app-line bg-white py-4 text-[15px] font-bold text-[#B3261E] active:bg-app-alt disabled:opacity-60"
+        >
+          <LogOut className="h-5 w-5" aria-hidden="true" />
+          Log Out
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setDeleteModalOpen(true)}
+          className="w-full py-1 text-center text-xs text-app-muted hover:text-[#B3261E] transition-colors"
+        >
+          Delete Account
+        </button>
       </div>
 
-
-{/* Logout Confirmation Popup */}
+      {/* Logout Confirmation Popup */}
       {logoutConfirmOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#1a1a1a] p-5 shadow-2xl border border-gray-200 dark:border-gray-800">
@@ -604,7 +643,7 @@ export default function Profile() {
               </Button>
               <Button
                 type="button"
-                className="flex-1 rounded-xl bg-wh-brand hover:bg-[#D6005E] text-wh-text"
+                className="flex-1 rounded-xl bg-app-brown hover:bg-app-brown-deep text-white"
                 onClick={() => {
                   setLogoutConfirmOpen(false);
                   handleLogout();
@@ -636,12 +675,12 @@ export default function Profile() {
                 setAppearanceOpen(false);
               }}
               className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${appearance === "light"
-                  ? "border-blue-600 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20"
+                  ? "border-app-brown bg-app-tint-strong dark:border-app-brown-mid dark:bg-app-brown/20"
                   : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                 }`}>
               <div
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${appearance === "light"
-                    ? "border-blue-600 bg-blue-600 dark:border-blue-500 dark:bg-blue-500"
+                    ? "border-app-brown bg-app-brown dark:border-app-brown-mid dark:bg-app-brown-mid"
                     : "border-gray-300 dark:border-gray-600"
                   }`}>
                 {appearance === "light" && (
@@ -664,12 +703,12 @@ export default function Profile() {
                 setAppearanceOpen(false);
               }}
               className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${appearance === "dark"
-                  ? "border-blue-600 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                  ? "border-app-brown bg-app-tint-strong dark:border-app-brown-mid dark:bg-app-brown/20"
                   : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                 }`}>
               <div
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${appearance === "dark"
-                    ? "border-blue-600 bg-blue-600 dark:border-blue-500 dark:bg-blue-500"
+                    ? "border-app-brown bg-app-brown dark:border-app-brown-mid dark:bg-app-brown-mid"
                     : "border-gray-300 dark:border-gray-600"
                   }`}>
                 {appearance === "dark" && (

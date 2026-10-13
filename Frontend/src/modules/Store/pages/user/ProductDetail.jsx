@@ -640,7 +640,7 @@ export default function ProductDetail() {
               <Button
                 onClick={handleAddToCart}
                 disabled={(!isAvailable || notInThisStore) && missingOptions.length === 0}
-                className="flex-1 py-3.5 px-8 rounded-2xl bg-[#0D9488] hover:bg-[#0F766E] text-white font-extrabold shadow-lg shadow-teal-600/25 transition-all text-sm flex items-center justify-center gap-2"
+                className="flex-1 py-3.5 px-8 rounded-2xl bg-app-brown hover:bg-app-brown-deep text-white font-extrabold shadow-lg shadow-[#58321D]/25 transition-all text-sm flex items-center justify-center gap-2"
               >
                 <ShoppingBag className="w-5 h-5" />
                 {notInThisStore ? `Not available in ${CHANNEL_COPY[channel].label}` : (isAvailable ? "Add to Cart" : "Currently Out of Stock")}
