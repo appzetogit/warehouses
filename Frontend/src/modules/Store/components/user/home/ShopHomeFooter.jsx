@@ -77,7 +77,7 @@ export default function ShopHomeFooter() {
           </div>
         ) : null}
       </div>
-      <div className="bg-app-ink px-5 py-5 text-center">
+      <div className="bg-app-ink px-5 pt-5 pb-[calc(20px+68px+env(safe-area-inset-bottom))] text-center md:pb-5">
         <p className="text-[15px] font-bold text-white">{brandName}</p>
         <p className="mt-1 text-[11.5px] text-[#A8A29E]">
           © {year} {brandName}. All rights reserved.

@@ -204,6 +204,17 @@ export default function UserLayout() {
   const location = useLocation()
   const [isSpinWheelOpen, setIsSpinWheelOpen] = useState(false)
 
+  // The page behind the shop is cream like the app, so pulling past the top or
+  // bottom on a phone (and the space under the tab bar) never shows white.
+  useEffect(() => {
+    const { style } = document.body
+    const prev = style.backgroundColor
+    style.backgroundColor = "var(--app-cream)"
+    return () => {
+      style.backgroundColor = prev
+    }
+  }, [])
+
   // Anything can open the wheel — the Quick rewards banner, say — without a
   // route of its own: dispatch "wh:open-spin".
   useEffect(() => {
@@ -238,7 +249,7 @@ export default function UserLayout() {
     storeMode === "quick" || /\/product\/|\/cart(\/|$)|^\/orders|\/wishlist$|^\/profile\/favorites|\/sellers(\/|$)/.test(normalizedPath)
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-app-cream lg:bg-[#f5f5f5] dark:bg-[#0a0a0a] transition-colors duration-200">
       <CartProvider key={storeMode} mode={storeMode}>
         <AutoCouponController />
         <ProfileProvider>
@@ -269,7 +280,7 @@ export default function UserLayout() {
                   {/* Room for the phone's tab bar, which floats over the page. */}
                   {/* clip, not hidden: hidden makes <main> a scroll container and
                       every sticky bar inside a page stops sticking. */}
-                  <main className={`w-full min-w-0 max-w-full overflow-x-clip ${normalizedPath.startsWith("/auth/") ? "" : "pb-[calc(68px+env(safe-area-inset-bottom))] md:pb-0"}`}>
+                  <main className={`w-full min-w-0 max-w-full overflow-x-clip ${normalizedPath.startsWith("/auth/") || /^\/(quick|shop)?\/?$/.test(normalizedPath) ? "" : "pb-[calc(68px+env(safe-area-inset-bottom))] md:pb-0"}`}>
                     <PageErrorBoundary resetKey={location.pathname}>
                       <Outlet />
                     </PageErrorBoundary>
