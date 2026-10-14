@@ -8,3 +8,6 @@ temp_interactive_push.bat
 # Local QA scratch (in-memory Mongo + throwaway env)
 Backend/.qa.env
 Backend/.qa-mem-mongo.mjs
+
+# Private server access & project notes (never commit)
+SERVER_NOTES.md
