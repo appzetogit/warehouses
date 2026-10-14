@@ -1572,6 +1572,38 @@ export default function SellerOnboarding() {
 
 
 
+  // Field name -> what to ask the seller to choose again.
+  const FILE_FIELD_LABELS = {
+    profileImage: "store photo",
+    coverImage: "cover photo",
+    galleryImages: "store gallery photo",
+    menuImages: "menu photo",
+    panImage: "PAN card photo",
+    gstImage: "GST certificate",
+    fssaiImage: "FSSAI licence",
+  }
+
+  // A copy of the form with every file read into memory, so the upload can't be
+  // cut off by a file the browser can no longer read.
+  const readAllFilesNow = async (formData) => {
+    const ready = new FormData()
+    for (const [name, value] of formData.entries()) {
+      if (typeof File !== "undefined" && value instanceof File) {
+        let bytes
+        try {
+          bytes = await value.arrayBuffer()
+        } catch {
+          const label = FILE_FIELD_LABELS[name] || "photo"
+          throw new Error(`We couldn't read the ${label} you chose. Please choose the ${label} again and submit.`)
+        }
+        ready.append(name, new File([bytes], value.name || `${name}.jpg`, { type: value.type || "image/jpeg" }))
+      } else {
+        ready.append(name, value)
+      }
+    }
+    return ready
+  }
+
   const handleFinalSubmit = async () => {
     const formData = new FormData()
     formData.append('sellerName', step1.sellerName || '')
@@ -1640,8 +1672,12 @@ export default function SellerOnboarding() {
     setRegistrationProcessing(true)
     const loadingToast = toast.loading('Submitting onboarding request...')
     try {
-      await sellerAPI.register(formData)
-      toast.dismiss(loadingToast)
+      // Photos picked in earlier steps are read now, before sending: on iPhones
+      // a photo chosen minutes ago can no longer be read, and the browser then
+      // sends a cut-off upload ("Unexpected end of form"). This finds it first
+      // and asks for that photo again.
+      const ready = await readAllFilesNow(formData)
+      await sellerAPI.register(ready)
       clearOnboardingFromLocalStorage()
       clearOnboardingFileCache()
       try {
@@ -1653,6 +1689,7 @@ export default function SellerOnboarding() {
         state: { phone: normalizePhoneDigits(step1.ownerPhone) },
       })
     } finally {
+      toast.dismiss(loadingToast)
       setRegistrationProcessing(false)
     }
   }

@@ -103,7 +103,21 @@ const uploadFields = upload.fields([
     { name: 'galleryImages', maxCount: 10 }
 ]);
 
-router.post('/register', uploadFields, registerSellerController);
+/**
+ * A multipart body that stops early (a phone that can no longer read a photo
+ * picked minutes ago, or a dropped connection) makes the parser throw
+ * "Unexpected end of form". That is the shopper's upload, not a server fault:
+ * answer 400 with something they can act on instead of a bare 500.
+ */
+const withUploadErrors = (middleware) => (req, res, next) =>
+    middleware(req, res, (err) => {
+        if (err && /unexpected end of form|multipart/i.test(String(err.message || ''))) {
+            return sendError(res, 400, 'The upload was cut off before it finished. Please choose your photos again and submit.');
+        }
+        return next(err);
+    });
+
+router.post('/register', withUploadErrors(uploadFields), registerSellerController);
 router.post('/onboarding-fee/order', createOnboardingFeeOrderController);
 router.post('/unregistered', registerUnregisteredSellerController);
 router.post('/upload-attachment', upload.single('file'), uploadSellerAttachmentController);
