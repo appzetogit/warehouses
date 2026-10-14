@@ -48,11 +48,11 @@ function Column({ title, children }) {
 
 const FLink = ({ to, children }) => (
   <li>
-    <Link to={to} className="transition-colors hover:text-[#ea580c]">{children}</Link>
+    <Link to={to} className="transition-colors hover:text-[#0D9488]">{children}</Link>
   </li>
 )
 
-/** Storefront footer: a white card on the brand orange, as on the old thewarehousess.com. */
+/** Storefront footer: a white card on teal (was the old site's orange). */
 export default function DesktopFooter() {
   const { storePath } = useStoreMode()
   const { settings, brandName, supportEmail, supportPhone } = useBusinessSettings()
@@ -65,7 +65,7 @@ export default function DesktopFooter() {
   const footerCategories = categories.filter((c) => c.parentId).slice(0, 6)
 
   return (
-    <footer className="wh-desktop mt-8 bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316] px-3 pt-8 sm:px-5 sm:pt-10">
+    <footer className="wh-desktop mt-8 bg-gradient-to-r from-[#0F766E] via-[#0D9488] to-[#14B8A6] px-3 pt-8 sm:px-5 sm:pt-10">
       <div className="mx-auto max-w-[1500px] rounded-2xl bg-white px-6 py-8 shadow-lg sm:px-10 sm:py-10">
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.6fr] lg:gap-10">
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
@@ -86,7 +86,7 @@ export default function DesktopFooter() {
                       rel="noopener noreferrer"
                       aria-label={`${brandName} on ${label}`}
                       title={label}
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-wh-brand-50 text-[#ea580c] hover:bg-[#ea580c] hover:text-white"
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F0FDFA] text-[#0D9488] hover:bg-[#0D9488] hover:text-white"
                     >
                       {Icon ? <Icon className="h-[18px] w-[18px]" aria-hidden="true" /> : <span className="text-[12px] font-bold">{label.charAt(0)}</span>}
                     </a>
@@ -122,17 +122,17 @@ export default function DesktopFooter() {
             <h2 className="mb-4 font-display text-[18px] font-semibold text-wh-text">Get in Touch</h2>
             <ul className="space-y-4 text-[15px] text-gray-700">
               <li className="flex gap-3">
-                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#ea580c]" aria-hidden="true" />
+                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#0D9488]" aria-hidden="true" />
                 <span>{address}</span>
               </li>
               <li>
-                <a href={`tel:${phone.replace(/[\s-]+/g, "")}`} className="flex items-center gap-3 hover:text-[#ea580c]">
-                  <Phone className="h-5 w-5 shrink-0 text-[#ea580c]" aria-hidden="true" /> {phone}
+                <a href={`tel:${phone.replace(/[\s-]+/g, "")}`} className="flex items-center gap-3 hover:text-[#0D9488]">
+                  <Phone className="h-5 w-5 shrink-0 text-[#0D9488]" aria-hidden="true" /> {phone}
                 </a>
               </li>
               <li>
-                <a href={`mailto:${email}`} className="flex items-center gap-3 break-all hover:text-[#ea580c]">
-                  <Mail className="h-5 w-5 shrink-0 text-[#ea580c]" aria-hidden="true" /> {email}
+                <a href={`mailto:${email}`} className="flex items-center gap-3 break-all hover:text-[#0D9488]">
+                  <Mail className="h-5 w-5 shrink-0 text-[#0D9488]" aria-hidden="true" /> {email}
                 </a>
               </li>
             </ul>
