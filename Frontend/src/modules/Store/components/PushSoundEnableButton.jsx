@@ -26,13 +26,15 @@ export default function PushSoundEnableButton() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMobile, setIsMobile] = useState(() => isMobileDevice());
-  const isAdminRoute = location.pathname.startsWith("/admin");
+  // Only riders need it (new-order alert sound). Shoppers are not shown this
+  // card; the browser asks them itself if the site requests notifications.
+  const isRiderRoute = /^\/(food\/)?delivery(\/|$)/.test(location.pathname);
   const shouldShowPrompt = useMemo(() => {
     if (isMobile) return false;
-    if (isAdminRoute) return false;
+    if (!isRiderRoute) return false;
     if (permission === "denied") return false;
     return permission !== "granted" || !enabled;
-  }, [enabled, isAdminRoute, isMobile, permission]);
+  }, [enabled, isRiderRoute, isMobile, permission]);
 
   useEffect(() => {
     const syncState = () => {
