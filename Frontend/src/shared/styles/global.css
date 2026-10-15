@@ -326,6 +326,11 @@
 #root .wh-desktop *:not(.font-app-display):not(.font-app-display *) {
   font-family: 'Poppins', Arial, sans-serif !important;
 }
+/* The app's serif display headings win over that injected module font too. */
+#root .font-app-display,
+#root .font-app-display * {
+  font-family: var(--font-app-display) !important;
+}
 .wh-desktop :focus-visible {
   outline: 2px solid var(--wh-brand);
   outline-offset: 2px;

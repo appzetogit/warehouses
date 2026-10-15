@@ -4,12 +4,12 @@ import mongoose from 'mongoose';
  * Default wheel segments configured with reward amounts and probability weights.
  */
 export const DEFAULT_SPIN_SEGMENTS = [
-    { id: 1, label: '10 Coins', type: 'coins', value: 10, color: '#f59e0b', weight: 35 },
-    { id: 2, label: '25 Coins', type: 'coins', value: 25, color: '#8b5cf6', weight: 20 },
-    { id: 3, label: 'Better Luck', type: 'none', value: 0, color: '#6b7280', weight: 15 },
-    { id: 4, label: '50 Coins', type: 'coins', value: 50, color: '#10b981', weight: 10 },
-    { id: 5, label: '5 Coins', type: 'coins', value: 5, color: '#3b82f6', weight: 18 },
-    { id: 6, label: '100 Coins 🌟', type: 'coins', value: 100, color: '#ec4899', weight: 2 },
+    { id: 1, label: '10 Coins', type: 'coins', value: 10, color: '#58321D', weight: 35 },
+    { id: 2, label: '25 Coins', type: 'coins', value: 25, color: '#E9C19A', weight: 20 },
+    { id: 3, label: 'Better Luck', type: 'none', value: 0, color: '#A15C35', weight: 15 },
+    { id: 4, label: '50 Coins', type: 'coins', value: 50, color: '#F8F1EA', weight: 10 },
+    { id: 5, label: '5 Coins', type: 'coins', value: 5, color: '#3A2619', weight: 18 },
+    { id: 6, label: '100 Coins 🌟', type: 'coins', value: 100, color: '#D8A577', weight: 2 },
 ];
 
 const spinCampaignSchema = new mongoose.Schema(

@@ -4,7 +4,7 @@ import { toast } from "sonner"
 import { spinAdminAPI } from "@store/api"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@store/components/ui/dialog"
 
-const PALETTE = ["#f59e0b", "#8b5cf6", "#6b7280", "#10b981", "#3b82f6", "#ec4899", "#ef4444", "#14b8a6"]
+const PALETTE = ["#58321D", "#E9C19A", "#A15C35", "#F8F1EA", "#3A2619", "#D8A577", "#7A4A2C", "#F1E4D6"]
 
 const blankSegment = (i = 0) => ({ label: "", type: "coins", value: 10, weight: 10, color: PALETTE[i % PALETTE.length] })
 

@@ -8,13 +8,32 @@ import { spinAPI } from "@store/api"
 import { isModuleAuthenticated } from "@store/utils/auth"
 
 const DEFAULT_SEGMENTS = [
-  { id: 1, label: "10 Coins", type: "coins", value: 10, color: "#f59e0b" },
-  { id: 2, label: "25 Coins", type: "coins", value: 25, color: "#8b5cf6" },
-  { id: 3, label: "Better Luck", type: "none", value: 0, color: "#64748b" },
-  { id: 4, label: "50 Coins", type: "coins", value: 50, color: "#10b981" },
-  { id: 5, label: "5 Coins", type: "coins", value: 5, color: "#3b82f6" },
-  { id: 6, label: "100 Coins 🌟", type: "coins", value: 100, color: "#ec4899" },
+  { id: 1, label: "10 Coins", type: "coins", value: 10, color: "#58321D" },
+  { id: 2, label: "25 Coins", type: "coins", value: 25, color: "#E9C19A" },
+  { id: 3, label: "Better Luck", type: "none", value: 0, color: "#A15C35" },
+  { id: 4, label: "50 Coins", type: "coins", value: 50, color: "#F8F1EA" },
+  { id: 5, label: "5 Coins", type: "coins", value: 5, color: "#3A2619" },
+  { id: 6, label: "100 Coins 🌟", type: "coins", value: 100, color: "#D8A577" },
 ]
+
+// The wheel's slices in the app palette. Slices still on the old built-in
+// colours (bright amber, violet, …) take these by position; colours an
+// admin picked themselves are kept.
+const APP_SLICES = ["#58321D", "#E9C19A", "#A15C35", "#F8F1EA", "#3A2619", "#D8A577", "#7A4A2C", "#F1E4D6"]
+const LEGACY_SLICES = new Set(
+  ["#f59e0b", "#8b5cf6", "#6b7280", "#64748b", "#10b981", "#3b82f6", "#ec4899", "#ef4444", "#14b8a6"]
+)
+const sliceColor = (seg, i) => {
+  const c = String(seg?.color || "").toLowerCase()
+  return !c || LEGACY_SLICES.has(c) ? APP_SLICES[i % APP_SLICES.length] : seg.color
+}
+// Dark text on light slices, white on dark ones.
+const isLight = (hex) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || "")
+  if (!m) return false
+  const n = parseInt(m[1], 16)
+  return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 160
+}
 
 /** Play gentle synthetic mechanical click */
 function playTick() {
@@ -176,7 +195,7 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
           particleCount: 90,
           spread: 80,
           origin: { y: 0.6 },
-          colors: ["#f59e0b", "#10b981", "#8b5cf6", "#ec4899", "#ef4444"],
+          colors: ["#58321D", "#A15C35", "#E9C19A", "#F8F1EA", "#3A2619"],
         })
 
         if (isAuthenticatedUser) {
@@ -204,30 +223,30 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="relative w-full max-w-md overflow-hidden rounded-3xl bg-gradient-to-b from-gray-900 via-gray-950 to-black p-6 border-2 border-amber-500/40 shadow-2xl text-white text-center"
+          className="relative w-full max-w-md overflow-hidden rounded-3xl bg-gradient-to-b from-app-brown via-app-brown-deep to-app-brown-darker p-6 border-2 border-app-champagne/40 shadow-2xl text-white text-center font-app"
         >
           {/* Ambient Corner Glow */}
-          <div className="absolute -top-16 -left-16 w-36 h-36 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-16 -right-16 w-36 h-36 bg-orange-500/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -top-16 -left-16 w-36 h-36 bg-app-champagne/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -right-16 w-36 h-36 bg-app-brown-mid/30 rounded-full blur-3xl pointer-events-none" />
 
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white transition cursor-pointer z-30"
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-app-champagne/80 hover:text-white transition cursor-pointer z-30"
           >
             <X className="w-5 h-5" />
           </button>
 
           {/* Title badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 mb-2 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold tracking-wide uppercase shadow-inner">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin [animation-duration:5s]" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 mb-2 rounded-full bg-app-champagne/15 border border-app-champagne/30 text-app-champagne text-xs font-bold tracking-wide uppercase shadow-inner">
+            <Sparkles className="w-3.5 h-3.5 text-app-champagne animate-spin [animation-duration:5s]" />
             Daily Lucky Wheel
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent">
+          <h2 className="font-app-display text-[34px] sm:text-[40px] font-bold leading-tight text-app-champagne">
             Spin & Win Coins
           </h2>
-          <p className="text-xs text-gray-300 mt-1 mb-5">
+          <p className="text-xs text-app-cream/80 mt-1 mb-5">
             Win free coins to get instant discounts on apparel & grocery orders!
           </p>
 
@@ -240,13 +259,13 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
               }`}
             >
               <div
-                className="w-7 h-9 bg-gradient-to-b from-yellow-300 to-amber-500 shadow-xl drop-shadow-[0_0_12px_rgba(245,158,11,0.9)] border-t border-white"
+                className="w-7 h-9 bg-gradient-to-b from-app-cream to-app-champagne shadow-xl drop-shadow-[0_0_10px_rgba(233,193,154,0.8)] border-t border-white"
                 style={{ clipPath: "polygon(50% 100%, 0 0, 100% 0)" }}
               />
             </div>
 
             {/* Glowing outer aura ring */}
-            <div className="absolute inset-0 rounded-full border-4 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.4)] animate-pulse pointer-events-none" />
+            <div className="absolute inset-0 rounded-full border-4 border-app-champagne/60 shadow-[0_0_30px_rgba(233,193,154,0.35)] animate-pulse pointer-events-none" />
 
             {/* SVG Wheel */}
             <motion.div
@@ -277,8 +296,8 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
                       <g key={seg.id || i}>
                         <path
                           d={pathData}
-                          fill={seg.color || "#3b82f6"}
-                          stroke="#0f172a"
+                          fill={sliceColor(seg, i)}
+                          stroke="#2A1A11"
                           strokeWidth="2.5"
                         />
                         <g transform={`rotate(${midAngle}) translate(${radius * 0.65}, 0)`}>
@@ -286,11 +305,11 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
                             transform="rotate(90)"
                             textAnchor="middle"
                             alignmentBaseline="middle"
-                            fill="#ffffff"
+                            fill={isLight(sliceColor(seg, i)) ? "#2A180E" : "#ffffff"}
                             fontSize="11"
-                            fontWeight="800"
+                            fontWeight="700"
+                            fontFamily="Poppins, sans-serif"
                             letterSpacing="0.02em"
-                            style={{ filter: "drop-shadow(0px 1px 3px rgba(0,0,0,0.9))" }}
                           >
                             {seg.label}
                           </text>
@@ -303,11 +322,11 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
             </motion.div>
 
             {/* Center Spin Button / Hub */}
-            <div className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 border-2 border-white shadow-2xl flex items-center justify-center z-20">
+            <div className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-gradient-to-br from-app-cream via-app-champagne to-app-brown-mid border-2 border-white shadow-2xl flex items-center justify-center z-20">
               <button
                 onClick={handleSpin}
                 disabled={isSpinning || !canSpin}
-                className="w-full h-full rounded-full flex flex-col items-center justify-center text-[11px] font-black uppercase tracking-tight text-gray-950 transition hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed shadow-inner"
+                className="w-full h-full rounded-full flex flex-col items-center justify-center text-[11px] font-black uppercase tracking-tight text-app-brown-ink transition hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed shadow-inner"
               >
                 {isSpinning ? "..." : "SPIN"}
               </button>
@@ -319,15 +338,15 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
             <motion.div
               initial={{ opacity: 0, scale: 0.85, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="p-4 mb-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-500/50 text-center shadow-lg"
+              className="p-4 mb-4 rounded-2xl bg-app-champagne/10 border border-app-champagne/45 text-center shadow-lg"
             >
               {wonResult.type === "coins" && wonResult.value > 0 ? (
                 <div>
                   <div className="text-3xl mb-1">🎁</div>
-                  <div className="font-extrabold text-amber-300 text-lg">
+                  <div className="font-app-display font-bold text-app-champagne text-2xl">
                     You Won {wonResult.value} Coins!
                   </div>
-                  <p className="text-xs text-gray-200 mt-1 mb-3">
+                  <p className="text-xs text-app-cream/85 mt-1 mb-3">
                     {isGuest
                       ? "Sign in to save these coins to your wallet and get discounts!"
                       : "Added directly to your coin balance. Use at checkout!"}
@@ -339,7 +358,7 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
                         onClose()
                         navigate("/auth/login")
                       }}
-                      className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-gray-950 font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 transition cursor-pointer"
+                      className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-app-champagne text-app-brown-ink font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 transition cursor-pointer"
                     >
                       <LogIn className="w-3.5 h-3.5" />
                       Sign in to Claim Coins
@@ -350,8 +369,8 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
               ) : (
                 <div>
                   <div className="text-2xl mb-1">☘️</div>
-                  <div className="font-bold text-gray-200">Better Luck Next Time!</div>
-                  <div className="text-xs text-gray-400 mt-1">
+                  <div className="font-bold text-app-cream">Better Luck Next Time!</div>
+                  <div className="text-xs text-app-cream/70 mt-1">
                     Come back tomorrow for another guaranteed free spin!
                   </div>
                 </div>
@@ -360,20 +379,22 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
           )}
 
           {/* Footer Info */}
-          <div className="flex items-center justify-between text-xs text-gray-300 pt-3 border-t border-white/10">
+          <div className="flex items-center justify-between text-xs text-app-cream/85 pt-3 border-t border-app-champagne/20">
             <div className="flex items-center gap-1.5 font-medium">
-              <Coins className="w-4 h-4 text-amber-400" />
+              <Coins className="w-4 h-4 text-app-champagne" />
               <span>
                 Balance:{" "}
-                <strong className="text-amber-300">
+                <strong className="text-app-champagne">
                   {isGuest ? "0 (Guest)" : `${coinBalance} Coins`}
                 </strong>
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-gray-400" />
-              <span className={canSpin ? "text-emerald-400 font-semibold" : "text-gray-400"}>
-                {canSpin ? "1 Free Spin Ready" : "Resets Tomorrow"}
+              <Clock className="w-3.5 h-3.5 text-app-cream/60" />
+              <span className={canSpin ? "text-app-champagne font-semibold" : "text-app-cream/60"}>
+                {canSpin
+                  ? `${spinsRemaining > 1 ? spinsRemaining : 1} Free Spin${spinsRemaining > 1 ? "s" : ""} Ready`
+                  : "Resets Tomorrow"}
               </span>
             </div>
           </div>
