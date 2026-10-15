@@ -42,8 +42,8 @@ export default function Payments() {
   }
 
   return (
-    <AnimatedPage className="min-h-screen bg-gradient-to-b from-yellow-50/30 via-white to-orange-50/20 p-4 sm:p-6 md:p-8 lg:p-10">
-      <div className="max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 lg:space-y-10">
+    <AnimatedPage className="min-h-screen bg-gradient-to-b from-yellow-50/30 via-white to-orange-50/20 p-4 sm:p-6 md:p-8 lg:p-10 lg:bg-none lg:bg-app-cream lg:font-app">
+      <div className="max-w-4xl md:max-w-5xl lg:max-w-4xl xl:max-w-4xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 lg:space-y-10">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
           <div>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold">Payment Methods</h1>

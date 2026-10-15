@@ -38,7 +38,7 @@ function Line({ items }) {
     <span className="flex shrink-0 items-center">
       {items.map((m) => (
         <Fragment key={m}>
-          <span className="whitespace-nowrap text-[12px] font-semibold text-app-ink">{m}</span>
+          <span className="whitespace-nowrap text-[12px] font-semibold text-app-ink lg:text-[13.5px]">{m}</span>
           <span className="px-4 text-[14px] leading-none text-[#E08A2E]">★</span>
         </Fragment>
       ))}
@@ -53,7 +53,7 @@ export default function ServiceMarquee({ storeCount = 0 }) {
   // line fills the screen. About 27px a second, as in the app.
   const seconds = Math.max(12, Math.round(3 * (items.join("").length * 0.27 + items.length * 1.2)))
   return (
-    <section aria-label="Why shop with us" className="mx-1.5 h-9 overflow-hidden font-app">
+    <section aria-label="Why shop with us" className="mx-1.5 h-9 overflow-hidden font-app lg:mx-0 lg:h-11 lg:rounded-full lg:bg-app-sand/60">
       <ul className="sr-only">
         {items.map((m) => (
           <li key={m}>{m}</li>

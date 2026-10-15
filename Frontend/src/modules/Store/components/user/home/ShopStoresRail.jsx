@@ -8,7 +8,7 @@ import AppSectionHeading from "./AppSectionHeading"
  * The app's store cards (shop_home_screen.dart _StoreCard), 242×255: a cover
  * with a soft shade and the store's logo, then its name, locality, how many
  * products it lists here and "Explore Store". No "verified" chip: the store
- * records carry no such flag.
+ * records carry no such flag. From lg the rail is a grid of four (five from xl).
  */
 
 const localityOf = (s) => {
@@ -28,9 +28,9 @@ function StoreCard({ store, productCount }) {
   return (
     <Link
       to={storePath(`/sellers/${slug}`)}
-      className="flex h-[255px] w-[242px] shrink-0 flex-col overflow-hidden rounded-[20px] border border-app-line bg-white shadow-[0_4px_14px_rgba(25,20,17,0.06)] active:scale-[0.97]"
+      className="flex h-[255px] w-[242px] shrink-0 flex-col overflow-hidden rounded-[20px] border border-app-line bg-white shadow-[0_4px_14px_rgba(25,20,17,0.06)] active:scale-[0.97] lg:h-[275px] lg:w-auto lg:transition-shadow lg:hover:shadow-[0_8px_22px_rgba(25,20,17,0.12)]"
     >
-      <span className="relative block h-[138px] shrink-0 bg-app-alt">
+      <span className="relative block h-[138px] shrink-0 bg-app-alt lg:h-[150px]">
         {cover ? (
           <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover" />
         ) : (
@@ -93,7 +93,7 @@ export default function ShopStoresRail({ stores = [], products = [], title }) {
   return (
     <section aria-label={title} className="font-app">
       <AppSectionHeading title={title} />
-      <div className="flex gap-3.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-3.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] lg:grid lg:grid-cols-4 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 xl:grid-cols-5 [&::-webkit-scrollbar]:hidden">
         {stores.map((s) => (
           <StoreCard key={s._id} store={s} productCount={counts.get(String(s._id)) || 0} />
         ))}

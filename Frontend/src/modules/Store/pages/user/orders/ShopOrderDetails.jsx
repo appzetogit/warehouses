@@ -6,22 +6,18 @@ import {
   ArrowLeft,
   Banknote,
   CalendarDays,
-  Check,
   Copy,
   CreditCard,
   ExternalLink,
   FileText,
   Headphones,
-  HelpCircle,
   Loader2,
   MapPin,
   Package,
   RefreshCw,
   RotateCcw,
-  Store,
   Truck,
   Wallet,
-  XCircle,
 } from "lucide-react"
 import { orderAPI } from "@store/api"
 import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
@@ -67,33 +63,31 @@ import {
 
 const POLL_MS = 30 * 1000
 
-const dateTime = (d) =>
-  d ? new Date(d).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : ""
 const dateOnly = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "")
 
 /** Photo, name, size/colour, quantity and price of each line. */
 export function ShopItemList({ items = [] }) {
   return (
-    <ul className="divide-y divide-wh-border">
+    <ul className="divide-y divide-app-line">
       {items.map((item, i) => {
         const variant = variantText(item)
         const qty = Number(item.quantity) || 1
         const src = item.image ? resolveMediaUrl(item.image) : ""
         return (
           <li key={`${item.itemId || item.name}-${i}`} className="flex gap-3 py-3 first:pt-0 last:pb-0">
-            <span className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg border border-wh-border bg-wh-page">
+            <span className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg border border-app-line bg-app-alt">
               {src ? (
                 <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
               ) : (
-                <Package className="absolute inset-0 m-auto h-6 w-6 text-wh-muted" aria-hidden="true" />
+                <Package className="absolute inset-0 m-auto h-6 w-6 text-app-muted" aria-hidden="true" />
               )}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="line-clamp-2 text-[14px] font-medium text-wh-text">{item.name}</span>
-              {variant ? <span className="mt-0.5 block text-[12px] text-wh-muted">{variant}</span> : null}
-              <span className="mt-1 block text-[12px] text-wh-muted">Qty {qty}</span>
+              <span className="line-clamp-2 text-[14px] font-medium text-app-ink">{item.name}</span>
+              {variant ? <span className="mt-0.5 block text-[12px] text-app-muted">{variant}</span> : null}
+              <span className="mt-1 block text-[12px] text-app-muted">Qty {qty}</span>
             </span>
-            <span className="shrink-0 text-[14px] font-semibold text-wh-text">{rupees((Number(item.price) || 0) * qty)}</span>
+            <span className="shrink-0 text-[14px] font-semibold text-app-ink">{rupees((Number(item.price) || 0) * qty)}</span>
           </li>
         )
       })}
@@ -106,66 +100,15 @@ export function ShopAddressBlock({ address = {} }) {
   const name = address.fullName || address.name
   const line2 = [address.city, address.state].filter(Boolean).join(", ")
   return (
-    <div className="text-[13px] leading-relaxed text-wh-text">
+    <div className="text-[13px] leading-relaxed text-app-ink">
       {name ? <p className="font-semibold">{name}</p> : null}
       <p>{[address.street, address.additionalDetails].filter(Boolean).join(", ")}</p>
       <p>
         {line2}
         {address.zipCode ? ` ${address.zipCode}` : ""}
       </p>
-      {address.phone ? <p className="mt-1 text-wh-muted">Phone: {address.phone}</p> : null}
+      {address.phone ? <p className="mt-1 text-app-muted">Phone: {address.phone}</p> : null}
     </div>
-  )
-}
-
-const Card = ({ title, icon: Icon, children, className = "" }) => (
-  <section className={`rounded-2xl border border-wh-border bg-wh-surface p-4 sm:p-5 ${className}`}>
-    {title ? (
-      <h2 className="mb-3 flex items-center gap-2 text-[15px] font-bold text-wh-text">
-        {Icon ? <Icon className="h-4 w-4 text-wh-muted" aria-hidden="true" /> : null}
-        {title}
-      </h2>
-    ) : null}
-    {children}
-  </section>
-)
-
-function Timeline({ steps }) {
-  return (
-    <ol className="relative" aria-label="Order progress">
-      {steps.map((step, i) => {
-        const last = i === steps.length - 1
-        const bad = step.key === "cancelled"
-        const nextDone = !last && steps[i + 1].done
-        return (
-          <li key={step.key} className="relative flex gap-3 pb-5 last:pb-0">
-            {!last ? (
-              <span
-                aria-hidden="true"
-                className={`absolute left-[11px] top-6 h-[calc(100%-24px)] w-[2px] ${nextDone ? (steps[i + 1].key === "cancelled" ? "bg-red-300" : "bg-green-600") : "bg-wh-border"}`}
-              />
-            ) : null}
-            <span
-              className={`relative z-[1] flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                bad ? "bg-red-600 text-white" : step.done ? "bg-green-600 text-white" : "border-2 border-wh-border bg-wh-surface"
-              }`}
-            >
-              {bad ? <XCircle className="h-4 w-4" aria-hidden="true" /> : step.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" /> : null}
-            </span>
-            <span className="min-w-0 pt-0.5">
-              <span
-                className={`block text-[14px] ${
-                  step.current ? (bad ? "font-bold text-red-700" : "font-bold text-wh-text") : step.done ? "font-medium text-wh-text" : "text-wh-muted"
-                }`}
-              >
-                {step.label}
-              </span>
-              {step.at ? <span className="block text-[12px] text-wh-muted">{dateTime(step.at)}</span> : null}
-            </span>
-          </li>
-        )
-      })}
-    </ol>
   )
 }
 
@@ -177,13 +120,13 @@ export function PriceRows({ order, totalText = "Order total" }) {
     <div className="space-y-1.5 text-[13px]">
       {rows.map(([label, value, zero]) => (
         <div key={label} className="flex justify-between gap-3">
-          <span className="text-wh-muted">{label}</span>
-          <span className={value < 0 ? "text-green-700" : "text-wh-text"}>
+          <span className="text-app-muted">{label}</span>
+          <span className={value < 0 ? "text-app-ok" : "text-app-ink"}>
             {value === 0 && zero ? zero : value < 0 ? `− ${rupees(-value)}` : rupees(value)}
           </span>
         </div>
       ))}
-      <div className="mt-2 flex justify-between border-t border-wh-border pt-2 text-[15px] font-bold text-wh-text">
+      <div className="mt-2 flex justify-between border-t border-app-line pt-2 text-[15px] font-bold text-app-ink">
         <span>{totalText}</span>
         <span>{rupees(p.total)}</span>
       </div>
@@ -232,32 +175,6 @@ function statusSummary(order) {
             ? `Delivered${order?.deliveredAt ? ` on ${dateOnly(order.deliveredAt)}` : ""}. Enjoy your purchase!`
             : `${store} is getting your order to you.`,
   }
-}
-
-function StatusBanner({ order }) {
-  const { tone, label, reason, text } = statusSummary(order)
-
-  if (tone === "cancelled") {
-    return (
-      <section className="rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-5 dark:border-red-900/50 dark:bg-red-950/30">
-        <p className="flex items-center gap-2 text-[17px] font-bold text-red-700 dark:text-red-300">
-          <AlertCircle className="h-5 w-5" aria-hidden="true" /> {label}
-        </p>
-        {reason ? <p className="mt-1 text-[13px] text-red-800 dark:text-red-200">Reason: {reason}</p> : null}
-        <p className="mt-2 text-[13px] text-wh-text">{text}</p>
-      </section>
-    )
-  }
-
-  const delivered = tone === "delivered"
-  return (
-    <section
-      className={`rounded-2xl p-4 text-white sm:p-5 ${delivered ? "bg-green-600" : "bg-gradient-to-r from-[#d95d08] via-[#ea580c] to-[#f97316]"}`}
-    >
-      <p className="text-[18px] font-bold">{label}</p>
-      <p className="mt-1 text-[13px] text-white/90">{text}</p>
-    </section>
-  )
 }
 
 /**
@@ -418,7 +335,7 @@ export default function ShopOrderDetails({ initialOrder = null }) {
   const [loading, setLoading] = useState(!initialOrder)
   const [error, setError] = useState("")
   const [cancelling, setCancelling] = useState(false)
-  // Phones get the app-style layout; lg and up keep the two-column page.
+  // Phones get the single-column app layout; lg and up lay the same cards out in two columns.
   const isDesktop = useIsDesktop()
 
   const load = useCallback(
@@ -462,7 +379,7 @@ export default function ShopOrderDetails({ initialOrder = null }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-wh-page text-wh-muted">
+      <div className={`flex min-h-[60vh] items-center justify-center ${ORDER_PAGE_BG} text-app-brown`}>
         <Loader2 className="h-6 w-6 animate-spin" aria-label="Loading your order" />
       </div>
     )
@@ -470,14 +387,14 @@ export default function ShopOrderDetails({ initialOrder = null }) {
 
   if (error || !order) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 bg-wh-page px-4 text-center">
-        <AlertCircle className="h-8 w-8 text-red-500" aria-hidden="true" />
-        <p className="text-[15px] font-semibold text-wh-text">{error || "Order not found"}</p>
+      <div className={`flex min-h-[60vh] flex-col items-center justify-center gap-3 ${ORDER_PAGE_BG} px-4 text-center font-app`}>
+        <AlertCircle className="h-8 w-8 text-[#E11D48]" aria-hidden="true" />
+        <p className="text-[15px] font-semibold text-app-ink">{error || "Order not found"}</p>
         <div className="flex gap-2">
-          <button type="button" onClick={() => load()} className="flex items-center gap-1.5 rounded-lg border border-wh-border px-4 py-2 text-[13px] font-semibold text-wh-text">
+          <button type="button" onClick={() => load()} className="flex items-center gap-1.5 rounded-xl border border-app-line bg-white px-4 py-2 text-[13px] font-semibold text-app-brown hover:bg-app-tint">
             <RefreshCw className="h-4 w-4" aria-hidden="true" /> Try again
           </button>
-          <Link to="/orders" className="rounded-lg bg-wh-brand px-4 py-2 text-[13px] font-semibold text-wh-brand-ink">
+          <Link to="/orders" className="rounded-xl bg-app-brown px-4 py-2 text-[13px] font-semibold text-white hover:bg-app-brown-deep">
             My orders
           </Link>
         </div>
@@ -538,75 +455,122 @@ export default function ShopOrderDetails({ initialOrder = null }) {
     )
   }
 
+  // Desktop (lg+): the phone's cards, laid out in two columns.
+  const items = order.items || []
+  const first = items[0]
+  const more = items.length - 1
+  const qty = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
+  const summary = statusSummary(order)
+  const address = order.deliveryAddress || order.address || {}
+  const cash = String(order?.payment?.method || "").toLowerCase() === "cash"
+  const billRows = priceRows(order).map(([label, value, zero]) => ({
+    label,
+    value: value === 0 && zero ? zero : value < 0 ? `− ${rupees(-value)}` : rupees(value),
+    tone: value < 0 || (value === 0 && zero) ? "save" : undefined,
+  }))
+  const steps = shopTimeline(order).map((step) => ({ ...step, bad: step.key === "cancelled" }))
+  const sideButton =
+    "flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown"
+
   return (
-    <div className="min-h-screen bg-wh-page pb-24 lg:pb-12">
-      <div className="mx-auto max-w-6xl px-4 py-4 lg:py-8">
-        <header className="mb-4 flex items-start gap-3">
+    <div className={`min-h-screen ${ORDER_PAGE_BG} pb-12 font-app`}>
+      <div className="mx-auto max-w-6xl px-8 py-8">
+        <header className="mb-6 flex items-start gap-3">
           <button
             type="button"
             onClick={goBack}
             aria-label="Back"
-            className="mt-0.5 rounded-full p-1.5 text-wh-text hover:bg-wh-surface"
+            className="mt-1 flex h-10 w-10 items-center justify-center rounded-full text-app-ink hover:bg-app-tint-strong"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-[18px] font-bold text-wh-text lg:text-[22px]">Order {order.order_id || ""}</h1>
-            <p className="text-[12px] text-wh-muted">
-              Placed on {dateOnly(order.createdAt)}
+            <h1 className="font-app-display text-[34px] font-bold leading-tight text-app-brown-deep">Order Details</h1>
+            <p className="text-[13px] text-app-muted">
+              Order {order.order_id || ""} · Placed on {dateOnly(order.createdAt)}
               {store ? ` · Sold by ${store}` : ""}
             </p>
           </div>
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
-          <div className="space-y-4">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="min-w-0 space-y-4">
             <CompletePaymentCard order={order} onPaid={() => load()} />
-            <StatusBanner order={order} />
 
-            <Card title="Order status" icon={Truck}>
-              <Timeline steps={shopTimeline(order)} />
-            </Card>
+            <OrderIdCard
+              orderNo={order.order_id || id}
+              image={first?.image ? resolveMediaUrl(first.image) : ""}
+              title={first ? (more > 0 ? `${first.name} + ${more} more` : first.name) : ""}
+              meta={[`Qty: ${qty}`, first ? variantText(first) : ""].filter(Boolean).join("  |  ")}
+              chip={paymentMethodLabel(order)}
+              chipIcon={cash ? Banknote : Wallet}
+              footer={
+                <span className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 shrink-0 text-app-brown" aria-hidden="true" />
+                  <span className="min-w-0">
+                    Placed on {dateOnly(order.createdAt)}
+                    {store ? ` · Sold by ${store}` : ""}
+                  </span>
+                </span>
+              }
+            />
+
+            <StatusTimelineCard tone={summary.tone} title={summary.label} subtitle={summary.text} steps={steps}>
+              {summary.reason ? (
+                <p className="rounded-xl bg-[#FFF0F2] px-3.5 py-2.5 text-[12.5px] text-[#9F1239]">Reason: {summary.reason}</p>
+              ) : null}
+            </StatusTimelineCard>
 
             {shipment?.awb ? (
-              <Card title="Courier" icon={Truck}>
-                <div className="flex flex-wrap items-center justify-between gap-3">
+              <DetailCard className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-app-tint-strong text-app-brown">
+                    <Truck className="h-5 w-5" aria-hidden="true" />
+                  </span>
                   <div className="min-w-0">
-                    <p className="text-[14px] font-semibold text-wh-text">{shipment.courierName || "Courier partner"}</p>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-wh-muted">
-                      Tracking no. <span className="font-mono text-wh-text">{shipment.awb}</span>
-                      <button type="button" onClick={copyAwb} aria-label="Copy tracking number" className="rounded p-1 hover:bg-wh-page">
-                        <Copy className="h-3.5 w-3.5" />
+                    <p className="text-[14px] font-bold text-app-ink">{shipment.courierName || "Courier partner"}</p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-app-muted">
+                      Tracking no. <span className="font-mono text-app-ink">{shipment.awb}</span>
+                      <button type="button" onClick={copyAwb} aria-label="Copy tracking number" className="rounded p-1 text-app-ink hover:bg-app-tint-strong">
+                        <Copy className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                     </p>
                   </div>
-                  {shipment.trackingUrl ? (
-                    <a
-                      href={shipment.trackingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 rounded-lg bg-wh-brand px-4 py-2 text-[13px] font-bold text-wh-brand-ink"
-                    >
-                      Track <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                    </a>
-                  ) : null}
                 </div>
-              </Card>
+                {shipment.trackingUrl ? (
+                  <a
+                    href={shipment.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 rounded-xl bg-app-brown px-4 py-2.5 text-[13px] font-bold text-white hover:bg-app-brown-deep"
+                  >
+                    Track on courier site <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                  </a>
+                ) : null}
+              </DetailCard>
             ) : null}
 
-            <Card title={`Items (${(order.items || []).length})`} icon={Package}>
-              {store ? (
-                <p className="mb-3 flex items-center gap-1.5 text-[12px] text-wh-muted">
-                  <Store className="h-3.5 w-3.5" aria-hidden="true" /> {store}
-                </p>
-              ) : null}
-              <ShopItemList items={order.items || []} />
-            </Card>
+            <SectionHeading title={`Item Details (${items.length})`} aside={store ? `Sold by ${store}` : null} />
+            <div className="grid gap-3 xl:grid-cols-2">
+              {items.map((item, i) => {
+                const n = Number(item.quantity) || 1
+                return (
+                  <ItemDetailCard
+                    key={`${item.itemId || item.name}-${i}`}
+                    image={item.image ? resolveMediaUrl(item.image) : ""}
+                    name={item.name}
+                    variant={variantText(item)}
+                    qty={n}
+                    price={rupees((Number(item.price) || 0) * n)}
+                  />
+                )
+              })}
+            </div>
 
             {delivered ? (
               <>
                 {/* Return or replace (the orders list links here with #returns) */}
-                <div id="returns" className="-mx-4 scroll-mt-20">
+                <div id="returns" className="scroll-mt-28">
                   <OrderReturnsSection order={order} />
                 </div>
                 <OrderItemsReviewPanel order={order} />
@@ -614,56 +578,51 @@ export default function ShopOrderDetails({ initialOrder = null }) {
             ) : null}
           </div>
 
-          <aside className="space-y-4">
+          <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
             {range ? (
-              <Card title="Expected delivery" icon={CalendarDays}>
-                <p className="text-[15px] font-bold text-green-700">{arrivalText(range)}</p>
-                {!shipment?.etd ? <p className="mt-1 text-[12px] text-wh-muted">We'll update this once the courier picks it up.</p> : null}
-              </Card>
+              <DetailCard className="p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-app-muted">Expected delivery</p>
+                <p className="mt-0.5 text-[16px] font-bold text-app-brown">{arrivalText(range)}</p>
+                {!shipment?.etd ? <p className="mt-0.5 text-[12px] text-app-muted">We'll update this once the courier picks it up.</p> : null}
+              </DetailCard>
             ) : null}
 
-            <Card title="Price details" icon={FileText}>
-              <PriceRows order={order} />
-            </Card>
+            <BillSummaryCard
+              rows={billRows}
+              totalLabel={totalLabel(order)}
+              total={rupees(order?.pricing?.total)}
+              footer={
+                <p className="flex items-center gap-2 border-t border-app-line px-4 py-3 text-[12.5px] text-app-muted">
+                  <CreditCard className="h-4 w-4 text-app-brown" aria-hidden="true" />
+                  {paymentMethodLabel(order)}
+                </p>
+              }
+            />
 
-            <Card title="Payment" icon={CreditCard}>
-              <p className="text-[13px] text-wh-text">{paymentMethodLabel(order)}</p>
-            </Card>
-
-            <Card title="Delivery address" icon={MapPin}>
-              <ShopAddressBlock address={order.deliveryAddress || order.address || {}} />
-            </Card>
+            <AddressCard
+              icon={MapPin}
+              title="Delivery address"
+              name={address.fullName || address.name}
+              lines={[
+                [address.street, address.additionalDetails].filter(Boolean).join(", "),
+                `${[address.city, address.state].filter(Boolean).join(", ")}${address.zipCode ? ` ${address.zipCode}` : ""}`.trim(),
+              ]}
+              phone={address.phone}
+            />
 
             <div className="space-y-2">
               {delivered ? (
-                <Link
-                  to={reorderPath(order)}
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-wh-brand text-[14px] font-bold text-wh-brand-ink"
-                >
+                <Link to={reorderPath(order)} className={`${sideButton} bg-app-brown font-bold text-white hover:bg-app-brown-deep`}>
                   <RotateCcw className="h-4 w-4" aria-hidden="true" /> Buy again
                 </Link>
               ) : null}
-              {canCancel ? (
-                <button
-                  type="button"
-                  onClick={() => setCancelling(true)}
-                  className="flex h-11 w-full items-center justify-center rounded-xl border border-red-600 text-[14px] font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                >
-                  Cancel order
-                </button>
-              ) : null}
-              <Link
-                to={`/orders/${id}/invoice`}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-wh-border bg-wh-surface text-[14px] font-semibold text-wh-text"
-              >
-                <FileText className="h-4 w-4" aria-hidden="true" /> Invoice
+              <Link to={`/orders/${id}/invoice`} className={`${sideButton} border border-app-line bg-white text-app-brown hover:bg-app-tint`}>
+                <FileText className="h-4 w-4" aria-hidden="true" /> View Invoice
               </Link>
-              <Link
-                to={`/help/orders/${id}`}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-wh-border bg-wh-surface text-[14px] font-semibold text-wh-text"
-              >
-                <HelpCircle className="h-4 w-4" aria-hidden="true" /> Need help?
+              <Link to={`/help/orders/${id}`} className={`${sideButton} border-[1.2px] border-[#FDA4AF] bg-[#FFF0F2] font-bold text-[#E11D48] hover:bg-[#FFE4E8]`}>
+                <Headphones className="h-4 w-4" aria-hidden="true" /> Get Help
               </Link>
+              {canCancel ? <CancelLink onClick={() => setCancelling(true)} note="You can cancel until your order leaves the store." /> : null}
             </div>
           </aside>
         </div>

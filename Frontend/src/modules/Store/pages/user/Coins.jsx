@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
-import { ArrowLeft, Coins as CoinsIcon, Loader2, Lock, Clock } from "lucide-react"
+import { Coins as CoinsIcon, Loader2, Lock, Clock } from "lucide-react"
 import AnimatedPage from "@store/components/user/AnimatedPage"
+import AccountAppBar from "@store/components/user/account/AccountAppBar"
 import { coinsAPI } from "@store/api"
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation"
 
@@ -92,107 +93,98 @@ export default function Coins() {
   const locked = Math.max(0, coins - usable)
 
   return (
-    <AnimatedPage className="min-h-screen bg-white dark:bg-[#0a0a0a]">
-      <div className="bg-white dark:bg-[#1a1a1a] sticky top-0 z-10 border-b border-gray-100 dark:border-gray-800">
-        <div className="max-w-3xl mx-auto flex items-center gap-3 px-4 py-4">
-          <button
-            onClick={goBack}
-            aria-label="Back"
-            className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-700 dark:text-white" />
-          </button>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Coins</h1>
-        </div>
-      </div>
+    <AnimatedPage className="min-h-screen bg-app-cream font-app text-app-ink dark:bg-[#0a0a0a]">
+      <AccountAppBar title="Coins" onBack={goBack} />
 
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      <div className="mx-auto max-w-3xl space-y-5 px-4 py-5 lg:px-8 lg:py-8">
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-app-brown" aria-label="Loading coins" />
           </div>
         ) : (
           <>
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-sm text-red-600 dark:text-red-400">
+              <div className="rounded-2xl border border-[#F5C2C7] bg-[#FFF0F2] p-4 text-[13.5px] text-[#9F1239]">
                 {error}
               </div>
             )}
 
-            <section className="rounded-2xl p-5 bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow">
-              <div className="flex items-center gap-2 text-sm opacity-90">
-                <CoinsIcon className="h-4 w-4" /> Your coins
+            <section className="rounded-[20px] bg-gradient-to-br from-[#6E4129] via-app-brown to-app-brown-deep p-5 text-white shadow-[0_10px_24px_rgba(88,50,29,0.25)] lg:p-6">
+              <div className="flex items-center gap-2 text-[13px] font-medium text-white/80">
+                <CoinsIcon className="h-4 w-4 text-app-champagne" aria-hidden="true" /> Your coins
               </div>
-              <p className="text-4xl font-bold mt-1">{coins}</p>
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <div className="bg-white/15 rounded-xl p-3">
-                  <p className="text-xs opacity-90">Usable</p>
-                  <p className="text-xl font-semibold">{usable}</p>
+              <p className="mt-1 text-[40px] font-extrabold leading-tight tabular-nums">{coins}</p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-white/12 p-3">
+                  <p className="text-[12px] text-white/75">Usable</p>
+                  <p className="text-[20px] font-bold tabular-nums text-app-champagne">{usable}</p>
                   {Number(balance?.usableValue) > 0 && (
-                    <p className="text-[11px] opacity-90">Worth {"₹"}{Number(balance.usableValue).toFixed(0)}</p>
+                    <p className="text-[11px] text-white/75">Worth {"₹"}{Number(balance.usableValue).toFixed(0)}</p>
                   )}
                 </div>
-                <div className="bg-white/15 rounded-xl p-3">
-                  <p className="text-xs opacity-90 flex items-center gap-1">
-                    <Lock className="h-3 w-3" /> Locked
+                <div className="rounded-xl bg-white/12 p-3">
+                  <p className="flex items-center gap-1 text-[12px] text-white/75">
+                    <Lock className="h-3 w-3" aria-hidden="true" /> Locked
                   </p>
-                  <p className="text-xl font-semibold">{locked}</p>
+                  <p className="text-[20px] font-bold tabular-nums">{locked}</p>
                 </div>
               </div>
-              <p className="text-[11px] mt-3 opacity-90">
+              <p className="mt-3 text-[11.5px] text-white/75">
                 Only 80% of the coins from each credit can be spent; the rest stay locked. Coins can pay for part of an order.
               </p>
               {balance && balance.isEnabled === false && (
-                <p className="text-xs mt-2 font-semibold">Coins can't be used on orders right now.</p>
+                <p className="mt-2 text-[12px] font-semibold text-app-champagne">Coins can't be used on orders right now.</p>
               )}
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-amber-600" /> Expiring in the next 30 days
+              <h2 className="mb-2 flex items-center gap-2 px-1 text-[16px] font-bold text-app-ink dark:text-white">
+                <Clock className="h-4 w-4 text-app-brown" aria-hidden="true" /> Expiring in the next 30 days
               </h2>
               {expiring.lots?.length ? (
-                <ul className="divide-y divide-gray-100 dark:divide-gray-800 rounded-xl border border-gray-100 dark:border-gray-800">
+                <ul className="divide-y divide-app-line overflow-hidden rounded-[18px] border border-app-line bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-[#1a1a1a]">
                   {expiring.lots.map((lot) => (
-                    <li key={lot.lotId} className="flex items-center justify-between px-4 py-3 text-sm">
+                    <li key={lot.lotId} className="flex items-center justify-between gap-3 px-4 py-3 text-[13.5px]">
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{lot.coins} coins</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="font-semibold text-app-ink dark:text-white">{lot.coins} coins</p>
+                        <p className="text-[12px] text-app-muted">
                           {SOURCE_LABEL[lot.source] || "Coins"}
                           {lot.locked > 0 ? ` · ${lot.usable} usable, ${lot.locked} locked` : ""}
                         </p>
                       </div>
-                      <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+                      <span className="shrink-0 rounded-full bg-[#FFF0F2] px-2.5 py-1 text-[11.5px] font-semibold text-[#B3261E]">
                         Expires {formatDate(lot.expiresAt)}
                       </span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-500">No coins expire in the next 30 days.</p>
+                <p className="rounded-[18px] border border-app-line bg-white px-4 py-4 text-[13px] text-app-muted dark:border-gray-800 dark:bg-[#1a1a1a]">
+                  No coins expire in the next 30 days.
+                </p>
               )}
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-gray-900 dark:text-white mb-2">History</h2>
+              <h2 className="mb-2 px-1 text-[16px] font-bold text-app-ink dark:text-white">History</h2>
               {loadingPage ? (
                 <div className="flex justify-center py-6">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                  <Loader2 className="h-6 w-6 animate-spin text-app-brown" aria-label="Loading history" />
                 </div>
               ) : entries.length ? (
-                <ul className="divide-y divide-gray-100 dark:divide-gray-800 rounded-xl border border-gray-100 dark:border-gray-800">
+                <ul className="divide-y divide-app-line overflow-hidden rounded-[18px] border border-app-line bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-[#1a1a1a]">
                   {entries.map((entry) => {
                     const n = signedOf(entry)
                     return (
-                      <li key={entry._id} className="flex items-center justify-between px-4 py-3 text-sm">
+                      <li key={entry._id} className="flex items-center justify-between gap-3 px-4 py-3 text-[13.5px]">
                         <div className="min-w-0">
-                          <p className="font-medium text-gray-900 dark:text-white">{entryLabel(entry)}</p>
-                          <p className="text-xs text-gray-500 truncate">
+                          <p className="font-semibold text-app-ink dark:text-white">{entryLabel(entry)}</p>
+                          <p className="truncate text-[12px] text-app-muted">
                             {formatDate(entry.createdAt)}
                             {entry.note ? ` · ${entry.note}` : ""}
                           </p>
                         </div>
-                        <span className={`font-semibold ${n >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        <span className={`shrink-0 font-bold tabular-nums ${n >= 0 ? "text-app-ok" : "text-[#B3261E]"}`}>
                           {n >= 0 ? `+${n}` : `−${Math.abs(n)}`}
                         </span>
                       </li>
@@ -200,27 +192,29 @@ export default function Coins() {
                   })}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-500">No coin activity yet.</p>
+                <p className="rounded-[18px] border border-app-line bg-white px-4 py-4 text-[13px] text-app-muted dark:border-gray-800 dark:bg-[#1a1a1a]">
+                  No coin activity yet.
+                </p>
               )}
 
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-3 text-sm">
+                <div className="mt-3 flex items-center justify-between text-[13px]">
                   <button
                     type="button"
                     disabled={page <= 1 || loadingPage}
                     onClick={() => loadPage(page - 1)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"
+                    className="rounded-xl border border-app-brown bg-white px-3.5 py-1.5 font-semibold text-app-brown hover:bg-app-tint disabled:opacity-40"
                   >
                     Previous
                   </button>
-                  <span className="text-gray-500">
+                  <span className="text-app-muted">
                     Page {page} of {totalPages}
                   </span>
                   <button
                     type="button"
                     disabled={page >= totalPages || loadingPage}
                     onClick={() => loadPage(page + 1)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40"
+                    className="rounded-xl border border-app-brown bg-white px-3.5 py-1.5 font-semibold text-app-brown hover:bg-app-tint disabled:opacity-40"
                   >
                     Next
                   </button>

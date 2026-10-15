@@ -364,9 +364,9 @@ export default function Profile() {
 
   return (
     <AnimatedPage className="min-h-screen bg-app-cream font-app text-app-ink dark:bg-[#0a0a0a]">
-      <div className="max-w-xl mx-auto px-4 pt-4 pb-24 space-y-4">
+      <div className="max-w-xl mx-auto px-4 pt-4 pb-24 space-y-4 lg:grid lg:max-w-5xl lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start lg:gap-x-8 lg:gap-y-6 lg:space-y-0 lg:px-8 lg:pt-8 lg:pb-16">
         {/* Title */}
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2 lg:col-span-2">
           <Link
             to="/"
             aria-label="Back"
@@ -375,13 +375,15 @@ export default function Profile() {
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </Link>
           <div className="min-w-0">
-            <h1 className="text-[26px] font-bold leading-tight text-app-ink">Profile</h1>
+            <h1 className="text-[26px] font-bold leading-tight text-app-ink lg:font-app-display lg:text-[38px] lg:text-app-brown-deep">Profile</h1>
             <p className="mt-1 text-[13px] text-app-muted">
               Manage your account, orders &amp; preferences
             </p>
           </div>
         </div>
 
+        {/* Wide screens: account card and shortcuts on the left, settings on the right */}
+        <div className="space-y-4 lg:sticky lg:top-28">
         {/* User card */}
         <div className="rounded-[20px] border border-app-brown/25 bg-app-tint-strong p-4">
           <div className="flex items-center gap-3.5">
@@ -451,7 +453,9 @@ export default function Profile() {
             onClick={openLocationSelector}
           />
         </div>
+        </div>
 
+        <div className="space-y-4">
         {/* Preferences */}
         <GroupCard title="Preferences">
           <ProfileRow
@@ -619,6 +623,7 @@ export default function Profile() {
         >
           Delete Account
         </button>
+        </div>
       </div>
 
       {/* Logout Confirmation Popup */}

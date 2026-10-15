@@ -87,7 +87,7 @@ export default function SearchSuggestions({ items, activeIndex, onPick, onHover,
     <ul
       id={listId}
       role="listbox"
-      className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[420px] overflow-y-auto rounded-[8px] border border-gray-200 bg-white py-1 shadow-2xl"
+      className="absolute left-0 right-0 top-full z-50 mt-1.5 max-h-[440px] overflow-y-auto rounded-2xl border border-app-line bg-white py-1.5 font-app shadow-[0_12px_32px_rgba(25,20,17,0.16)]"
     >
       {items.map((item, index) => {
         const active = index === activeIndex
@@ -101,8 +101,8 @@ export default function SearchSuggestions({ items, activeIndex, onPick, onHover,
                 onPick(item)
               }}
               onMouseEnter={() => onHover(index)}
-              className={`flex w-full items-center gap-3 px-3 py-2 text-left text-[14px] ${
-                active ? "bg-wh-brand-50" : "hover:bg-gray-50"
+              className={`flex w-full items-center gap-3 px-3.5 py-2 text-left text-[13.5px] transition-colors ${
+                active ? "bg-app-tint" : "hover:bg-app-alt"
               }`}
             >
               {item.type === "product" && item.image ? (
@@ -110,19 +110,19 @@ export default function SearchSuggestions({ items, activeIndex, onPick, onHover,
                   src={item.image}
                   alt=""
                   loading="lazy"
-                  className="h-8 w-8 shrink-0 rounded object-contain bg-gray-50"
+                  className="h-10 w-8 shrink-0 rounded-md bg-app-alt object-cover"
                 />
               ) : (
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center text-gray-400">
-                  {item.type === "category" ? <Tag className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-app-sand text-app-brown">
+                  {item.type === "category" ? <Tag className="h-4 w-4" aria-hidden="true" /> : <Search className="h-4 w-4" aria-hidden="true" />}
                 </span>
               )}
-              <span className="min-w-0 flex-1 truncate text-gray-900">{item.label}</span>
+              <span className={`min-w-0 flex-1 truncate ${item.type === "term" ? "font-semibold text-app-ink" : "text-app-ink"}`}>{item.label}</span>
               {item.type === "category" && (
-                <span className="shrink-0 text-[12px] text-gray-500">in Categories</span>
+                <span className="shrink-0 rounded-full bg-app-sand px-2 py-0.5 text-[11.5px] font-medium text-app-brown">in Categories</span>
               )}
               {item.type === "product" && item.categoryName && (
-                <span className="shrink-0 text-[12px] text-gray-500">in {item.categoryName}</span>
+                <span className="shrink-0 text-[12px] text-app-muted">in {item.categoryName}</span>
               )}
             </button>
           </li>

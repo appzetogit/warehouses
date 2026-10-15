@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, Search, MoreVertical, ChevronRight, Star, RotateCcw, AlertCircle, Loader2, Clock, X, Share2, MessageCircle, Send, Copy, Mail, MessagesSquare, Link2 } from "lucide-react"
+import { Search, MoreVertical, ChevronRight, Star, AlertCircle, Loader2, Clock, X, Share2, MessageCircle, Send, Copy, Mail, MessagesSquare, Link2, Check, Package, ShoppingCart, Store, Truck } from "lucide-react"
 import { orderAPI } from "@store/api"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@store/utils/businessSettings"
@@ -39,6 +39,27 @@ function paymentBadgeFor(order, { delivered = false, cancelled = false } = {}) {
   return { text: status.replace(/_/g, ' '), tone: 'plain' }
 }
 
+// Status pills on the desktop list; "Processing" is placed, confirmed and being packed.
+const ORDER_TABS = ["All", "Processing", "Shipped", "Delivered", "Cancelled"]
+
+/** Which pill an order (as transformed on this page) falls under. */
+function orderBucket(order) {
+  const s = String(order?.status || "")
+  if (s === "delivered") return "Delivered"
+  if (s === "cancelled" || s === "seller_cancelled" || s.toLowerCase().includes("cancel")) return "Cancelled"
+  if (s === "outForDelivery") return "Shipped"
+  return "Processing"
+}
+
+/** Status chip colours as on the phone: red cancelled, green delivered, orange on the way, amber otherwise. */
+function chipToneFor(order) {
+  const bucket = orderBucket(order)
+  if (bucket === "Cancelled") return { bg: "bg-[#FFEAED]", fg: "text-[#E11D48]", dot: "bg-[#E11D48]", Icon: X }
+  if (bucket === "Delivered") return { bg: "bg-[#DCFCE7]", fg: "text-[#16A34A]", dot: "bg-[#16A34A]", Icon: Check }
+  if (bucket === "Shipped") return { bg: "bg-[#FFEDD5]", fg: "text-[#EA580C]", dot: "bg-[#EA580C]", Icon: Truck }
+  return { bg: "bg-[#FEF3C7]", fg: "text-[#D97706]", dot: "bg-[#D97706]", Icon: Clock }
+}
+
 export default function Orders() {
   const companyName = useCompanyName()
   const navigate = useNavigate()
@@ -46,6 +67,7 @@ export default function Orders() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [statusTab, setStatusTab] = useState("All")
   const [ratingModal, setRatingModal] = useState({ open: false, order: null })
   const [activeMenuOrderId, setActiveMenuOrderId] = useState(null)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -688,17 +710,60 @@ Order again from this seller in the ${companyName} app.`
     }
   }
 
+  // Page shell (lg+): the customer app's "My Orders" look, centred on wide screens.
+  const pageHeader = (subtitle) => (
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="min-w-0">
+        <h1 className="font-app-display text-[38px] font-bold leading-none text-app-brown-deep dark:text-white">My Orders</h1>
+        <p className="mt-2 text-[14px] font-medium text-app-muted">{subtitle}</p>
+      </div>
+      {orders.length > 0 ? (
+        <label className="flex h-[46px] w-full max-w-[380px] items-center gap-2 rounded-[14px] border border-app-line bg-white px-[14px] shadow-[0_1px_6px_rgba(0,0,0,0.024)] focus-within:border-app-brown dark:border-gray-800 dark:bg-[#1a1a1a]">
+          <Search className="h-5 w-5 shrink-0 text-[#9E958E]" aria-hidden="true" />
+          <input
+            type="search"
+            placeholder="Search by store or product"
+            aria-label="Search orders"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-[13.5px] text-app-ink outline-none placeholder:text-[#A79C94] dark:text-gray-100"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              aria-label="Clear search"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[#9E958E] hover:bg-app-alt"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          ) : null}
+        </label>
+      ) : null}
+    </div>
+  )
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-10">
-        <div className="bg-white dark:bg-zinc-900 p-4 flex items-center shadow-sm sticky top-0 z-10 border-b border-gray-100 dark:border-zinc-800">
-          <Link to="/">
-            <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-200 cursor-pointer" />
-          </Link>
-          <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
-        </div>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-wh-brand-ink animate-spin" />
+      <div className="min-h-screen bg-app-cream pb-12 font-app dark:bg-[#0a0a0a]">
+        <div className="mx-auto max-w-5xl px-8 pt-8">
+          {pageHeader("Track, manage and buy again")}
+          <div className="mt-6 space-y-4" role="status" aria-label="Loading orders">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-[18px] border border-app-line bg-white p-5 dark:border-gray-800 dark:bg-[#1a1a1a]">
+                <div className="flex gap-5">
+                  <div className="h-[110px] w-[96px] animate-pulse rounded-[14px] bg-app-alt" />
+                  <div className="flex-1 space-y-2.5 pt-1">
+                    <div className="h-5 w-32 animate-pulse rounded-xl bg-app-alt" />
+                    <div className="h-3.5 w-1/3 animate-pulse rounded bg-app-alt" />
+                    <div className="h-4 w-1/2 animate-pulse rounded bg-app-alt" />
+                    <div className="h-3.5 w-1/4 animate-pulse rounded bg-app-alt" />
+                  </div>
+                  <div className="h-[38px] w-40 animate-pulse rounded-[20px] bg-app-alt" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -706,426 +771,403 @@ Order again from this seller in the ${companyName} app.`
 
   if (orders.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-10">
-        <div className="bg-white dark:bg-zinc-900 p-4 flex items-center shadow-sm sticky top-0 z-10 border-b border-gray-100 dark:border-zinc-800">
-          <Link to="/">
-            <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-200 cursor-pointer" />
-          </Link>
-          <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
-        </div>
-        <div className="px-4 py-8 text-center">
-          <p className="text-gray-600 dark:text-gray-400">You haven't placed any orders yet</p>
-          <Link to="/">
-            <button className="mt-4 text-wh-brand-ink font-medium">Start Ordering</button>
-          </Link>
+      <div className="min-h-screen bg-app-cream pb-12 font-app dark:bg-[#0a0a0a]">
+        <div className="mx-auto max-w-5xl px-8 pt-8">
+          {pageHeader("Track, manage and buy again")}
+          <div className="mt-6 flex flex-col items-center rounded-[18px] border border-app-line bg-white px-6 py-14 text-center dark:border-gray-800 dark:bg-[#1a1a1a]">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-app-sand">
+              <Package className="h-8 w-8 text-app-brown" aria-hidden="true" />
+            </span>
+            <p className="mt-4 text-[18px] font-bold text-app-brown-deep dark:text-white">No orders yet</p>
+            <p className="mt-1 text-[13px] text-app-muted">You haven&apos;t placed any orders yet</p>
+            <Link
+              to="/"
+              className="mt-5 flex h-[42px] items-center rounded-[20px] bg-app-brown px-7 text-[14px] font-bold text-white hover:bg-app-brown-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown"
+            >
+              Start Shopping
+            </Link>
+          </div>
         </div>
       </div>
     )
   }
 
+  const shownOrders = filteredOrders.filter((order) => statusTab === "All" || orderBucket(order) === statusTab)
+  const tabCounts = orders.reduce((acc, order) => {
+    const bucket = orderBucket(order)
+    acc[bucket] = (acc[bucket] || 0) + 1
+    return acc
+  }, { All: orders.length })
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-10 font-sans">
-      {/* Header */}
-      <div className="bg-white dark:bg-slate-900 p-4 flex items-center shadow-sm sticky top-0 z-10 border-b border-gray-100 dark:border-slate-800">
-        <Link to="/">
-          <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-200 cursor-pointer" />
-        </Link>
-        <h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">Your Orders</h1>
-      </div>
+    <div className="min-h-screen bg-app-cream pb-12 font-app dark:bg-[#0a0a0a]">
+      <div className="mx-auto max-w-5xl px-8 pt-8">
+        {pageHeader(`${orders.length} order${orders.length === 1 ? "" : "s"} · Track, manage and buy again`)}
 
-      {/* Search Bar */}
-      <div className="p-4 bg-white dark:bg-slate-900 mt-1">
-        <div className="flex items-center bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-2 shadow-sm">
-          <Search className="w-5 h-5 text-wh-brand-ink" />
-          <input
-            type="text"
-            placeholder="Search by store or product"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 ml-3 outline-none text-gray-600 dark:text-gray-200 bg-transparent placeholder-gray-400"
-          />
+        {/* Status pills */}
+        <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Filter orders by status">
+          {ORDER_TABS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={statusTab === t}
+              onClick={() => setStatusTab(t)}
+              className={`rounded-full px-4 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown ${
+                statusTab === t ? "bg-app-brown text-white" : "bg-app-sand text-app-brown-deep hover:bg-app-tint-strong"
+              }`}
+            >
+              {t}
+              {tabCounts[t] ? (
+                <span className={`ml-1 text-[11px] ${statusTab === t ? "text-white/75" : "text-app-muted"}`}>{tabCounts[t]}</span>
+              ) : null}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Orders List */}
-      <div className="px-4 py-2 space-y-4">
-        {filteredOrders.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-            <p className="text-gray-600">No orders found matching your search</p>
-          </div>
-        ) : (
-          filteredOrders.map((order) => {
-            // Check payment method - COD/wallet orders have 'pending' status which is normal
-            const isCodOrWallet = order.payment?.method === 'cash' ||
-              order.payment?.method === 'cod' ||
-              order.payment?.method === 'wallet' ||
-              order.paymentMethod === 'cash' ||
-              order.paymentMethod === 'cod' ||
-              order.paymentMethod === 'wallet'
+        {/* Orders List */}
+        <div className="mt-5 space-y-4">
+          {shownOrders.length === 0 ? (
+            <div className="flex flex-col items-center rounded-[18px] border border-app-line bg-white px-6 py-12 text-center dark:border-gray-800 dark:bg-[#1a1a1a]">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-app-sand">
+                <Package className="h-7 w-7 text-app-brown" aria-hidden="true" />
+              </span>
+              <p className="mt-3 text-[16px] font-bold text-app-brown-deep dark:text-white">
+                {searchQuery.trim() ? "No orders found matching your search" : `Nothing ${statusTab.toLowerCase()} right now`}
+              </p>
+              {searchQuery.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="mt-4 h-[38px] rounded-[20px] border-[1.2px] border-app-brown px-5 text-[13px] font-bold text-app-brown hover:bg-app-tint"
+                >
+                  Clear search
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            shownOrders.map((order) => {
+              // Check payment method - COD/wallet orders have 'pending' status which is normal
+              const isCodOrWallet = order.payment?.method === 'cash' ||
+                order.payment?.method === 'cod' ||
+                order.payment?.method === 'wallet' ||
+                order.paymentMethod === 'cash' ||
+                order.paymentMethod === 'cod' ||
+                order.paymentMethod === 'wallet'
 
-            // Payment failed only for online payments (razorpay) that actually failed
-            // Don't show payment failed for COD/wallet or cancelled orders
-            const isCancelled = order.status === 'cancelled' || order.status === 'seller_cancelled'
-            const paymentFailed = !isCodOrWallet &&
-              !isCancelled &&
-              (order.payment?.status === 'failed')
+              // Payment failed only for online payments (razorpay) that actually failed
+              // Don't show payment failed for COD/wallet or cancelled orders
+              const isCancelled = order.status === 'cancelled' || order.status === 'seller_cancelled'
+              const paymentFailed = !isCodOrWallet &&
+                !isCancelled &&
+                (order.payment?.status === 'failed')
 
-            const isDelivered = order.status === 'delivered'
-            const paymentBadge = paymentBadgeFor(order, { delivered: isDelivered, cancelled: isCancelled })
-            const isSellerCancelled = order.isSellerCancelled || order.status === 'seller_cancelled'
-            const isUserCancelled = order.isUserCancelled || (isCancelled && (order.cancelledBy === 'customer' || order.cancelledBy === 'user'))
-            // Prefer food image from first item; fallback to seller image, then generic food photo
-            const firstItemImage = order.items?.[0]?.image
-            const sellerImage = firstItemImage
-              || order.sellerImage
-              || imagePlaceholder
-            const location = order.sellerLocation || `${order.address?.city || ''}, ${order.address?.state || ''}`.trim() || 'Location not available'
+              const isDelivered = order.status === 'delivered'
+              const paymentBadge = paymentBadgeFor(order, { delivered: isDelivered, cancelled: isCancelled })
+              const isSellerCancelled = order.isSellerCancelled || order.status === 'seller_cancelled'
+              const isUserCancelled = order.isUserCancelled || (isCancelled && (order.cancelledBy === 'customer' || order.cancelledBy === 'user'))
+              // First item's photo; then the store's; then the placeholder.
+              const firstItemImage = order.items?.[0]?.image
+              const sellerImage = firstItemImage
+                || order.sellerImage
+                || imagePlaceholder
+              const location = order.sellerLocation || `${order.address?.city || ''}, ${order.address?.state || ''}`.trim() || 'Location not available'
+              const tone = chipToneFor(order)
+              const ToneIcon = tone.Icon
+              const headlineText = isSellerCancelled
+                ? "Seller Cancelled"
+                : isUserCancelled && !order.shopLabel
+                  ? "Cancelled by You"
+                  : order.shopLabel || order.statusText
+              const firstItem = order.items?.[0] || {}
+              const itemCount = order.items?.length || 0
+              const qty = (order.items || []).reduce((n, item) => n + (Number(item.quantity) || 1), 0)
 
-            return (
-              <div key={order.id} className="relative bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
-                {/* Card Header: Seller Info */}
-                <div className="flex items-start justify-between p-4 pb-2">
-                  <div className="flex gap-3">
-                    {/* Seller Image */}
-                    <div className="w-14 h-14 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
+              return (
+                <article key={order.id} className="relative rounded-[18px] border border-[#EFE8E2] bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-[#1a1a1a]">
+                  <div className="flex gap-5">
+                    {/* Photo */}
+                    <Link
+                      to={`/orders/${order.id}`}
+                      className="relative h-[110px] w-[96px] shrink-0 overflow-hidden rounded-[14px] bg-app-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown"
+                      aria-label={`View order from ${order.seller}`}
+                    >
                       <img
                         src={sellerImage}
-                        alt={order.seller}
-                        className="w-full h-full object-cover"
+                        alt=""
+                        className="h-full w-full object-cover"
                         onError={(e) => {
                           e.target.src = imagePlaceholder
                         }}
                       />
-                    </div>
+                    </Link>
 
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-800 dark:text-white text-lg leading-tight">{order.seller}</h3>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                        Order ID: <span className="font-semibold text-gray-700 dark:text-gray-300">{order.orderId || order.id}</span>
+                    {/* What and where */}
+                    <div className="min-w-0 flex-1">
+                      <span className={`inline-flex max-w-full items-center gap-[5px] rounded-xl px-2 py-[3.5px] ${tone.bg}`}>
+                        <span className={`flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full ${tone.dot}`}>
+                          <ToneIcon className="h-2.5 w-2.5 text-white" strokeWidth={3} aria-hidden="true" />
+                        </span>
+                        <span className={`truncate text-[12px] font-bold ${tone.fg}`}>{headlineText}</span>
+                      </span>
+                      <p className="mt-1.5 truncate text-[12px] font-medium text-app-muted">
+                        {formatDate(order.createdAt)}  •  Order #{order.orderId || order.id}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{location}</p>
+                      <p className="mt-1 truncate text-[16px] font-extrabold text-app-ink dark:text-white">
+                        {firstItem.name || "Order"}
+                        {itemCount > 1 ? ` +${itemCount - 1} more` : ""}
+                      </p>
+                      <p className="mt-0.5 truncate text-[12.5px] font-medium text-app-muted">
+                        Qty: {qty}
+                        {firstItem.variantName ? `  |  ${firstItem.variantName}` : ""}
+                      </p>
+                      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-app-muted">
+                        <span className="inline-flex min-w-0 items-center gap-1">
+                          <Store className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          <span className="truncate font-semibold text-app-brown-deep dark:text-gray-200">{order.seller}</span>
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span className="truncate">{location}</span>
+                        {order.sellerId && (
+                          <Link to={`/sellers/${order.sellerId}`} className="font-semibold text-app-brown hover:underline">
+                            Visit store
+                          </Link>
+                        )}
+                      </p>
                       {order.deliveryPartnerName && (
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          <span className="font-medium">Delivery:</span> {order.deliveryPartnerName}
+                        <p className="mt-1 text-[12px] text-app-muted">
+                          <span className="font-medium text-app-ink dark:text-gray-200">Delivery:</span> {order.deliveryPartnerName}
                           {order.deliveryPartnerPhone && ` | ${order.deliveryPartnerPhone}`}
                         </p>
                       )}
-                      {order.sellerId && (
-                        <Link to={`/sellers/${order.sellerId}`}>
-                          <button className="text-xs text-wh-brand-ink font-medium flex items-center mt-1 hover:text-wh-brand-ink">
-                            Visit store <span className="ml-0.5">&gt;</span>
-                          </button>
-                        </Link>
-                      )}
                     </div>
-                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => toggleMenuForOrder(order.id)}
-                    className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                  >
-                    <MoreVertical className="w-5 h-5 text-gray-400" />
-                  </button>
-                </div>
-
-                {/* Three-dots dropdown menu */}
-                {activeMenuOrderId === order.id && (
-                  <div className="absolute right-3 top-10 z-20 w-40 rounded-xl bg-white shadow-lg border border-gray-100 py-1 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => handleShareSeller(order)}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-800"
-                    >
-                      Share Seller
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleViewOrderDetails(order)}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-800"
-                    >
-                      Order Details
-                    </button>
-                  </div>
-                )}
-
-                {/* Separator */}
-                <div className="border-t border-dashed border-gray-200 dark:border-slate-700 mx-4 my-1"></div>
-
-                {/* Items List */}
-                <div className="px-4 py-2 space-y-2">
-                  {order.items && order.items.length > 0 ? (
-                    order.items.map((item, idx) => {
-                      const isVeg = typeof item.isVeg === "boolean" ? item.isVeg : null
-                      const itemName = item.name || item.productName || 'Item'
-                      const itemQuantity = item.quantity || 1
-                      const itemPrice = item.price || 0
-                      const itemTotal = itemQuantity * itemPrice
-                      const itemImage = item.image || null
-
-                      return (
-                        <div key={item._id || item.id || item.itemId || idx} className="flex items-start gap-3">
-                          {/* Item Image */}
-                          {itemImage && (
-                            <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-                              <img
-                                src={itemImage}
-                                alt={itemName}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.style.display = 'none'
-                                }}
-                              />
-                            </div>
-                          )}
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start gap-2">
-                              {/* Veg/Non-Veg Icon */}
-                              {typeof isVeg === "boolean" && (
-                                <div className={`w-4 h-4 border ${isVeg ? 'border-green-600' : 'border-red-600'} flex items-center justify-center p-[2px] flex-shrink-0 mt-0.5`}>
-                                  <div className={`w-full h-full rounded-full ${isVeg ? 'bg-green-600' : 'bg-red-600'}`}></div>
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <span className="text-sm text-gray-800 dark:text-gray-200 font-medium block">
-                                  {itemQuantity} x {itemName}
-                                </span>
-                                {item.variantName ? (
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.variantName}</p>
-                                ) : null}
-                                {item.description && (
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{item.description}</p>
-                                )}
-                              </div>
-                              <div className="text-right flex-shrink-0">
-                                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{"\u20B9"}{itemTotal.toFixed(2)}</span>
-                                {itemQuantity > 1 && (
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{"\u20B9"}{itemPrice.toFixed(2)} each</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })
-                  ) : (
-                    <p className="text-sm text-gray-500">No items found</p>
-                  )}
-                </div>
-
-                {/* Order Summary Section */}
-                <div className="px-4 py-3 bg-gray-50 dark:bg-slate-950/50 rounded-lg mx-4 mb-2">
-                  <div className="space-y-1.5">
-                    {order.subtotal > 0 && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-                        <span className="text-gray-800 dark:text-gray-200 font-medium">{"\u20B9"}{order.subtotal.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600 dark:text-gray-400">Delivery Fee</span>
-                      <span className="text-gray-800 dark:text-gray-200 font-medium">
-                        {order.deliveryFee > 0 ? `\u20B9${order.deliveryFee.toFixed(2)}` : "Free"}
-                      </span>
-                    </div>
-                    {order.quickDeliveryFee > 0 && (
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-wh-brand-ink">Quick Mode</span>
-                        <span className="text-wh-brand-ink">{"\u20B9"}{order.quickDeliveryFee.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {order.packagingFee > 0 && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-600 dark:text-gray-400">Packaging</span>
-                        <span className="text-gray-800 dark:text-gray-200 font-medium">{"\u20B9"}{order.packagingFee.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600 dark:text-gray-400">Platform Fee</span>
-                      <span className="text-gray-800 dark:text-gray-200 font-medium">
-                        {order.basePlatformFee > 0 ? `\u20B9${order.basePlatformFee.toFixed(2)}` : "Free"}
-                      </span>
-                    </div>
-                    {order.tax > 0 && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-600 dark:text-gray-400">Tax</span>
-                        <span className="text-gray-800 dark:text-gray-200 font-medium">{"\u20B9"}{order.tax.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {order.pricing?.discount > 0 && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-green-600 dark:text-green-400">Discount</span>
-                        <span className="text-green-600 dark:text-green-400 font-medium">-{"\u20B9"}{order.pricing.discount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {order.coinsDiscount > 0 && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-green-600 dark:text-green-400">Coins</span>
-                        <span className="text-green-600 dark:text-green-400 font-medium">-{"₹"}{order.coinsDiscount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {order.pricing?.couponCode && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-600 dark:text-gray-400">Coupon Applied</span>
-                        <span className="text-gray-800 dark:text-gray-200 font-medium">{order.pricing.couponCode}</span>
-                      </div>
-                    )}
-                    <div className="border-t border-gray-200 dark:border-slate-700 pt-1.5 mt-1.5">
-                      <div className="flex justify-between">
-                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Total</span>
-                        <span className="text-base font-bold text-gray-900 dark:text-white">{"\u20B9"}{order.total.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Date and Payment Info */}
-                <div className="px-4 py-2 flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-400">Order placed on {formatDate(order.createdAt)}</p>
-                    {order.deliveredAt && (
-                      <p className="text-xs text-gray-400 mt-0.5">Delivered on {formatDate(order.deliveredAt)}</p>
-                    )}
-                    {order.payment && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Payment: <span className="font-medium">{order.paymentMethodText}</span>
-                        {paymentBadge && (
-                          <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${PAYMENT_BADGE_TONE[paymentBadge.tone]}`}>
-                            {paymentBadge.text}
-                          </span>
-                        )}
-                      </p>
-                    )}
-                    {order.shopLabel ? (
-                      <p className={`text-xs font-medium mt-1 ${isCancelled ? "text-red-500" : isDelivered ? "text-green-600" : "text-wh-brand-ink"}`}>{order.shopLabel}</p>
-                    ) : (<>
-                    {isDelivered && !paymentFailed && (
-                      <p className="text-xs font-medium text-green-600 mt-1">Delivered</p>
-                    )}
-                    {isSellerCancelled && (
-                      <p className="text-xs font-medium text-red-500 mt-1">Seller Cancelled</p>
-                    )}
-                    {isUserCancelled && (
-                      <p className="text-xs font-medium text-gray-500 mt-1">Cancelled by You</p>
-                    )}
-                    {isCancelled && !isSellerCancelled && !isUserCancelled && (
-                      <p className="text-xs font-medium text-gray-500 mt-1">Cancelled</p>
-                    )}
-                    </>)}
-                  </div>
-                  <div className="flex items-center ml-4">
-                    <Link to={`/orders/${order.id}`}>
-                      <button className="text-xs text-wh-brand-ink font-medium hover:text-wh-brand-ink flex items-center gap-1">
-                        View Details
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Separator */}
-                <div className="border-t border-gray-100 dark:border-zinc-800 mx-4"></div>
-
-                {/* Card Footer: Actions */}
-                <div className="px-4 py-3 flex items-center justify-between">
-                  {/* Left Side: Rating or Error */}
-                  {order.shopLabel && !isDelivered ? (
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{order.shopLabel}</p>
-                      {isCancelled && order.cancellationReason ? (
-                        <p className="text-xs text-gray-500 mt-0.5">Reason: {order.cancellationReason}</p>
-                      ) : null}
-                    </div>
-                  ) : isSellerCancelled ? (
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-red-100 p-1 rounded-full">
-                          <AlertCircle className="w-4 h-4 text-red-500" />
-                        </div>
-                        <span className="text-xs font-semibold text-red-500">Seller Cancelled</span>
-                      </div>
-                      <p className="text-xs text-gray-600 ml-7">If prepaid, refund is sent automatically to the original payment method.</p>
-                    </div>
-                  ) : paymentFailed ? (
-                    <div className="flex items-center gap-2">
-                      <div className="bg-red-100 p-1 rounded-full">
-                        <AlertCircle className="w-4 h-4 text-red-500" />
-                      </div>
-                      <span className="text-xs font-semibold text-red-500">Payment Failed</span>
-                    </div>
-                  ) : isDelivered && order.sellerRating && (!order.deliveryPartnerId || order.deliveryPartnerRating) ? (
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm text-gray-800">You Rated</span>
-                        <div className="flex bg-yellow-400 text-white px-1 rounded text-[10px] items-center gap-0.5 h-4">
-                          R {order.sellerRating}<Star className="w-2 h-2 fill-current" />
-                        </div>
-                        {order.deliveryPartnerId && (
-                          <div className="flex bg-blue-500 text-white px-1 rounded text-[10px] items-center gap-0.5 h-4">
-                            D {order.deliveryPartnerRating}<Star className="w-2 h-2 fill-current" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : isDelivered ? (
-                    <div>
-                      <p className="text-xs text-gray-500">Order Delivered</p>
+                    {/* Total, menu */}
+                    <div className="flex shrink-0 flex-col items-end gap-1">
                       <button
                         type="button"
-                        onClick={() => handleOpenRating(order)}
-                        className="text-xs text-wh-brand-ink font-medium mt-0.5 flex items-center"
+                        onClick={() => toggleMenuForOrder(order.id)}
+                        aria-label="More actions"
+                        aria-expanded={activeMenuOrderId === order.id}
+                        className="-mr-1.5 -mt-1.5 rounded-full p-1.5 text-[#9E958E] transition-colors hover:bg-app-alt"
                       >
-                        Rate seller & delivery <span className="ml-0.5">&gt;</span>
+                        <MoreVertical className="h-5 w-5" />
+                      </button>
+                      <p className="text-[12px] text-app-muted">Total</p>
+                      <p className="text-[18px] font-black tabular-nums text-app-ink dark:text-white">{"₹"}{order.total.toFixed(2)}</p>
+                      {paymentBadge && (
+                        <span className={`rounded px-1.5 py-0.5 text-[10.5px] font-semibold ${PAYMENT_BADGE_TONE[paymentBadge.tone]}`}>
+                          {paymentBadge.text}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Three-dots dropdown menu */}
+                  {activeMenuOrderId === order.id && (
+                    <div className="absolute right-4 top-12 z-20 w-44 rounded-xl border border-app-line bg-white py-1 text-[13px] shadow-lg dark:border-gray-800 dark:bg-[#1a1a1a]">
+                      <button
+                        type="button"
+                        onClick={() => handleShareSeller(order)}
+                        className="w-full px-3 py-2 text-left text-app-ink hover:bg-app-tint dark:text-gray-200 dark:hover:bg-gray-800"
+                      >
+                        Share Seller
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleViewOrderDetails(order)}
+                        className="w-full px-3 py-2 text-left text-app-ink hover:bg-app-tint dark:text-gray-200 dark:hover:bg-gray-800"
+                      >
+                        Order Details
                       </button>
                     </div>
-                  ) : (
-                    <div>
-                      {order.status === 'pending_payment' ? (
-                        <Link to={`/orders/${order.id}`} className="text-xs font-medium text-wh-brand-ink underline-offset-2 hover:underline">
-                          Payment pending — tap to complete
-                        </Link>
-                      ) : (
-                        <p className="text-xs text-gray-500">{order.statusText}</p>
+                  )}
+
+                  {/* Items and bill, folded away */}
+                  <details className="group mt-4 rounded-[14px] bg-app-tint px-4 py-2.5 dark:bg-[#222]">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[12.5px] font-semibold text-app-brown [&::-webkit-details-marker]:hidden">
+                      <span>
+                        {itemCount} item{itemCount === 1 ? "" : "s"} · Payment: {order.paymentMethodText}
+                      </span>
+                      <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" aria-hidden="true" />
+                    </summary>
+                    <div className="mt-3 grid gap-6 border-t border-app-line pt-3 md:grid-cols-[minmax(0,1fr)_260px] dark:border-gray-800">
+                      <ul className="space-y-2.5">
+                        {order.items && order.items.length > 0 ? (
+                          order.items.map((item, idx) => {
+                            const itemName = item.name || item.productName || 'Item'
+                            const itemQuantity = item.quantity || 1
+                            const itemPrice = item.price || 0
+                            const itemTotal = itemQuantity * itemPrice
+                            return (
+                              <li key={item._id || item.id || item.itemId || idx} className="flex items-start gap-3">
+                                {item.image ? (
+                                  <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[10px] bg-white">
+                                    <img
+                                      src={item.image}
+                                      alt=""
+                                      className="h-full w-full object-cover"
+                                      onError={(e) => {
+                                        e.target.style.display = 'none'
+                                      }}
+                                    />
+                                  </span>
+                                ) : null}
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-[13px] font-medium text-app-ink dark:text-gray-200">
+                                    {itemQuantity} x {itemName}
+                                  </span>
+                                  {item.variantName ? <span className="block text-[11.5px] text-app-muted">{item.variantName}</span> : null}
+                                  {item.description ? <span className="block truncate text-[11.5px] text-app-muted">{item.description}</span> : null}
+                                </span>
+                                <span className="shrink-0 text-right">
+                                  <span className="block text-[13px] font-semibold tabular-nums text-app-ink dark:text-gray-200">{"₹"}{itemTotal.toFixed(2)}</span>
+                                  {itemQuantity > 1 && (
+                                    <span className="block text-[11px] text-app-muted">{"₹"}{itemPrice.toFixed(2)} each</span>
+                                  )}
+                                </span>
+                              </li>
+                            )
+                          })
+                        ) : (
+                          <li className="text-[13px] text-app-muted">No items found</li>
+                        )}
+                      </ul>
+                      <div className="space-y-1.5 text-[12px]">
+                        {order.subtotal > 0 && (
+                          <div className="flex justify-between"><span className="text-app-muted">Subtotal</span><span className="font-medium text-app-ink dark:text-gray-200">{"₹"}{order.subtotal.toFixed(2)}</span></div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-app-muted">Delivery Fee</span>
+                          <span className="font-medium text-app-ink dark:text-gray-200">{order.deliveryFee > 0 ? `₹${order.deliveryFee.toFixed(2)}` : "Free"}</span>
+                        </div>
+                        {order.quickDeliveryFee > 0 && (
+                          <div className="flex justify-between font-semibold text-app-brown"><span>Quick Mode</span><span>{"₹"}{order.quickDeliveryFee.toFixed(2)}</span></div>
+                        )}
+                        {order.packagingFee > 0 && (
+                          <div className="flex justify-between"><span className="text-app-muted">Packaging</span><span className="font-medium text-app-ink dark:text-gray-200">{"₹"}{order.packagingFee.toFixed(2)}</span></div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-app-muted">Platform Fee</span>
+                          <span className="font-medium text-app-ink dark:text-gray-200">{order.basePlatformFee > 0 ? `₹${order.basePlatformFee.toFixed(2)}` : "Free"}</span>
+                        </div>
+                        {order.tax > 0 && (
+                          <div className="flex justify-between"><span className="text-app-muted">Tax</span><span className="font-medium text-app-ink dark:text-gray-200">{"₹"}{order.tax.toFixed(2)}</span></div>
+                        )}
+                        {order.pricing?.discount > 0 && (
+                          <div className="flex justify-between font-medium text-app-ok"><span>Discount</span><span>-{"₹"}{order.pricing.discount.toFixed(2)}</span></div>
+                        )}
+                        {order.coinsDiscount > 0 && (
+                          <div className="flex justify-between font-medium text-app-ok"><span>Coins</span><span>-{"₹"}{order.coinsDiscount.toFixed(2)}</span></div>
+                        )}
+                        {order.pricing?.couponCode && (
+                          <div className="flex justify-between"><span className="text-app-muted">Coupon Applied</span><span className="font-medium text-app-ink dark:text-gray-200">{order.pricing.couponCode}</span></div>
+                        )}
+                        <div className="mt-1.5 flex justify-between border-t border-app-line pt-1.5 dark:border-gray-800">
+                          <span className="text-[13px] font-semibold text-app-ink dark:text-gray-200">Total</span>
+                          <span className="text-[14px] font-bold tabular-nums text-app-ink dark:text-white">{"₹"}{order.total.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+
+                  {/* Footer: status notes, rating and the two buttons */}
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0 text-[12px]">
+                      {order.deliveredAt && (
+                        <p className="text-app-muted">Delivered on {formatDate(order.deliveredAt)}</p>
                       )}
-                      {/* Countdown Timer */}
-                      {countdowns[order.id] && countdowns[order.id] > 0 && (
-                        <div className="flex items-center gap-1 mt-1 text-xs text-wh-brand-ink font-medium">
-                          <Clock size={12} />
-                          <span>{countdowns[order.id]} min{countdowns[order.id] !== 1 ? 's' : ''} remaining</span>
+                      {order.shopLabel && !isDelivered ? (
+                        isCancelled && order.cancellationReason ? (
+                          <p className="text-app-muted">Reason: {order.cancellationReason}</p>
+                        ) : null
+                      ) : isSellerCancelled ? (
+                        <p className="flex items-center gap-1.5 text-app-muted">
+                          <AlertCircle className="h-4 w-4 shrink-0 text-[#E11D48]" aria-hidden="true" />
+                          If prepaid, refund is sent automatically to the original payment method.
+                        </p>
+                      ) : paymentFailed ? (
+                        <p className="flex items-center gap-1.5 font-semibold text-[#E11D48]">
+                          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          Payment Failed
+                        </p>
+                      ) : isDelivered && order.sellerRating && (!order.deliveryPartnerId || order.deliveryPartnerRating) ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-app-ink dark:text-gray-200">You Rated</span>
+                          <span className="flex h-5 items-center gap-0.5 rounded bg-app-brown px-1.5 text-[10.5px] font-semibold text-white">
+                            Seller {order.sellerRating}<Star className="h-2.5 w-2.5 fill-current" aria-hidden="true" />
+                          </span>
+                          {order.deliveryPartnerId && (
+                            <span className="flex h-5 items-center gap-0.5 rounded bg-app-brown-mid px-1.5 text-[10.5px] font-semibold text-white">
+                              Delivery {order.deliveryPartnerRating}<Star className="h-2.5 w-2.5 fill-current" aria-hidden="true" />
+                            </span>
+                          )}
+                        </div>
+                      ) : isDelivered ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenRating(order)}
+                          className="inline-flex items-center gap-1 font-semibold text-app-brown hover:underline"
+                        >
+                          <Star className="h-3.5 w-3.5" aria-hidden="true" />
+                          Rate seller &amp; delivery
+                        </button>
+                      ) : (
+                        <div>
+                          {order.status === 'pending_payment' ? (
+                            <Link to={`/orders/${order.id}`} className="font-semibold text-app-brown underline-offset-2 hover:underline">
+                              Payment pending — complete it now
+                            </Link>
+                          ) : null}
+                          {/* Countdown Timer */}
+                          {countdowns[order.id] && countdowns[order.id] > 0 && (
+                            <p className="mt-0.5 flex items-center gap-1 font-medium text-app-brown">
+                              <Clock size={12} aria-hidden="true" />
+                              <span>{countdowns[order.id]} min{countdowns[order.id] !== 1 ? 's' : ''} remaining</span>
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
 
-                  {/* Right Side: Reorder Button */}
-                  {isDelivered && !paymentFailed && (
-                    <button
-                      onClick={() => handleReorder(order)}
-                      className="bg-wh-brand hover:bg-wh-brand-600 text-wh-text px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1 shadow-sm transition-colors"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      Reorder
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })
-        )}
-      </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {isDelivered && !paymentFailed && (
+                        <button
+                          type="button"
+                          onClick={() => handleReorder(order)}
+                          className="flex h-[38px] items-center gap-1.5 rounded-[20px] border-[1.2px] border-[#4A2C19] px-4 text-[13px] font-bold text-[#4A2C19] transition-colors hover:bg-app-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown dark:border-gray-500 dark:text-gray-200"
+                        >
+                          <ShoppingCart className="h-4 w-4" aria-hidden="true" />
+                          Buy Again
+                        </button>
+                      )}
+                      <Link
+                        to={`/orders/${order.id}`}
+                        className="flex h-[38px] items-center gap-1 rounded-[20px] bg-[#4A2C19] px-5 text-[13px] font-bold text-white transition-colors hover:bg-app-brown-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown"
+                      >
+                        View Details
+                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              )
+            })
+          )}
+        </div>
 
-      {/* Footer Branding */}
-      <div className="flex justify-center mt-8 mb-4">
-        <h1 className="text-4xl font-black text-gray-200 dark:text-zinc-900 tracking-tighter italic capitalize">{companyName}</h1>
+        {/* Footer Branding */}
+        <div className="mt-10 flex justify-center">
+          <p className="font-app-display text-4xl font-bold capitalize tracking-tight text-app-line dark:text-zinc-900">{companyName}</p>
+        </div>
       </div>
 
       {/* Rating & Feedback Modal */}
       {ratingModal.open && ratingModal.order && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 font-app">
             {/* Header with gradient */}
-            <div className="bg-gradient-to-r from-wh-brand to-wh-brand-600 px-6 py-5">
+            <div className="bg-gradient-to-r from-app-brown to-app-brown-mid px-6 py-5">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   <Star className="w-5 h-5 fill-white" />
@@ -1134,9 +1176,10 @@ Order again from this seller in the ${companyName} app.`
                 <button
                   type="button"
                   onClick={handleCloseRating}
+                  aria-label="Close rating"
                   className="text-white/80 hover:text-white transition-colors p-1 rounded-full hover:bg-white/20"
                 >
-                  <span className="text-xl">x</span>
+                  <X className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>
               <p className="text-sm text-white/90">{ratingModal.order.seller}</p>
@@ -1171,7 +1214,7 @@ Order again from this seller in the ${companyName} app.`
                   rows={2}
                   value={sellerFeedbackText}
                   onChange={(e) => setSellerFeedbackText(e.target.value)}
-                  className="w-full rounded-xl border-2 border-gray-200 dark:border-zinc-800 bg-transparent px-4 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-wh-brand focus:border-wh-brand resize-none transition-all"
+                  className="w-full rounded-xl border-2 border-gray-200 dark:border-zinc-800 bg-transparent px-4 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-app-brown/30 focus:border-app-brown resize-none transition-all"
                   placeholder="Seller feedback (optional)"
                 />
               </div>
@@ -1205,7 +1248,7 @@ Order again from this seller in the ${companyName} app.`
                     rows={2}
                     value={deliveryFeedbackText}
                     onChange={(e) => setDeliveryFeedbackText(e.target.value)}
-                    className="w-full rounded-xl border-2 border-gray-200 dark:border-zinc-800 bg-transparent px-4 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-wh-brand focus:border-wh-brand resize-none transition-all"
+                    className="w-full rounded-xl border-2 border-gray-200 dark:border-zinc-800 bg-transparent px-4 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-app-brown/30 focus:border-app-brown resize-none transition-all"
                     placeholder="Delivery partner feedback (optional)"
                   />
                 </div>
@@ -1216,13 +1259,7 @@ Order again from this seller in the ${companyName} app.`
                 type="button"
                 disabled={ratingSubmitDisabled}
                 onClick={handleSubmitRating}
-                className="w-full rounded-xl text-wh-text text-base font-bold py-3.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(var(--module-theme-rgb,253,146,11),0.94), var(--module-theme-color,#FD920B))",
-                  boxShadow:
-                    "0 12px 24px rgba(var(--module-theme-rgb,253,146,11),0.30)",
-                }}
+                className="w-full rounded-xl bg-app-brown text-white text-base font-bold py-3.5 hover:bg-app-brown-deep disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-[0_12px_24px_rgba(88,50,29,0.25)]"
               >
                 {submittingRating ? (
                   <>
@@ -1274,7 +1311,7 @@ Order again from this seller in the ${companyName} app.`
                 <button
                   type="button"
                   onClick={handleSystemShareFromModal}
-                  className="w-full rounded-2xl bg-wh-brand px-4 py-3 text-sm font-semibold text-wh-text flex items-center justify-center gap-2 hover:bg-wh-brand-600 transition-colors"
+                  className="w-full rounded-2xl bg-app-brown px-4 py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 hover:bg-app-brown-deep transition-colors"
                 >
                   <Share2 className="w-4 h-4" />
                   Share via Apps

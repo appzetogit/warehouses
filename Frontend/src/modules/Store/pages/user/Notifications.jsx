@@ -210,7 +210,7 @@ export default function Notifications() {
         }
       />
 
-      <div className="max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-4 py-4">
+      <div className="max-w-md md:max-w-2xl lg:max-w-3xl xl:max-w-3xl mx-auto px-4 py-4 lg:px-8 lg:py-8">
         {sections.map((section) => (
           <section key={section.title} className="mb-5" aria-label={section.title}>
             <h2 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wide text-app-muted">

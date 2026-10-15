@@ -62,13 +62,13 @@ export function DealBadge({ percent, className }) {
 export function CtaButton({ variant = 'primary', children, className, type = 'button', ...buttonProps }) {
   const tone =
     variant === 'secondary'
-      ? 'bg-wh-cta-2 hover:bg-wh-cta-2-hover border-[#FF8F00]'
-      : 'bg-wh-cta hover:bg-wh-cta-hover border-[#FCD200]'
+      ? 'bg-wh-cta-2 hover:bg-wh-cta-2-hover border-wh-cta-2 text-white'
+      : 'bg-wh-cta hover:bg-wh-cta-hover border-[#DDB089] text-wh-text'
   return (
     <button
       type={type}
       className={cx(
-        'inline-flex h-[34px] w-full items-center justify-center gap-1 rounded-full border px-4 text-[13px] font-medium text-wh-text shadow-sm',
+        'inline-flex h-[34px] w-full items-center justify-center gap-1 rounded-full border px-4 text-[13px] font-semibold shadow-sm',
         'transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wh-brand disabled:cursor-not-allowed disabled:opacity-50',
         tone,
         className,

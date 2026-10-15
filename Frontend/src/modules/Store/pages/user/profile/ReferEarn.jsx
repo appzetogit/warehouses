@@ -118,8 +118,8 @@ export default function ReferEarn() {
   };
 
   return (
-    <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a]">
-      <div className="max-w-md mx-auto px-4 py-4 pb-24">
+    <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] lg:bg-app-cream lg:font-app">
+      <div className="max-w-md mx-auto px-4 py-4 pb-24 lg:max-w-2xl lg:px-8 lg:py-8">
         <div className="flex items-center gap-3 mb-5">
           <Link to="/user/profile">
             <Button variant="ghost" size="icon" className="h-8 w-8 p-0">

@@ -137,23 +137,28 @@ export default function OrderPlaced() {
   return (
     <div className={`min-h-screen ${ORDER_PAGE_BG} pb-24 font-app lg:pb-12`}>
       <ConfettiBurst />
-      <div className="mx-auto max-w-xl px-4 pb-6 pt-2 lg:pt-8">
+      <div className="mx-auto max-w-xl px-4 pb-6 pt-2 lg:max-w-5xl lg:px-8 lg:pt-8">
         <BagHero />
-        <h1 className="text-center text-[26px] font-bold leading-tight text-app-ink">Order Placed Successfully!</h1>
+        <h1 className="text-center text-[26px] font-bold leading-tight text-app-ink lg:font-app-display lg:text-[40px] lg:text-app-brown-deep">Order Placed Successfully!</h1>
         <p className="mt-1.5 text-center text-[14.5px] text-[#4A423D]">
           {name ? `Thank you for shopping with us, ${name}` : "Thank you for shopping with us"}
         </p>
         <p className="mx-auto mt-1 max-w-sm text-center text-[12.5px] text-app-muted">The store will confirm your order soon — we'll notify you.</p>
 
-        <div className="mt-5 space-y-3">
+        <div className="mt-5 space-y-3 lg:mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-x-8 lg:gap-y-6 lg:space-y-0">
+          {/* Wide screens: number and progress across the top, items left, payment and address right */}
+          <div className="space-y-3 lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
           <OrderNumberCard label={several ? "Order Numbers" : "Order Number"} orderNo={orderNumbers} date={orderDate} />
           <PlacedTimeline steps={timeline} />
           {range ? (
-            <p className="flex items-center justify-center gap-1.5 text-[13px] font-semibold text-app-brown">
+            <p className="flex items-center justify-center gap-1.5 text-[13px] font-semibold text-app-brown lg:col-span-2">
               <CalendarDays className="h-4 w-4" aria-hidden="true" /> {arrivalText(range)}
             </p>
           ) : null}
-          {saved > 0 ? <SavedBanner amount={rupees(saved)} /> : null}
+          {saved > 0 ? <div className="lg:col-span-2"><SavedBanner amount={rupees(saved)} /></div> : null}
+          </div>
+
+          <div className="space-y-3 lg:col-start-1">
 
           {orders.map((o) => {
             const lines = o.items || []
@@ -186,7 +191,9 @@ export default function OrderPlaced() {
               </section>
             )
           })}
+          </div>
 
+          <div className="space-y-3 lg:sticky lg:top-28 lg:col-start-2 lg:row-start-2">
           <DetailCard className="flex items-center gap-3 p-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-app-tint-strong text-app-brown">
               <CreditCard className="h-5 w-5" aria-hidden="true" />
@@ -209,7 +216,7 @@ export default function OrderPlaced() {
             phone={address.phone}
           />
 
-          <div className="flex flex-col gap-2.5 pt-2 sm:flex-row">
+          <div className="flex flex-col gap-2.5 pt-2 sm:flex-row lg:flex-col">
             <Link
               to={viewTo}
               replace
@@ -223,6 +230,7 @@ export default function OrderPlaced() {
             >
               Continue shopping
             </Link>
+          </div>
           </div>
         </div>
       </div>

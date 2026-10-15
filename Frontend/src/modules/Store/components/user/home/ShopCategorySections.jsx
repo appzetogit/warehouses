@@ -13,9 +13,14 @@ import { categoryFromLink, categoryImage, rupees } from "./homeCatalogue"
  * - CuratedEdits (_CuratedEdits): the admin's featured cards, as a 2-col grid.
  *
  * `groups` is groupByCategory(categories, products): what each category sells.
+ *
+ * The lg: classes lay the same sections out for the desktop home (taller
+ * collection cards, grids instead of rails); below lg they change nothing.
  */
 
 const rail = "flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+// Desktop: the rail becomes a grid inside the page container.
+const railToGrid = "lg:grid lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0"
 const countOf = (groups, c) => groups.get(String(c.id))?.items.length || 0
 
 /** Main categories with something for sale, as one or two dark cards. */
@@ -34,7 +39,7 @@ export function CollectionCards({ categories = [], groups }) {
   }
 
   return (
-    <section aria-label="Collections" className={`grid gap-3 px-4 font-app ${single ? "grid-cols-1" : "grid-cols-2"}`}>
+    <section aria-label="Collections" className={`grid gap-3 px-4 font-app lg:gap-5 lg:px-0 ${single ? "grid-cols-1" : "grid-cols-2"}`}>
       {roots.map((c) => {
         const image = categoryImage(c) || groups.get(String(c.id))?.cover || ""
         const sub = blurb(c)
@@ -42,16 +47,16 @@ export function CollectionCards({ categories = [], groups }) {
           <Link
             key={c.id}
             to={storePath(`/category/${categorySlugOf(c)}`)}
-            className={`relative block overflow-hidden rounded-[10px] bg-app-brown-deep shadow-[0_6px_14px_rgba(25,20,17,0.15)] active:scale-[0.98] ${
+            className={`group relative block overflow-hidden rounded-[10px] bg-app-brown-deep shadow-[0_6px_14px_rgba(25,20,17,0.15)] active:scale-[0.98] lg:h-[360px] lg:rounded-2xl ${
               single ? "h-[168px]" : "h-[190px]"
             }`}
           >
-            {image ? <img src={image} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" /> : null}
+            {image ? <img src={image} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover lg:object-top lg:transition-transform lg:duration-500 lg:group-hover:scale-[1.03]" /> : null}
             <span aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(0deg,rgba(20,14,10,0.9),transparent)]" />
-            <span className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-1 p-3">
-              <span className="font-app-display text-[22px] font-bold leading-none text-white">{c.name}</span>
-              {sub ? <span className="line-clamp-2 text-[11.5px] leading-snug text-[#E9DED4]">{sub}</span> : null}
-              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[11.5px] font-extrabold text-app-brown">
+            <span className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-1 p-3 lg:gap-2 lg:p-7">
+              <span className="font-app-display text-[22px] font-bold leading-none text-white lg:text-[44px]">{c.name}</span>
+              {sub ? <span className="line-clamp-2 text-[11.5px] leading-snug text-[#E9DED4] lg:text-[14px]">{sub}</span> : null}
+              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[11.5px] font-extrabold text-app-brown lg:mt-2 lg:px-5 lg:py-2 lg:text-[13px] lg:transition-colors lg:group-hover:bg-app-champagne">
                 Shop now <span aria-hidden="true">→</span>
               </span>
             </span>
@@ -70,13 +75,13 @@ export function TopCategories({ categories = [], groups }) {
   if (!subs.length) return null
   return (
     <section aria-label="Top categories" className="font-app">
-      <div className="mb-3 flex items-center justify-between gap-3 px-4">
-        <h2 className="text-[18px] font-bold text-app-ink">Top Categories</h2>
-        <Link to={storePath("/categories")} className="text-[12.5px] font-semibold text-app-brown-badge">
+      <div className="mb-3 flex items-center justify-between gap-3 px-4 lg:mb-4 lg:px-0">
+        <h2 className="text-[18px] font-bold text-app-ink lg:text-[24px]">Top Categories</h2>
+        <Link to={storePath("/categories")} className="text-[12.5px] font-semibold text-app-brown-badge lg:text-[14px] lg:hover:underline">
           View All <span aria-hidden="true">→</span>
         </Link>
       </div>
-      <div className={rail}>
+      <div className={`${rail} ${railToGrid} lg:grid-cols-5`}>
         {subs.map((c) => {
           const g = groups.get(String(c.id))
           const image = categoryImage(c) || g?.cover || ""
@@ -84,14 +89,14 @@ export function TopCategories({ categories = [], groups }) {
             <Link
               key={c.id}
               to={storePath(`/category/${categorySlugOf(c)}`)}
-              className="flex h-[162px] w-[112px] shrink-0 flex-col overflow-hidden rounded-[14px] border border-app-line bg-white active:scale-[0.97]"
+              className="group flex h-[162px] w-[112px] shrink-0 flex-col overflow-hidden rounded-[14px] border border-app-line bg-white active:scale-[0.97] lg:h-auto lg:w-auto lg:shadow-[0_2px_8px_rgba(25,20,17,0.06)] lg:transition-shadow lg:hover:shadow-[0_6px_16px_rgba(25,20,17,0.12)]"
             >
-              <span className="block min-h-0 flex-1 bg-app-alt">
-                {image ? <img src={image} alt="" loading="lazy" className="h-full w-full object-cover" /> : null}
+              <span className="block min-h-0 flex-1 bg-app-alt lg:aspect-[4/5] lg:flex-none lg:overflow-hidden">
+                {image ? <img src={image} alt="" loading="lazy" className="h-full w-full object-cover lg:object-top lg:transition-transform lg:duration-300 lg:group-hover:scale-[1.04]" /> : null}
               </span>
-              <span className="block px-2 py-1.5">
-                <span className="block truncate text-[12px] font-bold text-app-ink">{c.name}</span>
-                {g?.minPrice ? <span className="block truncate text-[10.5px] text-app-muted">From {rupees(g.minPrice)}</span> : null}
+              <span className="block px-2 py-1.5 lg:px-3 lg:py-2.5">
+                <span className="block truncate text-[12px] font-bold text-app-ink lg:text-[14.5px]">{c.name}</span>
+                {g?.minPrice ? <span className="block truncate text-[10.5px] text-app-muted lg:text-[12.5px]">From {rupees(g.minPrice)}</span> : null}
               </span>
             </Link>
           )
@@ -110,18 +115,19 @@ export function WardrobeCollections({ categories = [] }) {
   return (
     <section aria-label="Wardrobe collections" className="font-app">
       <AppSectionHeading title="Wardrobe Collections" subtitle="Every category in the store" />
-      <div className={rail}>
+      {/* Desktop: two rows of six; the Categories page lists the rest. */}
+      <div className={`${rail} ${railToGrid} lg:grid-cols-6 lg:[&>*:nth-child(n+13)]:hidden`}>
         {tiles.map((c) => (
           <Link
             key={c.id}
             to={storePath(`/category/${categorySlugOf(c)}`)}
-            className="relative block h-[185px] w-[148px] shrink-0 overflow-hidden rounded-2xl bg-app-alt active:scale-[0.97]"
+            className="group relative block h-[185px] w-[148px] shrink-0 overflow-hidden rounded-2xl bg-app-alt active:scale-[0.97] lg:aspect-[4/5] lg:h-auto lg:w-auto"
           >
-            <img src={categoryImage(c)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={categoryImage(c)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover lg:transition-transform lg:duration-500 lg:group-hover:scale-[1.04]" />
             <span aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(0deg,rgba(0,0,0,0.75),transparent_60%)]" />
-            <span className="absolute inset-x-0 bottom-0 p-3">
-              <span className="block truncate text-[13.5px] font-extrabold text-white">{c.name}</span>
-              <span className="block text-[11px] font-bold text-app-champagne">
+            <span className="absolute inset-x-0 bottom-0 p-3 lg:p-4">
+              <span className="block truncate text-[13.5px] font-extrabold text-white lg:text-[16px]">{c.name}</span>
+              <span className="block text-[11px] font-bold text-app-champagne lg:text-[12.5px]">
                 Explore <span aria-hidden="true">→</span>
               </span>
             </span>
@@ -148,20 +154,27 @@ export function CuratedEdits({ items = [], categories = [], groups }) {
     if (tiles.length === 6) break
   }
   if (tiles.length < 2) return null
+  // Desktop: one row when there are up to four (or five), else rows of three.
+  const wide = tiles.length === 4 || tiles.length === 5
+  const desktopCols = { 2: "lg:grid-cols-2", 3: "lg:grid-cols-3", 4: "lg:grid-cols-4", 5: "lg:grid-cols-5" }[tiles.length] || "lg:grid-cols-3"
   return (
     <section aria-label="Curated style edits" className="font-app">
       <AppSectionHeading title="Curated Style Edits" />
-      <div className="grid grid-cols-2 gap-3 px-4">
+      <div className={`grid grid-cols-2 gap-3 px-4 lg:gap-5 lg:px-0 ${desktopCols}`}>
         {tiles.map((t) => (
-          <Link key={t.key} to={t.to} className="relative block aspect-[0.85] overflow-hidden rounded-[18px] bg-app-alt active:scale-[0.98]">
-            <img src={t.art} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+          <Link
+            key={t.key}
+            to={t.to}
+            className={`group relative block aspect-[0.85] overflow-hidden rounded-[18px] bg-app-alt active:scale-[0.98] ${wide ? "lg:aspect-[4/5]" : "lg:aspect-[4/3]"}`}
+          >
+            <img src={t.art} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover lg:transition-transform lg:duration-500 lg:group-hover:scale-[1.03]" />
             <span aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(0deg,rgba(0,0,0,0.87),transparent_65%)]" />
             {t.badge ? (
               <span className="absolute left-2.5 top-2.5 rounded-full bg-white/[0.92] px-2 py-0.5 text-[9.5px] font-extrabold uppercase tracking-wide text-app-ink">
                 {t.badge}
               </span>
             ) : null}
-            <span className="absolute inset-x-0 bottom-0 line-clamp-2 p-3 text-[16px] font-extrabold leading-tight text-white">{t.title}</span>
+            <span className="absolute inset-x-0 bottom-0 line-clamp-2 p-3 text-[16px] font-extrabold leading-tight text-white lg:p-5 lg:text-[22px]">{t.title}</span>
           </Link>
         ))}
       </div>

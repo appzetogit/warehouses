@@ -43,7 +43,7 @@ export default function Logout() {
   }
 
   return (
-    <AnimatedPage className="min-h-screen bg-[#f5f5f5]">
+    <AnimatedPage className="min-h-screen bg-[#f5f5f5] lg:bg-app-cream lg:font-app">
       <div className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8">
         {/* Header */}
         <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-6 lg:mb-8">

@@ -8,6 +8,8 @@ import { productOff, productPrice } from "./homeCatalogue"
  * The app's "More to Explore" (shop_home_screen.dart ~:1758-1930): on the
  * cream band, a row of category chips that filter the grid below, a Sort chip
  * with a small sheet, and a two-column grid of product cards, 24 at a time.
+ * From lg (desktop home) the grid has five columns (six from xl) and the sort
+ * sheet opens as a small centred dialog.
  */
 
 const PAGE = 24
@@ -21,7 +23,7 @@ const SORTS = [
 const chipBase =
   "flex h-[38px] shrink-0 items-center gap-1.5 rounded-[22px] px-4 text-[12.5px] font-semibold shadow-[0_2px_6px_rgba(25,20,17,0.08)] transition-colors"
 const chipOn = "bg-app-brown-chip text-white"
-const chipOff = "bg-white text-app-ink"
+const chipOff = "bg-white text-app-ink lg:hover:bg-app-tint"
 
 function SortSheet({ value, onPick, onClose }) {
   const first = useRef(null)
@@ -34,12 +36,12 @@ function SortSheet({ value, onPick, onClose }) {
     return () => window.removeEventListener("keydown", onKey)
   }, [])
   return (
-    <div className="fixed inset-0 z-[80] flex items-end bg-black/40 font-app lg:hidden" onClick={onClose}>
+    <div className="fixed inset-0 z-[80] flex items-end bg-black/40 font-app lg:items-center lg:justify-center" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="explore-sort-title"
-        className="w-full rounded-t-[20px] bg-white px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pt-3"
+        className="w-full rounded-t-[20px] bg-white px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pt-3 lg:w-[380px] lg:rounded-[20px] lg:px-5 lg:pb-4 lg:shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-2 flex items-center justify-between">
@@ -113,7 +115,7 @@ export default function MoreToExplore({ products = [] }) {
   return (
     <section aria-label="More to explore" className="bg-app-cream pb-6 pt-7 font-app">
       <AppSectionHeading title="More to Explore" subtitle="Fresh picks from across the store" />
-      <div className="flex items-center gap-2 pb-3 pl-4 pr-4 pt-1">
+      <div className="flex items-center gap-2 pb-3 pl-4 pr-4 pt-1 lg:px-0 lg:pb-5">
         <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button type="button" aria-pressed={!filter} onClick={() => pick("")} className={`${chipBase} ${!filter ? chipOn : chipOff}`}>
             <LayoutGrid className={`h-4 w-4 ${!filter ? "" : "text-app-brown-chip"}`} aria-hidden="true" />
@@ -137,7 +139,7 @@ export default function MoreToExplore({ products = [] }) {
           Sort
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-3 px-4">
+      <div className="grid grid-cols-2 gap-3 px-4 lg:grid-cols-5 lg:gap-4 lg:px-0 xl:grid-cols-6">
         {list.slice(0, shown).map((p) => (
           <ProductTile key={p._id} product={p} />
         ))}
@@ -147,7 +149,7 @@ export default function MoreToExplore({ products = [] }) {
           <button
             type="button"
             onClick={() => setShown((n) => n + PAGE)}
-            className="h-10 rounded-full border border-app-brown px-6 text-[13px] font-bold text-app-brown active:scale-[0.98]"
+            className="h-10 rounded-full border border-app-brown px-6 text-[13px] font-bold text-app-brown active:scale-[0.98] lg:h-11 lg:px-8 lg:transition-colors lg:hover:bg-app-brown lg:hover:text-white"
           >
             Show more
           </button>

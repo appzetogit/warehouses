@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, IndianRupee, Plus, ArrowDownCircle, ArrowUpCircle, RefreshCw, Loader2 } from "lucide-react"
-import { Button } from "@store/components/ui/button"
-import { Card, CardContent } from "@store/components/ui/card"
+import { Coins, IndianRupee, Plus, ArrowDownCircle, ArrowUpCircle, RefreshCw, Loader2 } from "lucide-react"
+import AccountAppBar from "@store/components/user/account/AccountAppBar"
 import AnimatedPage from "@store/components/user/AnimatedPage"
 import AddMoneyModal from "@store/components/user/AddMoneyModal"
 import { userAPI } from "@store/api"
@@ -121,11 +120,11 @@ export default function Wallet() {
   const getTransactionIcon = (type) => {
     switch (type) {
       case "addition":
-        return <ArrowDownCircle className="h-6 w-6 md:h-7 md:w-7 lg:h-8 lg:w-8 text-green-600 dark:text-green-400" />
+        return <ArrowDownCircle className="h-6 w-6 text-app-ok" aria-hidden="true" />
       case "deduction":
-        return <ArrowUpCircle className="h-6 w-6 md:h-7 md:w-7 lg:h-8 lg:w-8 text-red-600 dark:text-red-400" />
+        return <ArrowUpCircle className="h-6 w-6 text-[#B3261E]" aria-hidden="true" />
       case "refund":
-        return <RefreshCw className="h-6 w-6 md:h-7 md:w-7 lg:h-8 lg:w-8 text-blue-600 dark:text-blue-400" />
+        return <RefreshCw className="h-6 w-6 text-app-brown" aria-hidden="true" />
       default:
         return null
     }
@@ -134,110 +133,83 @@ export default function Wallet() {
   const getTransactionColor = (type) => {
     switch (type) {
       case "addition":
-        return "text-green-600 dark:text-green-400"
+        return "text-app-ok"
       case "deduction":
-        return "text-red-600 dark:text-red-400"
+        return "text-[#B3261E]"
       case "refund":
-        return "text-blue-600 dark:text-blue-400"
+        return "text-app-brown"
       default:
-        return "text-gray-600 dark:text-gray-400"
+        return "text-app-muted"
     }
   }
 
   return (
-    <AnimatedPage className="min-h-screen bg-white dark:bg-[#0a0a0a]">
-      <div className="bg-white dark:bg-[#1a1a1a] sticky top-0 z-10 border-b border-gray-100 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 px-4 sm:px-6 md:px-8 lg:px-10 py-4 md:py-5">
-            <button
-              onClick={goBack}
-              className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors flex-shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5 md:h-6 md:w-6 text-gray-700 dark:text-white" />
-            </button>
-            <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Wallet</h1>
-            <Link to="/coins" className="ml-auto text-sm font-semibold text-amber-600 dark:text-amber-400 hover:underline">
-              My Coins
-            </Link>
-          </div>
-        </div>
-      </div>
+    <AnimatedPage className="min-h-screen bg-app-cream font-app text-app-ink dark:bg-[#0a0a0a]">
+      <AccountAppBar
+        title="Wallet"
+        onBack={goBack}
+        right={
+          <Link
+            to="/coins"
+            className="mr-1 inline-flex items-center gap-1 rounded-full bg-app-sand px-3 py-1.5 text-[12.5px] font-semibold text-app-brown hover:bg-app-tint-strong"
+          >
+            <Coins className="h-3.5 w-3.5" aria-hidden="true" />
+            My Coins
+          </Link>
+        }
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-6 md:py-8 lg:py-10 space-y-6 md:space-y-8">
+      <div className="mx-auto max-w-3xl space-y-5 px-4 py-5 lg:max-w-4xl lg:space-y-6 lg:px-8 lg:py-8">
         {loading && (
-          <div className="flex items-center justify-center py-12 md:py-16 lg:py-20">
-            <Loader2 className="h-8 w-8 md:h-10 md:w-10 animate-spin text-gray-600 dark:text-gray-400" />
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-app-brown" aria-label="Loading wallet" />
           </div>
         )}
 
         {error && !loading && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 md:p-6">
-            <p className="text-red-600 dark:text-red-400 text-sm md:text-base">{error}</p>
+          <div className="rounded-2xl border border-[#F5C2C7] bg-[#FFF0F2] p-4">
+            <p className="text-[13.5px] text-[#9F1239]">{error}</p>
           </div>
         )}
 
         {!loading && !error && (
           <>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 md:gap-8 lg:gap-10">
-              <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 lg:gap-8 flex-1">
-                <div className="relative flex-shrink-0">
-                  <div className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg transform rotate-[-5deg]">
-                    <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 bg-white/10 rounded-lg md:rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
-                      <IndianRupee className="h-10 w-10 md:h-12 md:w-12 lg:h-14 lg:w-14 xl:h-16 xl:w-16 text-white" strokeWidth={2.5} />
-                    </div>
+            {/* Balance */}
+            <section className="overflow-hidden rounded-[20px] bg-gradient-to-br from-[#6E4129] via-app-brown to-app-brown-deep p-5 text-white shadow-[0_10px_24px_rgba(88,50,29,0.25)] lg:p-7">
+              <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 lg:h-16 lg:w-16">
+                    <IndianRupee className="h-7 w-7 text-app-champagne lg:h-8 lg:w-8" strokeWidth={2.5} aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-white/80">{companyName} Money</p>
+                    <p className="text-[32px] font-extrabold leading-tight tabular-nums lg:text-[40px]">{formatAmount(currentBalance)}</p>
+                    <p className="text-[12px] text-white/70">Current Balance</p>
                   </div>
-                  <div className="absolute inset-0 bg-red-800 rounded-xl md:rounded-2xl transform rotate-[-5deg] translate-y-1 -z-10 opacity-25" />
                 </div>
-
-                <div className="flex flex-col md:items-start items-center text-center md:text-left">
-                  <h2 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 dark:text-white mb-2 md:mb-3">
-                    {companyName} Money
-                  </h2>
-
-                  <div className="mb-2 md:mb-3">
-                    <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm lg:text-base mb-1">Current Balance</p>
-                    <p className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold text-gray-900 dark:text-white">
-                      {formatAmount(currentBalance)}
-                    </p>
-                  </div>
-
-                  <div className="mb-2 md:mb-3">
-                    <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm lg:text-base mb-1">Referral Earnings</p>
-                    <p className="text-lg md:text-xl lg:text-2xl font-semibold text-green-600 dark:text-green-400">
-                      {formatAmount(referralEarnings)}
-                    </p>
-                  </div>
-
-                  <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm lg:text-base text-center md:text-left max-w-md">
-                    Add money to enjoy one-tap, seamless payments
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex-shrink-0 w-full md:w-auto">
-                <Button
-                  className="w-full md:w-auto md:min-w-[200px] lg:min-w-[240px] h-12 md:h-14 lg:h-16 text-wh-text font-semibold text-sm md:text-base lg:text-lg rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgba(var(--module-theme-rgb,253,146,11),0.94), var(--module-theme-color,#FD920B))",
-                    boxShadow:
-                      "0 12px 24px rgba(var(--module-theme-rgb,253,146,11),0.30)",
-                  }}
+                <button
+                  type="button"
                   onClick={() => setAddMoneyModalOpen(true)}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-app-champagne px-6 text-[15px] font-bold text-app-brown-deep transition-colors hover:bg-[#F0D2B3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:w-auto md:min-w-[200px]"
                 >
-                  <Plus className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
+                  <Plus className="h-5 w-5" aria-hidden="true" />
                   Add Money
-                </Button>
+                </button>
               </div>
-            </div>
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-3">
+                <div>
+                  <p className="text-[12px] text-white/75">Referral Earnings</p>
+                  <p className="text-[18px] font-bold tabular-nums text-app-champagne">{formatAmount(referralEarnings)}</p>
+                </div>
+                <p className="max-w-xs text-[12px] text-white/75">Add money to enjoy one-tap, seamless payments</p>
+              </div>
+            </section>
 
-            <div className="space-y-4 md:space-y-6 lg:space-y-8">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
-                <h2 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold text-gray-400 dark:text-gray-500 tracking-widest uppercase">
-                  TRANSACTION HISTORY
-                </h2>
-
-                <div className="flex gap-2 md:gap-3 overflow-x-auto md:overflow-x-visible scrollbar-hide pb-2 md:pb-0">
+            {/* Transaction history */}
+            <section className="space-y-3">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <h2 className="text-[16px] font-bold text-app-ink dark:text-white">Transaction History</h2>
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide md:pb-0" role="tablist" aria-label="Filter transactions">
                   {[
                     { id: TRANSACTION_TYPES.ALL, label: "All Transactions" },
                     { id: TRANSACTION_TYPES.ADDITIONS, label: "Additions" },
@@ -248,11 +220,12 @@ export default function Wallet() {
                     return (
                       <button
                         key={filter.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={isSelected}
                         onClick={() => setSelectedFilter(filter.id)}
-                        className={`px-4 md:px-5 lg:px-6 py-2 md:py-2.5 lg:py-3 rounded-lg md:rounded-xl text-xs md:text-sm lg:text-base font-medium whitespace-nowrap flex-shrink-0 transition-all ${
-                          isSelected
-                            ? "bg-white dark:bg-[#1a1a1a] border-2 border-green-600 dark:border-green-500 text-green-600 dark:text-green-400 shadow-sm"
-                            : "bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-sm"
+                        className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-[13px] font-semibold transition-colors ${
+                          isSelected ? "bg-app-brown text-white" : "bg-app-sand text-app-brown-deep hover:bg-app-tint-strong"
                         }`}
                       >
                         {filter.label}
@@ -263,72 +236,52 @@ export default function Wallet() {
               </div>
 
               {filteredTransactions.length > 0 ? (
-                <div className="space-y-3 md:space-y-4">
+                <ul className="divide-y divide-app-line overflow-hidden rounded-[18px] border border-app-line bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-[#1a1a1a]">
                   {filteredTransactions.map((transaction) => (
-                    <Card
-                      key={transaction.id}
-                      className="py-0 border border-gray-100 dark:border-gray-800 shadow-sm dark:bg-[#1a1a1a] hover:shadow-md transition-all duration-200 cursor-pointer"
-                    >
-                      <CardContent className="p-4 md:p-5 lg:p-6">
-                        <div className="flex items-center justify-between gap-4 md:gap-6">
-                          <div className="flex items-center gap-4 md:gap-5 lg:gap-6 flex-1 min-w-0">
-                            <div className="flex-shrink-0">
-                              <div className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 flex items-center justify-center rounded-full bg-gray-50 dark:bg-gray-800/50">
-                                {getTransactionIcon(transaction.type)}
-                              </div>
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <p className="text-gray-900 dark:text-white font-semibold text-sm md:text-base lg:text-lg truncate mb-1">
-                                {transaction.description}
-                              </p>
-                              {(transaction?.metadata?.source === "referral_signup" ||
-                                String(transaction.description || "").toLowerCase().startsWith("referral reward")) && (
-                                <p className="text-[11px] md:text-xs text-green-600 dark:text-green-400 font-medium mb-1">
-                                  Referral Reward
-                                </p>
-                              )}
-                              <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm lg:text-base">
-                                {formatDate(transaction.date || transaction.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className={`flex-shrink-0 font-bold text-lg md:text-xl lg:text-2xl ${getTransactionColor(transaction.type)}`}>
-                            {transaction.type === "deduction" ? "-" : "+"}
-                            {formatAmount(transaction.amount)}
-                          </div>
+                    <li key={transaction.id} className="flex items-center justify-between gap-4 px-4 py-3.5 lg:px-5">
+                      <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-app-tint">
+                          {getTransactionIcon(transaction.type)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[14px] font-semibold text-app-ink dark:text-white">{transaction.description}</p>
+                          {(transaction?.metadata?.source === "referral_signup" ||
+                            String(transaction.description || "").toLowerCase().startsWith("referral reward")) && (
+                            <p className="text-[11px] font-medium text-app-ok">Referral Reward</p>
+                          )}
+                          <p className="text-[12px] text-app-muted">{formatDate(transaction.date || transaction.createdAt)}</p>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                      <div className={`shrink-0 text-[16px] font-bold tabular-nums ${getTransactionColor(transaction.type)}`}>
+                        {transaction.type === "deduction" ? "-" : "+"}
+                        {formatAmount(transaction.amount)}
+                      </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               ) : (
-                <div className="py-12 md:py-16 lg:py-20 xl:py-24">
-                  <div className="space-y-3 md:space-y-4 mb-6 md:mb-8 max-w-2xl mx-auto">
+                <div className="rounded-[18px] border border-app-line bg-white px-6 py-12 text-center dark:border-gray-800 dark:bg-[#1a1a1a]">
+                  <div className="mx-auto mb-6 max-w-md space-y-3">
                     {[1, 2, 3].map((i) => (
                       <div
                         key={i}
-                        className="flex items-center gap-3 md:gap-4 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 md:px-5 lg:px-6 py-3 md:py-4"
+                        className="flex items-center gap-3 rounded-xl bg-app-alt px-4 py-3"
                         style={{
                           opacity: 0.3 + i * 0.15,
                         }}
                       >
-                        <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-200 dark:bg-gray-700 rounded-lg flex-shrink-0" />
+                        <div className="h-10 w-10 shrink-0 rounded-lg bg-app-sand" />
                         <div className="flex-1 space-y-2">
-                          <div className="h-3 md:h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                          <div className="h-2 md:h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                          <div className="h-3 w-3/4 rounded bg-app-sand" />
+                          <div className="h-2 w-1/2 rounded bg-app-sand" />
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base lg:text-lg text-center font-medium">
-                    Your transactions will appear here
-                  </p>
+                  <p className="text-[14px] font-medium text-app-muted">Your transactions will appear here</p>
                 </div>
               )}
-            </div>
+            </section>
           </>
         )}
       </div>

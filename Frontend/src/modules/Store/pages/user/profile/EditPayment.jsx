@@ -84,8 +84,8 @@ export default function EditPayment() {
 
   if (!payment) {
     return (
-      <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] p-4 sm:p-6 md:p-8 lg:p-10">
-        <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto">
+      <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] p-4 sm:p-6 md:p-8 lg:p-10 lg:bg-app-cream lg:font-app">
+        <div className="max-w-2xl md:max-w-3xl lg:max-w-3xl xl:max-w-3xl mx-auto">
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-muted-foreground">Payment Method Not Found</p>
@@ -100,8 +100,8 @@ export default function EditPayment() {
   }
 
   return (
-    <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] p-4 sm:p-6 md:p-8 lg:p-10">
-      <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto space-y-6 md:space-y-8 lg:space-y-10">
+    <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] p-4 sm:p-6 md:p-8 lg:p-10 lg:bg-app-cream lg:font-app">
+      <div className="max-w-2xl md:max-w-3xl lg:max-w-3xl xl:max-w-3xl mx-auto space-y-6 md:space-y-8 lg:space-y-10">
         <Card>
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl md:text-3xl">Edit Payment Method</CardTitle>

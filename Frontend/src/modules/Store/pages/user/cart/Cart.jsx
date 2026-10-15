@@ -48,7 +48,7 @@ import {
 } from "@store/utils/autoCoupon"
 import CartAutoCouponBanner from "@store/components/user/CartAutoCouponBanner"
 import RecommendationRail from "@store/components/user/RecommendationRail"
-import CartSubtotalCard from "@store/components/user/desktop/CartSubtotalCard"
+import { DesktopCartHeading, DesktopPlaceOrderCard } from "@store/components/user/cart/DesktopCartParts"
 import SavedForLater, { saveCartLineForLater } from "@store/components/user/cart/SavedForLater"
 import CartSwitch from "@store/components/user/cart/CartSwitch"
 import {
@@ -2748,11 +2748,21 @@ export default function Cart() {
     },
   ].filter(Boolean)
 
-  // Phone (below lg) wears the customer app's look; desktop keeps its classes.
-  const pick = (desktopClass, phoneClass) => (isDesktop ? desktopClass : phoneClass)
   // Everything the shopper saves on this order (item and fee savings plus the coupon).
   const phoneSavings = otherSavings + itemDiscountAmount
   const placeOrderDisabled = isPlacingOrder || loadingSeller || !canPlaceOrder || walletTooLow
+  // Order button text (phone bottom bar and desktop order card).
+  const placeOrderLabel = isPlacingOrder
+    ? "Processing..."
+    : loadingSeller
+      ? "Loading..."
+      : !canPlaceOrder
+        ? "Store Currently Offline"
+        : walletTooLow
+          ? "Wallet balance too low"
+          : !hasSavedAddress
+            ? "Add Delivery Address"
+            : "Place Order"
   // "+" on a cart line (phone and desktop): stop at what may be ordered.
   const increaseLine = (item) => {
     const cap = lineQuantityCap(item)
@@ -2791,42 +2801,32 @@ export default function Cart() {
       )
     }
     return (
-      <AnimatedPage className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
-        <div className="bg-white dark:bg-[#1a1a1a] border-b dark:border-gray-800 sticky top-0 z-10">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={handleBack}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <span className="font-semibold text-gray-800 dark:text-white">Cart</span>
-          </div>
-          <CartSwitch className="mx-auto max-w-md px-4 pb-3" />
+      <AnimatedPage className="min-h-screen bg-app-cream font-app dark:bg-[#0a0a0a]">
+        <div className="mx-auto max-w-[1200px] px-8 pt-8">
+          <DesktopCartHeading count={0} />
         </div>
-        <div className="flex flex-col items-center justify-center py-20 px-4">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <ShoppingBag className="h-10 w-10 text-gray-400" />
+        <div className="mx-auto mt-6 flex max-w-3xl flex-col items-center justify-center rounded-[18px] border border-app-line bg-white px-6 py-16 dark:border-gray-800 dark:bg-[#1a1a1a]">
+          <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-app-sand">
+            <ShoppingBag className="h-10 w-10 text-app-brown" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">Your cart is empty</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Find something you like and it will show up here</p>
-          <Link to={storePath("/")}>
-            <Button className="border-0 bg-[#FD920B] text-[#0F1111] hover:bg-wh-brand-600">
-              Start Shopping
-            </Button>
+          <h2 className="mb-1 text-[18px] font-semibold text-app-ink dark:text-white">Your cart is empty</h2>
+          <p className="mb-5 text-center text-[13px] text-app-muted">Find something you like and it will show up here</p>
+          <Link
+            to={storePath("/")}
+            className="inline-flex h-11 items-center justify-center rounded-[10px] bg-app-brown px-8 text-[14px] font-bold text-white hover:bg-app-brown-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown"
+          >
+            Start shopping
           </Link>
         </div>
-        <div className="mx-auto max-w-3xl px-4 pb-10">
-          <SavedForLater variant={isDesktop ? "desktop" : "mobile"} />
+        <div className="mx-auto max-w-3xl px-0 py-6 pb-10">
+          <SavedForLater variant="desktop" />
         </div>
       </AnimatedPage>
     )
   }
 
   return (
-    <div className={`relative min-h-screen dark:bg-[#0a0a0a] ${pick("bg-slate-50", "bg-app-cream font-app")}`}>
+    <div className={`relative min-h-screen dark:bg-[#0a0a0a] bg-app-cream font-app`}>
       {/* Header (phone): customer-app step bar with the Shop/Quick switch */}
       {!isDesktop && (
         <StepHeader title={`Cart (${getCartCount()})`} step="STEP 1/2" onBack={handleBack} onShare={handleShare}>
@@ -2851,46 +2851,25 @@ export default function Cart() {
           savings={itemDiscountAmount}
         />
 
-        {/* Savings Banner (desktop; phones show savings in the bill card and bottom bar) */}
-        {isDesktop && otherSavings > 0 && (
-          <div className="bg-blue-100 dark:bg-blue-900/20 px-4 md:px-6 py-2 md:py-3 flex-shrink-0">
-            <div className="max-w-7xl mx-auto">
-              <p className="text-sm md:text-base font-medium text-blue-800 dark:text-blue-200">
-                Saved {RUPEE_SYMBOL}{otherSavings.toFixed(0)} on this order
-              </p>
-            </div>
-          </div>
-        )}
-
-        <div className="max-w-7xl mx-auto px-3.5 md:px-6 pt-3 md:pt-4 pb-4 md:pb-6 lg:max-w-[1500px] lg:px-5 lg:pt-5">
+        <div className="max-w-7xl mx-auto px-3.5 md:px-6 pt-3 md:pt-4 pb-4 md:pb-6 lg:max-w-[1200px] lg:px-8 lg:pt-8">
           <div className="max-w-3xl mx-auto lg:max-w-none">
             {/* Main Cart Content */}
-            <div className="flex flex-col gap-3 md:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
+            <div className="flex flex-col gap-3 md:gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8">
               {/* Left: cart lines, delivery and contact (desktop column; flattened on mobile) */}
               <div className="contents lg:flex lg:flex-col lg:gap-4 lg:min-w-0">
-              {/* Phone: where it goes, with Change opening the address sheet */}
-              {!isDesktop && (
-                <DeliveryStrip
-                  className="order-first"
-                  text={defaultAddress ? `${headerAddressLabel} · ${headerAddressText}` : "Select a delivery address"}
-                  onChange={() => setShowAddressSheet(true)}
-                />
-              )}
+              {/* Where it goes, with Change opening the address sheet (desktop: under the heading) */}
+              {isDesktop && <DesktopCartHeading count={getCartCount()} />}
+              <DeliveryStrip
+                className="order-first lg:order-none"
+                text={defaultAddress ? `${headerAddressLabel} · ${headerAddressText}` : "Select a delivery address"}
+                onChange={() => setShowAddressSheet(true)}
+              />
               {/* Cart Items */}
-              <div className={pick(
-                "order-1 bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-gray-800 lg:rounded-[8px] lg:border-0 lg:shadow-none lg:px-5 lg:py-5",
-                "order-1",
-              )}>
-                <div className="hidden lg:flex items-end justify-between gap-6 border-b border-wh-border pb-2 mb-4">
-                  <h1 className="text-[28px] font-normal leading-9 text-wh-text">Shopping Cart</h1>
-                  <CartSwitch className="w-[340px]" />
-                  <span className="text-[14px] text-wh-muted">Price</span>
-                </div>
-                {/* Phone: one card per seller, lines in the app's CartLineTile style */}
-                {!isDesktop && (
-                  <div className="space-y-3">
+              <div className="order-1">
+                {/* One card per seller, lines in the app's CartLineTile style (roomier on desktop) */}
+                <div className="space-y-3 lg:space-y-4">
                     {sellerGroups.map((group, gIdx) => (
-                      <PhoneCard key={group.sellerId || gIdx} className="overflow-hidden">
+                      <PhoneCard key={group.sellerId || gIdx} className="overflow-hidden lg:rounded-[18px] lg:border-app-line">
                         <SellerHeader name={group.sellerName} itemCount={group.items.length} eta={deliveryBadge} />
                         {group.items.map((item) => (
                           <CartLineTile
@@ -2911,9 +2890,10 @@ export default function Cart() {
                             onIncrease={() => increaseLine(item)}
                             onSaveForLater={() => saveCartLineForLater({ item, storeMode: cartContext.storeMode, removeFromCart })}
                             onRemove={() => removeFromCart(item.id)}
+                            roomy={isDesktop}
                           />
                         ))}
-                        <div className="flex items-center justify-between gap-2 bg-app-tint px-3 py-2 text-[11px] font-medium text-app-brown dark:bg-[#222] dark:text-gray-300">
+                        <div className="flex items-center justify-between gap-2 bg-app-tint px-3 py-2 text-[11px] font-medium text-app-brown dark:bg-[#222] dark:text-gray-300 lg:px-4 lg:py-2.5 lg:text-[12px]">
                           <span>
                             {inQuick
                               ? `Packed by ${group.sellerName} and brought over by a rider`
@@ -2924,164 +2904,12 @@ export default function Cart() {
                       </PhoneCard>
                     ))}
                   </div>
-                )}
-                {isDesktop && (
-                <div className="space-y-4">
-                  {sellerGroups.map((group, gIdx) => (
-                    <div
-                      key={group.sellerId || gIdx}
-                      className="rounded-2xl border border-gray-100 dark:border-gray-800 p-4 bg-white dark:bg-[#141414] shadow-sm space-y-3"
-                    >
-                      {/* Store Header */}
-                      <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
-                        <div className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 font-bold text-xs uppercase shrink-0">
-                            {group.sellerName?.charAt(0) || "S"}
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                              {group.sellerName}{" "}
-                              <span className="text-xs font-normal text-gray-500">
-                                ({group.items.length} {group.items.length === 1 ? "item" : "items"})
-                              </span>
-                            </h3>
-                          </div>
-                        </div>
-                        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 rounded-full shrink-0">
-                          {deliveryBadge}
-                        </span>
-                      </div>
 
-                      {/* Items in this Store */}
-                      <div className="space-y-3">
-                        {group.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 rounded-xl bg-gray-50/60 dark:bg-black/20 border border-gray-100 dark:border-gray-800/80 hover:border-orange-200 transition-colors"
-                          >
-                            {/* Product Thumbnail - ALWAYS visible */}
-                            <Link
-                              to={storePath(`/product/${item.productId || item.itemId || item.id}`)}
-                              className="h-20 w-16 sm:h-24 sm:w-20 shrink-0 overflow-hidden rounded-xl bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 shadow-sm focus-visible:outline-2 focus-visible:outline-orange-500 group"
-                            >
-                              {item.image ? (
-                                <img
-                                  src={resolveMediaUrl(item.image)}
-                                  alt={item.name}
-                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                  loading="lazy"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = "none"
-                                  }}
-                                />
-                              ) : (
-                                <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400">
-                                  <ShoppingBag className="h-6 w-6" aria-hidden="true" />
-                                </div>
-                              )}
-                            </Link>
-
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                              <Link
-                                to={storePath(`/product/${item.productId || item.itemId || item.id}`)}
-                                className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white leading-tight hover:text-orange-600 transition-colors line-clamp-2"
-                              >
-                                {item.name}
-                              </Link>
-
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                {item.variantName ||
-                                  (item.selectedSize
-                                    ? `${item.selectedColor || ""} • ${item.selectedSize}`
-                                    : item.packSize || "Standard Fit")}
-                              </p>
-
-                              <div className="mt-1.5 flex items-center justify-between gap-2">
-                              <div className="flex min-w-0 items-center gap-x-2 gap-y-0.5 flex-wrap">
-                                <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white tabular-nums">
-                                  {RUPEE_SYMBOL}
-                                  {Math.round(Number(item.price || 0))}
-                                </span>
-                                {Number(item.otherPrice || item.mrp) > Number(item.price) && (
-                                  <>
-                                    <span className="text-xs text-gray-400 line-through tabular-nums">
-                                      {RUPEE_SYMBOL}
-                                      {Math.round(Number(item.otherPrice || item.mrp))}
-                                    </span>
-                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.2 rounded">
-                                      {Math.round(
-                                        ((Number(item.otherPrice || item.mrp) - Number(item.price)) /
-                                          Number(item.otherPrice || item.mrp)) *
-                                          100,
-                                      )}
-                                      % OFF
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                            {/* Stepper & Trash Button */}
-                            <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-                              <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] shadow-sm">
-                                <button
-                                  type="button"
-                                  aria-label={`Decrease quantity of ${item.name}`}
-                                  className="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-l-lg transition-colors"
-                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                >
-                                  <Minus className="h-3.5 w-3.5" />
-                                </button>
-                                <span className="min-w-[24px] text-center text-xs font-bold text-gray-900 dark:text-white tabular-nums">
-                                  {item.quantity}
-                                </span>
-                                <button
-                                  type="button"
-                                  aria-label={`Increase quantity of ${item.name}`}
-                                  className="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-r-lg transition-colors"
-                                  onClick={() => increaseLine(item)}
-                                >
-                                  <Plus className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-
-                              <button
-                                type="button"
-                                aria-label={`Remove ${item.name} from cart`}
-                                onClick={() => removeFromCart(item.id)}
-                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                              </div>
-                            </div>
-
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Store Free Delivery Milestone */}
-                      <div className="mt-3 p-2.5 rounded-xl bg-orange-50/70 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/40 text-xs font-medium text-orange-800 dark:text-orange-300 flex items-center justify-between">
-                        <span>
-                          {inQuick
-                            ? `Packed by ${group.sellerName} and brought over by a rider`
-                            : formatDeliveryWindow(shopEstimate, "Delivered in 2-4 days")}
-                        </span>
-                        <span className="font-bold text-orange-600 dark:text-orange-400">{inQuick ? "Quick" : "Courier"}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                )}
-
-                <div className={`flex items-center gap-2 overflow-x-auto scrollbar-hide pb-0.5 ${pick("mt-4", "mt-3")}`}>
+                <div className={`flex items-center gap-2 overflow-x-auto scrollbar-hide pb-0.5 mt-3`}>
                   <button
                     type="button"
                     onClick={handleBack}
-                    className={`flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-2 text-[12px] font-semibold ${pick(
-                      "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] text-gray-700 dark:text-gray-300",
-                      "border-app-brown/40 bg-white text-app-brown dark:border-gray-700 dark:bg-[#141414] dark:text-gray-300",
-                    )}`}
+                    className={`flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-2 text-[12px] font-semibold border-app-brown/40 bg-white text-app-brown dark:border-gray-700 dark:bg-[#141414] dark:text-gray-300`}
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Add Items
@@ -3091,11 +2919,8 @@ export default function Cart() {
                     onClick={() => setShowNoteSheet(true)}
                     className={`flex items-center gap-1.5 shrink-0 rounded-full border px-3 py-2 text-[12px] font-semibold ${
                       note.trim()
-                        ? pick("border-wh-brand/40 bg-[#FFF1E8] text-wh-brand-ink", "border-app-brown/40 bg-app-tint text-app-brown")
-                        : pick(
-                          "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414] text-gray-700 dark:text-gray-300",
-                          "border-app-brown/40 bg-white text-app-brown dark:border-gray-700 dark:bg-[#141414] dark:text-gray-300",
-                        )
+                        ? "border-app-brown/40 bg-app-tint text-app-brown"
+                        : "border-app-brown/40 bg-white text-app-brown dark:border-gray-700 dark:bg-[#141414] dark:text-gray-300"
                     }`}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -3103,7 +2928,7 @@ export default function Cart() {
                   </button>
                 </div>
                 {note.trim() ? (
-                  <p className={`mt-3 text-xs leading-relaxed ${pick("text-gray-500 dark:text-gray-400", "px-1 text-app-muted")}`}>
+                  <p className={`mt-3 text-xs leading-relaxed px-1 text-app-muted`}>
                     <span className="font-semibold text-gray-700 dark:text-gray-300">Order note:</span> {note.trim()}
                   </p>
                 ) : null}
@@ -3126,12 +2951,9 @@ export default function Cart() {
               )}
 
               {/* Delivery modes & instructions */}
-              <div className={`order-3 overflow-hidden ${pick(
-                "bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800",
-                "rounded-[14px] border border-[#EBEBEB] bg-white dark:border-gray-800 dark:bg-[#1a1a1a]",
-              )}`}>
+              <div className="order-3 overflow-hidden rounded-[14px] border border-[#EBEBEB] bg-white dark:border-gray-800 dark:bg-[#1a1a1a] lg:rounded-[18px] lg:border-app-line">
                 <div className="p-3">
-                  <div className={`flex items-center rounded-full p-1 ${pick("bg-gray-100 dark:bg-[#222222]", "bg-app-sand dark:bg-[#222222]")}`}>
+                  <div className={`flex items-center rounded-full p-1 bg-app-sand dark:bg-[#222222]`}>
                     {hasDeliveryModes ? (
                     <button
                       type="button"
@@ -3144,8 +2966,7 @@ export default function Cart() {
                     >
                       <span className="whitespace-nowrap">Delivery Modes</span>
                       <span
-                        className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-wide px-1 sm:px-1.5 py-0.5 rounded-full shrink-0 ${pick("text-wh-text", "bg-app-brown text-white")}`}
-                        style={isDesktop ? { backgroundColor: "var(--module-theme-color, #FD920B)" } : undefined}
+                        className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wide px-1 sm:px-1.5 py-0.5 rounded-full shrink-0 bg-app-brown text-white"
                       >
                         New
                       </span>
@@ -3156,7 +2977,7 @@ export default function Cart() {
                       onClick={() => setDeliverySectionTab("instructions")}
                       className={`flex-1 rounded-full px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] font-semibold whitespace-nowrap transition-colors ${
                         deliverySectionTab === "instructions"
-                          ? pick("bg-white dark:bg-[#1a1a1a] text-wh-brand-ink shadow-sm", "bg-white dark:bg-[#1a1a1a] text-app-brown shadow-sm")
+                          ? "bg-white dark:bg-[#1a1a1a] text-app-brown shadow-sm"
                           : "text-gray-500 dark:text-gray-400"
                       }`}
                     >
@@ -3173,16 +2994,16 @@ export default function Cart() {
                       className="w-full flex items-start gap-3 text-left pb-3 border-b border-gray-100 dark:border-gray-800"
                     >
                       <div className={`mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        deliveryMode === "quick" ? pick("border-wh-brand", "border-app-brown") : "border-gray-300 dark:border-gray-600"
+                        deliveryMode === "quick" ? "border-app-brown" : "border-gray-300 dark:border-gray-600"
                       }`}>
-                        {deliveryMode === "quick" ? <div className={pick("h-2.5 w-2.5 rounded-full bg-wh-brand", "h-2.5 w-2.5 rounded-full bg-app-brown")} /> : null}
+                        {deliveryMode === "quick" ? <div className="h-2.5 w-2.5 rounded-full bg-app-brown" /> : null}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            Priority <Zap className={pick("inline h-3.5 w-3.5 text-wh-brand-ink mb-0.5", "inline h-3.5 w-3.5 text-app-brown mb-0.5")} />
+                            Priority <Zap className="inline h-3.5 w-3.5 text-app-brown mb-0.5" />
                           </p>
-                          <p className={`text-xs font-semibold shrink-0 ${deliveryMode === "quick" ? pick("text-wh-brand-ink", "text-app-brown") : "text-gray-500"}`}>
+                          <p className={`text-xs font-semibold shrink-0 ${deliveryMode === "quick" ? "text-app-brown" : "text-gray-500"}`}>
                             +{RUPEE_SYMBOL}{configuredQuickDeliveryFee}
                           </p>
                         </div>
@@ -3198,9 +3019,9 @@ export default function Cart() {
                       className="w-full flex items-start gap-3 text-left pt-3"
                     >
                       <div className={`mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        deliveryMode === "basic" ? pick("border-wh-brand", "border-app-brown") : "border-gray-300 dark:border-gray-600"
+                        deliveryMode === "basic" ? "border-app-brown" : "border-gray-300 dark:border-gray-600"
                       }`}>
-                        {deliveryMode === "basic" ? <div className={pick("h-2.5 w-2.5 rounded-full bg-wh-brand", "h-2.5 w-2.5 rounded-full bg-app-brown")} /> : null}
+                        {deliveryMode === "basic" ? <div className="h-2.5 w-2.5 rounded-full bg-app-brown" /> : null}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -3216,7 +3037,7 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={() => setShowAddressSheet(true)}
-                        className={pick("w-full text-left text-sm font-medium text-wh-brand-ink pt-1", "w-full text-left text-sm font-medium text-app-brown pt-1")}
+                        className="w-full text-left text-sm font-medium text-app-brown pt-1"
                       >
                         Select a delivery location to continue
                       </button>
@@ -3245,12 +3066,12 @@ export default function Cart() {
                             }}
                             className={`shrink-0 w-[92px] rounded-xl border p-3 text-center transition-colors ${
                               isSelected
-                                ? pick("border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20", "border-app-brown bg-app-tint dark:bg-emerald-950/20")
+                                ? "border-app-brown bg-app-tint dark:bg-emerald-950/20"
                                 : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414]"
                             }`}
                           >
-                            <Icon className={`h-5 w-5 mx-auto mb-2 ${isSelected ? pick("text-emerald-600", "text-app-brown") : "text-gray-600 dark:text-gray-300"}`} />
-                            <p className={`text-[10px] font-semibold leading-tight ${isSelected ? pick("text-emerald-700 dark:text-emerald-300", "text-app-brown dark:text-emerald-300") : "text-gray-700 dark:text-gray-300"}`}>
+                            <Icon className={`h-5 w-5 mx-auto mb-2 ${isSelected ? "text-app-brown" : "text-gray-600 dark:text-gray-300"}`} />
+                            <p className={`text-[10px] font-semibold leading-tight ${isSelected ? "text-app-brown dark:text-emerald-300" : "text-gray-700 dark:text-gray-300"}`}>
                               {label}
                             </p>
                           </button>
@@ -3264,12 +3085,12 @@ export default function Cart() {
                         }}
                         className={`shrink-0 w-[92px] rounded-xl border p-3 text-center transition-colors ${
                           deliveryInstructionMode === "custom"
-                            ? pick("border-emerald-600 bg-emerald-50 dark:bg-emerald-950/20", "border-app-brown bg-app-tint dark:bg-emerald-950/20")
+                            ? "border-app-brown bg-app-tint dark:bg-emerald-950/20"
                             : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#141414]"
                         }`}
                       >
-                        <Pencil className={`h-5 w-5 mx-auto mb-2 ${deliveryInstructionMode === "custom" ? pick("text-emerald-600", "text-app-brown") : "text-gray-600 dark:text-gray-300"}`} />
-                        <p className={`text-[10px] font-semibold leading-tight ${deliveryInstructionMode === "custom" ? pick("text-emerald-700 dark:text-emerald-300", "text-app-brown dark:text-emerald-300") : "text-gray-700 dark:text-gray-300"}`}>
+                        <Pencil className={`h-5 w-5 mx-auto mb-2 ${deliveryInstructionMode === "custom" ? "text-app-brown" : "text-gray-600 dark:text-gray-300"}`} />
+                        <p className={`text-[10px] font-semibold leading-tight ${deliveryInstructionMode === "custom" ? "text-app-brown dark:text-emerald-300" : "text-gray-700 dark:text-gray-300"}`}>
                           Add Custom
                         </p>
                       </button>
@@ -3281,7 +3102,7 @@ export default function Cart() {
                         onChange={(e) => setCustomDeliveryInstruction(e.target.value)}
                         rows={3}
                         placeholder="Type delivery instructions for your partner..."
-                        className={pick("mt-3 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-emerald-600 resize-none", "mt-3 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-app-brown resize-none")}
+                        className="mt-3 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-app-brown resize-none"
                       />
                     ) : null}
 
@@ -3297,7 +3118,7 @@ export default function Cart() {
               </div>
 
               {/* Contact */}
-              <div className={`order-4 overflow-hidden ${pick("bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800", "rounded-[14px] border border-[#EBEBEB] bg-white dark:border-gray-800 dark:bg-[#1a1a1a]")}`}>
+              <div className="order-4 overflow-hidden rounded-[14px] border border-[#EBEBEB] bg-white dark:border-gray-800 dark:bg-[#1a1a1a] lg:rounded-[18px] lg:border-app-line">
                 <div className="px-4 py-3.5 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
@@ -3312,7 +3133,7 @@ export default function Cart() {
                     type="button"
                     onClick={handleRecipientEditToggle}
                     className="text-xs font-bold uppercase tracking-wide shrink-0"
-                    style={{ color: isDesktop ? "var(--module-theme-ink, #B45309)" : "var(--app-brown)" }}
+                    style={{ color: "var(--app-brown)" }}
                   >
                     {isEditingRecipient ? "Save" : "Change"}
                   </button>
@@ -3349,14 +3170,14 @@ export default function Cart() {
                           }))
                         }
                         placeholder="Enter recipient name"
-                        className={pick("w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-wh-brand", "w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-app-brown")}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-app-brown"
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
                         Phone Number
                       </label>
-                      <div className={pick("flex items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] overflow-hidden focus-within:border-wh-brand", "flex items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] overflow-hidden focus-within:border-app-brown")}>
+                      <div className="flex items-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] overflow-hidden focus-within:border-app-brown">
                         <span className="px-3 text-sm text-gray-500 border-r border-gray-200 dark:border-gray-700">+91</span>
                         <input
                           type="tel"
@@ -3380,43 +3201,38 @@ export default function Cart() {
                 )}
               </div>
 
-              </div>
-              {/* Right: subtotal, offers, coins, bill (desktop column; flattened on mobile) */}
-              <div className="contents lg:flex lg:flex-col lg:gap-4 lg:sticky lg:top-28">
-              {/* Desktop subtotal card */}
               {isDesktop && (
-                <CartSubtotalCard
-                  itemCount={cart.reduce((n, item) => n + (Number(item.quantity) || 1), 0)}
-                  subtotal={subtotal}
-                  finalPayable={finalPayable}
-                  savings={otherSavings}
-                  addressLabel={headerAddressLabel}
-                  addressText={headerAddressText}
-                  onChangeAddress={() => setShowAddressSheet(true)}
-                  paymentLabel={selectedPaymentLabel}
-                  onChangePayment={() => setShowPaymentSheet(true)}
-                  onProceed={handlePlaceOrder}
-                  proceedDisabled={
-                    isPlacingOrder ||
-                    loadingSeller ||
-                    !canPlaceOrder ||
-                    walletTooLow
+                <CouponRow
+                  className="lg:order-5 lg:rounded-[18px] lg:border-app-line lg:px-4 lg:py-3.5"
+                  appliedCode={appliedCoupon?.code}
+                  savedText={appliedCoupon ? `You saved ${RUPEE_SYMBOL}${discount.toFixed(0)} on this order` : ""}
+                  subText={
+                    loadingCoupons
+                      ? "Loading offers..."
+                      : availableCoupons.length > 0
+                        ? `${availableCoupons.length} offer${availableCoupons.length > 1 ? "s" : ""} available`
+                        : "Get extra savings on your order"
                   }
-                  proceedLabel={
-                    isPlacingOrder
-                      ? "Processing..."
-                      : loadingSeller
-                        ? "Loading..."
-                        : !canPlaceOrder
-                          ? "Store Offline"
-                          : walletTooLow
-                            ? "Wallet balance too low"
-                          : !hasSavedAddress
-                            ? "Add Delivery Address"
-                            : "Proceed to Buy"
-                  }
+                  onOpen={() => setShowOffersView(true)}
+                  onRemove={handleRemoveCoupon}
                 />
               )}
+              {isDesktop && cart.length > 0 && (
+                <div className="rounded-[18px] border border-app-line bg-white px-5 pb-2 lg:order-6 dark:border-gray-800 dark:bg-[#1a1a1a]">
+                  <RecommendationRail
+                    variant="desktop"
+                    productId={cart[0].productId || cart[0].itemId || cart[0].id}
+                    type="frequently_bought"
+                    fallbackType="similar"
+                    title="You May Also Like"
+                    excludeIds={cart.map((item) => item.productId || item.itemId || item.id)}
+                    limit={10}
+                  />
+                </div>
+              )}
+              </div>
+              {/* Right: bill, payment, coins and Place Order (desktop column; flattened on mobile) */}
+              <div className="contents lg:sticky lg:top-28 lg:flex lg:max-h-[calc(100vh-8rem)] lg:flex-col lg:gap-4 lg:overflow-y-auto lg:pb-2">
               {/* Phone coupon row: opens the offers page; Remove takes the coupon off */}
               {!isDesktop && (
                 <CouponRow
@@ -3434,47 +3250,10 @@ export default function Cart() {
                   onRemove={handleRemoveCoupon}
                 />
               )}
-              {/* Offers row */}
-              {isDesktop && (
-              <button
-                type="button"
-                onClick={() => setShowOffersView(true)}
-                className={`order-2 w-full bg-white dark:bg-[#1a1a1a] rounded-2xl border shadow-sm px-4 py-3.5 flex items-center gap-3 text-left ${
-                  appliedCoupon
-                    ? "border-wh-brand/30 dark:border-wh-brand/40"
-                    : "border-slate-100 dark:border-gray-800"
-                }`}
-              >
-                <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  appliedCoupon
-                    ? "bg-wh-brand-50 dark:bg-wh-brand/10"
-                    : "bg-emerald-50 dark:bg-emerald-950/40"
-                }`}>
-                  <Tag className={`h-4 w-4 ${appliedCoupon ? "text-wh-brand-ink" : "text-emerald-600"}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold ${appliedCoupon ? "text-wh-brand-ink" : "text-gray-900 dark:text-white"}`}>
-                    {appliedCoupon
-                      ? `'${appliedCoupon.code}' applied`
-                      : "Payment offers & more"}
-                  </p>
-                  <p className={`text-xs mt-0.5 truncate ${appliedCoupon ? "text-wh-brand-ink/80 font-medium" : "text-gray-500 dark:text-gray-400"}`}>
-                    {appliedCoupon
-                      ? `You saved ${RUPEE_SYMBOL}${discount.toFixed(0)} on this order`
-                      : loadingCoupons
-                        ? "Loading offers..."
-                        : availableCoupons.length > 0
-                          ? `${availableCoupons.length} offer${availableCoupons.length > 1 ? "s" : ""} available`
-                          : "Explore bank offers and coupons"}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
-              </button>
-              )}
 
               {/* Coins Redemption Widget */}
               {coinBalance?.isEnabled && (
-                <div className={`order-5 ${pick("bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/50 dark:border-amber-600/30 rounded-2xl p-4 shadow-sm", "rounded-[14px] border border-[#EBEBEB] bg-white p-3.5 dark:border-gray-800 dark:bg-[#1a1a1a]")}`}>
+                <div className="order-5 rounded-[14px] border border-[#EBEBEB] bg-white p-3.5 dark:border-gray-800 dark:bg-[#1a1a1a] lg:order-3 lg:rounded-[18px] lg:border-app-line lg:p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400 shadow-inner">
@@ -3513,8 +3292,8 @@ export default function Cart() {
                         onClick={() => setUseCoins(!useCoins)}
                         className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
                           useCoins
-                            ? pick("bg-amber-500 text-white shadow-amber-500/20 hover:bg-amber-600", "bg-app-brown text-white")
-                            : pick("border border-amber-500/60 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30", "border border-app-brown text-app-brown dark:text-amber-300")
+                            ? "bg-app-brown text-white"
+                            : "border border-app-brown text-app-brown dark:text-amber-300"
                         }`}
                       >
                         {useCoins ? "Applied ✓" : "Apply Coins"}
@@ -3524,13 +3303,12 @@ export default function Cart() {
                 </div>
               )}
 
-              {/* Phone bill card (same rows and figures as the desktop bill) and payment card */}
-              {!isDesktop && (
-                <BillDetailsCard
+              {/* Bill card and payment card (phone and desktop: same rows, figures and options) */}
+              <BillDetailsCard
                   ref={phoneBillRef}
-                  className="order-6"
+                  className="order-6 lg:order-1 lg:rounded-[18px] lg:border-app-line lg:p-4"
                   toPay={`${RUPEE_SYMBOL}${finalPayable.toFixed(2)}`}
-                  savings={phoneSavings}
+                  savings={isDesktop ? 0 : phoneSavings}
                 >
                   <BillRow
                     label="Item total"
@@ -3571,139 +3349,34 @@ export default function Cart() {
                     <BillRow label="Coins redeemed" tone="discount" value={`-${RUPEE_SYMBOL}${coinDiscount.toFixed(2)}`} />
                   )}
                 </BillDetailsCard>
-              )}
-              {!isDesktop && (
-                <PaymentMethodCard
-                  className="order-6"
+              <PaymentMethodCard
+                  className="order-6 lg:order-2 lg:rounded-[18px] lg:border-app-line lg:p-4"
                   options={paymentOptions}
                   selected={selectedPaymentMethod}
                   onSelect={(option) => {
                     if (!option.disabled) setSelectedPaymentMethod(option.id)
                   }}
                 />
-              )}
-              {/* Bill Details */}
+              {/* Desktop: total, savings and the order button (same handler and states as the phone bar) */}
               {isDesktop && (
-              <div className="order-6 bg-white dark:bg-[#1a1a1a] px-4 py-4 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800">
-                <button
-                  type="button"
-                  onClick={() => setShowBillDetails(!showBillDetails)}
-                  className="flex items-center justify-between w-full"
-                >
-                  <div className="flex items-center gap-3">
-                    <Receipt className="h-5 w-5 text-emerald-600 shrink-0" />
-                    <div className="text-left">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        To Pay {RUPEE_SYMBOL}{finalPayable.toFixed(0)}
-                      </p>
-                      <p className="text-xs text-emerald-600 mt-0.5">Incl. all taxes & charges</p>
-                    </div>
-                  </div>
-                  <ChevronUp className={`h-4 w-4 text-gray-400 transition-transform ${showBillDetails ? "" : "rotate-180"}`} />
-                </button>
-
-                {showBillDetails && (
-                  <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-800 space-y-3">
-                    <div className="flex justify-between text-sm items-start gap-3">
-                      <span className="text-gray-600 dark:text-gray-400 border-b border-dotted border-gray-300 shrink-0">Item Total</span>
-                      <DualMoney
-                        amount={subtotal}
-                        compareAmount={compareItemTotal}
-                        decimals={2}
-                        showDiscountTag={false}
-                        plainClassName="text-gray-800 dark:text-gray-200 font-medium tabular-nums"
-                        saleClassName="inline-flex items-center rounded-full border border-wh-brand bg-wh-brand/10 px-2 py-0.5 text-sm font-bold text-wh-brand-ink tabular-nums"
-                      />
-                    </div>
-                    {itemDiscountAmount > 0 && (
-                      <div className="flex justify-between text-sm font-medium">
-                        <span className="text-wh-brand-ink border-b border-dotted border-wh-brand/40">Coupon Discount</span>
-                        <span className="text-wh-brand-ink">-{RUPEE_SYMBOL}{itemDiscountAmount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex items-start justify-between gap-3 text-sm">
-                      <div className="min-w-0 flex-1">
-                        <span className="text-gray-600 dark:text-gray-400 border-b border-dotted border-gray-300">
-                          Delivery Fee
-                          {/* Distance only means something for a Quick rider trip, and only once it's known. */}
-                          {inQuick && deliveryFeeBreakdownText && !/^(Distance:\s*)?0(\.0+)?\s*km$/i.test(deliveryFeeBreakdownText.trim())
-                            ? ` | ${deliveryFeeBreakdownText.replace(/^Distance:\s*/i, "")}`
-                            : ""}
-                        </span>
-                        {deliveryFee > 0 && (
-                          <p className="mt-0.5 text-[11px] leading-snug text-gray-400 dark:text-gray-500">
-                            {formatDeliveryFeeBreakdownSubtext(deliveryFee, deliveryFeeGst, RUPEE_SYMBOL)}
-                          </p>
-                        )}
-                      </div>
-                      <span
-                        className={`shrink-0 whitespace-nowrap text-right font-medium ${
-                          deliveryFee === 0
-                            ? "text-emerald-600 font-semibold"
-                            : "text-gray-800 dark:text-gray-200"
-                        }`}
-                      >
-                        {deliveryFee === 0
-                          ? "FREE"
-                          : `${RUPEE_SYMBOL}${getDeliveryFeeTotal(deliveryFee, deliveryFeeGst).toFixed(2)}`}
-                      </span>
-                    </div>
-                    {quickDeliveryFee > 0 && (
-                      <div className="flex justify-between text-sm font-semibold">
-                        <span className="text-wh-brand-ink border-b border-dotted border-wh-brand/40">Quick Mode</span>
-                        <span className="text-wh-brand-ink">{RUPEE_SYMBOL}{quickDeliveryFee.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400 border-b border-dotted border-gray-300">Platform Fee</span>
-                      <span className="text-gray-800 dark:text-gray-200 font-medium">{RUPEE_SYMBOL}{Math.max(0, platformFee - quickDeliveryFee).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400 border-b border-dotted border-gray-300">Government Taxes</span>
-                      <span className="text-gray-800 dark:text-gray-200 font-medium">{RUPEE_SYMBOL}{gstCharges.toFixed(2)}</span>
-                    </div>
-                    {coinDiscount > 0 && (
-                      <div className="flex justify-between text-sm font-semibold text-amber-600 dark:text-amber-400">
-                        <span className="flex items-center gap-1.5 border-b border-dotted border-amber-300">
-                          <Coins className="w-4 h-4 text-amber-500 shrink-0" />
-                          Coins Redeemed
-                        </span>
-                        <span>-{RUPEE_SYMBOL}{coinDiscount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-base font-bold pt-3 mt-1 border-t border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white">
-                      <span>To Pay</span>
-                      <span>{RUPEE_SYMBOL}{finalPayable.toFixed(2)}</span>
-                    </div>
-                    {otherSavings > 0 && (
-                      <div className="rounded-xl bg-wh-brand-50 dark:bg-wh-brand/10 px-3 py-2.5 text-xs font-medium text-wh-brand-ink dark:text-wh-brand">
-                        You saved {RUPEE_SYMBOL}{otherSavings.toFixed(0)} on fees and discounts
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                <DesktopPlaceOrderCard
+                  className="lg:order-4"
+                  total={finalPayable}
+                  savings={phoneSavings}
+                  onClick={handlePlaceOrder}
+                  disabled={placeOrderDisabled}
+                  busy={isPlacingOrder}
+                  showChevron={!isPlacingOrder && !loadingSeller && canPlaceOrder && !walletTooLow}
+                  label={placeOrderLabel}
+                />
               )}
 
-              <p className={`order-7 text-[11px] leading-relaxed px-1 ${pick("text-gray-500 dark:text-gray-400", "text-app-muted dark:text-gray-400")}`}>
+              <p className="order-7 text-[11px] leading-relaxed px-1 text-app-muted dark:text-gray-400 lg:order-5 lg:text-center">
                 You can cancel before your order is packed.{" "}
                 {returnWindowDays
                   ? `Eligible items can be returned within ${returnWindowDays} days of delivery.`
                   : "Eligible items can be returned; see our refund policy."}
               </p>
-              {isDesktop && cart.length > 0 && (
-                <div className="rounded-[8px] bg-wh-surface px-5 pb-2">
-                  <RecommendationRail
-                    variant="desktop"
-                    productId={cart[0].productId || cart[0].itemId || cart[0].id}
-                    type="frequently_bought"
-                    fallbackType="similar"
-                    title="You May Also Like"
-                    excludeIds={cart.map((item) => item.productId || item.itemId || item.id)}
-                    limit={10}
-                  />
-                </div>
-              )}
               </div>
 
             </div>
@@ -3721,19 +3394,7 @@ export default function Cart() {
           disabled={placeOrderDisabled}
           busy={isPlacingOrder}
           showChevron={!isPlacingOrder && !loadingSeller && canPlaceOrder && !walletTooLow}
-          label={
-            isPlacingOrder
-              ? "Processing..."
-              : loadingSeller
-                ? "Loading..."
-                : !canPlaceOrder
-                  ? "Store Currently Offline"
-                  : walletTooLow
-                    ? "Wallet balance too low"
-                    : !hasSavedAddress
-                      ? "Add Delivery Address"
-                      : "Place Order"
-          }
+          label={placeOrderLabel}
         />
       )}
 
@@ -3952,7 +3613,7 @@ export default function Cart() {
                   animate={{ y: 0 }}
                   exit={{ y: "100%" }}
                   transition={{ type: "spring", damping: 30, stiffness: 350 }}
-                  className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a1a] rounded-t-[1.75rem] z-[101] shadow-2xl overflow-hidden max-h-[78vh] flex flex-col"
+                  className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a1a] rounded-t-[1.75rem] z-[101] shadow-2xl overflow-hidden max-h-[78vh] flex flex-col lg:bottom-8 lg:mx-auto lg:max-w-xl lg:rounded-[1.75rem] lg:font-app"
                   style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
                 >
                   <div className="p-5 flex flex-col min-h-0">
@@ -4000,7 +3661,7 @@ export default function Cart() {
                               onClick={() => handleSelectAddressFromSheet(address)}
                               className={`w-full flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-colors ${
                                 isSelected
-                                  ? pick("border-wh-brand/40 bg-[#FFF7F2] dark:bg-wh-brand/10", "border-app-brown/40 bg-app-tint dark:bg-wh-brand/10")
+                                  ? "border-app-brown/40 bg-app-tint dark:bg-wh-brand/10"
                                   : "border-gray-100 dark:border-gray-800 bg-white dark:bg-[#222222] hover:border-gray-200"
                               }`}
                             >
@@ -4054,7 +3715,7 @@ export default function Cart() {
                   animate={{ y: 0 }}
                   exit={{ y: "100%" }}
                   transition={{ type: "spring", damping: 30, stiffness: 350 }}
-                  className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a1a] rounded-t-[1.75rem] z-[101] shadow-2xl overflow-hidden"
+                  className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a1a] rounded-t-[1.75rem] z-[101] shadow-2xl overflow-hidden lg:bottom-8 lg:mx-auto lg:max-w-xl lg:rounded-[1.75rem] lg:font-app"
                   style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
                 >
                   <div className="p-5">
@@ -4098,8 +3759,8 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={() => setShowNoteSheet(false)}
-                        className={`flex-1 h-11 rounded-xl text-sm font-bold ${pick("text-wh-text", "text-white")}`}
-                        style={{ backgroundColor: isDesktop ? "var(--module-theme-color, #FD920B)" : "var(--app-brown)" }}
+                        className={`flex-1 h-11 rounded-xl text-sm font-bold text-white`}
+                        style={{ backgroundColor: "var(--app-brown)" }}
                       >
                         Save
                       </button>
@@ -4118,16 +3779,17 @@ export default function Cart() {
                 animate={{ x: 0 }}
                 exit={{ x: "100%" }}
                 transition={{ type: "spring", damping: 32, stiffness: 320 }}
-                className={`fixed inset-0 z-[95] dark:bg-[#0a0a0a] flex flex-col ${pick("bg-slate-50", "bg-app-cream font-app")}`}
+                className={`fixed inset-0 z-[95] dark:bg-[#0a0a0a] flex flex-col bg-app-cream font-app`}
               >
                 <div
                   className="sticky top-0 z-10 text-white shadow-sm"
-                  style={{ backgroundColor: isDesktop ? "var(--wh-nav-2)" : "var(--app-brown)" }}
+                  style={{ backgroundColor: "var(--app-brown)" }}
                 >
-                  <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex items-center gap-3 px-4 py-3 lg:px-[max(1rem,calc(50%-21rem))] lg:py-4">
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="Back to cart"
                       className="h-8 w-8 text-white hover:bg-white/15"
                       onClick={() => setShowOffersView(false)}
                     >
@@ -4140,7 +3802,7 @@ export default function Cart() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-8">
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-8 lg:px-[max(1rem,calc(50%-21rem))] lg:py-6">
                   {appliedCoupon ? (
                     <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl border border-slate-100 dark:border-gray-800 p-4 flex items-center justify-between gap-3">
                       <div className="flex items-start gap-3 min-w-0">
@@ -4177,8 +3839,8 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={handleApplyCouponCode}
-                        className={`h-11 px-4 rounded-xl text-sm font-bold shrink-0 ${pick("text-wh-text", "text-white")}`}
-                        style={{ backgroundColor: isDesktop ? "var(--module-theme-color, #FD920B)" : "var(--app-brown)" }}
+                        className={`h-11 px-4 rounded-xl text-sm font-bold shrink-0 text-white`}
+                        style={{ backgroundColor: "var(--app-brown)" }}
                       >
                         Apply
                       </button>
@@ -4232,7 +3894,7 @@ export default function Cart() {
                                 type="button"
                                 onClick={() => handleApplyCoupon(coupon)}
                                 disabled={isDisabled}
-                                className={`shrink-0 border rounded-full ${pick("border-wh-brand text-wh-brand-ink", "border-app-brown text-app-brown")} px-4 py-1.5 text-xs font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed`}
+                                className={`shrink-0 border rounded-full border-app-brown text-app-brown px-4 py-1.5 text-xs font-bold uppercase disabled:opacity-40 disabled:cursor-not-allowed`}
                               >
                                 {isApplied ? "Applied" : "Apply"}
                               </button>
@@ -4577,7 +4239,7 @@ export default function Cart() {
                 )}
                 {unavailableLine.altAvailable && (
                   <Button
-                    className={`w-full text-white ${pick("bg-orange-500 hover:bg-orange-600", "bg-app-brown hover:bg-app-brown-light")}`}
+                    className={`w-full text-white bg-app-brown hover:bg-app-brown-light`}
                     onClick={() => {
                       if (addToOtherStoreCart(line, alt)) {
                         removeFromCart(line.id)

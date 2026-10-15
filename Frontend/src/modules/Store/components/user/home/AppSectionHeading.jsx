@@ -24,19 +24,20 @@ export default function AppSectionHeading({ title, subtitle = "", className = ""
   const first = words[0] || ""
   const rest = words.slice(1).join(" ").toUpperCase()
   return (
-    <div className={`px-4 pb-3.5 lg:px-0 ${className}`}>
-      <div className="flex items-center gap-3.5">
+    <div className={`px-4 pb-3.5 lg:px-0 lg:pb-5 ${className}`}>
+      {/* Desktop: the rules stop short of the page edges. */}
+      <div className="flex items-center gap-3.5 lg:mx-auto lg:max-w-[820px] lg:gap-5">
         <Rule side="left" />
         <h2 className="app-sheen max-w-[60%] shrink-0 px-1 text-center text-app-brown">
-          <span className="block font-app-display text-[38px] font-bold leading-[1.05]">{first}</span>
+          <span className="block font-app-display text-[38px] font-bold leading-[1.05] lg:text-[46px]">{first}</span>
           {rest ? (
-            <span className="block whitespace-nowrap font-app text-[19px] font-semibold leading-[1.1] tracking-[0.5px]">{rest}</span>
+            <span className="block whitespace-nowrap font-app text-[19px] font-semibold leading-[1.1] tracking-[0.5px] lg:text-[21px] lg:tracking-[1px]">{rest}</span>
           ) : null}
         </h2>
         <Rule side="right" />
       </div>
       {subtitle ? (
-        <p className="mt-2 text-center font-app text-[12.5px] tracking-[0.2px] text-app-muted">{subtitle}</p>
+        <p className="mt-2 text-center font-app text-[12.5px] tracking-[0.2px] text-app-muted lg:text-[14px]">{subtitle}</p>
       ) : null}
     </div>
   )

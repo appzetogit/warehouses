@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import useAppBackNavigation from "@store/hooks/useAppBackNavigation"
 import {
+  ArrowLeft,
   Banknote,
   Phone,
   Download,
@@ -24,6 +25,7 @@ import CancelOrderSheet, { canCancelOrder } from "@store/components/user/orders/
 import OrderItemsReviewPanel from "@store/components/user/reviews/OrderItemsReviewPanel"
 import CompletePaymentCard from "@store/components/user/CompletePaymentCard"
 import { imagePlaceholder } from "@store/constants/images"
+import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
 import {
   isShopOrder,
   orderStatusLabel,
@@ -78,6 +80,8 @@ export default function UserOrderDetails() {
   const { orderId } = useParams()
   const [order, setOrder] = useState(null)
   const [cancelling, setCancelling] = useState(false)
+  // lg and up lay the same cards out in two columns.
+  const isDesktop = useIsDesktop()
 
   // "Return / Replace" from the orders list lands on #returns; the section
   // only exists once the order has loaded, so scroll to it then.
@@ -443,206 +447,343 @@ export default function UserOrderDetails() {
     coinsAmount > 0 ? { label: "Coins", value: `− ${rupees(coinsAmount)}`, tone: "save" } : null,
   ].filter(Boolean)
 
+  const paymentBlock = (
+    <>
+      <CompletePaymentCard order={order} onPaid={() => window.location.reload()} />
+    </>
+  )
+
+  const idCardBlock = (
+    <>
+      <OrderIdCard
+        orderNo={orderIdDisplay}
+        onCopy={handleCopyOrderId}
+        image={firstItem?.image || ""}
+        title={firstItem ? `${firstItem.name || "Item"}${moreItems > 0 ? ` + ${moreItems} more` : ""}` : ""}
+        meta={[`Qty: ${itemCount}`, firstItem?.variantName || ""].filter(Boolean).join("  |  ")}
+        chip={paymentMethod}
+        chipIcon={isCash ? Banknote : Wallet}
+        footer={
+          paymentDate ? (
+            <span className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 shrink-0 text-app-brown" aria-hidden="true" />
+              <span className="min-w-0">Placed on {paymentDate}</span>
+            </span>
+          ) : null
+        }
+      />
+    </>
+  )
+
+  const statusBlock = (
+    <>
+      <StatusTimelineCard
+        tone={statusTone}
+        title={isDelivered ? "Order was delivered" : orderStatusLabel(order)}
+        subtitle={paymentDate ? `Ordered ${paymentDate}` : ""}
+        steps={timelineSteps}
+      >
+        {isCancelled && order.cancellationReason ? (
+          <p className="rounded-xl bg-[#FFF0F2] px-3.5 py-2.5 text-[12.5px] text-[#9F1239]">Cancelled: {order.cancellationReason}</p>
+        ) : null}
+      </StatusTimelineCard>
+    </>
+  )
+
+  const sellerBlock = (
+    <>
+      {/* Seller */}
+      <DetailCard className="flex items-center gap-3 p-4">
+        <img
+          src={
+            // Prefer the image from the first ordered item
+            (Array.isArray(items) && items[0]?.image) ||
+            sellerObj.profileImage?.url ||
+            sellerObj.profileImage ||
+            order.sellerImage ||
+            imagePlaceholder
+          }
+          alt={sellerName}
+          className="h-11 w-11 shrink-0 rounded-xl border border-app-line object-cover"
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-[14px] font-bold text-app-ink">{sellerName}</h3>
+          <p className="line-clamp-2 text-[12px] text-app-muted">{sellerLocation}</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleCallSeller}
+          aria-label="Call the store"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-app-line bg-[#FBF4ED] text-app-brown hover:bg-app-tint-strong"
+        >
+          <Phone className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </DetailCard>
+    </>
+  )
+
+  const itemsBlock = (
+    <>
+      <SectionHeading title="Item Details" aside={`${items.length} ${items.length === 1 ? "item" : "items"}`} />
+      {items.map((item, idx) => {
+        const qty = Number(item.quantity || item.qty) || 1
+        const price = Number(item.price) || 0
+        const compareUnit = getLineCompareUnitPrice(item)
+        return (
+          <ItemDetailCard
+            key={idx}
+            image={item.image || ""}
+            name={
+              <span className="flex items-start gap-2">
+                {typeof item.isVeg === "boolean" && (
+                  <span
+                    className={`mt-1 flex h-3 w-3 shrink-0 items-center justify-center border p-[1px] ${item.isVeg ? "border-green-600" : "border-red-600"}`}
+                  >
+                    <span className={`h-full w-full rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"}`} />
+                  </span>
+                )}
+                <span>
+                  {item.name}
+                  {item.variantName ? ` (${item.variantName})` : ""}
+                </span>
+              </span>
+            }
+            qty={qty}
+            price={
+              <DualMoney
+                amount={price * qty}
+                compareAmount={compareUnit > 0 ? compareUnit * qty : 0}
+                decimals={2}
+                plainClassName="text-[15px] font-bold text-app-ink tabular-nums"
+                saleClassName={saleClass}
+              />
+            }
+          />
+        )
+      })}
+    </>
+  )
+
+  const reviewsBlock = (
+    <>
+      {/* Delivered: write or edit a review per product */}
+      <OrderItemsReviewPanel order={order} />
+    </>
+  )
+
+  const billBlock = (
+    <>
+      <SectionHeading
+        title="Bill Summary"
+        aside={
+          <button
+            type="button"
+            onClick={handleDownloadSummary}
+            className="inline-flex items-center gap-1.5 rounded-full bg-app-tint-strong px-3 py-1 text-[12px] font-semibold text-app-brown hover:bg-app-sand"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden="true" /> Download
+          </button>
+        }
+      />
+      <BillSummaryCard
+        rows={billRows}
+        totalLabel={totalLabel(order)}
+        total={
+          <DualMoney
+            amount={orderPayTotal}
+            compareAmount={compareToPay}
+            decimals={2}
+            plainClassName="font-extrabold text-app-ink tabular-nums"
+            saleClassName={saleClass}
+          />
+        }
+        footer={
+          savings > 0 ? (
+            <div className="border-t border-app-line p-3">
+              <SavedBanner amount={`₹${Number(savings).toFixed(2)}`} />
+            </div>
+          ) : null
+        }
+      />
+    </>
+  )
+
+  const customerBlock = (
+    <>
+      {/* Customer, payment and date */}
+      <DetailCard className="divide-y divide-app-line">
+        {[
+          { icon: User, title: userName || "Customer", text: userPhone },
+          { icon: CreditCard, title: "Payment Method", text: paymentMethod },
+          { icon: Calendar, title: "Order Date", text: paymentDate },
+        ].map(({ icon: Icon, title, text }) => (
+          <div key={title} className="flex items-center gap-3 px-4 py-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-app-tint-strong text-app-brown">
+              <Icon className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <h4 className="text-[13.5px] font-semibold text-app-ink">{title}</h4>
+              {text ? <p className="text-[12px] text-app-muted">{text}</p> : null}
+            </div>
+          </div>
+        ))}
+      </DetailCard>
+    </>
+  )
+
+  const addressBlock = (
+    <>
+      <SectionHeading title="Delivery Address" />
+      <AddressCard icon={MapPin} lines={[addressText || "Address not available"]} />
+    </>
+  )
+
+  const cancelBlock = (
+    <>
+      {/* Cancel until the order leaves the store */}
+      {canCancelOrder(order) ? (
+        <CancelLink onClick={() => setCancelling(true)} note="You can cancel until your order leaves the store." />
+      ) : null}
+    </>
+  )
+
+  const returnsBlock = (
+    <>
+      {/* Returns and replacements (delivered courier orders) */}
+      <div id="returns" className="-mx-4 scroll-mt-20 lg:mx-0 lg:scroll-mt-28">
+        <OrderReturnsSection order={order} />
+      </div>
+    </>
+  )
+
+  const complaintBlock = (
+    <>
+      {/* Seller complaint */}
+      <button
+        type="button"
+        onClick={() => {
+          // Use MongoDB _id (ObjectId) for the API call - backend complaint controller expects ObjectId
+          // Priority: order._id (MongoDB ObjectId) > orderId from route params
+          const orderMongoId = order._id || orderId
+
+          if (!orderMongoId) {
+            debugError("Order ID not available:", {
+              order: order ? { _id: order._id, orderId: order.orderId } : null,
+              routeOrderId: orderId
+            })
+            toast.error("Order ID not available. Please refresh the page.")
+            return
+          }
+
+          // Convert to string if it's an ObjectId object
+          const orderIdString = typeof orderMongoId === 'object' && orderMongoId.toString
+            ? orderMongoId.toString()
+            : String(orderMongoId)
+
+          debugLog("Navigating to complaint page with orderId:", orderIdString)
+          navigate(`/complaints/submit/${encodeURIComponent(orderIdString)}`)
+        }}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-app-line bg-white py-3 text-[13.5px] font-semibold text-app-brown hover:bg-app-tint"
+      >
+        <FileText className="h-4 w-4" aria-hidden="true" />
+        Seller Complaint
+      </button>
+    </>
+  )
+
+  const cancelSheet = cancelling ? (
+    <CancelOrderSheet
+      order={order}
+      onClose={() => setCancelling(false)}
+      onCancelled={(updated) => {
+        setCancelling(false)
+        // The server returns the whole cancelled order (status, refund, history); keep it all.
+        setOrder((o) => {
+          const next = { ...o, orderStatus: "cancelled_by_user", ...(updated && typeof updated === "object" ? updated : {}) }
+          // Keep the populated store if the response only carries its id.
+          if (o?.sellerId && typeof o.sellerId === "object" && typeof next.sellerId !== "object") next.sellerId = o.sellerId
+          return next
+        })
+      }}
+    />
+  ) : null
+
+  if (isDesktop) {
+    const sideButton =
+      "flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown"
+    return (
+      <div className={`relative min-h-screen ${ORDER_PAGE_BG} pb-12 font-app`}>
+        <div className="mx-auto max-w-6xl px-8 py-8">
+          <header className="mb-6 flex items-start gap-3">
+            <button
+              type="button"
+              onClick={goBack}
+              aria-label="Back"
+              className="mt-1 flex h-10 w-10 items-center justify-center rounded-full text-app-ink hover:bg-app-tint-strong"
+            >
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <div className="min-w-0 flex-1">
+              <h1 className="font-app-display text-[34px] font-bold leading-tight text-app-brown-deep">Order Details</h1>
+              <p className="text-[13px] text-app-muted">
+                Order {orderIdDisplay}
+                {paymentDate ? ` · Placed on ${paymentDate}` : ""}
+              </p>
+            </div>
+          </header>
+
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+            <div className="min-w-0 space-y-4">
+              {paymentBlock}
+              {idCardBlock}
+              {statusBlock}
+              {sellerBlock}
+              {itemsBlock}
+              {reviewsBlock}
+              {returnsBlock}
+            </div>
+            <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
+              {billBlock}
+              {customerBlock}
+              {addressBlock}
+              <div className="space-y-2">
+                <button type="button" onClick={() => navigate(reorderPath({ ...order, _id: order?._id || orderId }))} className={`${sideButton} bg-app-brown font-bold text-white hover:bg-app-brown-deep`}>
+                  <RotateCcw className="h-4 w-4" aria-hidden="true" /> Reorder
+                </button>
+                <button type="button" onClick={handleDownloadSummary} className={`${sideButton} border border-app-line bg-white text-app-brown hover:bg-app-tint`}>
+                  <Download className="h-4 w-4" aria-hidden="true" /> View Invoice
+                </button>
+                <Link to={`/help/orders/${helpId}`} className={`${sideButton} border-[1.2px] border-[#FDA4AF] bg-[#FFF0F2] font-bold text-[#E11D48] hover:bg-[#FFE4E8]`}>
+                  <Headphones className="h-4 w-4" aria-hidden="true" /> Get Help
+                </Link>
+                {complaintBlock}
+                {cancelBlock}
+              </div>
+            </aside>
+          </div>
+        </div>
+        {cancelSheet}
+      </div>
+    )
+  }
+
   return (
     <div className={`relative min-h-screen ${ORDER_PAGE_BG} font-app ${BOTTOM_BAR_PAD}`}>
       <OrderTopBar title="Order Details" onBack={goBack} />
 
       <div className="mx-auto max-w-3xl space-y-3 px-4 pt-3">
-        <CompletePaymentCard order={order} onPaid={() => window.location.reload()} />
-
-        <OrderIdCard
-          orderNo={orderIdDisplay}
-          onCopy={handleCopyOrderId}
-          image={firstItem?.image || ""}
-          title={firstItem ? `${firstItem.name || "Item"}${moreItems > 0 ? ` + ${moreItems} more` : ""}` : ""}
-          meta={[`Qty: ${itemCount}`, firstItem?.variantName || ""].filter(Boolean).join("  |  ")}
-          chip={paymentMethod}
-          chipIcon={isCash ? Banknote : Wallet}
-          footer={
-            paymentDate ? (
-              <span className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 shrink-0 text-app-brown" aria-hidden="true" />
-                <span className="min-w-0">Placed on {paymentDate}</span>
-              </span>
-            ) : null
-          }
-        />
-
-        <StatusTimelineCard
-          tone={statusTone}
-          title={isDelivered ? "Order was delivered" : orderStatusLabel(order)}
-          subtitle={paymentDate ? `Ordered ${paymentDate}` : ""}
-          steps={timelineSteps}
-        >
-          {isCancelled && order.cancellationReason ? (
-            <p className="rounded-xl bg-[#FFF0F2] px-3.5 py-2.5 text-[12.5px] text-[#9F1239]">Cancelled: {order.cancellationReason}</p>
-          ) : null}
-        </StatusTimelineCard>
-
-        {/* Seller */}
-        <DetailCard className="flex items-center gap-3 p-4">
-          <img
-            src={
-              // Prefer the image from the first ordered item
-              (Array.isArray(items) && items[0]?.image) ||
-              sellerObj.profileImage?.url ||
-              sellerObj.profileImage ||
-              order.sellerImage ||
-              imagePlaceholder
-            }
-            alt={sellerName}
-            className="h-11 w-11 shrink-0 rounded-xl border border-app-line object-cover"
-          />
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate text-[14px] font-bold text-app-ink">{sellerName}</h3>
-            <p className="line-clamp-2 text-[12px] text-app-muted">{sellerLocation}</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleCallSeller}
-            aria-label="Call the store"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-app-line bg-[#FBF4ED] text-app-brown hover:bg-app-tint-strong"
-          >
-            <Phone className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </DetailCard>
-
-        <SectionHeading title="Item Details" aside={`${items.length} ${items.length === 1 ? "item" : "items"}`} />
-        {items.map((item, idx) => {
-          const qty = Number(item.quantity || item.qty) || 1
-          const price = Number(item.price) || 0
-          const compareUnit = getLineCompareUnitPrice(item)
-          return (
-            <ItemDetailCard
-              key={idx}
-              image={item.image || ""}
-              name={
-                <span className="flex items-start gap-2">
-                  {typeof item.isVeg === "boolean" && (
-                    <span
-                      className={`mt-1 flex h-3 w-3 shrink-0 items-center justify-center border p-[1px] ${item.isVeg ? "border-green-600" : "border-red-600"}`}
-                    >
-                      <span className={`h-full w-full rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"}`} />
-                    </span>
-                  )}
-                  <span>
-                    {item.name}
-                    {item.variantName ? ` (${item.variantName})` : ""}
-                  </span>
-                </span>
-              }
-              qty={qty}
-              price={
-                <DualMoney
-                  amount={price * qty}
-                  compareAmount={compareUnit > 0 ? compareUnit * qty : 0}
-                  decimals={2}
-                  plainClassName="text-[15px] font-bold text-app-ink tabular-nums"
-                  saleClassName={saleClass}
-                />
-              }
-            />
-          )
-        })}
-
-        {/* Delivered: write or edit a review per product */}
-        <OrderItemsReviewPanel order={order} />
-
-        <SectionHeading
-          title="Bill Summary"
-          aside={
-            <button
-              type="button"
-              onClick={handleDownloadSummary}
-              className="inline-flex items-center gap-1.5 rounded-full bg-app-tint-strong px-3 py-1 text-[12px] font-semibold text-app-brown hover:bg-app-sand"
-            >
-              <Download className="h-3.5 w-3.5" aria-hidden="true" /> Download
-            </button>
-          }
-        />
-        <BillSummaryCard
-          rows={billRows}
-          totalLabel={totalLabel(order)}
-          total={
-            <DualMoney
-              amount={orderPayTotal}
-              compareAmount={compareToPay}
-              decimals={2}
-              plainClassName="font-extrabold text-app-ink tabular-nums"
-              saleClassName={saleClass}
-            />
-          }
-          footer={
-            savings > 0 ? (
-              <div className="border-t border-app-line p-3">
-                <SavedBanner amount={`₹${Number(savings).toFixed(2)}`} />
-              </div>
-            ) : null
-          }
-        />
-
-        {/* Customer, payment and date */}
-        <DetailCard className="divide-y divide-app-line">
-          {[
-            { icon: User, title: userName || "Customer", text: userPhone },
-            { icon: CreditCard, title: "Payment Method", text: paymentMethod },
-            { icon: Calendar, title: "Order Date", text: paymentDate },
-          ].map(({ icon: Icon, title, text }) => (
-            <div key={title} className="flex items-center gap-3 px-4 py-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-app-tint-strong text-app-brown">
-                <Icon className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <h4 className="text-[13.5px] font-semibold text-app-ink">{title}</h4>
-                {text ? <p className="text-[12px] text-app-muted">{text}</p> : null}
-              </div>
-            </div>
-          ))}
-        </DetailCard>
-
-        <SectionHeading title="Delivery Address" />
-        <AddressCard icon={MapPin} lines={[addressText || "Address not available"]} />
-
-        {/* Cancel until the order leaves the store */}
-        {canCancelOrder(order) ? (
-          <CancelLink onClick={() => setCancelling(true)} note="You can cancel until your order leaves the store." />
-        ) : null}
-
-        {/* Returns and replacements (delivered courier orders) */}
-        <div id="returns" className="-mx-4 scroll-mt-20">
-          <OrderReturnsSection order={order} />
-        </div>
-
-        {/* Seller complaint */}
-        <button
-          type="button"
-          onClick={() => {
-            // Use MongoDB _id (ObjectId) for the API call - backend complaint controller expects ObjectId
-            // Priority: order._id (MongoDB ObjectId) > orderId from route params
-            const orderMongoId = order._id || orderId
-
-            if (!orderMongoId) {
-              debugError("Order ID not available:", {
-                order: order ? { _id: order._id, orderId: order.orderId } : null,
-                routeOrderId: orderId
-              })
-              toast.error("Order ID not available. Please refresh the page.")
-              return
-            }
-
-            // Convert to string if it's an ObjectId object
-            const orderIdString = typeof orderMongoId === 'object' && orderMongoId.toString
-              ? orderMongoId.toString()
-              : String(orderMongoId)
-
-            debugLog("Navigating to complaint page with orderId:", orderIdString)
-            navigate(`/complaints/submit/${encodeURIComponent(orderIdString)}`)
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-app-line bg-white py-3 text-[13.5px] font-semibold text-app-brown hover:bg-app-tint"
-        >
-          <FileText className="h-4 w-4" aria-hidden="true" />
-          Seller Complaint
-        </button>
+        {paymentBlock}
+        {idCardBlock}
+        {statusBlock}
+        {sellerBlock}
+        {itemsBlock}
+        {reviewsBlock}
+        {billBlock}
+        {customerBlock}
+        {addressBlock}
+        {cancelBlock}
+        {returnsBlock}
+        {complaintBlock}
       </div>
 
       <OrderBottomBar
@@ -659,22 +800,7 @@ export default function UserOrderDetails() {
         ]}
       />
 
-      {cancelling ? (
-        <CancelOrderSheet
-          order={order}
-          onClose={() => setCancelling(false)}
-          onCancelled={(updated) => {
-            setCancelling(false)
-            // The server returns the whole cancelled order (status, refund, history); keep it all.
-            setOrder((o) => {
-              const next = { ...o, orderStatus: "cancelled_by_user", ...(updated && typeof updated === "object" ? updated : {}) }
-              // Keep the populated store if the response only carries its id.
-              if (o?.sellerId && typeof o.sellerId === "object" && typeof next.sellerId !== "object") next.sellerId = o.sellerId
-              return next
-            })
-          }}
-        />
-      ) : null}
+      {cancelSheet}
     </div>
   )
 }

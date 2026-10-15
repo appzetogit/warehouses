@@ -46,27 +46,29 @@
   --sidebar-ring: oklch(0.7 0.15 85);
 
   /* Desktop storefront theme (DESKTOP_THEME.md) */
-  --wh-nav: #131921;
-  --wh-nav-2: #232F3E;
-  --wh-nav-3: #37475A;
-  --wh-brand: #FD920B;
-  --wh-brand-600: #E07F00;
-  --wh-brand-ink: #B45309; /* brand-coloured text/icons on light backgrounds (AA) */
-  --wh-brand-50: #FFF4E5;  /* light brand tint */
-  --wh-cta: #FFD814;
-  --wh-cta-hover: #F7CA00;
-  --wh-cta-2: #FFA41C;
-  --wh-cta-2-hover: #FA8900;
-  --wh-page: #E3E6E6;
+  /* wh-*: desktop palette, now the customer app's (brown on cream, champagne
+     buttons) so desktop matches the phone site. Was Amazon-style. */
+  --wh-nav: #2A1A11;
+  --wh-nav-2: #3A2619;
+  --wh-nav-3: #58321D;
+  --wh-brand: #58321D;
+  --wh-brand-600: #3A2619;
+  --wh-brand-ink: #58321D; /* brand-coloured text/icons on light backgrounds (AA) */
+  --wh-brand-50: #F9F3F0;  /* light brand tint */
+  --wh-cta: #E9C19A;
+  --wh-cta-hover: #DDB089;
+  --wh-cta-2: #58321D;
+  --wh-cta-2-hover: #3A2619;
+  --wh-page: #F8F1EA;
   --wh-surface: #FFFFFF;
-  --wh-text: #0F1111;
-  --wh-muted: #565959;
-  --wh-link: #2162A1;
-  --wh-link-hover: #C7511F;
+  --wh-text: #191411;
+  --wh-muted: #7B7773;
+  --wh-link: #58321D;
+  --wh-link-hover: #A15C35;
   --wh-deal: #CC0C39;
-  --wh-success: #0B7B3C;
-  --wh-border: #D5D9D9;
-  --wh-quick: #0B7B3C;
+  --wh-success: #3F7D55;
+  --wh-border: #EDE6E0;
+  --wh-quick: #3F7D55;
 
   /* app-*: the customer app's palette (warehouse_user, AppColors + shop
      screens), so the phone site looks like the app: brown on cream. */
@@ -310,17 +312,19 @@
   pointer-events: auto !important;
 }
 
-/* Desktop storefront shell: Inter, 14/20. Applied only by lg+ desktop components. */
+/* Desktop storefront shell: Poppins 14/20, like the customer app. Applied only
+   by lg+ desktop components. */
 .wh-desktop {
-  font-family: 'Inter', Arial, sans-serif;
+  font-family: 'Poppins', Arial, sans-serif;
   font-size: 14px;
   line-height: 20px;
   color: var(--wh-text);
 }
-/* Business Settings injects a module font on #root * with !important; the desktop shell keeps Inter. */
+/* Business Settings injects a module font on #root * with !important; the desktop
+   shell keeps Poppins, except the app's serif display headings. */
 #root .wh-desktop,
-#root .wh-desktop * {
-  font-family: 'Inter', Arial, sans-serif !important;
+#root .wh-desktop *:not(.font-app-display):not(.font-app-display *) {
+  font-family: 'Poppins', Arial, sans-serif !important;
 }
 .wh-desktop :focus-visible {
   outline: 2px solid var(--wh-brand);

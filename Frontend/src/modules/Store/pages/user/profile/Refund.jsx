@@ -57,10 +57,10 @@ export default function Refund() {
   }
 
   return (
-    <AnimatedPage className="min-h-screen bg-white dark:bg-[#0a0a0a] pb-10">
+    <AnimatedPage className="min-h-screen bg-white dark:bg-[#0a0a0a] pb-10 lg:bg-app-cream lg:font-app">
       {/* Premium Sticky Header */}
-      <div className="sticky top-0 z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-900">
-        <div className="max-w-4xl mx-auto px-4 h-16 md:h-20 flex items-center gap-4">
+      <div className="sticky top-0 z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-900 lg:border-app-line lg:bg-app-cream/90">
+        <div className="max-w-4xl mx-auto px-4 h-16 md:h-20 flex items-center gap-4 lg:max-w-3xl">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -78,7 +78,7 @@ export default function Refund() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 lg:max-w-3xl">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -90,7 +90,7 @@ export default function Refund() {
                 prose-headings:font-black prose-headings:text-gray-900 dark:prose-headings:text-white
                 prose-p:text-gray-600 dark:prose-p:text-gray-400 prose-p:leading-relaxed
                 prose-strong:text-gray-900 dark:prose-strong:text-white
-                prose-a:text-wh-brand-ink dark:prose-a:text-wh-brand
+                prose-a:text-wh-brand-ink dark:prose-a:text-wh-brand lg:prose-a:text-app-brown
                 prose-li:text-gray-600 dark:prose-li:text-gray-400"
               dangerouslySetInnerHTML={{ __html: refundData.content }}
             />

@@ -1,25 +1,43 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { ChevronDown, MapPin, Menu, Search, ShoppingCart, User, X, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight, Heart, MapPin, Menu, Search, ShoppingBag, User, X, Zap } from "lucide-react"
 import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { useCart } from "@store/context/CartContext"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { useProfile } from "@store/context/ProfileContext"
 import { clearHomeScrollState } from "@store/utils/homeScrollRestore"
-import { BRAND_LOGO_ON_DARK } from "@/config/brandMark"
 import { useLocationSelector } from "../UserLayout"
+import RotatingSearchHint from "../mobile/RotatingSearchHint"
 import { useBusinessSettings, usePublicCategories } from "./useDesktopShell"
 import { locationPincode, useQuickEta } from "./useDeliveryEstimates"
 import { useQuickCartPanel } from "./quick/QuickCartPanel"
 import SearchSuggestions, { useSearchSuggestions, useSuggestionKeyboard } from "./SearchSuggestions"
 
-// The orange category bar carries dark text (white on orange is unreadable).
-const catItem =
-  "rounded-[2px] border border-transparent px-2 hover:border-wh-text focus-visible:border-wh-text focus-visible:outline-2 focus-visible:outline-wh-nav text-wh-text"
+/**
+ * Desktop (lg+) storefront header in the customer app's look (the phone's
+ * MobileHeader, laid out wide): a cream band (#F1E4D6 → #F8F1EA) with ink
+ * text — logo, "Deliver to", a white rounded search pill with the category
+ * picker and a rotating hint, the dark Shop/Quick pill offering the other
+ * store, account, orders, wishlist and bag — then a white category bar whose
+ * current category carries a brown underline.
+ */
 
-// Hovered/focused items on the orange bar get a soft dark pill hover.
-const navItem =
-  "rounded-[6px] border border-transparent px-1.5 py-1 lg:px-2.5 hover:bg-black/15 focus-visible:bg-black/20 focus-visible:outline-2 focus-visible:outline-white text-white transition-colors"
+// The light-background logo (the footer uses it too); the business logo is
+// uploaded for dark backgrounds, so it is not used on the cream band.
+const BRAND_LOGO_ON_LIGHT = "/brand/logo-on-light.png"
+
+// Soft circles behind the band, as on the phone (_TopBackdrop).
+const BACKDROP_CIRCLES = [
+  { top: -60, right: 120, size: 200, color: "rgba(239,229,218,0.6)" },
+  { top: -40, right: -30, size: 150, color: "rgba(230,218,207,0.45)" },
+  { top: -50, left: -40, size: 170, color: "rgba(243,231,219,0.55)" },
+  { top: 20, left: "38%", size: 120, color: "rgba(236,224,211,0.35)" },
+]
+
+const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown"
+
+// An item on the cream band: ink text, a faint pill on hover.
+const navItem = `rounded-xl px-2.5 py-1 text-app-ink transition-colors hover:bg-black/[0.045] ${focusRing}`
 
 const isSignedIn = () => {
   try {
@@ -28,6 +46,8 @@ const isSignedIn = () => {
     return false
   }
 }
+
+const countLabel = (n) => (n > 99 ? "99+" : String(n))
 
 function AccountMenu({ firstName, signedIn, storePath }) {
   const [open, setOpen] = useState(false)
@@ -53,6 +73,8 @@ function AccountMenu({ firstName, signedIn, storePath }) {
       ]
     : [["Sign in", "/auth/login"]]
 
+  const menuItem = "block rounded-lg px-3 py-2 text-[13px] text-app-ink transition-colors hover:bg-app-tint hover:text-app-brown"
+
   return (
     <div
       ref={ref}
@@ -71,34 +93,35 @@ function AccountMenu({ firstName, signedIn, storePath }) {
         to={signedIn ? "/profile" : "/auth/login"}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`${navItem} flex h-full flex-col justify-center leading-tight`}
+        className={`${navItem} flex h-full items-center gap-2 leading-tight`}
       >
-        <User className="h-6 w-6 lg:hidden" aria-hidden />
-        <span className="hidden text-[12px] lg:inline">Hello, {signedIn ? firstName || "there" : "sign in"}</span>
-        <span className="hidden items-center gap-0.5 text-[14px] font-bold lg:flex">
-          Account &amp; Lists <ChevronDown className="h-3 w-3" aria-hidden />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white bg-white/70 shadow-[0_2px_4px_rgba(25,20,17,0.08)]">
+          <User className="h-[18px] w-[18px]" strokeWidth={1.9} aria-hidden="true" />
         </span>
-        <span className="sr-only">{signedIn ? "Your account" : "Sign in"}</span>
+        <span className="hidden flex-col xl:flex">
+          <span className="text-[11px] text-[#6E6862]">Hello, {signedIn ? firstName || "there" : "sign in"}</span>
+          <span className="flex items-center gap-0.5 text-[13.5px] font-bold">
+            Account <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
+        </span>
+        <span className="sr-only xl:hidden">{signedIn ? "Your account" : "Sign in"}</span>
       </Link>
       {open ? (
-        <div role="menu" className="absolute right-0 top-full z-50 w-56 rounded-[8px] border border-wh-border bg-wh-surface p-2 text-wh-text shadow-xl">
-          {!signedIn ? (
-            <p className="px-3 pb-2 pt-1 text-[12px] text-wh-muted">Sign in to see orders, coins and your wallet.</p>
-          ) : null}
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-50 mt-1 w-60 rounded-2xl border border-app-line bg-white p-2 text-app-ink shadow-[0_12px_32px_rgba(25,20,17,0.14)]"
+        >
+          <p className="px-3 pb-2 pt-1 text-[12px] text-app-muted">
+            {signedIn ? `Hello, ${firstName || "there"}` : "Sign in to see orders, coins and your wallet."}
+          </p>
           {items.map(([label, to]) => (
-            <Link
-              key={to}
-              role="menuitem"
-              to={to}
-              onClick={() => setOpen(false)}
-              className="block rounded-[4px] px-3 py-1.5 text-[13px] hover:bg-[#F3F3F3] hover:text-wh-link-hover hover:underline"
-            >
+            <Link key={to} role="menuitem" to={to} onClick={() => setOpen(false)} className={menuItem}>
               {label}
             </Link>
           ))}
-          <div className="my-1 border-t border-wh-border" />
-          <Link role="menuitem" to={storePath("/cart")} onClick={() => setOpen(false)} className="block rounded-[4px] px-3 py-1.5 text-[13px] hover:bg-[#F3F3F3]">
-            Your Cart
+          <div className="my-1 border-t border-app-line" />
+          <Link role="menuitem" to={storePath("/cart")} onClick={() => setOpen(false)} className={menuItem}>
+            Your Bag
           </Link>
         </div>
       ) : null}
@@ -139,31 +162,38 @@ export function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
 
   if (!open) return null
 
+  const row = "hover:bg-app-tint hover:text-app-brown transition-colors"
+
   return (
-    <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label="All categories">
+    <div className="fixed inset-0 z-[60] font-app" role="dialog" aria-modal="true" aria-label="All categories">
       <button
         type="button"
         aria-label="Close categories"
         onClick={onClose}
-        className={`absolute inset-0 h-full w-full cursor-default bg-black/70 transition-opacity duration-300 ${
+        className={`absolute inset-0 h-full w-full cursor-default bg-black/50 transition-opacity duration-300 ${
           shown ? "opacity-100" : "opacity-0"
         }`}
       />
       <div
         ref={panelRef}
-        className={`absolute left-0 top-0 flex h-full w-[86%] max-w-[365px] flex-col bg-wh-surface text-wh-text shadow-2xl transition-transform duration-300 ease-out ${
+        className={`absolute left-0 top-0 flex h-full w-[86%] max-w-[365px] flex-col bg-white text-app-ink shadow-2xl transition-transform duration-300 ease-out ${
           shown ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* The band carries the header's colour, so the drawer reads as part of it. */}
-        <div className="flex h-[56px] items-center justify-between gap-2 bg-gradient-to-r from-[#3A2619] via-[#58321D] to-[#6B3A22] px-5 text-[17px] font-bold text-white">
-          <span className="truncate">Hello, shop {brandName}</span>
-          <button type="button" onClick={onClose} aria-label="Close" className="shrink-0 rounded-full p-1 hover:bg-black/15">
-            <X className="h-6 w-6" aria-hidden />
+        {/* The band carries the header's cream, so the drawer reads as part of it. */}
+        <div className="flex h-[60px] items-center justify-between gap-2 border-b border-app-line bg-[linear-gradient(180deg,#F1E4D6_0%,#F8F1EA_100%)] px-5">
+          <span className="truncate text-[16px] font-bold">Hello, shop {brandName}</span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className={`shrink-0 rounded-full p-1.5 hover:bg-black/[0.06] ${focusRing}`}
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto py-2">
-          <h2 className="px-5 pb-1 pt-3 text-[16px] font-bold">Shop by Category</h2>
+          <h2 className="px-5 pb-1 pt-3 font-app-display text-[24px] font-bold text-app-brown">Shop by Category</h2>
           <ul>
             {tree.map((c) => (
               <li key={c.id}>
@@ -171,7 +201,7 @@ export function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
                   <Link
                     to={storePath(`/category/${c.slug}`)}
                     onClick={onClose}
-                    className="min-w-0 flex-1 truncate px-5 py-3 text-[14px] hover:bg-[#EAEDED]"
+                    className={`min-w-0 flex-1 truncate px-5 py-3 text-[14px] ${row}`}
                   >
                     {c.name}
                   </Link>
@@ -181,17 +211,21 @@ export function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
                       aria-expanded={expanded === c.id}
                       aria-label={`Show ${c.name} subcategories`}
                       onClick={() => setExpanded((v) => (v === c.id ? null : c.id))}
-                      className="px-4 py-3 text-wh-muted hover:bg-[#EAEDED]"
+                      className={`px-4 py-3 text-app-muted ${row}`}
                     >
-                      <ChevronRight className={`h-4 w-4 transition-transform ${expanded === c.id ? "rotate-90" : ""}`} aria-hidden />
+                      <ChevronRight className={`h-4 w-4 transition-transform ${expanded === c.id ? "rotate-90" : ""}`} aria-hidden="true" />
                     </button>
                   ) : null}
                 </div>
                 {expanded === c.id ? (
-                  <ul className="bg-[#F7F8F8]">
+                  <ul className="bg-app-alt">
                     {c.children.map((s) => (
                       <li key={s.id}>
-                        <Link to={storePath(`/category/${s.slug}`)} onClick={onClose} className="block truncate px-9 py-2 text-[13px] hover:bg-[#EAEDED]">
+                        <Link
+                          to={storePath(`/category/${s.slug}`)}
+                          onClick={onClose}
+                          className={`block truncate px-9 py-2 text-[13px] ${row}`}
+                        >
                           {s.name}
                         </Link>
                       </li>
@@ -200,13 +234,13 @@ export function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
                 ) : null}
               </li>
             ))}
-            {!tree.length ? <li className="px-5 py-3 text-wh-muted">No categories yet.</li> : null}
+            {!tree.length ? <li className="px-5 py-3 text-app-muted">No categories yet.</li> : null}
           </ul>
-          <div className="mt-2 border-t border-wh-border pt-2">
-            <Link to={storePath("/categories")} onClick={onClose} className="block px-5 py-3 text-[14px] hover:bg-[#EAEDED]">
+          <div className="mt-2 border-t border-app-line pt-2">
+            <Link to={storePath("/categories")} onClick={onClose} className={`block px-5 py-3 text-[14px] ${row}`}>
               See All Categories
             </Link>
-            <Link to="/help" onClick={onClose} className="block px-5 py-3 text-[14px] hover:bg-[#EAEDED]">
+            <Link to="/help" onClick={onClose} className={`block px-5 py-3 text-[14px] ${row}`}>
               Help
             </Link>
           </div>
@@ -216,8 +250,38 @@ export function CategoryDrawer({ open, onClose, tree, storePath, brandName }) {
   )
 }
 
+/** A round header icon (wishlist, bag) with an optional brown count badge and label. */
+function IconLink({ to, label, icon: Icon, badge = 0, caption, onClick, asButton = false, ...rest }) {
+  const body = (
+    <>
+      <span className="relative flex h-9 w-9 items-center justify-center">
+        <Icon className="h-[22px] w-[22px]" strokeWidth={1.8} aria-hidden="true" />
+        {badge > 0 ? (
+          <span
+            key={badge}
+            className="wh-pop absolute -right-0.5 top-0 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-app-brown-badge px-1 text-[10px] font-bold leading-none text-white"
+          >
+            {countLabel(badge)}
+          </span>
+        ) : null}
+      </span>
+      {caption ? <span className="hidden text-[13.5px] font-bold xl:inline">{caption}</span> : null}
+    </>
+  )
+  const className = `${navItem} relative flex shrink-0 items-center gap-1 px-1.5`
+  return asButton ? (
+    <button type="button" onClick={onClick} aria-label={label} className={className} {...rest}>
+      {body}
+    </button>
+  ) : (
+    <Link to={to} aria-label={label} className={className} {...rest}>
+      {body}
+    </Link>
+  )
+}
+
 /**
- * Desktop (lg+) storefront header: top bar + category bar, sticky.
+ * Desktop (lg+) storefront header: the cream band + category bar, sticky.
  * Props: onOpenSpin() opens the existing Spin & Win modal.
  */
 export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
@@ -228,15 +292,14 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
   const { getCartCount } = useCart()
   const { userProfile } = useProfile()
   const { openLocationSelector } = useLocationSelector()
-  const { brandName, logoOnDark } = useBusinessSettings()
+  const { brandName } = useBusinessSettings()
   const { categories, roots, tree } = usePublicCategories(zoneId)
   const quickEta = useQuickEta()
   const quickCart = useQuickCartPanel()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [q, setQ] = useState("")
   const [cat, setCat] = useState("")
-  const [logoSrc, setLogoSrc] = useState(logoOnDark)
-  useEffect(() => setLogoSrc(logoOnDark), [logoOnDark])
+  const [logoFailed, setLogoFailed] = useState(false)
 
   // Keep the box in sync with the search page's ?q=.
   useEffect(() => {
@@ -247,12 +310,18 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
     }
   }, [location.pathname, location.search])
 
+  // The hint cycles through real subcategory names, as on the phone.
+  const hintWords = useMemo(() => {
+    const names = categories.filter((c) => c.parentId).map((c) => c.name.toLowerCase())
+    return (names.length ? names : ["t-shirts", "jeans", "kurtas"]).slice(0, 8)
+  }, [categories])
+
   const signedIn = isSignedIn()
   const firstName = String(userProfile?.name || userProfile?.fullName || "").trim().split(/\s+/)[0]
   const cartCount = getCartCount()
   const area = effectiveLocation?.area?.trim() || effectiveLocation?.city || ""
   const pin = locationPincode(effectiveLocation)
-  const deliverLine2 = [area || displayAddressText || "Select location", pin].filter(Boolean).join(" ")
+  const place = [area || displayAddressText || "", pin].filter(Boolean).join(" ")
 
   const goToSearch = (term) => {
     const params = new URLSearchParams({ q: term })
@@ -299,102 +368,130 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
     onSubmit: submitSearch,
   })
 
-  const topCats = roots.slice(0, 6)
+  const topCats = roots.slice(0, 7)
+  const toQuick = !isQuick
+  const currentPath = location.pathname.replace(/\/+$/, "")
+  const isCurrent = (to) => {
+    const [path, query = ""] = to.split("?")
+    return currentPath === path.replace(/\/+$/, "") && (!query || location.search.replace(/^\?/, "") === query)
+  }
 
-  const cartVisual = (
-    <>
-      <span className="relative">
-        <ShoppingCart className="h-6 w-6 text-white lg:h-7 lg:w-7" aria-hidden />
-        <span className="absolute -top-1.5 left-1/2 min-w-[20px] -translate-x-1/2 rounded-full bg-white px-1 text-center text-[12px] font-black leading-5 text-[#58321D] shadow-xs">
-          {cartCount > 99 ? "99+" : cartCount}
-        </span>
-      </span>
-      <span className="hidden text-[14px] font-bold text-white lg:inline">Cart</span>
-    </>
-  )
+  const cartLabel = `Bag, ${cartCount} item${cartCount === 1 ? "" : "s"}`
 
-  const subnavLink =
-    "flex h-[32px] items-center whitespace-nowrap rounded-[4px] px-2.5 text-[13px] font-medium text-gray-800 hover:text-black hover:bg-gray-100 transition-colors"
+  // Category bar links: ink text, brown underline on hover and on the current page.
+  const subnavLink = (on) =>
+    `relative flex h-full items-center whitespace-nowrap px-3 text-[13.5px] transition-colors after:absolute after:inset-x-3 after:bottom-0 after:h-[2.5px] after:rounded-full after:bg-app-brown after:transition-opacity hover:text-app-brown hover:after:opacity-100 ${focusRing} ${
+      on ? "font-semibold text-app-brown after:opacity-100" : "font-medium text-app-ink after:opacity-0"
+    }`
+
+  const extraLinks = [
+    // Stays in the current store (Quick or Shop); /offers is Shop-only.
+    { label: "Today's Deals", to: storePath("/search?minDiscount=10") },
+    { label: "Coins", to: "/coins" },
+    { label: "Spin & Win", to: "/spin", onClick: onOpenSpin },
+    { label: `Sell on ${brandName}`, to: "/seller/signup" },
+    { label: "Help", to: "/help" },
+  ]
 
   return (
-    // desktopOnly: on Quick, phones get QuickMobileHeader instead (QUICK_MOBILE_SPEC.md).
-    <header className={`wh-desktop sticky top-0 z-50 ${desktopOnly ? "hidden lg:block" : ""}`}>
-      {/* Top bar (Rich Orange Gradient) */}
-      <div className="bg-gradient-to-r from-[#3A2619] via-[#58321D] to-[#6B3A22] shadow-sm">
-        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-1 gap-y-2 px-2.5 py-2 lg:h-[62px] lg:flex-nowrap lg:gap-x-1 lg:px-[20px] lg:py-[6px]">
-          {/* The category drawer's trigger; from lg it lives on the orange bar. */}
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Browse categories"
-            className={`${navItem} shrink-0 lg:hidden`}
-          >
-            <Menu className="h-6 w-6 text-white" aria-hidden />
-          </button>
+    // desktopOnly: on phones MobileHeader / QuickMobileHeader take over.
+    <header className={`wh-desktop sticky top-0 z-50 font-app text-app-ink ${desktopOnly ? "hidden lg:block" : ""}`}>
+      {/* The cream band */}
+      <div className="relative bg-[linear-gradient(180deg,#F1E4D6_0%,#F8F1EA_100%)]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+          {BACKDROP_CIRCLES.map(({ size, color, ...pos }, i) => (
+            <span key={i} className="absolute rounded-full" style={{ ...pos, width: size, height: size, backgroundColor: color }} />
+          ))}
+        </div>
+
+        <div className="relative mx-auto flex h-[72px] max-w-[1400px] items-center gap-2 px-6 xl:gap-3">
           <Link
             to={storePath("/")}
             onClick={() => clearHomeScrollState()}
-            className={`${navItem} flex shrink-0 items-center lg:mx-0`}
+            className={`flex shrink-0 items-center rounded-lg ${focusRing}`}
             aria-label={`${brandName} home`}
           >
-            <img
-              src={logoSrc}
-              alt={brandName}
-              className="h-[28px] w-auto max-w-[74px] object-contain drop-shadow-sm lg:h-[42px] lg:max-w-[145px]"
-              onError={() => logoSrc !== BRAND_LOGO_ON_DARK && setLogoSrc(BRAND_LOGO_ON_DARK)}
-            />
+            {logoFailed ? (
+              <span className="font-app-display text-[26px] font-bold text-app-brown">{brandName}</span>
+            ) : (
+              <img
+                src={BRAND_LOGO_ON_LIGHT}
+                alt={brandName}
+                className="h-[50px] w-auto max-w-[150px] object-contain"
+                onError={() => setLogoFailed(true)}
+              />
+            )}
           </Link>
 
-          <button type="button" onClick={openLocationSelector} className={`${navItem} flex min-w-0 shrink items-center gap-1 pb-0 text-left lg:shrink-0 lg:items-end lg:gap-1.5 lg:pb-1`}>
-            <MapPin className="h-4 w-4 shrink-0 text-white lg:mb-0.5" aria-hidden />
-            <span className="flex flex-col leading-tight">
-              <span className="hidden text-[11px] font-medium text-white/80 lg:inline">Deliver to You</span>
-              <span className="flex items-center gap-0.5 truncate text-[13px] font-bold text-white lg:text-[14px]">
-                {effectiveLocation?.city || area || "Indore"} <ChevronDown className="h-3 w-3 shrink-0" aria-hidden />
+          <button
+            type="button"
+            onClick={openLocationSelector}
+            aria-label={`Deliver to ${place || "your location"}. Change delivery location`}
+            className={`${navItem} flex min-w-0 max-w-[200px] shrink-0 items-center gap-1.5 text-left`}
+          >
+            <MapPin className="h-5 w-5 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span className="text-[11px] text-[#6E6862]">Deliver to</span>
+              <span className="flex items-center gap-0.5 text-[13.5px] font-bold">
+                <span className="truncate">{place || "Set delivery location"}</span>
+                <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
               </span>
             </span>
           </button>
 
-          <form
-            role="search"
-            onSubmit={search.submit}
-            ref={search.boxRef}
-            className="relative order-last mx-0 flex w-full min-w-0 items-center lg:order-none lg:mx-2 lg:w-auto lg:flex-1"
-          >
-            <div className="flex h-[42px] w-full overflow-hidden rounded-[8px] bg-white shadow-md focus-within:ring-2 focus-within:ring-white">
-              <label className="sr-only" htmlFor="wh-search-cat">Search in</label>
+          <form role="search" onSubmit={search.submit} ref={search.boxRef} className="relative mx-1 min-w-0 flex-1 xl:mx-3">
+            <div className="flex h-[44px] w-full items-center overflow-hidden rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.05)] ring-1 ring-app-line/70 focus-within:ring-2 focus-within:ring-app-champagne">
+              <label className="sr-only" htmlFor="wh-search-cat">
+                Search in
+              </label>
               <select
                 id="wh-search-cat"
                 value={cat}
                 onChange={(e) => setCat(e.target.value)}
-                className="hidden max-w-[150px] shrink-0 cursor-pointer border-r border-gray-200 bg-gray-50 px-3 text-[13px] font-medium text-gray-700 hover:bg-gray-100 focus:outline-none sm:block"
+                className="h-full max-w-[150px] shrink-0 cursor-pointer border-r border-app-line bg-app-alt pl-4 pr-2 text-[12.5px] font-medium text-app-ink hover:bg-app-tint focus:outline-none focus-visible:bg-app-tint"
               >
                 <option value="">All Categories</option>
                 {roots.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
                 ))}
               </select>
-              <label className="sr-only" htmlFor="wh-search-q">Search {brandName}</label>
-              <input
-                id="wh-search-q"
-                type="search"
-                value={q}
-                onChange={(e) => {
-                  setQ(e.target.value)
-                  search.setOpen(true)
-                }}
-                onFocus={() => search.setOpen(true)}
-                onKeyDown={search.handleKeyDown}
-                placeholder="Search for shirts, jackets, shoes and more..."
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={search.open && suggestions.length > 0}
-                aria-controls="wh-search-suggestions"
-                aria-autocomplete="list"
-                className="min-w-0 flex-1 bg-white px-3.5 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none"
-              />
-              <button type="submit" aria-label="Search" className="flex w-[48px] shrink-0 items-center justify-center bg-[#111827] hover:bg-[#1f2937] text-white transition-colors">
-                <Search className="h-5 w-5 text-white" aria-hidden />
+              <Search className="ml-3 h-[19px] w-[19px] shrink-0 text-app-muted" aria-hidden="true" />
+              <div className="relative h-full min-w-0 flex-1">
+                <label className="sr-only" htmlFor="wh-search-q">
+                  Search {brandName}
+                </label>
+                <input
+                  id="wh-search-q"
+                  type="search"
+                  value={q}
+                  onChange={(e) => {
+                    setQ(e.target.value)
+                    search.setOpen(true)
+                  }}
+                  onFocus={() => search.setOpen(true)}
+                  onKeyDown={search.handleKeyDown}
+                  autoComplete="off"
+                  role="combobox"
+                  aria-expanded={search.open && suggestions.length > 0}
+                  aria-controls="wh-search-suggestions"
+                  aria-autocomplete="list"
+                  className="h-full w-full bg-transparent px-2.5 text-[14px] text-app-ink focus:outline-none"
+                />
+                {q ? null : (
+                  <RotatingSearchHint
+                    words={hintWords}
+                    className="pointer-events-none absolute inset-x-2.5 top-1/2 -translate-y-1/2 [&_span]:text-[13.5px]!"
+                  />
+                )}
+              </div>
+              <button
+                type="submit"
+                aria-label="Search"
+                className="mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-app-brown text-white transition-colors hover:bg-app-brown-deep focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-app-champagne"
+              >
+                <Search className="h-[18px] w-[18px]" aria-hidden="true" />
               </button>
             </div>
             {search.open && (
@@ -411,86 +508,87 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
             )}
           </form>
 
-          <div role="group" aria-label="Choose store" className="ml-auto flex shrink-0 items-center lg:mx-1 lg:ml-0">
-            <div className="flex rounded-full bg-black/20 backdrop-blur-md p-0.5 border border-white/20">
-              <button
-                type="button"
-                aria-pressed={!isQuick}
-                onClick={() => setCommerceMode("standard")}
-                className={`rounded-full px-2 py-0.5 text-[11px] font-bold transition-all lg:px-3.5 lg:py-1 lg:text-[13px] ${!isQuick ? "bg-white text-gray-950 shadow-sm" : "text-white hover:bg-white/10"}`}
-              >
-                Shop
-              </button>
-              <button
-                type="button"
-                aria-pressed={isQuick}
-                onClick={() => setCommerceMode("quick")}
-                className={`rounded-full px-2 py-0.5 text-[11px] font-bold transition-all lg:px-3.5 lg:py-1 lg:text-[13px] ${isQuick ? "bg-white text-gray-950 shadow-sm" : "text-white hover:bg-white/10"}`}
-              >
-                <span className="lg:hidden">Quick</span>
-                <span className="hidden lg:inline">Quick - 10 min</span>
-              </button>
-            </div>
-          </div>
+          {/* The dark pill offers the other store, as on the phone. */}
+          <button
+            type="button"
+            onClick={() => setCommerceMode(toQuick ? "quick" : "standard")}
+            aria-label={toQuick ? "Switch to Quick delivery" : "Switch to Shop"}
+            className={`flex shrink-0 items-center gap-1.5 rounded-full bg-[#191411] px-3.5 py-2 text-[12.5px] font-bold text-white shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition hover:bg-app-brown-deep active:scale-95 ${focusRing}`}
+          >
+            {toQuick ? (
+              <Zap className="h-4 w-4 text-app-champagne" fill="currentColor" aria-hidden="true" />
+            ) : (
+              <ShoppingBag className="h-4 w-4 text-app-champagne" aria-hidden="true" />
+            )}
+            {toQuick ? (
+              <span>
+                Quick<span className="hidden xl:inline"> · {quickEta} min</span>
+              </span>
+            ) : (
+              "Shop"
+            )}
+          </button>
 
-          <div className="hidden lg:block">
-            <AccountMenu firstName={firstName} signedIn={signedIn} storePath={storePath} />
-          </div>
+          <AccountMenu firstName={firstName} signedIn={signedIn} storePath={storePath} />
 
-          <Link to="/orders" className={`${navItem} hidden shrink-0 flex-col justify-center leading-tight lg:flex`}>
-            <span className="text-[11px] text-white/80 font-medium">Returns</span>
-            <span className="text-[14px] font-bold text-white">&amp; Orders</span>
+          <Link to="/orders" className={`${navItem} hidden shrink-0 flex-col justify-center leading-tight xl:flex`}>
+            <span className="text-[11px] text-[#6E6862]">Returns</span>
+            <span className="text-[13.5px] font-bold">&amp; Orders</span>
           </Link>
 
-          {/* On /quick the cart button opens the slide-in panel; Shop still links to /cart. */}
+          <IconLink to={storePath("/wishlist")} label="Wishlist" icon={Heart} />
+
+          {/* On /quick the bag opens the slide-in panel; Shop still links to /cart. */}
           {isQuick && quickCart.enabled ? (
-            <button
-              type="button"
+            <IconLink
+              asButton
               onClick={quickCart.openPanel}
               aria-haspopup="dialog"
               aria-expanded={quickCart.open}
-              aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
-              className={`${navItem} relative flex shrink-0 items-end gap-1.5 pb-1`}
-            >
-              {cartVisual}
-            </button>
+              label={cartLabel}
+              icon={ShoppingBag}
+              badge={cartCount}
+              caption="Bag"
+            />
           ) : (
-            <Link
-              to={storePath("/cart")}
-              aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
-              className={`${navItem} relative flex shrink-0 items-end gap-1.5 pb-1`}
-            >
-              {cartVisual}
-            </Link>
+            <IconLink to={storePath("/cart")} label={cartLabel} icon={ShoppingBag} badge={cartCount} caption="Bag" />
           )}
         </div>
       </div>
 
-      {/* Sub-navbar / Category bar (Clean White Bar with Orange All button) */}
-      <nav aria-label="Categories" className="hidden border-b border-gray-200 bg-white shadow-xs lg:block">
-        <div className="mx-auto flex h-[42px] max-w-[1500px] items-center gap-2 overflow-x-auto px-3 text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:overflow-hidden lg:px-[20px]">
+      {/* Category bar */}
+      <nav aria-label="Categories" className="border-y border-app-line bg-white/95 shadow-[0_2px_8px_rgba(25,20,17,0.04)] backdrop-blur">
+        <div className="mx-auto flex h-[44px] max-w-[1400px] items-center gap-1 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            className="flex h-[32px] items-center gap-1.5 rounded-[4px] bg-gradient-to-r from-[#58321D] to-[#A15C35] px-3.5 font-bold text-white shadow-xs hover:opacity-95 transition-opacity"
+            aria-haspopup="dialog"
+            aria-expanded={drawerOpen}
+            className={`mr-2 flex h-[30px] shrink-0 items-center gap-1.5 rounded-full bg-app-brown px-3.5 text-[13px] font-bold text-white transition-colors hover:bg-app-brown-deep ${focusRing}`}
           >
-            <Menu className="h-4 w-4" aria-hidden /> All
+            <Menu className="h-4 w-4" aria-hidden="true" /> All
           </button>
-          {topCats.map((c) => (
-            <Link key={c.id} to={storePath(`/category/${c.slug}`)} className={subnavLink}>
-              {c.name}
-            </Link>
-          ))}
-          {/* Stays in the current store (Quick or Shop); /offers is Shop-only. */}
-          <Link to={storePath("/search?minDiscount=10")} className={subnavLink}>Today&apos;s Deals</Link>
-          <Link to="/coins" className={subnavLink}>Coins</Link>
-          {onOpenSpin ? (
-            <button type="button" onClick={onOpenSpin} className={subnavLink}>Spin &amp; Win</button>
-          ) : (
-            <Link to="/spin" className={subnavLink}>Spin &amp; Win</Link>
+          {topCats.map((c) => {
+            const to = storePath(`/category/${c.slug}`)
+            const on = isCurrent(to)
+            return (
+              <Link key={c.id} to={to} aria-current={on ? "page" : undefined} className={subnavLink(on)}>
+                {c.name}
+              </Link>
+            )
+          })}
+          <span aria-hidden="true" className="mx-2 h-4 w-px shrink-0 bg-app-line" />
+          {extraLinks.map(({ label, to, onClick }) =>
+            onClick ? (
+              <button key={label} type="button" onClick={onClick} className={subnavLink(false)}>
+                {label}
+              </button>
+            ) : (
+              <Link key={label} to={to} aria-current={isCurrent(to) ? "page" : undefined} className={subnavLink(isCurrent(to))}>
+                {label}
+              </Link>
+            ),
           )}
-          <Link to="/seller/signup" className={subnavLink}>Sell on {brandName}</Link>
-          <Link to="/help" className={subnavLink}>Help</Link>
         </div>
       </nav>
 

@@ -53,15 +53,15 @@ export default function Coupons() {
     <AnimatedPage className="min-h-screen bg-app-cream font-app text-app-ink dark:bg-[#0a0a0a]">
       <AccountAppBar title="Offers & coupons" backTo="/user/profile" />
 
-      <div className="max-w-md mx-auto px-4 py-4">
+      <div className="max-w-md mx-auto px-4 py-4 lg:max-w-4xl lg:px-8 lg:py-8">
         {loading ? (
-          <div className="space-y-3" role="status" aria-label="Loading coupons">
+          <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0" role="status" aria-label="Loading coupons">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-[108px] animate-pulse rounded-2xl border border-app-line bg-white" />
             ))}
           </div>
         ) : sortedOffers.length > 0 ? (
-          <div className="space-y-3 pb-6">
+          <div className="space-y-3 pb-6 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
             {sortedOffers.map((offer) => {
               const code = offer?.couponCode || ""
               const title = offer?.title || ""
@@ -75,7 +75,7 @@ export default function Coupons() {
               return (
                 <div
                   key={offer?.id || offer?.offerId || code}
-                  className="rounded-2xl border border-app-line bg-white p-4"
+                  className="rounded-2xl border border-app-line bg-white p-4 lg:rounded-[18px] lg:p-5"
                 >
                   <div className="flex items-center gap-3">
                     <span className="rounded-lg border border-app-brown/40 bg-app-brown/10 px-3 py-1 text-[16px] font-semibold tracking-wide text-app-brown">

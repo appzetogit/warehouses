@@ -143,6 +143,9 @@ export function InfoChip({ children }) {
   )
 }
 
+const lineActionDesktop =
+  "rounded py-1 text-[12.5px] font-semibold text-app-brown hover:underline focus-visible:outline-2 focus-visible:outline-app-brown dark:text-gray-200"
+
 /** One cart line: photo, name, price with discount, chips, stepper and actions. */
 export function CartLineTile({
   name,
@@ -156,16 +159,19 @@ export function CartLineTile({
   onIncrease,
   onSaveForLater,
   onRemove,
+  roomy = false,
 }) {
+  // roomy: the desktop cart (lg+) uses a larger photo and type; phones never pass it.
+  const big = (phone, desktop) => (roomy ? desktop : phone)
   const unit = Number(price) || 0
   const strike = Number(mrp) || 0
   const off = strike > unit ? Math.round(((strike - unit) / strike) * 100) : 0
   return (
     <div className="border-b border-[#EEEEEE] last:border-b-0 dark:border-gray-800">
-      <div className="flex items-start gap-2.5 px-3 py-2.5">
+      <div className={big("flex items-start gap-2.5 px-3 py-2.5", "flex items-start gap-4 px-4 py-3.5")}>
         <Link
           to={href}
-          className="h-[82px] w-[76px] shrink-0 overflow-hidden rounded-[10px] bg-app-alt dark:bg-gray-800"
+          className={big("h-[82px] w-[76px] shrink-0 overflow-hidden rounded-[10px] bg-app-alt dark:bg-gray-800", "h-[120px] w-[104px] shrink-0 overflow-hidden rounded-[12px] bg-app-alt dark:bg-gray-800")}
         >
           {image ? (
             <img
@@ -184,19 +190,19 @@ export function CartLineTile({
           )}
         </Link>
         <div className="min-w-0 flex-1">
-          <Link to={href} className="line-clamp-2 text-[13px] font-semibold leading-[1.25] text-app-ink dark:text-white">
+          <Link to={href} className={big("line-clamp-2 text-[13px] font-semibold leading-[1.25] text-app-ink dark:text-white", "line-clamp-2 text-[15px] font-semibold leading-[1.3] text-app-ink hover:text-app-brown dark:text-white")}>
             {name}
           </Link>
           <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-            <span className="text-[14px] font-extrabold tabular-nums text-app-ink dark:text-white">{money(unit)}</span>
+            <span className={big("text-[14px] font-extrabold tabular-nums text-app-ink dark:text-white", "text-[16px] font-extrabold tabular-nums text-app-ink dark:text-white")}>{money(unit)}</span>
             {strike > unit ? (
-              <span className="text-[11px] tabular-nums text-[#9E9E9E] line-through">{money(strike)}</span>
+              <span className={big("text-[11px] tabular-nums text-[#9E9E9E] line-through", "text-[12.5px] tabular-nums text-[#9E9E9E] line-through")}>{money(strike)}</span>
             ) : null}
             {off > 0 ? (
-              <span className="rounded bg-[#FFEBEE] px-[5px] py-px text-[9.5px] font-bold text-[#D32F2F]">{off}% OFF</span>
+              <span className={big("rounded bg-[#FFEBEE] px-[5px] py-px text-[9.5px] font-bold text-[#D32F2F]", "rounded bg-[#FFEBEE] px-1.5 py-px text-[10.5px] font-bold text-[#D32F2F]")}>{off}% OFF</span>
             ) : null}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <div className={big("mt-1.5 flex flex-wrap items-center gap-1.5", "mt-2.5 flex flex-wrap items-center gap-2.5")}>
             {variantLabel ? <InfoChip>{variantLabel}</InfoChip> : null}
             <div className="flex h-7 items-center rounded-md border border-app-brown bg-white dark:bg-[#1a1a1a]">
               <button
@@ -220,24 +226,24 @@ export function CartLineTile({
           </div>
         </div>
       </div>
-      <div className="flex border-t border-[#EEEEEE] dark:border-gray-800">
+      <div className={big("flex border-t border-[#EEEEEE] dark:border-gray-800", "-mt-1 flex items-center gap-3 pb-3 pl-[136px]")}>
         {onSaveForLater ? (
           <>
             <button
               type="button"
               onClick={onSaveForLater}
-              className="flex-1 py-2 text-[11.5px] font-medium text-[#222222] dark:text-gray-200"
+              className={roomy ? lineActionDesktop : "flex-1 py-2 text-[11.5px] font-medium text-[#222222] dark:text-gray-200"}
             >
               Save for later
             </button>
-            <span className="my-1.5 w-px bg-[#EEEEEE] dark:bg-gray-800" aria-hidden="true" />
+            <span className={roomy ? "h-4 w-px bg-app-line dark:bg-gray-800" : "my-1.5 w-px bg-[#EEEEEE] dark:bg-gray-800"} aria-hidden="true" />
           </>
         ) : null}
         <button
           type="button"
           aria-label={`Remove ${name} from cart`}
           onClick={onRemove}
-          className="flex-1 py-2 text-[11.5px] font-medium text-[#222222] dark:text-gray-200"
+          className={roomy ? lineActionDesktop : "flex-1 py-2 text-[11.5px] font-medium text-[#222222] dark:text-gray-200"}
         >
           Remove
         </button>

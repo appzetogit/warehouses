@@ -10,7 +10,6 @@ import { BadgeCheck, Flag, Loader2, PenLine, Star, Store, ThumbsUp } from "lucid
 import { toast } from "sonner"
 import { catalogAPI, userAPI } from "@store/api"
 import { isModuleAuthenticated } from "@store/utils/auth"
-import { StarDisplay } from "./StarRating"
 import ReviewFormDialog from "./ReviewFormDialog"
 
 const PAGE_SIZE = 10
@@ -20,105 +19,6 @@ const dateFmt = (d) => {
   } catch {
     return ""
   }
-}
-
-function Histogram({ histogram, total, activeStar, onPick }) {
-  return (
-    <ul className="space-y-1.5">
-      {[5, 4, 3, 2, 1].map((star) => {
-        const n = Number(histogram?.[star]) || 0
-        const pct = total ? Math.round((n / total) * 100) : 0
-        return (
-          <li key={star}>
-            <button
-              type="button"
-              onClick={() => onPick(activeStar === star ? null : star)}
-              disabled={!n}
-              aria-pressed={activeStar === star}
-              className="flex w-full items-center gap-2 rounded text-left text-[13px] text-wh-link hover:text-wh-link-hover disabled:cursor-default disabled:text-gray-500 focus-visible:outline-2 focus-visible:outline-wh-brand"
-            >
-              <span className="w-12 shrink-0">{star} star</span>
-              <span className="h-4 flex-1 overflow-hidden rounded border border-gray-300 bg-gray-100" aria-hidden="true">
-                <span className="block h-full bg-wh-brand" style={{ width: `${pct}%` }} />
-              </span>
-              <span className="w-10 shrink-0 text-right">{pct}%</span>
-              <span className="sr-only">{`${n} review${n === 1 ? "" : "s"}`}</span>
-            </button>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
-
-function ReviewItem({ review, signedIn, onVote, onReport }) {
-  const [busy, setBusy] = useState(false)
-  const act = async (fn) => {
-    setBusy(true)
-    try { await fn() } finally { setBusy(false) }
-  }
-  return (
-    <li className="border-b border-gray-200 py-4 last:border-b-0">
-      <p className="text-[13px] font-medium text-gray-800">{review.author?.name || "Customer"}</p>
-      <div className="mt-1 flex flex-wrap items-center gap-2">
-        <StarDisplay rating={review.rating} />
-        {review.title ? <span className="text-[14px] font-bold text-gray-900">{review.title}</span> : null}
-      </div>
-      <p className="mt-1 text-[12px] text-gray-500">
-        Reviewed on {dateFmt(review.createdAt)}
-        {review.variantName ? ` · ${review.variantName}` : ""}
-        {review.edited ? " · edited" : ""}
-      </p>
-      <p className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-wh-brand-ink">
-        <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" /> Verified purchase
-      </p>
-      {review.text ? <p className="mt-2 whitespace-pre-line text-[14px] leading-5 text-gray-800">{review.text}</p> : null}
-      {review.images?.length ? (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {review.images.map((url) => (
-            <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block h-20 w-20 overflow-hidden rounded-lg border border-gray-200 focus-visible:outline-2 focus-visible:outline-wh-brand">
-              <img src={url} alt={`Photo from ${review.author?.name || "a customer"}`} loading="lazy" className="h-full w-full object-cover" />
-            </a>
-          ))}
-        </div>
-      ) : null}
-      {review.reply ? (
-        <div className="mt-3 rounded-lg border-l-4 border-wh-brand bg-wh-brand-50 px-3 py-2">
-          <p className="inline-flex items-center gap-1 text-[12px] font-bold text-gray-800">
-            <Store className="h-3.5 w-3.5" aria-hidden="true" /> Response from the seller
-          </p>
-          <p className="mt-1 whitespace-pre-line text-[13px] text-gray-800">{review.reply.text}</p>
-        </div>
-      ) : null}
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px] text-gray-600">
-        {review.helpfulCount > 0 ? <span>{review.helpfulCount} {review.helpfulCount === 1 ? "person" : "people"} found this helpful</span> : null}
-        {signedIn && !review.isMine ? (
-          <>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => act(() => onVote(review))}
-              aria-pressed={Boolean(review.votedHelpful)}
-              className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 font-medium focus-visible:outline-2 focus-visible:outline-wh-brand ${
-                review.votedHelpful ? "border-wh-brand bg-wh-brand-50 text-wh-brand-ink" : "border-gray-300 bg-white text-gray-800 hover:bg-gray-50"
-              }`}
-            >
-              <ThumbsUp className="h-3.5 w-3.5" aria-hidden="true" /> Helpful
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => act(() => onReport(review))}
-              className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:underline focus-visible:outline-2 focus-visible:outline-wh-brand"
-            >
-              <Flag className="h-3.5 w-3.5" aria-hidden="true" /> Report
-            </button>
-          </>
-        ) : null}
-        {review.isMine ? <span className="font-medium text-wh-brand-ink">Your Review</span> : null}
-      </div>
-    </li>
-  )
 }
 
 /*
@@ -438,54 +338,90 @@ export default function ProductReviews({ productId, productName, variant = "mobi
     )
   }
 
+  // Desktop: the app's reviews band laid out wide — the green average box,
+  // grade bars and "Write a review" on the left, the reviews on the right.
+  const headingId = `reviews-${productId}`
+  const histogram = summary.histogram || {}
   return (
-    <section
-      aria-labelledby={`reviews-${productId}`}
-      className={desktop ? "border-t border-wh-border py-6" : "rounded-2xl border border-gray-200 bg-white p-4 text-gray-900"}
-    >
-      <div className={desktop ? "grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-10" : "space-y-4"}>
+    <section aria-labelledby={headingId} className="rounded-[18px] bg-white px-6 py-6 font-app text-app-ink">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-12">
         <div>
-          <h2 id={`reviews-${productId}`} className={desktop ? "text-[21px] font-bold" : "text-base font-bold"}>Customer Reviews</h2>
-          <div className="mt-2 flex items-center gap-2">
-            <StarDisplay rating={summary.averageRating} size="h-5 w-5" />
-            <span className="text-[15px] font-medium">{total ? `${Number(summary.averageRating).toFixed(1)} out of 5` : "No ratings yet"}</span>
-          </div>
-          <p className="mt-1 text-[13px] text-gray-600">{total} global rating{total === 1 ? "" : "s"}</p>
-          {total > 0 ? <div className="mt-3"><Histogram histogram={summary.histogram} total={total} activeStar={star} onPick={setStar} /></div> : null}
+          <h2 id={headingId} className="font-app-display text-[28px] font-bold leading-[1.1] text-app-brown">Ratings &amp; Reviews</h2>
+
+          {total > 0 ? (
+            <div className="mt-5 flex items-start gap-4">
+              <div className="w-28 shrink-0 overflow-hidden rounded-[10px] border border-[#E2E2E2]">
+                <p className="flex items-center justify-center gap-1 bg-[#1E9E5A] py-3 text-[26px] font-extrabold leading-none text-white">
+                  {Number(summary.averageRating).toFixed(1)}
+                  <Star className="h-6 w-6 fill-white" strokeWidth={0} aria-hidden="true" />
+                  <span className="sr-only"> out of 5</span>
+                </p>
+                <p className="py-2.5 text-center text-[12px] text-app-muted">{total.toLocaleString("en-IN")} rating{total === 1 ? "" : "s"}</p>
+              </div>
+              <ul className="min-w-0 flex-1">
+                {[5, 4, 3, 2, 1].map((s) => {
+                  const n = Number(histogram[s]) || 0
+                  const pct = total ? Math.round((n / total) * 100) : 0
+                  const [label, colour] = GRADES[s]
+                  return (
+                    <li key={s}>
+                      <button
+                        type="button"
+                        onClick={() => setStar(star === s ? null : s)}
+                        disabled={!n}
+                        aria-pressed={star === s}
+                        aria-label={`${label}: ${n} rating${n === 1 ? "" : "s"}${n ? (star === s ? ", showing only these" : ", show only these") : ""}`}
+                        className={`flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:bg-app-alt disabled:cursor-default disabled:hover:bg-transparent ${appRing} ${star && star !== s ? "opacity-50" : ""}`}
+                      >
+                        <span className="w-[66px] shrink-0 text-[12.5px] text-[#4A423D]">{label}</span>
+                        <span className="h-[6px] flex-1 overflow-hidden rounded-[3px] bg-[#E9E9E9]" aria-hidden="true">
+                          <span className="block h-full rounded-[3px]" style={{ width: `${pct}%`, background: colour }} />
+                        </span>
+                        <span className="w-7 shrink-0 text-right text-[12.5px] text-app-muted">{n}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ) : (
+            <p className="mt-3 text-[13px] text-app-muted">No ratings yet.</p>
+          )}
 
           {signedIn && (eligible || myReview) ? (
-            <div className="mt-5 border-t border-gray-200 pt-4">
-              <p className="text-[15px] font-bold">{myReview ? "Your review" : "Review this product"}</p>
-              <p className="mt-1 text-[13px] text-gray-600">{myReview ? "You can update it any time." : "Share your thoughts with other customers."}</p>
+            <div className="mt-6 rounded-xl bg-app-tint p-4">
+              <p className="text-[14px] font-bold text-app-ink">{myReview ? "Your review" : "Review this product"}</p>
+              <p className="mt-0.5 text-[12.5px] text-app-muted">{myReview ? "You can update it any time." : "Share your thoughts with other customers."}</p>
               <button
                 type="button"
                 onClick={() => setFormOpen(true)}
-                className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-full border border-gray-300 bg-white text-[13px] font-medium text-gray-900 shadow-sm hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-wh-brand"
+                className={`mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-app-brown px-4 text-[13.5px] font-semibold text-white transition-colors hover:bg-app-brown-deep ${appRing}`}
               >
-                {myReview ? "Edit Your Review" : "Write a Review"}
+                <PenLine className="h-[18px] w-[18px]" aria-hidden="true" />
+                {myReview ? "Edit your review" : "Write a review"}
               </button>
             </div>
           ) : !signedIn ? (
-            <p className="mt-4 text-[13px] text-gray-600">
-              <Link to="/auth/login" className="text-wh-link hover:text-wh-link-hover hover:underline">Sign in</Link> to review products you've received.
+            <p className="mt-5 text-[13px] text-app-muted">
+              <Link to="/auth/login" className={`rounded font-semibold text-app-brown underline ${appRing}`}>Sign in</Link> to review products you've received.
             </p>
           ) : null}
         </div>
 
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[14px] font-bold">
-              {star ? `${star}-star reviews` : "Top Reviews"}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-app-line pb-3 text-[13px]">
+            <p className="text-[15px] font-bold text-app-ink">
+              {star ? `${GRADES[star][0]} reviews` : "Top Reviews"}
               {star ? (
-                <button type="button" onClick={() => setStar(null)} className="ml-2 text-[12px] font-normal text-wh-link hover:underline">Show All</button>
+                <button type="button" onClick={() => setStar(null)} className={`ml-2 rounded text-[12px] font-semibold text-app-brown underline ${appRing}`}>Show all</button>
               ) : null}
             </p>
-            <label className="inline-flex items-center gap-2 text-[13px]">
-              <span className="text-gray-600">Sort by</span>
+            <label className="inline-flex items-center gap-2">
+              <span className="text-app-muted">Sort by</span>
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
-                className="rounded-lg border border-gray-300 bg-gray-50 px-2 py-1 focus-visible:outline-2 focus-visible:outline-wh-brand"
+                className={`h-9 cursor-pointer rounded-full border border-app-line bg-white px-3 font-semibold text-app-ink ${appRing}`}
               >
                 <option value="newest">Newest</option>
                 <option value="helpful">Most Helpful</option>
@@ -494,13 +430,13 @@ export default function ProductReviews({ productId, productName, variant = "mobi
           </div>
 
           {loading && !reviews.length ? (
-            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-gray-500" aria-label="Loading reviews" /></div>
+            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-app-muted" aria-label="Loading reviews" /></div>
           ) : reviews.length ? (
-            <ul className="mt-2">
-              {reviews.map((r) => <ReviewItem key={r.id} review={r} signedIn={signedIn} onVote={onVote} onReport={onReport} />)}
+            <ul className="divide-y divide-app-line [&>li]:pb-[18px]">
+              {reviews.map((r) => <AppReviewItem key={r.id} review={r} signedIn={signedIn} onVote={onVote} onReport={onReport} />)}
             </ul>
           ) : (
-            <p className="py-6 text-[13px] text-gray-600">{star ? "No reviews with this rating." : "No written reviews yet."}</p>
+            <p className="py-6 text-[13px] text-app-muted">{star ? "No reviews with this rating." : "No written reviews yet."}</p>
           )}
 
           {hasMore ? (
@@ -508,7 +444,7 @@ export default function ProductReviews({ productId, productName, variant = "mobi
               type="button"
               disabled={loading}
               onClick={() => load(page + 1)}
-              className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-gray-300 bg-white px-5 text-[13px] font-medium hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-wh-brand"
+              className={`mt-3 inline-flex h-10 items-center justify-center rounded-full border border-app-brown bg-white px-5 text-[13px] font-semibold text-app-brown transition-colors hover:bg-app-tint disabled:opacity-50 ${appRing}`}
             >
               {loading ? "Loading…" : "More Reviews"}
             </button>

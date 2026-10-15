@@ -35,12 +35,12 @@ const formatDate = (dateString) =>
 const PRINT_CSS = `
   body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
   img { display: none; }
-  .invoice-header { border-bottom: 2px solid #FD920B; padding-bottom: 20px; margin-bottom: 30px; }
-  .invoice-title { font-size: 32px; font-weight: bold; color: #B45309; margin: 0 0 10px; }
+  .invoice-header { border-bottom: 2px solid #58321D; padding-bottom: 20px; margin-bottom: 30px; }
+  .invoice-title { font-size: 32px; font-weight: bold; color: #58321D; margin: 0 0 10px; }
   .invoice-details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; }
   table { width: 100%; border-collapse: collapse; margin: 20px 0; }
   th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-  th { background-color: #fed7aa; font-weight: bold; }
+  th { background-color: #F1E4D6; color: #3A2619; font-weight: bold; }
   .text-right { text-align: right; }
   .text-center { text-align: center; }
   .total-section { margin-top: 30px; max-width: 360px; margin-left: auto; }
@@ -52,8 +52,8 @@ const PRINT_CSS = `
   .mt-2 { margin-top: 8px; }
   .pt-2 { padding-top: 8px; }
   .font-bold { font-weight: bold; }
-  .text-green-700 { color: #15803d; }
-  .text-wh-muted, .text-muted-foreground { color: #666; }
+  .text-green-700, .text-app-ok { color: #3F7D55; }
+  .text-wh-muted, .text-app-muted, .text-muted-foreground { color: #666; }
   .sm\\:hidden { display: none; }
   @media print { body { margin: 0; padding: 20px; } .no-print { display: none; } }
 `
@@ -87,10 +87,10 @@ export default function OrderInvoice() {
 
   if (loading) {
     return (
-      <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] p-4">
+      <AnimatedPage className="min-h-screen bg-app-cream dark:bg-[#0a0a0a] p-4 font-app">
         <div className="max-w-4xl mx-auto text-center py-20">
-          <div className="w-8 h-8 border-2 border-wh-brand border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Generating invoice...</p>
+          <div className="w-8 h-8 border-2 border-app-brown border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-app-muted">Generating invoice...</p>
         </div>
       </AnimatedPage>
     )
@@ -98,15 +98,15 @@ export default function OrderInvoice() {
 
   if (error || !order) {
     return (
-      <AnimatedPage className="min-h-screen bg-[#f5f5f5] dark:bg-[#0a0a0a] p-4">
+      <AnimatedPage className="min-h-screen bg-app-cream dark:bg-[#0a0a0a] p-4 font-app">
         <div className="max-w-4xl mx-auto text-center py-20">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-4">{error || "Order not found"}</h1>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 text-app-ink">{error || "Order not found"}</h1>
           <div className="flex justify-center gap-2">
-            <Button variant="outline" onClick={load} className="flex items-center gap-2">
+            <Button variant="outline" onClick={load} className="flex items-center gap-2 border-app-line text-app-brown hover:bg-app-tint">
               <RefreshCw className="h-4 w-4" /> Try again
             </Button>
             <Link to="/orders">
-              <Button>Back to Orders</Button>
+              <Button className="bg-app-brown text-white hover:bg-app-brown-deep">Back to Orders</Button>
             </Link>
           </div>
         </div>
@@ -149,57 +149,57 @@ export default function OrderInvoice() {
   }
 
   return (
-    <AnimatedPage className="min-h-screen bg-gradient-to-b from-yellow-50/30 via-white to-orange-50/20 dark:from-[#0a0a0a] dark:via-[#1a1a1a] dark:to-[#0a0a0a] p-3 sm:p-4 md:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
+    <AnimatedPage className="min-h-screen bg-app-cream font-app dark:bg-[#0a0a0a] p-3 sm:p-4 md:p-6 lg:p-8">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
         <ScrollReveal>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="flex items-center gap-3 sm:gap-4">
               <Link to={`/orders/${id}`} aria-label="Back to order">
-                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 sm:h-10 sm:w-10">
+                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 sm:h-10 sm:w-10 text-app-ink hover:bg-app-tint-strong">
                   <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
               <div>
-                <h1 className="text-lg sm:text-xl md:text-2xl font-bold">Invoice</h1>
-                <p className="text-muted-foreground text-sm sm:text-base">Order {displayId}</p>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-app-ink lg:font-app-display lg:text-[34px] lg:text-app-brown-deep">Invoice</h1>
+                <p className="text-app-muted text-sm sm:text-base">Order {displayId}</p>
               </div>
             </div>
             <div className="flex gap-2 no-print">
               <Button
                 variant="outline"
                 onClick={handlePrint}
-                className="flex items-center gap-2 text-xs sm:text-sm h-9 sm:h-10"
+                className="flex items-center gap-2 text-xs sm:text-sm h-9 sm:h-10 rounded-xl border-app-line bg-white text-app-brown hover:bg-app-tint"
               >
                 <Printer className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Print</span>
               </Button>
               <Button
                 onClick={handlePrint}
-                className="bg-wh-brand hover:bg-wh-brand-600 flex items-center gap-2 text-xs sm:text-sm h-9 sm:h-10"
+                className="bg-app-brown hover:bg-app-brown-deep text-white rounded-xl flex items-center gap-2 text-xs sm:text-sm h-9 sm:h-10"
               >
-                <Download className="h-3 w-3 sm:h-4 sm:w-4 text-wh-text" />
-                <span className="hidden sm:inline text-wh-text">Save as PDF</span>
-                <span className="sm:hidden text-wh-text">PDF</span>
+                <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Save as PDF</span>
+                <span className="sm:hidden">PDF</span>
               </Button>
             </div>
           </div>
         </ScrollReveal>
 
         <ScrollReveal delay={0.1}>
-          <Card ref={invoiceRef} className="dark:bg-[#1a1a1a] dark:border-gray-800">
+          <Card ref={invoiceRef} className="rounded-[18px] border-app-line bg-white text-app-ink shadow-[0_2px_10px_rgba(25,20,17,0.04)] dark:bg-[#1a1a1a] dark:border-gray-800">
             <CardContent className="p-4 sm:p-6 md:p-8 lg:p-10">
               {/* Invoice Header */}
-              <div className="invoice-header">
+              <div className="invoice-header border-b-2 border-app-brown pb-4 sm:pb-5">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-wh-brand-ink" />
-                  <h2 className="invoice-title text-xl sm:text-2xl md:text-3xl text-wh-brand-ink font-bold">INVOICE</h2>
+                  <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-app-brown" />
+                  <h2 className="invoice-title text-xl sm:text-2xl md:text-3xl text-app-brown font-bold">INVOICE</h2>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                   <div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{companyName}</p>
-                    {store ? <p className="text-xs sm:text-sm text-muted-foreground">Sold by {store}</p> : null}
+                    <p className="text-xs sm:text-sm text-app-muted">{companyName}</p>
+                    {store ? <p className="text-xs sm:text-sm text-app-muted">Sold by {store}</p> : null}
                   </div>
-                  <Badge className="bg-wh-brand text-wh-text text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2 w-fit">
+                  <Badge className="bg-app-sand text-app-brown-deep text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2 w-fit rounded-full">
                     {orderStatusLabel(order)}
                   </Badge>
                 </div>
@@ -225,7 +225,7 @@ export default function OrderInvoice() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs sm:text-sm">
                     <thead>
-                      <tr>
+                      <tr className="bg-app-sand text-app-brown-deep">
                         <th className="px-2 sm:px-3 py-2 text-left">Item</th>
                         <th className="px-2 sm:px-3 py-2 text-center hidden sm:table-cell">Quantity</th>
                         <th className="px-2 sm:px-3 py-2 text-right hidden md:table-cell">Unit Price</th>
@@ -239,20 +239,20 @@ export default function OrderInvoice() {
                         const variant = variantText(item)
                         const src = item.image ? resolveMediaUrl(item.image) : ""
                         return (
-                          <tr key={`${item.itemId || item.name}-${item.variantId || ""}-${i}`} className="border-b">
+                          <tr key={`${item.itemId || item.name}-${item.variantId || ""}-${i}`} className="border-b border-app-line">
                             <td className="px-2 sm:px-3 py-2 sm:py-3">
                               <div className="flex items-center gap-2 sm:gap-3">
                                 {src ? (
                                   <img
                                     src={src}
                                     alt=""
-                                    className="w-8 h-8 sm:w-12 sm:h-12 object-cover rounded flex-shrink-0"
+                                    className="w-8 h-8 sm:w-12 sm:h-12 object-cover rounded-lg bg-app-alt flex-shrink-0"
                                   />
                                 ) : null}
                                 <div className="min-w-0 flex-1">
                                   <span className="font-medium block">{item.name}</span>
-                                  {variant ? <span className="block text-xs text-gray-500">{variant}</span> : null}
-                                  <span className="text-muted-foreground sm:hidden text-xs">
+                                  {variant ? <span className="block text-xs text-app-muted">{variant}</span> : null}
+                                  <span className="text-app-muted sm:hidden text-xs">
                                     Qty: {qty} × {rupees(price)}
                                   </span>
                                 </div>
@@ -275,7 +275,7 @@ export default function OrderInvoice() {
               </div>
 
               {/* Footer */}
-              <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t text-center text-xs sm:text-sm text-muted-foreground">
+              <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-app-line text-center text-xs sm:text-sm text-app-muted">
                 <p>Thank you for shopping with {companyName}!</p>
                 <p className="mt-1 sm:mt-2">For any queries, please contact our support team.</p>
               </div>
@@ -286,12 +286,12 @@ export default function OrderInvoice() {
         <ScrollReveal delay={0.2}>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 no-print">
             <Link to={`/orders/${id}`} className="flex-1">
-              <Button variant="outline" className="w-full text-sm sm:text-base h-10 sm:h-11">
+              <Button className="w-full rounded-xl bg-app-brown text-sm text-white hover:bg-app-brown-deep sm:text-base h-10 sm:h-11">
                 Track Order
               </Button>
             </Link>
             <Link to="/orders" className="flex-1">
-              <Button variant="outline" className="w-full text-sm sm:text-base h-10 sm:h-11">
+              <Button variant="outline" className="w-full rounded-xl border-app-brown bg-white text-sm text-app-brown hover:bg-app-tint sm:text-base h-10 sm:h-11">
                 Back to Orders
               </Button>
             </Link>
