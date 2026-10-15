@@ -66,7 +66,8 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
       spinAPI
         .getStatus()
         .then((res) => {
-          const data = res?.data || res
+          // apiClient returns the axios response; the status sits in body.data.
+          const data = res?.data?.data ?? res?.data ?? {}
           if (Array.isArray(data.segments) && data.segments.length > 0) {
             setSegments(data.segments)
           }
@@ -118,11 +119,11 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
       // Real backend spin
       try {
         const res = await spinAPI.play()
-        const data = res?.data || res
+        const data = res?.data?.data ?? res?.data ?? {}
         const winIndex = data.winningIndex ?? 0
         const wonSegment = data.segment || segments[winIndex] || segments[0]
 
-        triggerWheelRotation(winIndex, wonSegment, true)
+        triggerWheelRotation(winIndex, wonSegment, true, data)
       } catch (err) {
         setIsSpinning(false)
         const msg =
@@ -148,7 +149,7 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
     }
   }
 
-  const triggerWheelRotation = (winIndex, wonSegment, isAuthenticatedUser) => {
+  const triggerWheelRotation = (winIndex, wonSegment, isAuthenticatedUser, server = null) => {
     const numSegments = segments.length
     const sliceAngle = 360 / numSegments
     const midAngle = winIndex * sliceAngle + sliceAngle / 2
@@ -165,8 +166,9 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
 
     setTimeout(() => {
       setIsSpinning(false)
-      setCanSpin(false)
-      setSpinsRemaining(0)
+      const left = Number.isFinite(server?.spinsRemaining) ? server.spinsRemaining : 0
+      setCanSpin(left > 0)
+      setSpinsRemaining(left)
       setWonResult(wonSegment)
 
       if (wonSegment.type === "coins" && wonSegment.value > 0) {
@@ -179,7 +181,7 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
 
         if (isAuthenticatedUser) {
           toast.success(`🎉 Congratulations! You won ${wonSegment.value} coins!`)
-          setCoinBalance((prev) => prev + wonSegment.value)
+          setCoinBalance((prev) => (Number.isFinite(server?.balance) ? server.balance : prev + wonSegment.value))
           if (onRewardEarned) onRewardEarned(wonSegment.value)
         } else {
           toast.success(`🎉 You won ${wonSegment.value} coins! Sign in to claim.`)
