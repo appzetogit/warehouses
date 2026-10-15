@@ -1489,7 +1489,7 @@ export default function SellersList() {
                               {approvalStatusLabel(seller.approvalStatus)}
                             </span>
                             <span className="text-[11px] text-slate-500">
-                              Outlet: {seller.isActive ? "Active" : "Inactive"}
+                              Store: {seller.isActive ? "Active" : "Inactive"}
                             </span>
                           </div>
                         </td>
@@ -1892,7 +1892,6 @@ export default function SellersList() {
                 const featuredPriceVal = r?.featuredPrice ?? r?.onboarding?.step4?.featuredPrice
                 const panDocumentUrl = typeof r?.panImage === "string" ? r.panImage : (r?.panImage?.url || r?.onboarding?.step3?.pan?.image?.url || "")
                 const gstDocumentUrl = typeof r?.gstImage === "string" ? r.gstImage : (r?.gstImage?.url || r?.onboarding?.step3?.gst?.image?.url || "")
-                const fssaiDocumentUrl = typeof r?.fssaiImage === "string" ? r.fssaiImage : (r?.fssaiImage?.url || r?.onboarding?.step3?.fssai?.image?.url || "")
                 const hasPanSection = Boolean(r?.panNumber || r?.nameOnPan || panDocumentUrl || r?.onboarding?.step3?.pan?.panNumber || r?.onboarding?.step3?.pan?.nameOnPan)
                 const hasGstSection = Boolean(
                   r?.gstNumber ||
@@ -1902,13 +1901,6 @@ export default function SellersList() {
                   r?.onboarding?.step3?.gst?.gstNumber ||
                   r?.onboarding?.step3?.gst?.legalName ||
                   r?.onboarding?.step3?.gst?.address
-                )
-                const hasFssaiSection = Boolean(
-                  r?.fssaiNumber ||
-                  r?.fssaiExpiry ||
-                  fssaiDocumentUrl ||
-                  r?.onboarding?.step3?.fssai?.registrationNumber ||
-                  r?.onboarding?.step3?.fssai?.expiryDate
                 )
                 const hasBankSection = Boolean(
                   r?.accountNumber ||
@@ -1920,7 +1912,7 @@ export default function SellersList() {
                   r?.onboarding?.step3?.bank?.accountHolderName ||
                   r?.onboarding?.step3?.bank?.accountType
                 )
-                const hasRegistrationDocuments = hasPanSection || hasGstSection || hasFssaiSection || hasBankSection
+                const hasRegistrationDocuments = hasPanSection || hasGstSection || hasBankSection
                 return (
                 <div className="space-y-10">
                   {/* Sales channels: approve / reject per channel (account KYC approval is separate) */}
@@ -2116,7 +2108,7 @@ export default function SellersList() {
                             {approvalStatusLabel(detailsApprovalStatus)}
                           </span>
                           <p className="mt-2 text-xs text-slate-500">
-                            Outlet: {(r?.isActive !== false) ? "Active" : "Inactive"}
+                            Store: {(r?.isActive !== false) ? "Active" : "Inactive"}
                           </p>
                         </div>
                       </div>
@@ -2201,7 +2193,7 @@ export default function SellersList() {
                         )}
                         {menuImages.length > 0 && (
                           <div>
-                            <p className="text-xs text-slate-500 mb-2">Menu Images</p>
+                            <p className="text-xs text-slate-500 mb-2">Store Photos</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                               {menuImages.map((url, idx) => (
                                 <a
@@ -2210,7 +2202,7 @@ export default function SellersList() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="relative aspect-4/5 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 hover:border-slate-300"
-                                  title="Open menu image"
+                                  title="Open store photo"
                                 >
                                   <img
                                     src={url}
@@ -2297,7 +2289,7 @@ export default function SellersList() {
                     </div>
                   )}
 
-                  {/* Registration Documents - flat (PAN, GST, FSSAI, Bank) or onboarding.step3 */}
+                  {/* Registration Documents - flat (PAN, GST, Bank) or onboarding.step3 */}
                   {hasRegistrationDocuments && (
                     <div className="pt-6 border-t border-slate-200">
                       <h4 className="text-lg font-semibold text-slate-900 mb-4">Registration Documents</h4>
@@ -2376,42 +2368,6 @@ export default function SellersList() {
                                   <a href={gstDocumentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700">
                                     <ImageIcon className="w-4 h-4" />
                                     <span>View GST Document</span>
-                                    <ExternalLink className="w-3 h-3" />
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* FSSAI – flat or onboarding.step3 */}
-                        {hasFssaiSection && (
-                          <div className="bg-slate-50 rounded-lg p-4">
-                            <h5 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                              <FileText className="w-4 h-4" />
-                              FSSAI Details
-                            </h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                              {(r.fssaiNumber || r?.onboarding?.step3?.fssai?.registrationNumber) && (
-                                <div>
-                                  <p className="text-xs text-slate-500 mb-1">FSSAI Registration Number</p>
-                                  <p className="font-medium text-slate-900">{r.fssaiNumber || r.onboarding?.step3?.fssai?.registrationNumber}</p>
-                                </div>
-                              )}
-                              {(r.fssaiExpiry || r?.onboarding?.step3?.fssai?.expiryDate) && (
-                                <div>
-                                  <p className="text-xs text-slate-500 mb-1">FSSAI Expiry Date</p>
-                                  <p className="font-medium text-slate-900">
-                                    {new Date(r.fssaiExpiry || r.onboarding?.step3?.fssai?.expiryDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                  </p>
-                                </div>
-                              )}
-                              {fssaiDocumentUrl && (
-                                <div className="md:col-span-2">
-                                  <p className="text-xs text-slate-500 mb-2">FSSAI Document</p>
-                                  <a href={fssaiDocumentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700">
-                                    <ImageIcon className="w-4 h-4" />
-                                    <span>View FSSAI Document</span>
                                     <ExternalLink className="w-3 h-3" />
                                   </a>
                                 </div>

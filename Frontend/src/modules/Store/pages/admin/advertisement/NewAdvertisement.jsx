@@ -264,8 +264,6 @@ export default function NewAdvertisement() {
                         }`}
                       >
                         <option value="">Select Seller</option>
-                        <option value="cafe-monarch">Café Monarch</option>
-                        <option value="hungry-puppets">Hungry Puppets</option>
                       </select>
                       {formErrors.seller && (
                         <p className="text-xs text-red-500 mt-1">{formErrors.seller}</p>

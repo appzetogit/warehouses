@@ -655,7 +655,7 @@ export default function OutletInfo() {
   }
 
   const handleProfileImageDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete outlet image?")) return
+    if (!window.confirm("Are you sure you want to delete store image?")) return
     try {
       setUploadingImage(true)
       setImageType('profile')
@@ -668,9 +668,9 @@ export default function OutletInfo() {
           setThumbnailImage(toDisplayImageUrl(data.profileImage.url))
         }
       }
-      toast.success("Outlet image deleted successfully")
+      toast.success("Store image deleted successfully")
     } catch (error) {
-      toast.error("Failed to delete outlet image.")
+      toast.error("Failed to delete store image.")
     } finally {
       setUploadingImage(false)
       setImageType(null)
@@ -1012,11 +1012,11 @@ export default function OutletInfo() {
         </div>
 
         <div className="md:mx-auto md:max-w-6xl md:px-8 md:pt-6">
-        {/* Outlet Image Section */}
+        {/* Store Image Section */}
         <div className="relative w-full h-[200px] overflow-hidden md:h-[280px] md:rounded-2xl md:border md:border-slate-200 md:shadow-sm">
             <img
               src={toDisplayImageUrl(mainImage || thumbnailImage)}
-              alt="Outlet"
+              alt="Store"
               className="w-full h-full object-cover"
             />
           <input
@@ -1038,7 +1038,7 @@ export default function OutletInfo() {
 
           <div className="absolute right-4 bottom-4 z-20 flex items-center gap-2">
             <button
-              onClick={() => handleImageClick('profile', profileImageInputRef, "Add Outlet Image")}
+              onClick={() => handleImageClick('profile', profileImageInputRef, "Add Store Image")}
               disabled={uploadingImage}
               className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white min-w-[90px] disabled:opacity-50 md:rounded-xl md:px-3.5 md:py-2.5 md:text-sm"
             >

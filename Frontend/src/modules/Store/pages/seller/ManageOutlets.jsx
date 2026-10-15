@@ -16,7 +16,6 @@ export default function ManageOutlets() {
   const options = [
     "Timings",
     "Contacts",
-    "FSSAI License",
     "Bank account details",
     "Profile picture",
     "Name, address, location",
@@ -29,9 +28,6 @@ export default function ManageOutlets() {
     switch (option) {
       case "Timings":
         navigate("/seller/outlet-timings")
-        break
-      case "FSSAI License":
-        navigate("/seller/fssai")
         break
       case "Bank account details":
         navigate("/seller/update-bank-details")

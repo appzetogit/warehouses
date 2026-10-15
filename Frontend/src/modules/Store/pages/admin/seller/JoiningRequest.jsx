@@ -757,7 +757,7 @@ export default function JoiningRequest() {
                 const openingTime = r?.openingTime || r?.deliveryTimings?.openingTime || r?.onboarding?.step2?.deliveryTimings?.openingTime
                 const closingTime = r?.closingTime || r?.deliveryTimings?.closingTime || r?.onboarding?.step2?.deliveryTimings?.closingTime
                 const approvalStatus = r?.status || (r?.isActive !== false ? "approved" : "pending")
-                const hasFlatDocs = r?.panNumber || r?.panImage || r?.fssaiNumber || r?.accountNumber
+                const hasFlatDocs = r?.panNumber || r?.panImage || r?.accountNumber
                 const menuImgList = Array.isArray(r?.menuImages) ? r.menuImages : (r?.onboarding?.step2?.menuImageUrls || [])
                 return (
                 <div className="space-y-6">
@@ -912,7 +912,7 @@ export default function JoiningRequest() {
                       </div>
                     </div>
 
-                  {/* Registration Documents – flat schema (PAN, GST, FSSAI, Bank) */}
+                  {/* Registration Documents – flat schema (PAN, GST, Bank) */}
                   {sellerPhotoList.length > 0 && (
                     <div className="pt-6 border-t border-slate-200">
                       <h4 className="text-lg font-semibold text-slate-900 mb-4">Seller Photos</h4>
@@ -1036,51 +1036,6 @@ export default function JoiningRequest() {
                           </div>
                         )}
 
-                        {/* FSSAI – flat: fssaiNumber, fssaiExpiry, fssaiImage */}
-                        {(r.fssaiNumber || r.fssaiExpiry || r?.onboarding?.step3?.fssai) && (
-                          <div className="bg-slate-50 rounded-lg p-4">
-                            <h5 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                              <FileText className="w-4 h-4" />
-                              FSSAI Details
-                            </h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                              {(r.fssaiNumber || r?.onboarding?.step3?.fssai?.registrationNumber) && (
-                                <div>
-                                  <p className="text-xs text-slate-500 mb-1">FSSAI Registration Number</p>
-                                  <p className="font-medium text-slate-900">{r.fssaiNumber || r.onboarding?.step3?.fssai?.registrationNumber}</p>
-                                </div>
-                              )}
-                              {(r.fssaiExpiry || r?.onboarding?.step3?.fssai?.expiryDate) && (
-                                <div>
-                                  <p className="text-xs text-slate-500 mb-1">FSSAI Expiry Date</p>
-                                  <p className="font-medium text-slate-900">
-                                    {new Date(r.fssaiExpiry || r.onboarding?.step3?.fssai?.expiryDate).toLocaleDateString('en-IN', {
-                                      year: 'numeric',
-                                      month: 'long',
-                                      day: 'numeric'
-                                    })}
-                                  </p>
-                                </div>
-                              )}
-                              {(typeof r.fssaiImage === "string" ? r.fssaiImage : r?.fssaiImage?.url || r?.onboarding?.step3?.fssai?.image?.url) && (
-                                <div className="md:col-span-2">
-                                  <p className="text-xs text-slate-500 mb-2">FSSAI Document</p>
-                                  <a
-                                    href={typeof r.fssaiImage === "string" ? r.fssaiImage : (r.fssaiImage?.url || r.onboarding?.step3?.fssai?.image?.url)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700"
-                                  >
-                                    <ImageIcon className="w-4 h-4" />
-                                    <span>View FSSAI Document</span>
-                                    <ExternalLink className="w-3 h-3" />
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
                         {/* Bank – flat: accountNumber, ifscCode, accountHolderName, accountType */}
                         {(r.accountNumber || r.ifscCode || r?.onboarding?.step3?.bank) && (
                           <div className="bg-slate-50 rounded-lg p-4">
@@ -1120,10 +1075,10 @@ export default function JoiningRequest() {
                     </div>
                   )}
 
-                  {/* Menu Images */}
+                  {/* Store Photos */}
                   {menuImgList.length > 0 && (
                     <div className="pt-6 border-t border-slate-200">
-                      <h4 className="text-lg font-semibold text-slate-900 mb-4">Menu Images</h4>
+                      <h4 className="text-lg font-semibold text-slate-900 mb-4">Store Photos</h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {menuImgList.map((menuImg, idx) => {
                           const imgUrl = typeof menuImg === "string" ? menuImg : (menuImg?.url || menuImg)

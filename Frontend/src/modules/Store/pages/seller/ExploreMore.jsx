@@ -1120,7 +1120,7 @@ export default function ExploreMore() {
                   <div className="text-center py-12 px-4">
                     <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <p className="text-base font-medium text-gray-900 mb-1">Search for features</p>
-                    <p className="text-sm text-gray-500">Type to search for outlet settings, orders, and more</p>
+                    <p className="text-sm text-gray-500">Type to search for store settings, orders, and more</p>
                   </div>
                 )}
               </div>

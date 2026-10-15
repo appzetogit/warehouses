@@ -589,11 +589,6 @@ export default function Category() {
                                     ? "Inherit"
                                     : "None"}
                               </span>
-                              {category?.requiresFssai && (
-                                <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-                                  FSSAI
-                                </span>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -810,16 +805,6 @@ export default function Category() {
                             The attributes (size, colour and so on) that products in this category vary by.
                           </p>
                         </div>
-
-                        <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
-                          <input
-                            type="checkbox"
-                            checked={formData.requiresFssai}
-                            onChange={(event) => setFormData((prev) => ({ ...prev, requiresFssai: event.target.checked }))}
-                            className="h-4 w-4 rounded border-slate-300"
-                          />
-                          Requires FSSAI licence
-                        </label>
 
                         <div>
                           <label className="mb-2 block text-sm font-medium text-slate-700">Commission %</label>

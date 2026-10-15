@@ -156,8 +156,6 @@ export default function CampaignOrderReport() {
                   className="w-full px-3 py-2 pr-8 text-xs rounded-lg border border-slate-300 bg-white text-slate-700 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="All sellers">All sellers</option>
-                  <option value="Hungry Puppets">Hungry Puppets</option>
-                  <option value="Café Monarch">Café Monarch</option>
                 </select>
                 <ChevronDown className="absolute right-2 bottom-2.5 w-4 h-4 text-slate-500 pointer-events-none" />
               </div>

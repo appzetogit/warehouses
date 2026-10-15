@@ -68,7 +68,7 @@ export default function DownloadReport() {
       </div>
 
       <div className="bg-[#f8e7a0] text-gray-900 text-sm px-4 py-2">
-        You are generating a report for <span className="font-semibold">All Outlets</span>
+        You are generating a report for <span className="font-semibold">All Stores</span>
       </div>
 
       <div className="flex-1 px-4 py-5 space-y-6">

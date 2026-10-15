@@ -101,11 +101,6 @@ export default function OrdersTable({
     setInternalCurrentPage(page)
   }
 
-  const formatSellerName = (name) => {
-    if (name === "Cafe Monarch") return "Café Monarch"
-    return name
-  }
-
   // Once a courier AWB exists the shipment must be cancelled first (backend refuses too).
   const hasCourierBooked = (order) => Boolean(order?.shipment?.awb)
 
@@ -333,7 +328,7 @@ export default function OrdersTable({
                 )}
                 {visibleColumns.seller && (
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-slate-700">{formatSellerName(order.seller)}</span>
+                    <span className="text-sm font-medium text-slate-700">{order.seller}</span>
                   </td>
                 )}
                 {visibleColumns.products && (

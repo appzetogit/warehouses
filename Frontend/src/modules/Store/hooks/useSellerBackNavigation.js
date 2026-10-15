@@ -60,12 +60,9 @@ const resolveSellerBackPath = ({ pathname, state }) => {
   if (
     normalizedPath === "/edit" ||
     normalizedPath === "/edit-owner" ||
-    normalizedPath === "/edit-address" ||
     normalizedPath === "/phone" ||
     normalizedPath === "/manage-outlets" ||
     normalizedPath === "/update-bank-details" ||
-    normalizedPath === "/fssai" ||
-    normalizedPath === "/fssai/update" ||
     normalizedPath === "/outlet-info" ||
     normalizedPath === "/outlet-timings" ||
     /^\/outlet-timings\/[^/]+$/.test(normalizedPath) ||
@@ -77,7 +74,6 @@ const resolveSellerBackPath = ({ pathname, state }) => {
   if (
     normalizedPath === "/settings" ||
     normalizedPath === "/delivery-settings" ||
-    normalizedPath === "/rush-hour" ||
     normalizedPath === "/status" ||
     normalizedPath === "/business-plan" ||
     normalizedPath === "/config" ||

@@ -177,8 +177,6 @@ export default function Banners() {
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 >
                   <option value="">Select</option>
-                  <option value="cafe-monarch">Café Monarch</option>
-                  <option value="hungry-puppets">Hungry Puppets</option>
                 </select>
               </div>
             </div>

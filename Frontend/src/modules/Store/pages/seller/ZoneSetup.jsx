@@ -872,7 +872,7 @@ export default function ZoneSetup() {
             </div>
             <div className="min-w-0">
               <p className="hidden md:block text-[11px] font-bold uppercase tracking-[0.2em] text-[#5c6775]">
-                Outlet coverage
+                Store coverage
               </p>
               <h1 className="text-xl font-black tracking-tight text-[#141820] md:text-2xl">Zone setup</h1>
               <p className="text-sm text-[#5c6775] truncate md:mt-0.5">
@@ -1064,7 +1064,7 @@ export default function ZoneSetup() {
               <h3 className="text-sm font-bold text-[#141820] mb-3">How to pin</h3>
               <ol className="space-y-2.5">
                 {[
-                  "Search your outlet address, or tap the map",
+                  "Search your store address, or tap the map",
                   "Drag the pin for a precise spot",
                   "Confirm it sits inside a blue zone",
                   "Save — updates may need admin approval",

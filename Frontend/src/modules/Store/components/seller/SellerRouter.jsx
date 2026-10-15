@@ -22,20 +22,16 @@ const AddCouponPage = lazy(() => import("@store/pages/seller/AddCouponPage"))
 const EditCouponPage = lazy(() => import("@store/pages/seller/EditCouponPage"))
 const MenuCategoriesPage = lazy(() => import("@store/pages/seller/MenuCategoriesPage"))
 const DeliverySettings = lazy(() => import("@store/pages/seller/DeliverySettings"))
-const RushHour = lazy(() => import("@store/pages/seller/RushHour"))
 const OutletTimings = lazy(() => import("@store/pages/seller/OutletTimings"))
 const DaySlots = lazy(() => import("@store/pages/seller/DaySlots"))
 const OutletInfo = lazy(() => import("@store/pages/seller/OutletInfo"))
 const RatingsReviews = lazy(() => import("@store/pages/seller/RatingsReviews"))
 const EditOwner = lazy(() => import("@store/pages/seller/EditOwner"))
-const EditSellerAddress = lazy(() => import("@store/pages/seller/EditSellerAddress"))
 const Inventory = lazy(() => import("@store/pages/seller/Inventory"))
 const Feedback = lazy(() => import("@store/pages/seller/Feedback"))
 const ShareFeedback = lazy(() => import("@store/pages/seller/ShareFeedback"))
 const DishRatings = lazy(() => import("@store/pages/seller/DishRatings"))
 const SellerSupport = lazy(() => import("@store/pages/seller/SellerSupport"))
-const FssaiDetails = lazy(() => import("@store/pages/seller/FssaiDetails"))
-const FssaiUpdate = lazy(() => import("@store/pages/seller/FssaiUpdate"))
 const ItemDetailsPage = lazy(() => import("@store/pages/seller/ItemDetailsPage"))
 const HubFinance = lazy(() => import("@store/pages/seller/HubFinance"))
 const FinanceDetailsPage = lazy(() => import("@store/pages/seller/FinanceDetailsPage"))
@@ -110,7 +106,6 @@ export default function SellerRouter() {
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><AddCouponPage /></ProtectedRoute>} path="coupon/new" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><EditCouponPage /></ProtectedRoute>} path="coupon/:id/edit" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><DeliverySettings /></ProtectedRoute>} path="delivery-settings" />
-          <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><RushHour /></ProtectedRoute>} path="rush-hour" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><MenuCategoriesPage /></ProtectedRoute>} path="menu-categories" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><SellerStatus /></ProtectedRoute>} path="status" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><ExploreMore /></ProtectedRoute>} path="explore" />
@@ -119,14 +114,11 @@ export default function SellerRouter() {
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><OutletInfo /></ProtectedRoute>} path="outlet-info" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><RatingsReviews /></ProtectedRoute>} path="ratings-reviews" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><EditOwner /></ProtectedRoute>} path="edit-owner" />
-          <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><EditSellerAddress /></ProtectedRoute>} path="edit-address" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><Inventory /></ProtectedRoute>} path="inventory" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><Feedback /></ProtectedRoute>} path="feedback" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><ShareFeedback /></ProtectedRoute>} path="share-feedback" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><DishRatings /></ProtectedRoute>} path="dish-ratings" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><SellerSupport /></ProtectedRoute>} path="help-centre/support" />
-          <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><FssaiDetails /></ProtectedRoute>} path="fssai" />
-          <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><FssaiUpdate /></ProtectedRoute>} path="fssai/update" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><ItemDetailsPage /></ProtectedRoute>} path="hub-menu/item/:id" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><HubFinance /></ProtectedRoute>} path="hub-finance" />
           <Route element={<ProtectedRoute requiredRole="seller" loginPath="/seller/login"><Subscription /></ProtectedRoute>} path="subscription" />

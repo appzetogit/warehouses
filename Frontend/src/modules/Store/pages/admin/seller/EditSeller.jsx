@@ -742,7 +742,7 @@ export default function EditSeller() {
 
               {mediaForm.menuImages.length > 0 && (
                 <div className="mt-6">
-                  <Label>Menu Photos ({mediaForm.menuImages.length})</Label>
+                  <Label>Store Photos ({mediaForm.menuImages.length})</Label>
                   <p className="text-xs text-slate-500 mt-1">
                     Uploaded during onboarding. Read-only here.
                   </p>
