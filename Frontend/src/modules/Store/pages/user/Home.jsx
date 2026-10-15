@@ -118,7 +118,6 @@ import PromoRow from "@store/components/user/home/PromoRow";
 import PromotionBannerCarousel from "@store/components/user/home/PromotionBannerCarousel";
 import OutOfZoneScreen from "@store/components/user/OutOfZoneScreen";
 import DesktopHome from "@store/components/user/desktop/DesktopHome";
-import QuickHome from "@store/components/user/desktop/quick/QuickHome";
 import { useStorefrontLayout } from "@store/components/user/desktop/useIsDesktop";
 
 
@@ -2903,32 +2902,12 @@ export default function Home() {
     );
   }, [displayCategories, showCategorySkeleton, navigate, isCategoryStuck]);
 
-  // /quick gets the instant-delivery layout (QUICK_UI_SPEC.md). It keeps
-  // showing the category tiles when the address is out of zone, so this runs
-  // before the out-of-zone screen.
-  if (isDesktop && fulfilmentMode === "quick") {
-    return (
-      <QuickHome
-        heroBanners={heroBannersData}
-        zoneId={zoneId}
-        outOfZone={shouldShowOutOfZoneScreen}
-        areaName={effectiveLocation?.area?.trim() || effectiveLocation?.city || ""}
-        onOpenBanner={(banner) => {
-          const first = banner?.linkedSellers?.[0];
-          const sellerSlug = first?.slug || first?.sellerId || first?._id;
-          if (!sellerSlug) return;
-          captureScrollBeforeSellerNav();
-          navigate(storePath(`/sellers/${sellerSlug}`));
-        }}
-      />
-    );
-  }
-
   if (shouldShowOutOfZoneScreen) {
     return <OutOfZoneScreen location={effectiveLocation} />;
   }
 
-  // The card-grid homepage, at every width.
+  // The card-grid homepage, at every width, for Shop and Quick alike
+  // (DesktopHome / MobileHome switch their sections on the store mode).
   if (isDesktop) {
     return (
       <div>
