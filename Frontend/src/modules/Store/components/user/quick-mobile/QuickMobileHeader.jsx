@@ -85,21 +85,21 @@ function EtaBlock() {
     <div className="px-4 pb-3 pt-3">
       {/* Top right: the Shop | Quick switch (the way back to Shop), coins and account. */}
       <div className="mb-1.5 flex items-center justify-end gap-2">
-        <div role="group" aria-label="Choose store" className="inline-flex items-center rounded-full border border-wh-border bg-wh-surface p-0.5 shadow-sm">
+        <div role="group" aria-label="Choose store" className="inline-flex items-center rounded-full border border-app-line bg-white p-0.5 shadow-sm">
           <button
             type="button"
             aria-pressed="false"
             onClick={() => setCommerceMode("standard")}
-            className="rounded-full px-3 py-1 text-[12px] font-bold text-wh-muted active:scale-95"
+            className="rounded-full px-3 py-1 text-[12px] font-semibold text-app-muted active:scale-95"
           >
             Shop
           </button>
           <button
             type="button"
             aria-pressed="true"
-            className="flex items-center gap-0.5 rounded-full bg-wh-brand-ink px-3 py-1 text-[12px] font-bold text-white shadow-xs"
+            className="flex items-center gap-0.5 rounded-full bg-app-brown px-3 py-1 text-[12px] font-semibold text-white shadow-xs"
           >
-            <span className="text-amber-300" aria-hidden="true">⚡</span>
+            <span className="text-app-champagne" aria-hidden="true">⚡</span>
             Quick
           </button>
         </div>
@@ -107,26 +107,26 @@ function EtaBlock() {
           <Link
             to="/coins"
             aria-label={`Coins: ${coins ?? 0}`}
-            className="flex h-11 w-11 flex-col items-center justify-center rounded-full bg-wh-surface shadow-sm"
+            className="flex h-11 w-11 flex-col items-center justify-center rounded-full border border-app-line bg-white shadow-sm"
           >
-            <Coins className="h-4 w-4 text-wh-brand-ink" aria-hidden="true" />
-            <span className="text-[10px] font-bold leading-none text-wh-text">{coins ?? 0}</span>
+            <Coins className="h-4 w-4 text-app-brown-mid" aria-hidden="true" />
+            <span className="text-[10px] font-semibold leading-none text-app-ink">{coins ?? 0}</span>
           </Link>
         ) : null}
         <Link
           to={signedIn ? "/profile" : "/auth/login"}
           aria-label={signedIn ? "Your account" : "Sign in"}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-wh-surface shadow-sm"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-app-line bg-white shadow-sm"
         >
-          <User className="h-5 w-5 text-wh-text" aria-hidden="true" />
+          <User className="h-5 w-5 text-app-brown" aria-hidden="true" />
         </Link>
       </div>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[13px] font-bold text-wh-text">Delivery in</p>
+          <p className="text-[12px] font-medium uppercase tracking-[0.8px] text-app-muted">Delivery in</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-2">
             {/* The number eases in whenever the address (and so the ETA) changes. */}
-            <span key={eta} className="wh-reveal is-visible text-[27px] font-black leading-none tracking-tight text-wh-text">
+            <span key={eta} className="wh-reveal is-visible font-app-display text-[34px] font-bold leading-none text-app-brown">
               {eta} minutes
             </span>
             <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
@@ -142,9 +142,9 @@ function EtaBlock() {
           <button
             type="button"
             onClick={openLocationSelector}
-            className="mt-1.5 flex max-w-full items-center gap-1 text-left text-[14px] text-wh-text"
+            className="mt-1.5 flex max-w-full items-center gap-1 text-left text-[13px] text-app-ink"
           >
-            <span className="shrink-0 font-black uppercase">{label} -</span>
+            <span className="shrink-0 font-semibold uppercase text-app-brown">{label} -</span>
             <span className="truncate">{displayAddressText}</span>
             <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
           </button>
@@ -172,7 +172,7 @@ function ThemeTabs() {
   if (layout.themes.length < 2) return null
 
   return (
-    <div className="relative border-b border-wh-border">
+    <div className="relative border-b border-app-line">
       <div
         ref={listRef}
         role="tablist"
@@ -191,7 +191,7 @@ function ThemeTabs() {
               data-slug={theme.slug}
               onClick={() => setActiveSlug(theme.slug)}
               className={`flex shrink-0 flex-col items-center gap-1 px-3 pb-2 pt-1 text-[12px] transition-colors ${
-                active ? "font-bold text-wh-text" : "text-wh-muted"
+                active ? "font-semibold text-app-brown" : "text-app-muted"
               }`}
             >
               {icon ? (
@@ -204,7 +204,7 @@ function ThemeTabs() {
                 <span
                   aria-hidden="true"
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black transition-colors ${
-                    active ? "bg-wh-brand text-wh-text" : "bg-wh-border text-wh-muted"
+                    active ? "bg-app-brown text-white" : "bg-app-sand text-app-muted"
                   }`}
                 >
                   {theme.label.slice(0, 1)}
@@ -220,7 +220,7 @@ function ThemeTabs() {
           style={{
             left: bar.left + 10,
             width: Math.max(0, bar.width - 20),
-            background: "var(--wh-text)",
+            background: "var(--app-brown)",
           }}
         />
       </div>
@@ -237,11 +237,11 @@ function CartButton() {
     <Link
       to="/quick/cart"
       aria-label={`Quick cart, ${count} item${count === 1 ? "" : "s"}`}
-      className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-wh-border bg-wh-surface shadow-sm"
+      className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-app-line bg-white shadow-sm"
     >
-      <ShoppingCart className="h-5 w-5 text-wh-text" aria-hidden="true" />
+      <ShoppingCart className="h-5 w-5 text-app-brown" aria-hidden="true" />
       {count > 0 ? (
-        <span key={count} className="wh-pop absolute -right-1.5 -top-1.5 min-w-[20px] rounded-full bg-[#EA580C] px-1 text-center text-[11px] font-bold leading-5 text-white ring-2 ring-wh-brand-50">
+        <span key={count} className="wh-pop absolute -right-1.5 -top-1.5 min-w-[20px] rounded-full bg-app-brown px-1 text-center text-[11px] font-semibold leading-5 text-white ring-2 ring-app-cream">
           {count > 99 ? "99+" : count}
         </span>
       ) : null}
@@ -308,14 +308,14 @@ function SearchRow({ showBack }) {
           type="button"
           onClick={() => navigate(-1)}
           aria-label="Back"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-wh-surface shadow-sm"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-app-line bg-white shadow-sm"
         >
-          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+          <ArrowLeft className="h-5 w-5 text-app-brown" aria-hidden="true" />
         </button>
       ) : null}
       <form role="search" onSubmit={search.submit} ref={search.boxRef} className="relative min-w-0 flex-1">
-        <div className="flex h-11 items-center gap-2 rounded-xl border border-wh-border bg-wh-surface px-3 shadow-sm focus-within:border-wh-brand">
-          <Search className="h-5 w-5 shrink-0 text-wh-text" aria-hidden="true" />
+        <div className="flex h-11 items-center gap-2 rounded-full border border-app-line bg-white px-4 shadow-sm focus-within:border-app-brown-mid">
+          <Search className="h-5 w-5 shrink-0 text-app-brown" aria-hidden="true" />
           <label htmlFor="wh-quick-search" className="sr-only">
             Search Quick
           </label>
@@ -335,16 +335,16 @@ function SearchRow({ showBack }) {
             aria-expanded={search.open && suggestions.length > 0}
             aria-controls="wh-quick-suggestions"
             aria-autocomplete="list"
-            className="min-w-0 flex-1 bg-transparent text-[15px] text-wh-text placeholder:text-wh-muted focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-[14px] text-app-ink placeholder:text-app-muted focus:outline-none"
           />
           {SpeechRecognition ? (
             <>
-              <span aria-hidden="true" className="h-5 w-px bg-wh-border" />
+              <span aria-hidden="true" className="h-5 w-px bg-app-line" />
               <button
                 type="button"
                 onClick={listen}
                 aria-label={listening ? "Listening" : "Search by voice"}
-                className={`shrink-0 rounded-full p-1 ${listening ? "wh-blink text-wh-brand-ink" : "text-wh-text"}`}
+                className={`shrink-0 rounded-full p-1 ${listening ? "wh-blink text-app-brown-mid" : "text-app-brown"}`}
               >
                 <Mic className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -383,14 +383,14 @@ export default function QuickMobileHeader() {
   }, [])
 
   return (
-    <div className="wh-desktop lg:hidden">
+    <div className="wh-desktop font-app lg:hidden">
       {isHome ? (
-        <div className="bg-wh-brand-50">
+        <div className="bg-app-cream">
           <EtaBlock />
         </div>
       ) : null}
       <div
-        className={`sticky top-0 z-50 bg-wh-brand-50 transition-shadow duration-300 ${stuck ? "shadow-md" : ""}`}
+        className={`sticky top-0 z-50 bg-app-cream transition-shadow duration-300 ${stuck ? "shadow-md" : ""}`}
       >
         <SearchRow showBack={!isHome} />
         {isHome ? <ThemeTabs /> : null}

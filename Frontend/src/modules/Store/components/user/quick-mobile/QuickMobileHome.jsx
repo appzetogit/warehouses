@@ -1,13 +1,15 @@
 import { useMemo } from "react"
 import { useStoreMode } from "@store/context/StoreModeContext"
 import { useLocationSelector } from "../UserLayout"
-import { MIN_RAIL_PRODUCTS, QuickProductRail } from "../desktop/quick/QuickRail"
+import { MIN_RAIL_PRODUCTS } from "../desktop/quick/QuickRail"
 import { useQuickLayout } from "./QuickLayoutContext"
 import QuickThemeBlock from "./QuickThemeBlock"
 import { CampaignBanner, CategoryGroup, FeaturedRail, FrequentlyBought } from "./QuickFeed"
 import QuickRateNudge from "./QuickRateNudge"
 import OfferBannerStrip from "../home/OfferBannerStrip"
-import QuickProductCard from "../desktop/quick/QuickProductCard"
+import AppProductRail from "../home/AppProductRail"
+import AppSectionHeading from "../home/AppSectionHeading"
+import ProductTile from "../mobile/ProductTile"
 import { productId } from "../desktop/quick/quickHelpers"
 
 /**
@@ -20,12 +22,12 @@ import { productId } from "../desktop/quick/quickHelpers"
  * shares so its tabs and this block agree on the chosen theme.
  */
 
-const skeleton = "animate-pulse rounded-xl bg-black/[0.06]"
+const skeleton = "animate-pulse rounded-xl bg-app-sand"
 
 function QuickMobileSkeleton() {
   return (
     <div role="status" aria-label="Loading Quick" className="space-y-5 pb-6">
-      <div className="bg-wh-brand-50 px-4 pb-4 pt-4">
+      <div className="bg-app-cream px-4 pb-4 pt-4">
         <div className="grid grid-cols-3 gap-2.5">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={`aspect-[106/102] ${skeleton}`} />
@@ -106,19 +108,19 @@ export default function QuickMobileHome({
   const topBestsellers = groups.filter((g) => g.items.length >= MIN_RAIL_PRODUCTS).slice(0, 1)
 
   return (
-    <div className="wh-desktop min-h-screen bg-wh-surface pb-8 lg:hidden">
+    <div className="wh-desktop min-h-screen bg-app-cream pb-8 font-app lg:hidden">
       <QuickThemeBlock theme={activeTheme} />
 
       <div className="space-y-7 pt-5">
         {outOfZone ? (
-          <section role="status" className="mx-4 rounded-2xl border border-wh-border bg-wh-brand-50 p-4 text-center">
-            <p className="text-[15px] font-bold text-wh-text">
+          <section role="status" className="mx-4 rounded-2xl border border-app-line bg-white p-4 text-center">
+            <p className="text-[15px] font-semibold text-app-ink">
               Quick delivery isn&apos;t available {areaName ? `at ${areaName}` : "here"} yet.
             </p>
             <button
               type="button"
               onClick={openLocationSelector}
-              className="mt-2 rounded-lg border border-wh-brand-ink px-3 py-1.5 text-[13px] font-semibold text-wh-brand-ink"
+              className="mt-2 rounded-full bg-app-brown px-4 py-1.5 text-[13px] font-semibold text-white"
             >
               Change Location
             </button>
@@ -134,7 +136,7 @@ export default function QuickMobileHome({
         <FeaturedRail items={layout.featured} />
 
         {!outOfZone && deals.length >= MIN_RAIL_PRODUCTS ? (
-          <QuickProductRail title="Deals of the Day" products={deals.slice(0, 20)} seeAllTo={storePath("/search?minDiscount=10")} />
+          <AppProductRail title="Deals of the Day" products={deals.slice(0, 20)} to={storePath("/search?minDiscount=10")} />
         ) : null}
 
         <CampaignBanner campaign={firstCampaign} />
@@ -145,11 +147,11 @@ export default function QuickMobileHome({
 
         {!outOfZone
           ? topBestsellers.map((g) => (
-              <QuickProductRail
+              <AppProductRail
                 key={g.id}
                 title={`Bestsellers in ${g.name}`}
                 products={g.items.slice(0, 20)}
-                seeAllTo={categoryLink ? categoryLink(g.id, g.name) : storePath("/categories")}
+                to={categoryLink ? categoryLink(g.id, g.name) : storePath("/categories")}
               />
             ))
           : null}
@@ -159,11 +161,11 @@ export default function QuickMobileHome({
         ))}
 
         {!outOfZone && newest.length ? (
-          <section aria-label="More to Explore" className="px-4">
-            <h2 className="mb-3 text-[17px] font-bold text-wh-text">More to Explore</h2>
-            <div className="grid grid-cols-2 gap-3">
+          <section aria-label="More to Explore">
+            <AppSectionHeading title="More to Explore" />
+            <div className="grid grid-cols-2 gap-3 px-4">
               {newest.map((p) => (
-                <QuickProductCard key={productId(p)} product={p} />
+                <ProductTile key={productId(p)} product={p} />
               ))}
             </div>
           </section>

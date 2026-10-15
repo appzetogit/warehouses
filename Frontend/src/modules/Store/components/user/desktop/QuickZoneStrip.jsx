@@ -2,7 +2,7 @@ import { useDeliveryLocation } from "@store/context/DeliveryLocationContext"
 import { useLocationSelector } from "../UserLayout"
 import { useQuickEta } from "./useDeliveryEstimates"
 
-/** Thin green strip under the desktop header on /quick: delivery area + ETA, or out of zone. */
+/** Thin brown strip under the desktop header on /quick: delivery area + ETA, or out of zone. */
 export default function QuickZoneStrip() {
   const { effectiveLocation, zone, zoneLoading, isOutOfService } = useDeliveryLocation()
   const { openLocationSelector } = useLocationSelector()
@@ -14,10 +14,10 @@ export default function QuickZoneStrip() {
 
   if (isOutOfService) {
     return (
-      <div className="wh-desktop bg-[#FFF4E5]" role="status">
-        <div className="mx-auto flex h-[32px] max-w-[1500px] items-center gap-2 px-[20px] text-[13px] text-wh-text">
+      <div className="wh-desktop bg-app-sand" role="status">
+        <div className="mx-auto flex h-[32px] max-w-[1500px] items-center gap-2 px-[20px] text-[13px] text-app-ink">
           <span>Quick delivery isn&apos;t available at {area} yet.</span>
-          <button type="button" onClick={openLocationSelector} className="font-medium text-wh-link hover:text-wh-link-hover hover:underline">
+          <button type="button" onClick={openLocationSelector} className="font-semibold text-app-brown hover:underline">
             Change Location
           </button>
         </div>
@@ -25,10 +25,10 @@ export default function QuickZoneStrip() {
     )
   }
   return (
-    <div className="wh-desktop bg-wh-quick" role="status">
+    <div className="wh-desktop bg-app-brown" role="status">
       <div className="mx-auto flex h-[32px] max-w-[1500px] items-center gap-2 px-[20px] text-[13px] text-white">
         <span>
-          Delivering to <strong>{area}</strong> in ~{eta} min
+          <span aria-hidden="true" className="text-app-champagne">⚡</span> Delivering to <strong className="text-app-champagne">{area}</strong> in ~{eta} min
         </span>
         <button type="button" onClick={openLocationSelector} className="underline-offset-2 hover:underline">
           Change

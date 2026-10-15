@@ -77,13 +77,13 @@ export default function QuickRateNudge() {
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
       }`}
     >
-      <div className="flex items-center gap-3 rounded-2xl bg-wh-surface p-3 shadow-xl ring-1 ring-black/5">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-          <Star className="h-5 w-5 fill-amber-400 text-amber-400" aria-hidden="true" />
+      <div className="flex items-center gap-3 rounded-2xl border border-app-line bg-white p-3 font-app shadow-xl">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-app-tint">
+          <Star className="h-5 w-5 fill-app-champagne text-app-brown-mid" aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[14px] font-bold text-wh-text">Rate Your Order Experience</span>
-          <span className="block truncate text-[12px] text-wh-muted">
+          <span className="block text-[14px] font-semibold text-app-ink">Rate Your Order Experience</span>
+          <span className="block truncate text-[12px] text-app-muted">
             {lead}
             {more}
           </span>
@@ -91,7 +91,7 @@ export default function QuickRateNudge() {
         <Link
           to={`/orders/${id}`}
           onClick={dismiss}
-          className="shrink-0 rounded-lg border border-wh-success px-3 py-1.5 text-[13px] font-bold text-wh-success"
+          className="shrink-0 rounded-full bg-app-brown px-3.5 py-1.5 text-[13px] font-semibold text-white"
         >
           RATE
         </Link>

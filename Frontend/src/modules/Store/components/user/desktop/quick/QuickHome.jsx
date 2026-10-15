@@ -11,13 +11,14 @@ import { useStoreMode } from "@store/context/StoreModeContext"
 import { isModuleAuthenticated } from "@store/utils/auth"
 import { useLocationSelector } from "../../UserLayout"
 import { percentOff } from "../ui"
-import { useQuickEta } from "../useDeliveryEstimates"
 import { usePublicCategories } from "../useDesktopShell"
 import QuickCategoryTiles from "./QuickCategoryTiles"
 import QuickPromoBanners from "./QuickPromoBanners"
 import OfferBannerStrip from "../../home/OfferBannerStrip"
 import { MIN_RAIL_PRODUCTS, QuickProductRail } from "./QuickRail"
-import QuickProductCard from "./QuickProductCard"
+import AppProductRail from "../../home/AppProductRail"
+import AppSectionHeading from "../../home/AppSectionHeading"
+import ProductTile from "../../mobile/ProductTile"
 import { productId, productPrice, productMrp } from "./quickHelpers"
 import useIsDesktop from "../useIsDesktop"
 import QuickMobileHome from "../../quick-mobile/QuickMobileHome"
@@ -28,7 +29,6 @@ const NEWEST_LIMIT = 24
 export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outOfZone = false, areaName = "" }) {
   const { storePath, fulfilmentMode } = useStoreMode()
   const { openLocationSelector } = useLocationSelector()
-  const eta = useQuickEta()
   const { tree, loading: categoriesLoading } = usePublicCategories(zoneId)
 
   const [products, setProducts] = useState([])
@@ -200,10 +200,10 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
   }
 
   return (
-    <div className="wh-desktop min-h-screen bg-wh-page pb-16">
-      <div className="mx-auto max-w-[1500px] space-y-4 px-5 py-4">
+    <div className="wh-desktop min-h-screen bg-app-cream pb-16">
+      <div className="mx-auto max-w-[1500px] space-y-10 px-5 py-6">
         {outOfZone ? (
-          <section className="rounded-[8px] border border-wh-border bg-wh-surface p-6 text-center" role="status">
+          <section className="rounded-2xl border border-app-line bg-white p-6 text-center" role="status">
             <h1 className="text-[19px] font-bold">Quick delivery isn&apos;t available {areaName ? `at ${areaName}` : "here"} yet.</h1>
             <p className="mt-1 text-[14px] text-wh-muted">
               Browse the categories below, or switch your delivery location to a served area.
@@ -211,7 +211,7 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
             <button
               type="button"
               onClick={openLocationSelector}
-              className="mt-3 rounded-[8px] border border-wh-brand-ink bg-wh-brand-50 px-4 py-2 text-[13px] font-semibold text-wh-brand-ink hover:bg-wh-brand hover:text-wh-text"
+              className="mt-3 rounded-full bg-app-brown px-5 py-2 text-[13px] font-semibold text-white hover:bg-app-brown-deep"
             >
               Change Location
             </button>
@@ -228,43 +228,41 @@ export default function QuickHome({ heroBanners = [], zoneId, onOpenBanner, outO
             {productsLoading ? (
               <QuickProductRail title="Deals of the Day" loading />
             ) : (
-              <QuickProductRail
+              <AppProductRail
                 title="Deals of the Day"
                 products={deals.slice(0, 20)}
-                seeAllTo={`${storePath("/search")}?minDiscount=10`}
-                etaMinutes={eta}
+                to={`${storePath("/search")}?minDiscount=10`}
               />
             )}
 
             {bestsellerGroups.map((g) => (
-              <QuickProductRail
+              <AppProductRail
                 key={g.id}
                 title={`Bestsellers in ${g.name}`}
                 products={g.items.slice(0, 20)}
-                seeAllTo={categoryLink(g.id, g.name)}
-                etaMinutes={eta}
+                to={categoryLink(g.id, g.name)}
               />
             ))}
 
             {recommendedLoading && !recommended.length ? (
               <QuickProductRail title="You May Also Like" loading />
             ) : (
-              <QuickProductRail title="You May Also Like" products={recommended} etaMinutes={eta} />
+              <AppProductRail title="You May Also Like" products={recommended} />
             )}
 
             {newest.length ? (
               <section aria-label="More to Explore">
-                <h2 className="mb-3 text-[20px] font-bold text-wh-text">More to Explore</h2>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <AppSectionHeading title="More to Explore" />
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                   {newest.map((p) => (
-                    <QuickProductCard key={productId(p)} product={p} etaMinutes={eta} />
+                    <ProductTile key={productId(p)} product={p} />
                   ))}
                 </div>
               </section>
             ) : null}
 
             {nothingToShow && !newest.length ? (
-              <section className="rounded-[8px] bg-wh-surface p-8 text-center text-[14px] text-wh-muted">
+              <section className="rounded-2xl border border-app-line bg-white p-8 text-center text-[14px] text-app-muted">
                 Nothing is available for quick delivery here yet.
               </section>
             ) : null}

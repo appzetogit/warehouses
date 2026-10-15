@@ -16,13 +16,13 @@ function PoweredBy({ brands = [] }) {
   if (!real.length) return null
   return (
     <div className="flex items-center justify-center gap-2 pb-3">
-      <span className="text-[13px] font-black tracking-wide text-[#3E6B3A]">POWERED BY:</span>
+      <span className="text-[11px] font-semibold tracking-[1px] text-app-muted">POWERED BY</span>
       {real.map((b) => (
         <img
           key={b.logoUrl}
           src={mediaUrl(b.logoUrl)}
           alt={b.name || ""}
-          className="h-10 w-10 rounded-full bg-white object-contain p-0.5 shadow-sm"
+          className="h-10 w-10 rounded-full border border-app-line bg-white object-contain p-0.5 shadow-sm"
         />
       ))}
     </div>
@@ -39,9 +39,9 @@ function PromoTiles({ tiles = [] }) {
           <AppLink
             key={`${tile.title}-${i}`}
             to={tile.link}
-            className="group relative flex aspect-[106/102] flex-col overflow-hidden rounded-xl bg-gradient-to-b from-white/80 to-white/40 p-2 shadow-sm ring-1 ring-black/5 backdrop-blur-[2px] transition-transform active:scale-95"
+            className="group relative flex aspect-[106/112] flex-col overflow-hidden rounded-2xl border border-app-line bg-white p-1.5 shadow-[0_2px_8px_rgba(88,50,29,0.06)] transition-transform active:scale-95"
           >
-            <span className="text-center text-[13px] font-bold leading-tight text-wh-text">{tile.title}</span>
+            <span className="line-clamp-1 px-0.5 pt-0.5 text-center text-[12.5px] font-semibold leading-tight text-app-brown">{tile.title}</span>
             <span className="relative mt-1.5 flex min-h-0 flex-1 items-end justify-center">
               {image ? (
                 // Photos fill the tile under the title; the slow zoom keeps the row alive.
@@ -51,10 +51,10 @@ function PromoTiles({ tiles = [] }) {
                   loading="lazy"
                   // Out of step with each other, so the row breathes rather than marches.
                   style={{ animationDelay: `${i * 0.6}s` }}
-                  className="wh-kenburns h-full w-full rounded-lg object-cover object-top shadow-sm transition-transform duration-300 group-active:scale-95"
+                  className="wh-kenburns h-full w-full rounded-xl object-cover object-top transition-transform duration-300 group-active:scale-95"
                 />
               ) : (
-                <span aria-hidden="true" className="mb-1 h-10 w-10 rounded-full bg-wh-brand/20" />
+                <span aria-hidden="true" className="h-full w-full rounded-xl bg-app-sand" />
               )}
             </span>
           </AppLink>
@@ -70,7 +70,7 @@ function RewardsBanner({ rewards }) {
   return (
     <AppLink
       to={rewards.link}
-      className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-gradient-to-r from-[#9DB8A0] to-[#B8CDBA] px-2.5 py-2 shadow-sm active:scale-[0.99]"
+      className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-gradient-to-r from-app-brown-deep via-app-brown to-app-brown-mid px-2.5 py-2 shadow-[0_4px_14px_rgba(88,50,29,0.25)] active:scale-[0.99]"
     >
       {thumbs.length ? (
         <span className="flex shrink-0 -space-x-3">
@@ -80,7 +80,7 @@ function RewardsBanner({ rewards }) {
               src={src}
               alt=""
               style={{ animationDelay: `${i * 0.4}s` }}
-              className="wh-shuffle h-11 w-11 rounded-full border-2 border-white bg-white object-cover shadow"
+              className="wh-shuffle h-11 w-11 rounded-full border-2 border-app-champagne bg-white object-cover shadow"
             />
           ))}
         </span>
@@ -90,12 +90,12 @@ function RewardsBanner({ rewards }) {
         </span>
       )}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[16px] font-bold text-[#1F3A24]">{rewards.title}</span>
+        <span className="block truncate font-app-display text-[21px] font-bold leading-tight text-app-champagne">{rewards.title}</span>
         {rewards.subtitle ? (
-          <span className="block truncate text-[12px] text-[#2F4F33]">{rewards.subtitle}</span>
+          <span className="block truncate text-[12px] text-app-cream/85">{rewards.subtitle}</span>
         ) : null}
       </span>
-      <ChevronRight className="h-6 w-6 shrink-0 text-[#1F3A24]" aria-hidden="true" />
+      <ChevronRight className="h-6 w-6 shrink-0 text-app-champagne" aria-hidden="true" />
     </AppLink>
   )
 }
@@ -105,10 +105,10 @@ function OfferStrip({ offer }) {
   return (
     <AppLink
       to={offer.link}
-      className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-white/60 px-3 py-2 text-center text-[13px] font-semibold text-wh-text"
+      className="mt-3 flex items-center justify-center gap-2 rounded-full border border-app-line bg-white px-4 py-2 text-center text-[12.5px] font-medium text-app-ink"
     >
       <span className="min-w-0 truncate">{offer.text}</span>
-      <span aria-hidden="true" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#B79A6B] text-[11px] text-white">
+      <span aria-hidden="true" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-app-brown text-[11px] text-white">
         →
       </span>
     </AppLink>
@@ -123,7 +123,7 @@ export default function QuickThemeBlock({ theme }) {
     <section
       key={theme.slug}
       aria-label={theme.label}
-      className="wh-reveal is-visible relative overflow-hidden bg-wh-brand-50 px-4 pb-4 pt-4"
+      className="wh-reveal is-visible relative overflow-hidden bg-app-cream px-4 pb-4 pt-4"
     >
       {background ? (
         <img
@@ -136,7 +136,7 @@ export default function QuickThemeBlock({ theme }) {
         // Without art, a quiet dotted texture keeps the block from reading as blank.
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(circle,rgba(0,0,0,0.08)_1px,transparent_1.5px)] [background-size:18px_18px]"
+          className="pointer-events-none absolute inset-0 opacity-50 [background-image:radial-gradient(circle,rgba(88,50,29,0.07)_1px,transparent_1.5px)] [background-size:18px_18px]"
         />
       )}
       <div className="relative">
