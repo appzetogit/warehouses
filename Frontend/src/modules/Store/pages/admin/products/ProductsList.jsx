@@ -1147,7 +1147,6 @@ export default function ProductsList() {
                 <p><span className="font-semibold text-slate-700">Seller:</span> <span className="text-slate-900">{selectedProduct.sellerName || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Price:</span> <span className="text-slate-900">{selectedProduct.variants?.length ? `Starting from \u20B9${selectedProduct.price}` : `\u20B9${selectedProduct.price}`}</span></p>
                 <p><span className="font-semibold text-slate-700">Category:</span> <span className="text-slate-900">{selectedProduct.categoryName || "-"}</span></p>
-                <p><span className="font-semibold text-slate-700">Veg / Non-veg:</span> <span className="text-slate-900">{selectedProduct.foodType || "-"}</span></p>
                 <p><span className="font-semibold text-slate-700">Approval:</span> <span className="text-slate-900 capitalize">{selectedProduct.approvalStatus || "-"}</span></p>
               </div>
               {selectedProduct.variants?.length ? (
@@ -1302,18 +1301,6 @@ export default function ProductsList() {
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white disabled:bg-slate-100 disabled:text-slate-400"
                 />
                 <p className="mt-1 text-xs text-slate-500">Shown with strikethrough when higher than selling price.</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Veg / Non-veg</label>
-                <select
-                  value={productForm.foodType}
-                  onChange={(e) => setProductForm((prev) => ({ ...prev, foodType: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
-                >
-                  <option value="">Not applicable</option>
-                  <option value="Veg">Veg</option>
-                  <option value="Non-Veg">Non-Veg</option>
-                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Upload Images</label>

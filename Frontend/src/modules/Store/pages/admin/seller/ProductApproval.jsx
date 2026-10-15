@@ -409,12 +409,6 @@ export default function ProductApproval() {
                 </div>
 
                 <div className="space-y-4">
-                    {(selectedRequest.foodType === 'Veg' || selectedRequest.foodType === 'Non-Veg') && (
-                        <div>
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Veg / Non-veg</label>
-                            <p className="text-sm text-gray-700">{selectedRequest.foodType}</p>
-                        </div>
-                    )}
                     {selectedRequest.requestedAt && (
                         <div>
                             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Requested On</label>

@@ -3088,55 +3088,6 @@ function SellerDetailsContent() {
                       </div>
                     </div>
 
-                    {/* Veg/Non-veg preference */}
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Veg/Non-veg preference:</h3>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              vegNonVeg: prev.vegNonVeg === "veg" ? null : "veg",
-                            }))
-                          }
-                          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all flex-1 ${filters.vegNonVeg === "veg"
-                            ? ""
-                            : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
-                            }`}
-                          style={filters.vegNonVeg === "veg" ? {
-                            borderColor: "#16a34a",
-                            backgroundColor: "#f0fdf4",
-                            color: "#15803d",
-                          } : undefined}
-                        >
-                          <div className="h-4 w-4 rounded-full" style={{ backgroundColor: "#16a34a" }} />
-                          <span className="font-medium">Veg</span>
-                        </button>
-                        {!vegMode && (
-                          <button
-                            onClick={() =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                vegNonVeg: prev.vegNonVeg === "non-veg" ? null : "non-veg",
-                              }))
-                            }
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all flex-1 ${filters.vegNonVeg === "non-veg"
-                              ? "border-red-600 dark:border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                              : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
-                              }`}
-                            style={filters.vegNonVeg === "non-veg" ? {
-                              borderColor: "#dc2626",
-                              backgroundColor: "#fef2f2",
-                              color: "#b91c1c",
-                            } : undefined}
-                          >
-                            <div className="h-4 w-4 rounded-full bg-red-600 dark:bg-red-500" style={{ backgroundColor: "#dc2626" }} />
-                            <span className="font-medium">Non-veg</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
                     {/* Top picks */}
                     <div className="space-y-2">
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Top picks:</h3>
@@ -3157,25 +3108,6 @@ function SellerDetailsContent() {
                       </button>
                     </div>
 
-                    {/* Dietary preference */}
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Dietary preference:</h3>
-                      <button
-                        onClick={() =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            spicy: !prev.spicy,
-                          }))
-                        }
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all w-full ${filters.spicy
-                          ? "border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                          : "border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
-                          }`}
-                      >
-                        <Flame className="h-4 w-4" />
-                        <span className="font-medium">Spicy</span>
-                      </button>
-                    </div>
                   </div>
 
                   {/* Bottom Action Bar */}
