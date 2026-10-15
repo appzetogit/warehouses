@@ -453,7 +453,6 @@ export default function AddSeller() {
 
   const validateStep2 = () => {
     const errors = []
-    if (!step2.menuImages || step2.menuImages.length === 0) errors.push("At least one menu image is required")
     if (!step2.profileImage) errors.push("Seller profile image is required")
     if (!step2.estimatedDeliveryTime?.trim()) errors.push("Estimated delivery time is required")
     if (!step2.openingTime?.trim()) errors.push("Opening time is required")
@@ -1140,9 +1139,9 @@ export default function AddSeller() {
   const renderStep2 = () => (
     <div className="space-y-6">
       <section className="bg-white p-4 sm:p-6 rounded-md space-y-5">
-        <h2 className="text-lg font-semibold text-black">Menu & photos</h2>
+        <h2 className="text-lg font-semibold text-black">Store photos</h2>
         <div className="space-y-2">
-          <Label className="text-xs font-medium text-gray-700">Menu images*</Label>
+          <Label className="text-xs font-medium text-gray-700">Store photos (optional)</Label>
           <div className="mt-1 border border-dashed border-gray-300 rounded-md bg-gray-50/70 px-4 py-3">
             <label htmlFor="menuImagesInput" className="inline-flex justify-center items-center gap-1.5 px-3 py-1.5 rounded-sm bg-white text-black border-black text-xs font-medium cursor-pointer w-full items-center">
               <Upload className="w-4.5 h-4.5" />
@@ -1404,35 +1403,6 @@ export default function AddSeller() {
         )}
       </section>
 
-      <section className="bg-white p-4 sm:p-6 rounded-md space-y-4">
-        <h2 className="text-lg font-semibold text-black">FSSAI details</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label className="text-xs text-gray-700 mb-1 block">FSSAI number (optional)</Label>
-            <Input value={step3.fssaiNumber || ""} onChange={(e) => setStep3({ ...step3, fssaiNumber: sanitizeFssai(e.target.value) })} className="bg-white text-sm" placeholder="FSSAI number*" inputMode="numeric" maxLength={14} />
-          </div>
-          <div>
-            <Label className="text-xs text-gray-700 mb-1 block">FSSAI expiry date</Label>
-            <Input
-              type="date"
-              value={step3.fssaiExpiry || ""}
-              onChange={(e) => setStep3({ ...step3, fssaiExpiry: e.target.value })}
-              min={getTodayLocalYMD()}
-              autoComplete="off"
-              className="bg-white text-sm"
-            />
-          </div>
-        </div>
-        <Input type="file" accept="image/*" onChange={(e) => setStep3({ ...step3, fssaiImage: e.target.files?.[0] || null })} className="bg-white text-sm" />
-        {step3.fssaiImage && (
-          <div className="flex items-center gap-3">
-            <div className="h-14 w-14 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-              <img src={getStoredImageSrc(step3.fssaiImage)} alt="FSSAI document" className="h-full w-full object-cover" />
-            </div>
-            <p className="text-xs text-gray-600">Selected: {getStoredFileLabel(step3.fssaiImage)}</p>
-          </div>
-        )}
-      </section>
 
       <section className="bg-white p-4 sm:p-6 rounded-md space-y-4">
         <h2 className="text-lg font-semibold text-black">Bank account details</h2>

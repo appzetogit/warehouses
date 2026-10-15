@@ -964,7 +964,7 @@ export default function OrdersMain() {
     "Seller is too busy",
     "Item not available",
     "Outside delivery area",
-    "Kitchen closing soon",
+    "Store closing soon",
     "Technical issue",
     "Other reason",
   ];
@@ -1837,7 +1837,7 @@ export default function OrdersMain() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search orders, menu..."
+              placeholder="Search orders, products..."
               className="pl-11 pr-4 py-2.5 bg-white border border-gray-100 rounded-full text-sm w-80 focus:outline-none focus:border-gray-300 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-shadow"
             />
           </div>

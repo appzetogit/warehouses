@@ -193,7 +193,7 @@ export const OrderEmergencyRequestsV2 = () => {
                 </div>
               ) : activeOrder ? (
                 <p className="mt-5 rounded-2xl bg-gray-50 p-4 text-xs font-semibold text-gray-600">
-                  Emergency reassignment is unavailable after food pickup.
+                  Emergency reassignment is unavailable after pickup.
                 </p>
               ) : null}
             </section>

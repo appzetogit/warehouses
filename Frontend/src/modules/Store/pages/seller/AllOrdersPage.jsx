@@ -105,8 +105,8 @@ const filterOptions = {
     { id: "order-delayed", label: "Order delayed", key: "complaints" },
     { id: "wrong-items", label: "Wrong item(s) delivered", key: "complaints" },
     { id: "missing-items", label: "Item(s) missing or not delivered", key: "complaints" },
-    { id: "poor-taste", label: "Poor taste or quality", key: "complaints" },
-    { id: "poor-packaging", label: "Poor packaging or spillage", key: "complaints" },
+    { id: "poor-taste", label: "Poor quality", key: "complaints" },
+    { id: "poor-packaging", label: "Damaged packaging", key: "complaints" },
     { id: "out-of-stock", label: "Item(s) out of stock", key: "complaints" },
     { id: "not-delivered", label: "Order not delivered", key: "complaints" }
   ]
@@ -244,9 +244,6 @@ export default function AllOrdersPage() {
     // Determine tags based on order properties
     const tags = []
     tags.push('HOME DELIVERY')
-    // Check if all items are veg
-    const allVeg = items.every(item => item.isVeg === true)
-    if (allVeg && items.length > 0) tags.push('VEG ONLY')
     
     const pricing = order.pricing || {}
     const subtotal = Number(pricing.subtotal) || 0
@@ -511,7 +508,6 @@ export default function AllOrdersPage() {
   }
 
   const getTagStyle = (tag) => {
-    if (tag === "VEG ONLY") return { backgroundColor: "#16A34A", color: "#FFFFFF" }
     if (tag === "HOME DELIVERY") return { backgroundColor: "#2563EB", color: "#FFFFFF" }
     return { backgroundColor: "#374151", color: "#FFFFFF" }
   }

@@ -247,7 +247,7 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
             Spin & Win Coins
           </h2>
           <p className="text-xs text-app-cream/80 mt-1 mb-5">
-            Win free coins to get instant discounts on apparel & grocery orders!
+            Win free coins to get instant discounts on your orders!
           </p>
 
           {/* Wheel Container */}

@@ -103,7 +103,7 @@ export default function Favorites() {
             <div>
               <h1 className="font-app-display text-[34px] font-bold leading-tight text-app-brown-deep dark:text-white">My Favorites</h1>
               <p className="mt-0.5 text-[13px] font-medium text-app-muted">
-                {dishFavorites.length || 0} {dishFavorites.length === 1 ? "dish" : "dishes"} • {sellerFavorites.length || 0} {sellerFavorites.length === 1 ? "seller" : "sellers"}
+                {dishFavorites.length || 0} {dishFavorites.length === 1 ? "item" : "items"} • {sellerFavorites.length || 0} {sellerFavorites.length === 1 ? "seller" : "sellers"}
               </p>
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function Favorites() {
             Sellers ({sellerFavorites.length})
           </button>
           <button type="button" role="tab" aria-selected={activeTab === "dishes"} onClick={() => setActiveTab("dishes")} className={tabClass(activeTab === "dishes")}>
-            Dishes ({dishFavorites.length})
+            Items ({dishFavorites.length})
           </button>
         </div>
 
@@ -181,7 +181,7 @@ export default function Favorites() {
         {activeTab === "dishes" && (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {dishFavorites.length === 0 ? (
-              <EmptyBlock icon={Bookmark} text="No items saved yet" cta="Explore Dishes" />
+              <EmptyBlock icon={Bookmark} text="No items saved yet" cta="Explore Products" />
             ) : (
               dishFavorites.map((dish, index) => {
                 // Saved from the Quick store or the shop; open the product in that store.
@@ -217,25 +217,13 @@ export default function Favorites() {
                         </div>
                         <div className="flex items-center justify-between border-t border-app-line pt-2 dark:border-gray-800">
                           <div className="flex items-center gap-1">
-                            {dish.foodType === "Veg" ? (
-                              <div className="flex h-3 w-3 items-center justify-center rounded-sm border-2 border-green-600">
-                                <div className="h-1.5 w-1.5 rounded-full bg-green-600"></div>
-                              </div>
-                            ) : dish.foodType === "Non-Veg" ? (
-                              <div className="flex h-3 w-3 items-center justify-center rounded-sm border-2 border-[#B3261E]">
-                                <div className="h-1.5 w-1.5 rounded-full bg-[#B3261E]"></div>
-                              </div>
-                            ) : null}
-                            {(dish.foodType === "Veg" || dish.foodType === "Non-Veg") && (
-                              <span className="text-[11.5px] font-medium text-app-muted">{dish.foodType}</span>
-                            )}
                           </div>
                           <div className="text-[15px] font-extrabold text-app-ink dark:text-white">
                             {"₹"}{Math.round(dish.price || 0)}
                           </div>
                         </div>
                         <span className={`${BROWN_BUTTON} h-8 w-full text-[12px]`}>
-                          View Dish
+                          View Item
                           <ArrowRight className="h-3 w-3" aria-hidden="true" />
                         </span>
                       </div>

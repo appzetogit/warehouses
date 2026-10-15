@@ -146,7 +146,7 @@ export default function SellerCMSPage({ endpoint, title: defaultTitle, module = 
               <h2 className="text-lg font-bold text-gray-900 mb-8 tracking-tight">Merchant FAQs</h2>
               <div className="grid gap-6">
                 {[
-                  { q: "How to update menu prices?", a: "You can update prices instantly through the 'Menu Management' section in your portal." },
+                  { q: "How to update product prices?", a: "You can update prices instantly from the Inventory section in your portal." },
                   { q: "Delay in payout settlement?", a: "Payouts are settled within 48 hours of order completion. Contact support for delays exceeding 3 days." },
                   { q: "Technical issue with tablet?", a: "Restart the app and check internet connectivity. If issue persists, call our technical helpline." }
                 ].map((faq, idx) => (

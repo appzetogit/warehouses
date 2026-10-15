@@ -240,7 +240,7 @@ export default function EmailTemplate() {
     // Replace placeholders with sample data
     return content
       .replace(/{userName}/g, "John Doe")
-      .replace(/{sellerName}/g, "Café Monarch")
+      .replace(/{sellerName}/g, "The Warehousess")
       .replace(/{ownerName}/g, "Jane Smith")
       .replace(/{email}/g, "owner@example.com")
       .replace(/{phone}/g, "+1234567890")

@@ -1577,7 +1577,7 @@ export default function SellerOnboarding() {
     profileImage: "store photo",
     coverImage: "cover photo",
     galleryImages: "store gallery photo",
-    menuImages: "menu photo",
+    menuImages: "store photo",
     panImage: "PAN card photo",
     gstImage: "GST certificate",
     fssaiImage: "FSSAI licence",
@@ -2996,122 +2996,6 @@ export default function SellerOnboarding() {
         )}
       </section>
 
-      <section className={ONBOARDING_SECTION_FULL}>
-        <h2 className={ONBOARDING_SECTION_TITLE}>FSSAI Details (Only If You Sell Packaged Food)</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label className={ONBOARDING_LABEL}>FSSAI number</Label>
-            <Input
-              value={step3.fssaiNumber || ""}
-              onChange={(e) =>
-                setStep3({ ...step3, fssaiNumber: e.target.value.replace(/\D/g, "").slice(0, 14) })
-              }
-              className={ONBOARDING_INPUT}
-              placeholder="14-digit FSSAI license number"
-            />
-          </div>
-          <div>
-            <Label className={ONBOARDING_LABEL}>FSSAI expiry date</Label>
-            <Popover open={isFssaiCalendarOpen} onOpenChange={setIsFssaiCalendarOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => setIsFssaiCalendarOpen(true)}
-                  className="mt-2 flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm shadow-sm transition-colors hover:bg-gray-50"
-                >
-                  <span className={step3.fssaiExpiry ? "text-gray-900" : "text-gray-500"}>
-                    {step3.fssaiExpiry
-                      ? parseLocalYMDDate(step3.fssaiExpiry)?.toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })
-                      : "Select expiry date"}
-                  </span>
-                  <CalendarIcon className="w-4 h-4 text-gray-500" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 z-100" align="start">
-                <div className="bg-white rounded-md shadow-lg border border-gray-200">
-                  <Calendar
-                    mode="single"
-                    selected={parseLocalYMDDate(step3.fssaiExpiry)}
-                    disabled={(date) => formatDateToLocalYMD(date) < getTodayLocalYMD()}
-                    onSelect={(date) => {
-                      if (date && formatDateToLocalYMD(date) >= getTodayLocalYMD()) {
-                        const formattedDate = formatDateToLocalYMD(date)
-                        setStep3({ ...step3, fssaiExpiry: formattedDate })
-                        setIsFssaiCalendarOpen(false)
-                      }
-                    }}
-                    initialFocus
-                    classNames={{
-                      today: "bg-transparent text-foreground border-none", // Remove today highlight
-                    }}
-                  />
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          className={`w-full ${ONBOARDING_UPLOAD_BTN}`}
-          onClick={() =>
-            openImageSourcePicker({
-              title: "Upload FSSAI image",
-              fileNamePrefix: "fssai-image",
-              fallbackInputRef: fssaiImageInputRef,
-              onSelectFile: handleFssaiImageSelected,
-            })
-          }
-        >
-          <Upload className="w-4 h-4 mr-1.5" />
-          Upload
-        </Button>
-        <input
-          type="file"
-          accept={GALLERY_IMAGE_ACCEPT}
-          className="hidden"
-          ref={fssaiImageInputRef}
-          onChange={(e) => {
-            handleFssaiImageSelected(e.target.files?.[0] || null)
-            e.target.value = ""
-          }}
-        />
-        {step3.fssaiImage && (
-          <div className={ONBOARDING_DOC_PREVIEW}>
-            {getPreviewImageUrl(step3.fssaiImage) ? (
-              <img
-                src={getPreviewImageUrl(step3.fssaiImage)}
-                alt="FSSAI document"
-                className="h-full w-full object-contain bg-white"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">
-                Preview unavailable
-              </div>
-            )}
-            {uploadingAttachments.fssaiImage && (
-              <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-4 border-white border-t-transparent"></div>
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setStep3((prev) => ({ ...prev, fssaiImage: null }))
-              }}
-              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        )}
-      </section>
 
       <section className={ONBOARDING_SECTION_FULL}>
         <h2 className={ONBOARDING_SECTION_TITLE}>Bank account details</h2>

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useCompanyName } from '@store/hooks/useCompanyName'
 
-const DEFAULT_DESCRIPTION = 'Shop from multiple sellers — groceries, fashion, electronics & more. Fast delivery with real-time tracking and coins on every order.'
+const DEFAULT_DESCRIPTION = 'Shop from multiple sellers — ethnic wear, western wear, accessories & more. Fast delivery with real-time tracking and coins on every order.'
 
 /**
  * Lightweight SEO head manager — sets document title and meta description

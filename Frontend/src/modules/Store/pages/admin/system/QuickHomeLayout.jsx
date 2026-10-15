@@ -491,7 +491,7 @@ export default function QuickHomeLayout() {
                 const set = (patch) => update("categoryGroups", layout.categoryGroups.map((x, j) => (j === i ? { ...x, ...patch } : x)))
                 return (
                   <div key={i} className="grid items-end gap-3 rounded-lg bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto]">
-                    <Field title="Heading" value={g.title} onChange={(v) => set({ title: v })} placeholder="Grocery & Kitchen" />
+                    <Field title="Heading" value={g.title} onChange={(v) => set({ title: v })} placeholder="Ethnic Wear" />
                     <label className="block">
                       <span className={label}>Parent category</span>
                       <select className={input} value={g.parentCategoryId} onChange={(e) => set({ parentCategoryId: e.target.value })}>

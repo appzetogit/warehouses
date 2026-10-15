@@ -1327,7 +1327,7 @@ export default function Cart() {
               replaceCart(nextCart)
               const priceChanges = response.data.data.priceChanges || []
               if (priceChanges.length > 0) {
-                toast.info("Cart prices were updated to match the latest menu")
+                toast.info("Cart prices were updated to match the latest prices")
               }
             }
           }
@@ -3740,7 +3740,7 @@ export default function Cart() {
                         setShowNoteInput(true)
                       }}
                       rows={4}
-                      placeholder="E.g. less spicy, no onions, extra sauce..."
+                      placeholder="E.g. gift wrap, call before delivery..."
                       className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111111] px-4 py-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-wh-brand resize-none"
                     />
                     <div className="mt-4 flex gap-2">

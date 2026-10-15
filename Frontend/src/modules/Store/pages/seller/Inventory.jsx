@@ -2403,7 +2403,7 @@ export default function Inventory() {
             >
               <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1" />
               <div className="px-6 py-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Add to Menu</h2>
+                <h2 className="text-xl font-bold text-gray-900">Add Product</h2>
                 <button 
                   onClick={() => setIsAddPopupOpen(false)}
                   className="p-2 bg-gray-100 rounded-full text-gray-500"
@@ -2492,7 +2492,7 @@ export default function Inventory() {
               <ShoppingBag className="w-4 h-4 text-slate-900" />
             )}
           </span>
-          <span>{isMenuOpen ? "Close" : "Menu"}</span>
+          <span>{isMenuOpen ? "Close" : "Categories"}</span>
         </motion.button>
 
         <AnimatePresence>

@@ -535,13 +535,6 @@ export default function UserOrderDetails() {
             image={item.image || ""}
             name={
               <span className="flex items-start gap-2">
-                {typeof item.isVeg === "boolean" && (
-                  <span
-                    className={`mt-1 flex h-3 w-3 shrink-0 items-center justify-center border p-[1px] ${item.isVeg ? "border-green-600" : "border-red-600"}`}
-                  >
-                    <span className={`h-full w-full rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"}`} />
-                  </span>
-                )}
                 <span>
                   {item.name}
                   {item.variantName ? ` (${item.variantName})` : ""}

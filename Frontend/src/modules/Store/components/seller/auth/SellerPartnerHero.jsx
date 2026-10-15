@@ -71,7 +71,7 @@ export default function SellerPartnerHero({ compact = false, themeColor = DEFAUL
             </h1>
             {!compact && (
               <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/60">
-                Sign in to manage orders, update your menu, track finances, and onboard your outlet in minutes.
+                Sign in to manage orders, update your products, track finances, and onboard your store in minutes.
               </p>
             )}
           </motion.div>

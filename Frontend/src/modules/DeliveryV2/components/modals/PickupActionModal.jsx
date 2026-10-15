@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ChefHat, MapPin, Phone, 
+  StickyNote, MapPin, Phone, 
   ChevronDown, ChevronUp, Package, 
   Navigation, CheckCircle2, Camera, Loader2, Image as ImageIcon
 } from 'lucide-react';
@@ -177,10 +177,10 @@ export const PickupActionModal = ({
                 return (
                 <div className="bg-orange-50/50 border border-orange-100 rounded-[2rem] p-5 flex gap-4 items-start relative overflow-hidden group">
                   <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <ChefHat className="w-12 h-12 text-orange-500" />
+                    <StickyNote className="w-12 h-12 text-orange-500" />
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
-                    <ChefHat className="w-5 h-5 text-orange-600" />
+                    <StickyNote className="w-5 h-5 text-orange-600" />
                   </div>
                   <div>
                     <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] mb-1.5">Delivery Instructions</p>

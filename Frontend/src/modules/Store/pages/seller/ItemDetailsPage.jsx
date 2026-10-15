@@ -380,46 +380,6 @@ export default function ItemDetailsPage() {
     }
   }, [])
 
-  // Serves info options
-  const servesOptions = [
-    "Serves eg. 1-2 people",
-    "Serves eg. 2-3 people",
-    "Serves eg. 3-4 people",
-    "Serves eg. 4-5 people",
-    "Serves eg. 5-6 people",
-  ]
-
-  // Item size unit options
-  const itemSizeUnits = [
-    "slices",
-    "kg",
-    "litre",
-    "ml",
-    "serves",
-    "cms",
-    "piece"
-  ]
-
-  // Item tags organized by categories
-  const itemTagsCategories = [
-    {
-      category: "Speciality",
-      tags: ["Freshly Frosted", "Pre Frosted", "Chef's Special"]
-    },
-    {
-      category: "Spice Level",
-      tags: ["Medium Spicy", "Very Spicy"]
-    },
-    {
-      category: "Miscellaneous",
-      tags: ["Gluten Free", "Sugar Free", "Jain"]
-    },
-    {
-      category: "Dietary Restrictions",
-      tags: ["Vegan"]
-    }
-  ]
-
   const MAX_ITEM_IMAGES = 6
 
   /// Appends to the gallery instead of replacing it.

@@ -148,7 +148,7 @@ const helpCategories = [
       },
       {
         question: "Can I return an item?",
-        answer: "Perishable items such as groceries can't be returned for safety reasons, but we'll give a full refund for quality issues. For other items, contact support and we'll help you with a return."
+        answer: "Most items can be returned within 7 days if unused, with tags attached. Innerwear and pierced jewellery can't be returned for hygiene reasons, but we'll refund any item that arrives damaged or wrong. Contact support and we'll help you with a return."
       },
       {
         question: "What if I received the wrong order?",

@@ -8,7 +8,7 @@ import { toast } from "sonner"
 const CATEGORY_OPTIONS = [
   { value: "orders", label: "Orders" },
   { value: "payments", label: "Payments" },
-  { value: "menu", label: "Menu" },
+  { value: "menu", label: "Products & catalogue" },
   { value: "seller", label: "Seller Profile" },
   { value: "technical", label: "Technical" },
   { value: "other", label: "Other" },
