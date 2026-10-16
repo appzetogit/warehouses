@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { X, Sparkles, Coins, Clock, ArrowRight, LogIn, CheckCircle2 } from "lucide-react"
 import confetti from "canvas-confetti"
 import { toast } from "sonner"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { spinAPI } from "@store/api"
 import { isModuleAuthenticated } from "@store/utils/auth"
 
@@ -59,6 +59,7 @@ function playTick() {
 
 export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [segments, setSegments] = useState(DEFAULT_SEGMENTS)
   const [canSpin, setCanSpin] = useState(true)
   const [spinsRemaining, setSpinsRemaining] = useState(1)
@@ -101,20 +102,22 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
           setLoading(false)
         })
     } else {
-      // Guest user handling
-      const todayStr = new Date().toISOString().slice(0, 10)
-      const guestSpunDate = localStorage.getItem("wh_guest_spin_date")
-      if (guestSpunDate === todayStr) {
-        setCanSpin(false)
-        setSpinsRemaining(0)
-      } else {
-        setCanSpin(true)
-        setSpinsRemaining(1)
-      }
+      // Guests see the wheel but must sign in to spin (only real spins pay out).
+      setCanSpin(false)
+      setSpinsRemaining(0)
     }
   }, [isOpen])
 
+  const goToSignIn = () => {
+    onClose()
+    navigate("/auth/login", { state: { from: `${location.pathname}${location.search}` } })
+  }
+
   const handleSpin = async () => {
+    if (!isModuleAuthenticated("user")) {
+      goToSignIn()
+      return
+    }
     if (isSpinning || !canSpin || spinsRemaining <= 0) return
 
     setIsSpinning(true)
@@ -132,39 +135,19 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
       }, accumulatedTime)
     })
 
-    const signedIn = isModuleAuthenticated("user")
+    // Real backend spin
+    try {
+      const res = await spinAPI.play()
+      const data = res?.data?.data ?? res?.data ?? {}
+      const winIndex = data.winningIndex ?? 0
+      const wonSegment = data.segment || segments[winIndex] || segments[0]
 
-    if (signedIn) {
-      // Real backend spin
-      try {
-        const res = await spinAPI.play()
-        const data = res?.data?.data ?? res?.data ?? {}
-        const winIndex = data.winningIndex ?? 0
-        const wonSegment = data.segment || segments[winIndex] || segments[0]
-
-        triggerWheelRotation(winIndex, wonSegment, true, data)
-      } catch (err) {
-        setIsSpinning(false)
-        const msg =
-          err?.response?.data?.message || err?.message || "Failed to spin wheel."
-        toast.error(msg)
-      }
-    } else {
-      // Guest demo / welcome spin
-      // Weight toward giving them a real welcome gift (25 or 50 coins) to drive registration!
-      const coinSegments = segments.filter((s) => s.type === "coins" && s.value > 0)
-      const chosenSegment =
-        coinSegments.find((s) => s.value === 50) ||
-        coinSegments[Math.floor(Math.random() * coinSegments.length)] ||
-        segments[0]
-      const winIndex = segments.findIndex((s) => s.id === chosenSegment.id)
-
-      // Store guest spin date in localStorage
-      const todayStr = new Date().toISOString().slice(0, 10)
-      localStorage.setItem("wh_guest_spin_date", todayStr)
-      localStorage.setItem("wh_pending_coins", String(chosenSegment.value || 50))
-
-      triggerWheelRotation(winIndex >= 0 ? winIndex : 0, chosenSegment, false)
+      triggerWheelRotation(winIndex, wonSegment, true, data)
+    } catch (err) {
+      setIsSpinning(false)
+      const msg =
+        err?.response?.data?.message || err?.message || "Failed to spin wheel."
+      toast.error(msg)
     }
   }
 
@@ -325,10 +308,13 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
             <div className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-gradient-to-br from-app-cream via-app-champagne to-app-brown-mid border-2 border-white shadow-2xl flex items-center justify-center z-20">
               <button
                 onClick={handleSpin}
-                disabled={isSpinning || !canSpin}
+                disabled={!isGuest && (isSpinning || !canSpin)}
+                aria-label={isGuest ? "Sign in to spin" : "Spin the wheel"}
                 className="w-full h-full rounded-full flex flex-col items-center justify-center text-[11px] font-black uppercase tracking-tight text-app-brown-ink transition hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed shadow-inner"
               >
-                {isSpinning ? "..." : "SPIN"}
+                {isGuest ? (
+                  <span className="leading-tight">Sign<br />in</span>
+                ) : isSpinning ? "..." : "SPIN"}
               </button>
             </div>
           </div>
@@ -391,8 +377,10 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-app-cream/60" />
-              <span className={canSpin ? "text-app-champagne font-semibold" : "text-app-cream/60"}>
-                {canSpin
+              <span className={canSpin || isGuest ? "text-app-champagne font-semibold" : "text-app-cream/60"}>
+                {isGuest
+                  ? "Sign in to spin"
+                  : canSpin
                   ? `${spinsRemaining > 1 ? spinsRemaining : 1} Free Spin${spinsRemaining > 1 ? "s" : ""} Ready`
                   : "Resets Tomorrow"}
               </span>
