@@ -72,7 +72,9 @@ export const config = {
 
     // SMS India Hub
     smsIndiaHubUsername: process.env.SMS_INDIA_HUB_USERNAME,
+    smsIndiaHubPassword: process.env.SMS_INDIA_HUB_PASSWORD,
     smsApiKey: process.env.SMS_INDIA_HUB_API_KEY,
+    smsPeId: process.env.SMS_INDIA_HUB_PE_ID || '1001164203633432409',
     smsSenderId: process.env.SMS_INDIA_HUB_SENDER_ID || 'BGADEC',
     smsDltTemplateId: process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID || '1007282516644508833',
 
