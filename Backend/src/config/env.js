@@ -38,7 +38,9 @@ export const config = {
      */
     otpSmsTemplate: String(
         process.env.OTP_SMS_TEMPLATE
-        || 'Welcome to the Switcheats powered by Appzeto.Your OTP for registration is {otp}.BGADEC.'
+        // DLT template 1007282516644508833 (sender BGADEC): "Welcome to the ##var##
+        // powered by Appzeto.Your OTP for registration is ##var##.BGADEC"
+        || 'Welcome to the Warehousess powered by Appzeto.Your OTP for registration is {otp}.BGADEC'
     ),
 
     /**
@@ -71,8 +73,8 @@ export const config = {
     // SMS India Hub
     smsIndiaHubUsername: process.env.SMS_INDIA_HUB_USERNAME,
     smsApiKey: process.env.SMS_INDIA_HUB_API_KEY,
-    smsSenderId: process.env.SMS_INDIA_HUB_SENDER_ID,
-    smsDltTemplateId: process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID,
+    smsSenderId: process.env.SMS_INDIA_HUB_SENDER_ID || 'BGADEC',
+    smsDltTemplateId: process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID || '1007282516644508833',
 
     // Rate limiting
     rateLimitEnabled: process.env.RATE_LIMIT_ENABLED !== 'false',
