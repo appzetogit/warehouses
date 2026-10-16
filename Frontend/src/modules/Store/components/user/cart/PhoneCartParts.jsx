@@ -11,10 +11,12 @@ import {
   ChevronRight,
   ChevronUp,
   Loader2,
+  LocateFixed,
   MapPin,
   Minus,
   PartyPopper,
   Plus,
+  ShieldCheck,
   Share2,
   ShoppingBag,
   Store,
@@ -323,59 +325,224 @@ export function BillRow({ label, note, value, tone = "default" }) {
   )
 }
 
+/** Radio dot used by the address and payment rows. */
+function RadioDot({ on }) {
+  return (
+    <span
+      className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 ${
+        on ? "border-app-brown" : "border-[#C9C9C9] dark:border-gray-600"
+      }`}
+      aria-hidden="true"
+    >
+      {on ? <span className="h-2 w-2 rounded-full bg-app-brown" /> : null}
+    </span>
+  )
+}
+
+const pickRowClass = (on) =>
+  `flex w-full items-start gap-3 px-3.5 py-2.5 text-left transition-colors disabled:cursor-wait ${
+    on
+      ? "bg-app-tint shadow-[inset_3px_0_0_var(--color-app-brown)] dark:bg-white/5"
+      : "hover:bg-app-alt/60 dark:hover:bg-white/5"
+  }`
+
+/**
+ * Every saved address as a radio row, so the shopper picks one right in the
+ * cart and sees the delivery time for each, plus "Use current location" and
+ * "Add new". Rows come in ready to show: { id, label, text, Icon, time: { text, ok } }.
+ */
+export function AddressPickerCard({
+  addresses = [],
+  selectedId = null,
+  currentSelected = false,
+  currentText = "",
+  locating = false,
+  pendingId = null,
+  onSelect,
+  onUseCurrent,
+  onAdd,
+  className = "",
+}) {
+  return (
+    <PhoneCard className={`overflow-hidden font-app lg:rounded-[18px] lg:border-app-line ${className}`}>
+      <div className="flex items-center gap-2 border-b border-[#EEEEEE] px-3.5 py-2.5 dark:border-gray-800">
+        <MapPin className="h-[18px] w-[18px] shrink-0 fill-app-brown text-white" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-bold text-app-ink dark:text-white">Delivery address</p>
+          <p className="text-[11px] text-app-muted">
+            {addresses.length > 0 ? "Tap an address to deliver there" : "Add an address to place your order"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="flex shrink-0 items-center gap-0.5 rounded-lg border-[1.2px] border-app-brown px-2.5 py-[5px] text-[12px] font-bold text-app-brown"
+        >
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+          Add new
+        </button>
+      </div>
+      <div role="radiogroup" aria-label="Delivery address" className="divide-y divide-[#EEEEEE] dark:divide-gray-800">
+        {addresses.map((address) => {
+          const on = !currentSelected && Boolean(address.id) && address.id === selectedId
+          const Icon = address.Icon || MapPin
+          return (
+            <button
+              key={address.id || address.text}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              disabled={Boolean(pendingId)}
+              onClick={() => onSelect?.(address.id)}
+              className={pickRowClass(on)}
+            >
+              <span className="mt-0.5">
+                <RadioDot on={on} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-app-brown" aria-hidden="true" />
+                  <span className="text-[13px] font-bold text-app-ink dark:text-white">{address.label}</span>
+                  {on ? (
+                    <span className="rounded-full bg-app-brown px-1.5 py-px text-[8.5px] font-bold uppercase tracking-wider text-white">
+                      Delivering here
+                    </span>
+                  ) : null}
+                  {pendingId && pendingId === address.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-app-muted" aria-hidden="true" />
+                  ) : null}
+                </span>
+                <span className="mt-0.5 block line-clamp-2 text-[11.5px] leading-snug text-[#666666] dark:text-gray-400">
+                  {address.text}
+                </span>
+              </span>
+              {address.time?.text ? (
+                <span
+                  className={`mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold ${
+                    address.time.ok
+                      ? "border-[#C8E6C9] bg-[#E8F5E9] text-[#2E7D32]"
+                      : "border-[#F5C6C6] bg-[#FDE4E4] text-[#D32F2F]"
+                  }`}
+                >
+                  {address.time.text}
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
+        <button
+          type="button"
+          role="radio"
+          aria-checked={currentSelected}
+          onClick={onUseCurrent}
+          disabled={locating}
+          className={pickRowClass(currentSelected)}
+        >
+          <span className="mt-0.5">
+            <RadioDot on={currentSelected} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5">
+              {locating ? (
+                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-app-brown" aria-hidden="true" />
+              ) : (
+                <LocateFixed className="h-3.5 w-3.5 shrink-0 text-app-brown" aria-hidden="true" />
+              )}
+              <span className="text-[13px] font-bold text-app-brown">
+                {locating ? "Finding your location..." : "Use current location"}
+              </span>
+            </span>
+            <span className="mt-0.5 block line-clamp-2 text-[11.5px] leading-snug text-[#666666] dark:text-gray-400">
+              {currentSelected && currentText ? currentText : "Deliver to where you are right now"}
+            </span>
+          </span>
+        </button>
+      </div>
+    </PhoneCard>
+  )
+}
+
 const PAY_ICON_TINT = {
-  cash: "bg-[#FDF1E4] text-[#E08A2E]",
+  cash: "bg-[#FDF1E4] text-[#B86A1E]",
   razorpay: "bg-[#E8F5E9] text-[#2E7D32]",
   wallet: "bg-app-tint text-app-brown",
 }
 
-/** Payment method card: one selectable row per available option. */
-export function PaymentMethodCard({ options, selected, onSelect, className = "" }) {
+/**
+ * Payment method, laid out like a marketplace checkout: one radio row per way
+ * to pay with the order amount on it and the chosen row highlighted. Only the
+ * options passed in are shown (Cart.jsx decides which are allowed).
+ */
+export function PaymentMethodCard({ options, selected, onSelect, amount, className = "" }) {
   return (
-    <PhoneCard className={`p-3.5 font-app ${className}`}>
-      <p className="mb-2.5 text-[14px] font-bold text-app-ink dark:text-white">Payment method</p>
-      <div className="space-y-2">
+    <PhoneCard className={`overflow-hidden font-app ${className}`}>
+      <div className="flex items-center justify-between gap-2 border-b border-[#EEEEEE] px-3.5 py-2.5 dark:border-gray-800">
+        <p className="text-[14px] font-bold text-app-ink dark:text-white">Select payment method</p>
+        <span className="flex shrink-0 items-center gap-1 text-[10.5px] font-semibold text-[#2E7D32]">
+          <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+          Safe and secure
+        </span>
+      </div>
+      <div role="radiogroup" aria-label="Payment method" className="space-y-2 p-3">
         {options.map((option) => {
           const on = selected === option.id
           return (
             <button
               key={option.id}
               type="button"
+              role="radio"
+              aria-checked={on}
               disabled={option.disabled}
-              aria-pressed={on}
               onClick={() => onSelect(option)}
-              className={`flex w-full items-center gap-3 rounded-xl bg-white px-3 py-2.5 text-left dark:bg-[#1a1a1a] ${
-                on ? "border-[1.5px] border-app-brown" : "border border-[#E0E0E0] dark:border-gray-700"
+              className={`block w-full rounded-xl px-3 py-2.5 text-left transition-colors ${
+                on
+                  ? "border-[1.5px] border-app-brown bg-app-tint dark:bg-white/5"
+                  : "border border-[#E0E0E0] bg-white hover:border-app-brown/40 dark:border-gray-700 dark:bg-[#1a1a1a]"
               } ${option.disabled ? "cursor-not-allowed opacity-50" : ""}`}
             >
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${PAY_ICON_TINT[option.id] || "bg-app-alt text-app-brown"}`}>
-                {option.icon}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="text-[13px] font-semibold text-app-ink dark:text-white">{option.name}</span>
-                  {option.badge ? (
-                    <span className="rounded-full bg-[#E8F5E9] px-1.5 py-px text-[8px] font-bold tracking-wider text-[#2E7D32]">
-                      {option.badge}
-                    </span>
+              <span className="flex items-center gap-3">
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${PAY_ICON_TINT[option.id] || "bg-app-alt text-app-brown"}`}>
+                  {option.icon}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                    {amount !== undefined && amount !== null ? (
+                      <span className="text-[14px] font-extrabold tabular-nums text-app-ink dark:text-white">{money(amount)}</span>
+                    ) : null}
+                    <span className="text-[13px] font-semibold text-app-ink dark:text-white">{option.name}</span>
+                    {option.badge ? (
+                      <span className="rounded-full bg-[#E8F5E9] px-1.5 py-px text-[8px] font-bold tracking-wider text-[#2E7D32]">
+                        {option.badge}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="block text-[11px] leading-snug text-app-muted">
+                    {option.description}
+                    {option.subInfo && !option.disabled ? ` · ${option.subInfo}` : ""}
+                  </span>
+                  {option.disabled && option.disabledText ? (
+                    <span className="block text-[10px] font-semibold text-[#D32F2F]">{option.disabledText}</span>
                   ) : null}
                 </span>
-                <span className="block truncate text-[11px] text-app-muted">
-                  {option.description}
-                  {option.subInfo && !option.disabled ? ` · ${option.subInfo}` : ""}
+                <RadioDot on={on} />
+              </span>
+              {option.chips?.length ? (
+                <span className="mt-2 flex flex-wrap gap-1.5 pl-12">
+                  {option.chips.map((chip) => (
+                    <span
+                      key={chip}
+                      className="rounded-md border border-[#E2E2E6] bg-white px-1.5 py-px text-[9.5px] font-semibold text-app-ink dark:border-gray-700 dark:bg-[#222] dark:text-gray-200"
+                    >
+                      {chip}
+                    </span>
+                  ))}
                 </span>
-                {option.disabled && option.disabledText ? (
-                  <span className="block text-[10px] font-semibold text-[#D32F2F]">{option.disabledText}</span>
-                ) : null}
-              </span>
-              <span
-                className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 ${
-                  on ? "border-app-brown" : "border-[#C9C9C9]"
-                }`}
-                aria-hidden="true"
-              >
-                {on ? <span className="h-2 w-2 rounded-full bg-app-brown" /> : null}
-              </span>
+              ) : null}
+              {on && option.note ? (
+                <span className="mt-2 block rounded-lg bg-white/80 px-2.5 py-1.5 text-[10.5px] leading-snug text-[#5A4636] dark:bg-black/20 dark:text-gray-300">
+                  {option.note}
+                </span>
+              ) : null}
             </button>
           )
         })}

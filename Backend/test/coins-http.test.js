@@ -71,12 +71,12 @@ test('admin can manage coin settings, adjust coins, and view liability report', 
     // 4. Verify user balance updated
     const userBalance = ok(await call('GET', '/user/coins/balance', { as: userToken }), 'user balance after adjust');
     assert.equal(userBalance.coins, 150);
-    assert.equal(userBalance.usable, 150);
+    assert.equal(userBalance.usable, 120, 'admin grants follow the 80% rule');
 
     // 5. Admin report reflects issued coins
     const report = ok(await call('GET', '/admin/coins/report', { as: adminToken }), 'admin report');
     assert.equal(report.credited, 150);
-    assert.equal(report.outstandingUsable, 150);
+    assert.equal(report.outstandingUsable, 120);
 
     // 6. Admin can inspect user ledger
     const userLedger = ok(

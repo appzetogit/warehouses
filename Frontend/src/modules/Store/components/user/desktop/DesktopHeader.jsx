@@ -9,7 +9,7 @@ import { clearHomeScrollState } from "@store/utils/homeScrollRestore"
 import { useLocationSelector } from "../UserLayout"
 import RotatingSearchHint from "../mobile/RotatingSearchHint"
 import { useBusinessSettings, usePublicCategories } from "./useDesktopShell"
-import { locationPincode, useQuickEta } from "./useDeliveryEstimates"
+import { locationPincode } from "./useDeliveryEstimates"
 import { useQuickCartPanel } from "./quick/QuickCartPanel"
 import SearchSuggestions, { useSearchSuggestions, useSuggestionKeyboard } from "./SearchSuggestions"
 
@@ -294,7 +294,6 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
   const { openLocationSelector } = useLocationSelector()
   const { brandName } = useBusinessSettings()
   const { categories, roots, tree } = usePublicCategories(zoneId)
-  const quickEta = useQuickEta()
   const quickCart = useQuickCartPanel()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [q, setQ] = useState("")
@@ -369,7 +368,6 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
   })
 
   const topCats = roots.slice(0, 7)
-  const toQuick = !isQuick
   const currentPath = location.pathname.replace(/\/+$/, "")
   const isCurrent = (to) => {
     const [path, query = ""] = to.split("?")
@@ -508,26 +506,40 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
             )}
           </form>
 
-          {/* The dark pill offers the other store, as on the phone. */}
-          <button
-            type="button"
-            onClick={() => setCommerceMode(toQuick ? "quick" : "standard")}
-            aria-label={toQuick ? "Switch to Quick delivery" : "Switch to Shop"}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full bg-[#191411] px-3.5 py-2 text-[12.5px] font-bold text-white shadow-[0_2px_4px_rgba(0,0,0,0.15)] transition hover:bg-app-brown-deep active:scale-95 ${focusRing}`}
+          {/* Shop | Quick: two segments, the active store in brown. */}
+          <div
+            role="group"
+            aria-label="Choose store"
+            className="flex shrink-0 items-center rounded-full border border-app-line bg-white p-[3px] text-[12.5px] font-bold shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
           >
-            {toQuick ? (
-              <Zap className="h-4 w-4 text-app-champagne" fill="currentColor" aria-hidden="true" />
-            ) : (
-              <ShoppingBag className="h-4 w-4 text-app-champagne" aria-hidden="true" />
-            )}
-            {toQuick ? (
-              <span>
-                Quick<span className="hidden xl:inline"> · {quickEta} min</span>
-              </span>
-            ) : (
-              "Shop"
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (isQuick) setCommerceMode("standard")
+              }}
+              aria-pressed={!isQuick}
+              aria-label={isQuick ? "Switch to Shop" : "Shop (current store)"}
+              className={`flex items-center rounded-full px-3.5 py-1.5 transition-colors ${
+                !isQuick ? "bg-app-brown text-white" : "text-app-muted hover:bg-app-cream hover:text-app-brown"
+              } ${focusRing}`}
+            >
+              Shop
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!isQuick) setCommerceMode("quick")
+              }}
+              aria-pressed={isQuick}
+              aria-label={isQuick ? "Quick (current store)" : "Switch to Quick delivery"}
+              className={`flex items-center gap-1 rounded-full px-3.5 py-1.5 transition-colors ${
+                isQuick ? "bg-app-brown text-white" : "text-app-muted hover:bg-app-cream hover:text-app-brown"
+              } ${focusRing}`}
+            >
+              <Zap className="h-3.5 w-3.5 text-app-champagne" fill="currentColor" aria-hidden="true" />
+              Quick
+            </button>
+          </div>
 
           <AccountMenu firstName={firstName} signedIn={signedIn} storePath={storePath} />
 

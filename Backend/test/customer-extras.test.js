@@ -216,7 +216,7 @@ test('retry-payment after the hold has run out is a 409 with a clear message', a
 test('the coin expiry list shows lots running out soon with their dates', async () => {
     const coins = await import('../src/modules/commerce/coins/services/coin.service.js');
     const buyer = await newCustomer();
-    await coins.creditCoins({ userId: buyer.id, amount: 40, source: 'spin', refId: `x-spin-${buyer.id}` });
+    await coins.creditCoins({ userId: buyer.id, amount: 40, source: 'spin', spendablePercent: 100, refId: `x-spin-${buyer.id}` });
     const res = ok(await call('GET', '/user/coins/expiring?days=365', { as: buyer.as }), 'expiring');
     assert.equal(res.lots.length, 1);
     assert.equal(res.total, 40);

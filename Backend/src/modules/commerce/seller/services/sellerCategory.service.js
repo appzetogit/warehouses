@@ -166,12 +166,13 @@ export async function listPublicCategories(query = {}) {
         categoryId: { $ne: null }
     });
 
-    if (!approvedCategoryIds.length) {
-        return { categories: [], total: 0, page, limit };
-    }
-
+    // Every active top-level category is listed, in the admin's sortOrder, so a
+    // main category the admin adds (Men, Kids, Footwear…) shows on the storefront
+    // straight away; its page shows an empty state until products arrive.
+    // Subcategories still need an approved product, so menus aren't padded with
+    // dead links.
     const filter = {
-        _id: { $in: approvedCategoryIds },
+        $or: [{ _id: { $in: approvedCategoryIds } }, { parentId: null }],
         isActive: true,
         $and: [{ $or: GLOBAL_CATEGORY_FILTER }, { $or: APPROVED_CATEGORY_FILTER }]
     };

@@ -56,9 +56,10 @@ export async function updateCoinSettings(body = {}) {
 /**
  * Credits a lot of coins.
  *
- * Only refund coins carry the redeem percentage (the SOW's 80% rule). Rewards
- * and admin grants are spendable in full unless `spendablePercent` says
- * otherwise. With a `refId` the credit happens once however often it is retried.
+ * Every lot carries the redeem percentage (the SOW's 80% rule): refunds,
+ * spin rewards and admin grants alike. `spendablePercent` overrides it (a
+ * reversal hands back coins that were already spendable in full). With a
+ * `refId` the credit happens once however often it is retried.
  */
 export async function creditCoins({
     userId,
@@ -73,7 +74,7 @@ export async function creditCoins({
     const coins = wholeCoins(amount);
     if (!coins) throw new ValidationError('Coin amount must be a positive whole number');
     const settings = await getCoinSettings();
-    const percent = spendablePercent ?? (source === 'refund' ? settings.redeemPercent : 100);
+    const percent = spendablePercent ?? settings.redeemPercent;
     const spendable = Math.floor((coins * percent) / 100);
     const lotExpiry = expiresAt || new Date(Date.now() + settings.expiryDays * DAY_MS);
     const user = toOid(userId, 'user id');
@@ -132,7 +133,7 @@ const activeLotFilter = (userId, now) => ({
 
 /**
  * `coins` is what the customer holds; `usable` is how many of them can still
- * be spent (the rest of each refund lot is never redeemable).
+ * be spent (the rest of each lot is never redeemable).
  */
 export async function getCoinBalance(userId, now = new Date()) {
     const user = toOid(userId, 'user id');
@@ -157,6 +158,8 @@ export async function getCoinBalance(userId, now = new Date()) {
         coins: Math.max(0, row?.coins || 0),
         usable,
         usableValue: usable * settings.coinValue,
+        redeemPercent: settings.redeemPercent,
+        maxOrderPercent: settings.maxOrderPercent,
         expiringSoon: Math.max(0, row?.expiringSoon || 0),
         nextExpiry: row?.nextExpiry || null,
         isEnabled: settings.isEnabled,

@@ -128,7 +128,7 @@ test('a two-store cash checkout uses the coupon once, split between the stores',
 
 test('coins lower what is charged, and one Razorpay payment releases every store', async () => {
     const buyer = await newCustomer();
-    await models.coins.creditCoins({ userId: buyer.id, amount: 100, source: 'spin', refId: `spin-${buyer.id}` });
+    await models.coins.creditCoins({ userId: buyer.id, amount: 100, source: 'spin', spendablePercent: 100, refId: `spin-${buyer.id}` });
 
     const res = ok(await call('POST', '/orders/checkout', {
         as: buyer.as, body: checkoutBody({ paymentMethod: 'razorpay', coins: 100 }),
@@ -189,7 +189,7 @@ test('a wallet checkout is charged once, for the whole cart', async () => {
 
 test('closing the payment sheet gives back the stock and the coins', async () => {
     const buyer = await newCustomer();
-    await models.coins.creditCoins({ userId: buyer.id, amount: 50, source: 'spin', refId: `spin-${buyer.id}` });
+    await models.coins.creditCoins({ userId: buyer.id, amount: 50, source: 'spin', spendablePercent: 100, refId: `spin-${buyer.id}` });
     const before = (await models.Product.findById(ids.pa).lean()).stock.quick;
 
     const { checkout } = ok(await call('POST', '/orders/checkout', {

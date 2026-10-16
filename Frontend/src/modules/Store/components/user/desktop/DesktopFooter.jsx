@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowUp, Facebook, Instagram, Linkedin, Mail, MapPin, MessageCircle, Phone, Youtube } from "lucide-react"
 import { useStoreMode } from "@store/context/StoreModeContext"
@@ -35,24 +34,29 @@ const BRAND_CONTACT = {
   phone: "+91-9203409595",
   email: "connect@thewarehousess.com",
 }
-const BRAND_LOGO_ON_LIGHT = "/brand/logo-on-light.png"
+const BRAND_LOGO_ON_DARK = "/brand/logo-on-dark.png"
+
+// The phone home footer's look (ShopHomeFooter): a brown-deep "Back to top"
+// band, a brown-darker body with white headings and #DDD3CB links, an ink strip.
+const linkClass = "text-[#DDD3CB] transition-colors hover:text-app-champagne"
+const iconClass = "h-5 w-5 shrink-0 text-app-champagne"
 
 function Column({ title, children }) {
   return (
     <div>
-      <h2 className="mb-4 font-display text-[18px] font-semibold text-wh-text">{title}</h2>
-      <ul className="space-y-3 text-[15px] text-gray-700">{children}</ul>
+      <h2 className="mb-4 text-[15px] font-bold text-white">{title}</h2>
+      <ul className="space-y-3 text-[14px]">{children}</ul>
     </div>
   )
 }
 
 const FLink = ({ to, children }) => (
   <li>
-    <Link to={to} className="transition-colors hover:text-[#0D9488]">{children}</Link>
+    <Link to={to} className={linkClass}>{children}</Link>
   </li>
 )
 
-/** Storefront footer: a white card on teal (was the old site's orange). */
+/** Storefront footer, desktop: the phone footer's brown palette with desktop columns. */
 export default function DesktopFooter() {
   const { storePath } = useStoreMode()
   const { settings, brandName, supportEmail, supportPhone } = useBusinessSettings()
@@ -65,14 +69,22 @@ export default function DesktopFooter() {
   const footerCategories = categories.filter((c) => c.parentId).slice(0, 6)
 
   return (
-    <footer className="wh-desktop mt-8 bg-gradient-to-r from-[#0F766E] via-[#0D9488] to-[#14B8A6] px-3 pt-8 sm:px-5 sm:pt-10">
-      <div className="mx-auto max-w-[1500px] rounded-2xl bg-white px-6 py-8 shadow-lg sm:px-10 sm:py-10">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.6fr] lg:gap-10">
+    <footer className="wh-desktop font-app mt-8">
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="flex h-[50px] w-full items-center justify-center gap-1.5 bg-app-brown-deep text-[13px] text-white transition-colors hover:bg-app-brown"
+      >
+        <ArrowUp className="h-4 w-4" aria-hidden="true" /> Back to top
+      </button>
+
+      <div className="bg-app-brown-darker px-5 py-10 sm:px-8 sm:py-12">
+        <div className="mx-auto grid max-w-[1500px] grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.6fr] lg:gap-10">
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <Link to={storePath("/")} aria-label={`${brandName} home`} className="inline-block">
-              <img src={BRAND_LOGO_ON_LIGHT} alt={brandName} className="h-[72px] w-auto object-contain" />
+              <img src={BRAND_LOGO_ON_DARK} alt={brandName} className="h-[72px] w-auto object-contain" />
             </Link>
-            <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-gray-700">
+            <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-[#DDD3CB]">
               {brandName} brings you trendy and elegant fashion designed for modern women. From Western wear to
               ethnic styles, discover outfits that blend comfort with style.
             </p>
@@ -86,7 +98,7 @@ export default function DesktopFooter() {
                       rel="noopener noreferrer"
                       aria-label={`${brandName} on ${label}`}
                       title={label}
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F0FDFA] text-[#0D9488] hover:bg-[#0D9488] hover:text-white"
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-app-champagne transition-colors hover:bg-app-champagne hover:text-app-brown-darker"
                     >
                       {Icon ? <Icon className="h-[18px] w-[18px]" aria-hidden="true" /> : <span className="text-[12px] font-bold">{label.charAt(0)}</span>}
                     </a>
@@ -102,37 +114,37 @@ export default function DesktopFooter() {
               : <FLink to="/categories">All categories</FLink>}
           </Column>
 
-          <Column title="Quick Links">
+          <Column title="Get to Know Us">
+            <FLink to="/profile/about">About Us</FLink>
             <FLink to="/profile/privacy">Privacy Policy</FLink>
             <FLink to="/profile/terms">Terms &amp; Conditions</FLink>
-            <FLink to="/profile/refund">Refund &amp; Return</FLink>
             <FLink to="/profile/shipping">Shipping Policy</FLink>
             <FLink to="/seller/signup">Become a Vendor</FLink>
           </Column>
 
-          <Column title="Useful Links">
-            <FLink to="/profile/about">About Us</FLink>
-            <FLink to="/help">Contact Us</FLink>
+          <Column title="Let Us Help You">
             <FLink to="/orders">Track Your Order</FLink>
+            <FLink to="/profile/refund">Refund &amp; Return</FLink>
             <FLink to="/offers">Offers &amp; Deals</FLink>
+            <FLink to="/help">Contact Us</FLink>
             <FLink to="/profile">Your Account</FLink>
           </Column>
 
           <div className="col-span-2 md:col-span-1">
-            <h2 className="mb-4 font-display text-[18px] font-semibold text-wh-text">Get in Touch</h2>
-            <ul className="space-y-4 text-[15px] text-gray-700">
+            <h2 className="mb-4 text-[15px] font-bold text-white">Connect with Us</h2>
+            <ul className="space-y-4 text-[14px] text-[#DDD3CB]">
               <li className="flex gap-3">
-                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#0D9488]" aria-hidden="true" />
+                <MapPin className={`mt-0.5 ${iconClass}`} aria-hidden="true" />
                 <span>{address}</span>
               </li>
               <li>
-                <a href={`tel:${phone.replace(/[\s-]+/g, "")}`} className="flex items-center gap-3 hover:text-[#0D9488]">
-                  <Phone className="h-5 w-5 shrink-0 text-[#0D9488]" aria-hidden="true" /> {phone}
+                <a href={`tel:${phone.replace(/[\s-]+/g, "")}`} className={`flex items-center gap-3 ${linkClass}`}>
+                  <Phone className={iconClass} aria-hidden="true" /> {phone}
                 </a>
               </li>
               <li>
-                <a href={`mailto:${email}`} className="flex items-center gap-3 break-all hover:text-[#0D9488]">
-                  <Mail className="h-5 w-5 shrink-0 text-[#0D9488]" aria-hidden="true" /> {email}
+                <a href={`mailto:${email}`} className={`flex items-center gap-3 break-all ${linkClass}`}>
+                  <Mail className={iconClass} aria-hidden="true" /> {email}
                 </a>
               </li>
             </ul>
@@ -140,15 +152,11 @@ export default function DesktopFooter() {
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-[1500px] flex-col items-center justify-between gap-3 py-5 text-[13px] text-white sm:flex-row">
-        <p>© {new Date().getFullYear()} {brandName}. All rights reserved.</p>
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 font-semibold hover:bg-white/25"
-        >
-          <ArrowUp className="h-4 w-4" aria-hidden="true" /> Back to top
-        </button>
+      <div className="bg-app-ink px-5 py-5 text-center">
+        <p className="text-[15px] font-bold text-white">{brandName}</p>
+        <p className="mt-1 text-[12px] text-[#A8A29E]">
+          © {new Date().getFullYear()} {brandName}. All rights reserved.
+        </p>
       </div>
     </footer>
   )

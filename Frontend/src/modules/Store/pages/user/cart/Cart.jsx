@@ -56,7 +56,7 @@ import {
   BillRow,
   CartLineTile,
   CouponRow,
-  DeliveryStrip,
+  AddressPickerCard,
   PaymentMethodCard,
   PhoneCard,
   SellerHeader,
@@ -65,7 +65,7 @@ import {
   phoneCartSwitchClass,
 } from "@store/components/user/cart/PhoneCartParts"
 import useIsDesktop from "@store/components/user/desktop/useIsDesktop"
-import { formatDeliveryWindow, useQuickEta, useShopDeliveryEstimate } from "@store/components/user/desktop/useDeliveryEstimates"
+import { formatDeliveryWindow, useAddressDeliveryTimes, useQuickEta, useShopDeliveryEstimate } from "@store/components/user/desktop/useDeliveryEstimates"
 import { useBusinessSettings } from "@store/components/user/desktop/useDesktopShell"
 import zoopSound from "@store/assets/audio/order-placed.mp3"
 const debugLog = (...args) => { }
@@ -351,7 +351,7 @@ export default function Cart() {
   const isDesktop = useIsDesktop()
   // Phone bill card: "VIEW PRICE DETAILS" in the bottom bar scrolls to it.
   const phoneBillRef = useRef(null)
-  const { location: currentLocation, loading: currentLocationLoading } = useUserLocation() // Get live location address
+  const { location: currentLocation, loading: currentLocationLoading, requestLocation } = useUserLocation() // Get live location address
 
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponCode, setCouponCode] = useState("")
@@ -411,6 +411,9 @@ export default function Cart() {
   const [showOrderSuccess, setShowOrderSuccess] = useState(false)
   const [placedOrderId, setPlacedOrderId] = useState(null)
   const [selectedAddressId, setSelectedAddressId] = useState(null)
+  // In-cart address list: the saved address being switched to, and the GPS lookup.
+  const [pendingAddressId, setPendingAddressId] = useState(null)
+  const [locatingCurrent, setLocatingCurrent] = useState(false)
   const [deliveryAddressMode, setDeliveryAddressMode] = useState(() => {
     try {
       if (typeof window === "undefined") return "saved"
@@ -742,6 +745,8 @@ export default function Cart() {
     }
     : currentLocation
   const { zoneId } = useZone(zoneLocation) // Prefer selected/saved address zone
+  // Delivery time per saved address for the in-cart list (Quick: zone ETA, Shop: courier days).
+  const addressDeliveryTimes = useAddressDeliveryTimes(addresses, { quick: inQuick, getId: getAddressId })
   const defaultPayment = getDefaultPaymentMethod()
 
   useEffect(() => {
@@ -1640,11 +1645,6 @@ export default function Cart() {
   const selectedPaymentLabel =
     selectedPaymentMethod === "wallet" ? "Wallet" : selectedPaymentMethod === "cash" ? "Cash on Delivery" : "Online Payment"
 
-  const headerAddressLabel = defaultAddress ? getDisplayAddressLabel(defaultAddress.label) : "Select Address"
-  const headerAddressText = defaultAddress
-    ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || "Add Delivery Address")
-    : "Add Delivery Address"
-
   const formatAddressDistanceLabel = (address) => {
     const addressId = getAddressId(address)
     const cached = addressId ? addressRoadKmById[String(addressId)] : null
@@ -1669,6 +1669,47 @@ export default function Cart() {
   const handleSelectAddressFromSheet = async (address) => {
     await handleSelectSavedAddress(address)
     setShowAddressSheet(false)
+  }
+
+  // In-cart address list: same selection as the address sheet.
+  const handlePickAddress = async (addressId) => {
+    const address = addresses.find((addr) => getAddressId(addr) === addressId)
+    if (!address || pendingAddressId) return
+    if (deliveryAddressMode !== "current" && addressId === getAddressId(defaultAddress)) return
+    setPendingAddressId(addressId)
+    try {
+      await handleSelectSavedAddress(address)
+    } finally {
+      setPendingAddressId(null)
+    }
+  }
+
+  // "Use current location": live GPS fix, then deliver there (deliveryAddressMode "current").
+  const handleUseCurrentLocation = async () => {
+    if (locatingCurrent) return
+    const previousMode = deliveryAddressMode
+    setLocatingCurrent(true)
+    try {
+      const loc = await requestLocation({ live: true })
+      if (!Number.isFinite(Number(loc?.latitude)) || !Number.isFinite(Number(loc?.longitude))) {
+        throw new Error("No location fix")
+      }
+      setSelectedAddressId(null)
+      setDeliveryAddressMode("current")
+      toast.success("Delivering to your current location")
+    } catch {
+      // Go back to the address that was in use before the lookup.
+      if (previousMode !== "current") {
+        try {
+          localStorage.setItem("deliveryAddressMode", previousMode)
+          window.dispatchEvent(new Event("deliveryAddressModeChanged"))
+        } catch { }
+        setDeliveryAddressMode(previousMode)
+      }
+      toast.error("Couldn't get your location. Allow location access or pick a saved address.")
+    } finally {
+      setLocatingCurrent(false)
+    }
   }
 
   // Seller name from data or cart
@@ -2722,6 +2763,7 @@ export default function Cart() {
       id: 'cash',
       name: 'Cash on Delivery',
       description: 'Pay when your order arrives',
+      note: 'Pay the delivery partner in cash when your order arrives. Please keep the exact amount ready.',
       icon: <Banknote className="w-5 h-5" />,
       color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400',
       selectedColor: 'bg-amber-500 text-white',
@@ -2729,7 +2771,9 @@ export default function Cart() {
     payOnline && {
       id: 'razorpay',
       name: 'Online Payment',
-      description: 'UPI, Cards, Netbanking',
+      description: 'Pay now, securely',
+      chips: ['UPI', 'Cards', 'Netbanking'],
+      note: 'You will finish the payment securely on the next screen.',
       icon: <Zap className="w-5 h-5" />,
       color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400',
       selectedColor: 'bg-emerald-500 text-white',
@@ -2859,10 +2903,26 @@ export default function Cart() {
               <div className="contents lg:flex lg:flex-col lg:gap-4 lg:min-w-0">
               {/* Where it goes, with Change opening the address sheet (desktop: under the heading) */}
               {isDesktop && <DesktopCartHeading count={getCartCount()} />}
-              <DeliveryStrip
+              <AddressPickerCard
                 className="order-first lg:order-none"
-                text={defaultAddress ? `${headerAddressLabel} · ${headerAddressText}` : "Select a delivery address"}
-                onChange={() => setShowAddressSheet(true)}
+                addresses={addresses.map((address) => {
+                  const id = getAddressId(address)
+                  return {
+                    id,
+                    label: getDisplayAddressLabel(address.label),
+                    text: formatFullAddress(address) || address?.formattedAddress || address?.address || "Address",
+                    Icon: getAddressIcon(address),
+                    time: id ? addressDeliveryTimes[String(id)] : null,
+                  }
+                })}
+                selectedId={getAddressId(defaultAddress)}
+                currentSelected={deliveryAddressMode === "current" && Boolean(currentLocationAddress)}
+                currentText={currentLocationAddress ? (formatFullAddress(currentLocationAddress) || currentLocationAddress.formattedAddress || "") : ""}
+                locating={locatingCurrent}
+                pendingId={pendingAddressId}
+                onSelect={handlePickAddress}
+                onUseCurrent={handleUseCurrentLocation}
+                onAdd={handleOpenAddAddress}
               />
               {/* Cart Items */}
               <div className="order-1">
@@ -3264,7 +3324,7 @@ export default function Cart() {
                           <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
                             Coins
                             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
-                              80% usable rule
+                              {coinBalance.redeemPercent ?? 80}% usable rule
                             </span>
                           </h4>
                         </div>
@@ -3277,11 +3337,11 @@ export default function Cart() {
                         </Link>
                         {maxCoinsRedeemable > 0 ? (
                           <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                            Redeem up to 50% on this order
+                            Redeem up to {coinBalance.maxOrderPercent ?? 50}% on this order
                           </p>
                         ) : (
                           <p className="text-[11px] text-gray-400 mt-0.5">
-                            {(coinBalance.usable || 0) === 0 ? "Earn refund coins for savings on future orders" : "Minimum order required"}
+                            {(coinBalance.usable || 0) === 0 ? "Earn coins for savings on future orders" : "Minimum order required"}
                           </p>
                         )}
                       </div>
@@ -3306,7 +3366,7 @@ export default function Cart() {
               {/* Bill card and payment card (phone and desktop: same rows, figures and options) */}
               <BillDetailsCard
                   ref={phoneBillRef}
-                  className="order-6 lg:order-1 lg:rounded-[18px] lg:border-app-line lg:p-4"
+                  className="order-7 lg:order-2 lg:rounded-[18px] lg:border-app-line lg:p-4"
                   toPay={`${RUPEE_SYMBOL}${finalPayable.toFixed(2)}`}
                   savings={isDesktop ? 0 : phoneSavings}
                 >
@@ -3350,8 +3410,9 @@ export default function Cart() {
                   )}
                 </BillDetailsCard>
               <PaymentMethodCard
-                  className="order-6 lg:order-2 lg:rounded-[18px] lg:border-app-line lg:p-4"
+                  className="order-6 lg:order-1 lg:rounded-[18px] lg:border-app-line"
                   options={paymentOptions}
+                  amount={finalPayable}
                   selected={selectedPaymentMethod}
                   onSelect={(option) => {
                     if (!option.disabled) setSelectedPaymentMethod(option.id)
@@ -3371,7 +3432,7 @@ export default function Cart() {
                 />
               )}
 
-              <p className="order-7 text-[11px] leading-relaxed px-1 text-app-muted dark:text-gray-400 lg:order-5 lg:text-center">
+              <p className="order-8 text-[11px] leading-relaxed px-1 text-app-muted dark:text-gray-400 lg:order-5 lg:text-center">
                 You can cancel before your order is packed.{" "}
                 {returnWindowDays
                   ? `Eligible items can be returned within ${returnWindowDays} days of delivery.`

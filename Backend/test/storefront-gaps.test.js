@@ -37,6 +37,10 @@ before(async () => {
         cat(ids.milk, 'Gaps Milk', { parentId: ids.dairy, sortOrder: 2 }),
         cat(ids.curd, 'Gaps Curd', { parentId: ids.dairy, sortOrder: 1 }),
         cat(ids.snacks, 'Gaps Snacks'),
+        // A new main category with nothing in it yet, and an empty subcategory.
+        cat(new mongoose.Types.ObjectId(), 'Gaps Footwear', { sortOrder: 9 }),
+        cat(new mongoose.Types.ObjectId(), 'Gaps Empty Sub', { parentId: ids.snacks }),
+        cat(new mongoose.Types.ObjectId(), 'Gaps Hidden Root', { isActive: false }),
     ]);
     const sellerId = new mongoose.Types.ObjectId();
     await db.collection('products').insertMany([
@@ -62,6 +66,9 @@ test('public categories carry parentId, include product-less parents, and a tree
     assert.deepEqual(dairy.children.map((c) => c.name), ['Gaps Curd', 'Gaps Milk'], 'children in sortOrder');
     assert.ok(data.tree.find((c) => c.name === 'Gaps Snacks'), 'a childless top-level category is a root');
     assert.ok(!data.tree.find((c) => c.name === 'Gaps Milk'), 'a subcategory is not a root');
+    assert.ok(data.tree.find((c) => c.name === 'Gaps Footwear'), 'an active top-level category with no products is still listed');
+    assert.ok(!byName['Gaps Empty Sub'], 'a subcategory with no products is left out');
+    assert.ok(!byName['Gaps Hidden Root'], 'an inactive top-level category is left out');
 });
 
 // ----- 2. Zone ETA -----

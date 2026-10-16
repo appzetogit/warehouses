@@ -38,11 +38,14 @@ test('a 1,000-coin refund holds 1,000 coins of which 800 can be spent', async ()
     assert.equal(balance.usableValue, 800);
 });
 
-test('rewards and admin grants are spendable in full', async () => {
+test('spin rewards and admin grants follow the same 80% rule', async () => {
     const user = newId();
     await creditCoins({ userId: user, amount: 100, source: 'spin', refId: 'spin-1' });
     await adjustCoins({ userId: user, amount: 50, reason: 'goodwill', actorId: 'admin1' });
-    assert.equal((await getCoinBalance(user)).usable, 150);
+    const balance = await getCoinBalance(user);
+    assert.equal(balance.coins, 150);
+    assert.equal(balance.usable, 120);
+    assert.equal(balance.redeemPercent, 80);
 });
 
 test('coins pay at most half of an order', async () => {
@@ -66,8 +69,8 @@ test('a refund retried is credited once', async () => {
 
 test('spending takes from the lot that expires first', async () => {
     const user = newId();
-    const later = await creditCoins({ userId: user, amount: 100, source: 'spin', refId: 'a', expiresAt: new Date(Date.now() + 30 * DAY) });
-    const sooner = await creditCoins({ userId: user, amount: 100, source: 'spin', refId: 'b', expiresAt: new Date(Date.now() + 5 * DAY) });
+    const later = await creditCoins({ userId: user, amount: 100, source: 'spin', spendablePercent: 100, refId: 'a', expiresAt: new Date(Date.now() + 30 * DAY) });
+    const sooner = await creditCoins({ userId: user, amount: 100, source: 'spin', spendablePercent: 100, refId: 'b', expiresAt: new Date(Date.now() + 5 * DAY) });
 
     await redeemCoins({ userId: user, orderId: newId(), coins: 120 });
 
@@ -77,7 +80,7 @@ test('spending takes from the lot that expires first', async () => {
 
 test('orders spending at the same moment cannot spend the same coins', async () => {
     const user = newId();
-    await creditCoins({ userId: user, amount: 300, source: 'spin', refId: 'c' });
+    await creditCoins({ userId: user, amount: 300, source: 'spin', spendablePercent: 100, refId: 'c' });
 
     const results = await Promise.allSettled(
         Array.from({ length: 10 }, () => redeemCoins({ userId: user, orderId: newId(), coins: 100 }))
@@ -91,7 +94,7 @@ test('orders spending at the same moment cannot spend the same coins', async () 
 test('an order redeems once, however often checkout is retried', async () => {
     const user = newId();
     const order = newId();
-    await creditCoins({ userId: user, amount: 500, source: 'spin', refId: 'd' });
+    await creditCoins({ userId: user, amount: 500, source: 'spin', spendablePercent: 100, refId: 'd' });
 
     const results = await Promise.all(
         Array.from({ length: 4 }, () => redeemCoins({ userId: user, orderId: order, coins: 100 }))
@@ -119,7 +122,7 @@ test('a cancelled order gets its coins back once, into the lots they came from',
 test('coins returned after their lot expired come back as a fresh lot', async () => {
     const user = newId();
     const order = newId();
-    const { lot } = await creditCoins({ userId: user, amount: 100, source: 'spin', refId: 'f' });
+    const { lot } = await creditCoins({ userId: user, amount: 100, source: 'spin', spendablePercent: 100, refId: 'f' });
     await redeemCoins({ userId: user, orderId: order, coins: 60 });
     await CoinLot.updateOne({ _id: lot._id }, { $set: { expiresAt: new Date(Date.now() - 1000) } });
 
@@ -145,7 +148,7 @@ test('expired lots stop counting and are recorded once', async () => {
 
 test('an admin removal needs a reason and enough usable coins', async () => {
     const user = newId();
-    await creditCoins({ userId: user, amount: 100, source: 'spin', refId: 'h' });
+    await creditCoins({ userId: user, amount: 100, source: 'spin', spendablePercent: 100, refId: 'h' });
     await assert.rejects(adjustCoins({ userId: user, amount: -10, reason: '' }), /reason/);
     await assert.rejects(adjustCoins({ userId: user, amount: -500, reason: 'fraud' }), /usable coins/);
     await adjustCoins({ userId: user, amount: -40, reason: 'fraud', actorId: 'admin1' });
@@ -156,7 +159,7 @@ test('the report says what was issued, spent, expired and is still owed', async 
     const user = newId();
     const order = newId();
     await creditCoins({ userId: user, amount: 1000, source: 'refund', refId: 'i' });
-    await creditCoins({ userId: user, amount: 100, source: 'spin', refId: 'j' });
+    await creditCoins({ userId: user, amount: 100, source: 'spin', spendablePercent: 100, refId: 'j' });
     await redeemCoins({ userId: user, orderId: order, coins: 200 });
     await redeemCoins({ userId: user, orderId: newId(), coins: 50 });
     await reverseRedemption(order);
@@ -172,7 +175,7 @@ test('the report says what was issued, spent, expired and is still owed', async 
 test("a split checkout gives back one store's share when that order is cancelled", async () => {
     const user = newId();
     const checkout = newId();
-    await creditCoins({ userId: user, amount: 500, source: 'spin', refId: 'split' });
+    await creditCoins({ userId: user, amount: 500, source: 'spin', spendablePercent: 100, refId: 'split' });
     await redeemCoins({ userId: user, orderId: checkout, coins: 300 });
     assert.equal((await getCoinBalance(user)).usable, 200);
 
@@ -190,8 +193,8 @@ test("a split checkout gives back one store's share when that order is cancelled
 test('cancellations at the same moment never give back more than was spent', async () => {
     const user = newId();
     const checkout = newId();
-    await creditCoins({ userId: user, amount: 400, source: 'spin', refId: 'race-a', expiresAt: new Date(Date.now() + 10 * DAY) });
-    await creditCoins({ userId: user, amount: 400, source: 'spin', refId: 'race-b', expiresAt: new Date(Date.now() + 20 * DAY) });
+    await creditCoins({ userId: user, amount: 400, source: 'spin', spendablePercent: 100, refId: 'race-a', expiresAt: new Date(Date.now() + 10 * DAY) });
+    await creditCoins({ userId: user, amount: 400, source: 'spin', spendablePercent: 100, refId: 'race-b', expiresAt: new Date(Date.now() + 20 * DAY) });
     await redeemCoins({ userId: user, orderId: checkout, coins: 600 });
 
     const results = await Promise.all(
@@ -209,8 +212,8 @@ test('expiry reminder goes once per lot, only for coins still usable', async () 
     const userId = new mongoose.Types.ObjectId();
     const soon = new Date(Date.now() + 2 * 24 * 3600 * 1000);
     const later = new Date(Date.now() + 30 * 24 * 3600 * 1000);
-    await creditCoins({ userId, amount: 100, source: 'spin', refId: 'x-soon', expiresAt: soon });
-    await creditCoins({ userId, amount: 100, source: 'spin', refId: 'x-later', expiresAt: later });
+    await creditCoins({ userId, amount: 100, source: 'spin', spendablePercent: 100, refId: 'x-soon', expiresAt: soon });
+    await creditCoins({ userId, amount: 100, source: 'spin', spendablePercent: 100, refId: 'x-later', expiresAt: later });
 
     assert.deepEqual(await notifyExpiringCoins(), { notified: 1 });
     assert.deepEqual(await notifyExpiringCoins(), { notified: 0 });

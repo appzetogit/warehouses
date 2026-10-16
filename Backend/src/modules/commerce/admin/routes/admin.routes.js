@@ -288,6 +288,18 @@ router.post('/attribute-sets', attributeController.createAttributeSetController)
 router.patch('/attribute-sets/:id', attributeController.updateAttributeSetController);
 router.delete('/attribute-sets/:id', attributeController.deleteAttributeSetController);
 
+/**
+ * The public category list is cached for 10 minutes; drop it once an admin
+ * category write has finished, so a new or re-ordered category shows at once.
+ */
+const invalidatePublicCategories = (_req, res, next) => {
+    res.on('finish', () => {
+        if (res.statusCode < 400) void invalidateCache('categories:*').catch(() => {});
+    });
+    next();
+};
+router.use('/categories', (req, res, next) => (req.method === 'GET' ? next() : invalidatePublicCategories(req, res, next)));
+
 router.get('/categories', adminController.getCategories);
 router.post('/categories', adminController.createCategory);
 router.patch('/categories/:id', adminController.updateCategory);

@@ -80,6 +80,7 @@ before(async () => {
         userId,
         amount: 500,
         source: 'campaign',
+        spendablePercent: 100,
         note: 'Initial Test Coins',
     });
 });

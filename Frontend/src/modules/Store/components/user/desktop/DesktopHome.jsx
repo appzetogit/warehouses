@@ -59,8 +59,8 @@ const toTile = (p) => ({
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-brown"
 
 /**
- * The phone header's round category photos, wide: "All", then the main
- * categories and their subcategories that sell something here, with arrow
+ * The phone header's round category photos, wide: "All", then every main
+ * category and the subcategories that sell something here, with arrow
  * buttons when the row runs past the page.
  */
 function CategoryCircles({ categories = [], groups }) {
@@ -69,8 +69,11 @@ function CategoryCircles({ categories = [], groups }) {
   const [edges, setEdges] = useState({ start: true, end: true })
 
   const items = useMemo(() => {
-    const stocked = categories.filter((c) => c?.name && (groups.get(String(c.id))?.items.length || 0) > 0)
-    return [...stocked.filter((c) => !c.parentId), ...stocked.filter((c) => c.parentId)].slice(0, 24)
+    // Every main category (the admin's list, in its order); subcategories only
+    // when they sell something here.
+    const named = categories.filter((c) => c?.name)
+    const stocked = named.filter((c) => c.parentId && (groups.get(String(c.id))?.items.length || 0) > 0)
+    return [...named.filter((c) => !c.parentId), ...stocked].slice(0, 24)
   }, [categories, groups])
 
   useEffect(() => {

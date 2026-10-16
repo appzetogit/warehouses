@@ -394,10 +394,28 @@ export default function AddressSelectorPage() {
     return () => { isMounted = false }
   }, [showAddressForm, GOOGLE_MAPS_API_KEY])
 
-  const handleUseCurrentLocation = async () => {
+  // Where the phone is now, without switching the cart to "current location".
+  // The address form only uses it to move the map pin.
+  const readDevicePosition = () =>
+    new Promise((resolve, reject) => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        reject(new Error("Geolocation not supported"))
+        return
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        reject,
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      )
+    })
+
+  // forForm: the "Use My Location" button on the add/edit form. It must only
+  // pin the map; switching the delivery mode to "current" there made the cart
+  // deliver to the GPS location when the address being typed was never saved.
+  const handleUseCurrentLocation = async ({ forForm = false } = {}) => {
     try {
       toast.loading("Getting location...", { id: "geo" })
-      const loc = await requestLiveLocation()
+      const loc = forForm ? await readDevicePosition() : await requestLiveLocation()
       if (loc?.latitude) {
         const newPos = [loc.latitude, loc.longitude]
         setMapPosition(newPos)
@@ -442,9 +460,11 @@ export default function AddressSelectorPage() {
           googleMapRef.current.setZoom(17)
         }
         
-        try {
-          setDeliveryAddressMode("current")
-        } catch {}
+        if (!forForm) {
+          try {
+            setDeliveryAddressMode("current")
+          } catch {}
+        }
         setPinConfirmed(true)
         toast.success("Location updated", { id: "geo" })
       }
@@ -771,8 +791,17 @@ export default function AddressSelectorPage() {
 
   const handleAddressFormSubmit = async (e) => {
     e.preventDefault()
-    if (!addressFormData.street || !addressFormData.city) {
-      toast.error("Please fill required fields")
+    // The server needs street, city and state; say which one is missing
+    // instead of a bare "Failed to save address".
+    const missing = [
+      ["street", "Street / area"],
+      ["city", "City"],
+      ["state", "State"],
+    ].find(([key]) => !String(addressFormData[key] || "").trim())
+    if (missing) {
+      toast.error(`Please enter the ${missing[1]}`)
+      scrollFieldIntoView(missing[0])
+      manualFieldRefs.current?.[missing[0]]?.focus?.()
       return
     }
     if (editingAddress?.needsPin && !pinConfirmed) {
@@ -799,17 +828,16 @@ export default function AddressSelectorPage() {
         return
       }
       const created = await addAddress(payload)
-      if (created) {
-        const id = getAddressId(created)
-        if (id) await setDefaultAddress(id)
-        try {
-          setDeliveryAddressMode("saved")
-        } catch {}
-        toast.success("Address saved")
-        handleBack()
-      }
+      if (!created) throw new Error("Address was not saved")
+      const id = getAddressId(created)
+      if (id) await setDefaultAddress(id)
+      try {
+        setDeliveryAddressMode("saved")
+      } catch {}
+      toast.success("Address saved")
+      handleBack()
     } catch (error) {
-      toast.error("Failed to save address")
+      toast.error(error?.response?.data?.message || "Failed to save address. Please try again.")
     } finally {
       setLoadingAddress(false)
     }
@@ -959,7 +987,8 @@ export default function AddressSelectorPage() {
             
             <div className="absolute bottom-10 right-4 z-10">
               <Button 
-                  onClick={handleUseCurrentLocation} 
+                  type="button"
+                  onClick={() => handleUseCurrentLocation({ forForm: true })}
                   className="bg-white text-black hover:bg-gray-100 shadow-xl border border-gray-200 rounded-full h-12 px-6"
               >
                 <Navigation className="h-4 w-4 mr-2 text-wh-brand-ink" /> Use My Location
@@ -1089,7 +1118,7 @@ export default function AddressSelectorPage() {
       <div className="flex-1 overflow-y-auto pb-10">
         <div className="p-4 bg-gray-50 dark:bg-gray-900 border-b dark:border-gray-800">
           <button 
-            onClick={handleUseCurrentLocation}
+            onClick={() => handleUseCurrentLocation()}
             className="w-full flex items-center gap-4 p-4 bg-white dark:bg-[#1a1a1a] rounded-xl shadow-sm hover:shadow-md transition-all group"
           >
             <div className="h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">

@@ -105,7 +105,7 @@ async function makeOrder({ status = 'delivered', method = 'razorpay', deliveredD
     });
     if (coins > 0) {
         const { creditCoins, redeemCoins } = await import('../src/modules/commerce/coins/services/coin.service.js');
-        await creditCoins({ userId: ids.user, amount: coins, source: 'admin', refId: `seed-${order._id}` });
+        await creditCoins({ userId: ids.user, amount: coins, source: 'admin', spendablePercent: 100, refId: `seed-${order._id}` });
         await redeemCoins({ userId: ids.user, orderId: order._id, coins });
     }
     return order;
