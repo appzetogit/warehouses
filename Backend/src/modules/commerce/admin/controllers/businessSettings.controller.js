@@ -1,5 +1,7 @@
 import { BusinessSettings } from '../models/businessSettings.model.js';
-import { cashOnDeliveryEnabled, onlinePaymentsEnabled } from '../../../../core/payments/paymentSwitches.js';
+import { clearPaymentSwitchCache, getPaymentSwitches } from '../../../../core/payments/paymentSwitches.js';
+import { getRazorpayKeyId, isRazorpayConfigured } from '../../orders/helpers/razorpay.helper.js';
+import { config } from '../../../../config/env.js';
 import { sendResponse } from '../../../../utils/response.js';
 import { uploadImageBufferDetailed } from '../../../../services/cloudinary.service.js';
 
@@ -183,8 +185,8 @@ export async function getBusinessSettings(req, res, next) {
             payload.firebaseServiceAccount = describeServiceAccount(withSecret?.firebaseServiceAccount);
         }
 
-        // Which ways to pay checkout offers (server switches, not admin settings).
-        payload.payments = { online: onlinePaymentsEnabled(), cashOnDelivery: cashOnDeliveryEnabled() };
+        // Which ways to pay checkout offers, as checkout applies them.
+        payload.payments = await getPaymentSwitches();
         return sendResponse(res, 200, 'Business settings fetched successfully', payload);
     } catch (error) {
         next(error);
@@ -268,6 +270,63 @@ export async function updateOrderAcceptanceSettings(req, res, next) {
             orderAcceptanceTimeMinutes: minutes,
             acceptanceWindowSeconds: minutes * 60
         });
+    } catch (error) {
+        next(error);
+    }
+}
+
+/**
+ * The payment switches plus what the panel needs to warn about: whether the
+ * gateway keys are live or test, and whether the webhook secret is set. Never
+ * the keys themselves.
+ */
+const paymentSettingsView = async () => {
+    const keyId = getRazorpayKeyId();
+    return {
+        ...(await getPaymentSwitches()),
+        gateway: {
+            configured: isRazorpayConfigured(),
+            mode: keyId.startsWith('rzp_live_') ? 'live' : keyId.startsWith('rzp_test_') ? 'test' : 'unknown',
+            webhookConfigured: Boolean(config.razorpayWebhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET),
+        },
+    };
+};
+
+export async function getPaymentSettings(req, res, next) {
+    try {
+        return sendResponse(res, 200, 'Payment settings fetched successfully', await paymentSettingsView());
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updatePaymentSettings(req, res, next) {
+    try {
+        const body = req.body || {};
+        const update = {};
+        for (const key of ['online', 'cashOnDelivery']) {
+            if (body[key] === undefined) continue;
+            if (typeof body[key] !== 'boolean') {
+                return res.status(400).json({ success: false, message: `${key} must be true or false` });
+            }
+            update[key] = body[key];
+        }
+
+        const current = await getPaymentSwitches();
+        const wanted = { ...current, ...update };
+        if (!wanted.online && !wanted.cashOnDelivery) {
+            return res.status(400).json({ success: false, message: 'Keep at least one way to pay switched on' });
+        }
+        if (update.online === true && !isRazorpayConfigured()) {
+            return res.status(400).json({ success: false, message: 'Razorpay keys are not configured on the server, so online payment cannot be switched on' });
+        }
+
+        const set = Object.fromEntries(Object.entries(update).map(([k, v]) => [`paymentSwitches.${k}`, v]));
+        if (Object.keys(set).length) {
+            await BusinessSettings.findOneAndUpdate({}, { $set: set }, { upsert: true, setDefaultsOnInsert: true });
+            clearPaymentSwitchCache();
+        }
+        return sendResponse(res, 200, 'Payment settings updated successfully', await paymentSettingsView());
     } catch (error) {
         next(error);
     }

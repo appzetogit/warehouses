@@ -107,6 +107,7 @@ GET /api/v1/admin/orders/awaiting-store
 GET /api/v1/admin/orders/user-carts
 GET /api/v1/admin/orders/user-carts/:cartId/pricing
 GET /api/v1/admin/pages-social-media/:key
+GET /api/v1/admin/payment-settings
 GET /api/v1/admin/power-scanning
 GET /api/v1/admin/product-reviews/
 GET /api/v1/admin/products
@@ -335,6 +336,7 @@ PATCH /api/v1/admin/orders/:orderId/accept
 PATCH /api/v1/admin/orders/:orderId/deassign-resend
 PATCH /api/v1/admin/orders/:orderId/mark-delivered
 PATCH /api/v1/admin/orders/:orderId/reject
+PATCH /api/v1/admin/payment-settings
 PATCH /api/v1/admin/power-scanning
 PATCH /api/v1/admin/product-reviews/:id/hide
 PATCH /api/v1/admin/product-reviews/:id/unhide
