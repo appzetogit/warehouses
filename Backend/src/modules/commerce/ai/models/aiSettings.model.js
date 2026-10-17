@@ -20,6 +20,13 @@ const aiSettingsSchema = new mongoose.Schema(
         outputCostPer1M: { type: Number, min: 0, default: 2.5 },
         /** Let smart search ask the model when the rule parser finds nothing. */
         searchLlmFallback: { type: Boolean, default: false },
+        /** Seller image studio: enhance a product photo, or put it on a mannequin. */
+        imageStudioEnabled: { type: Boolean, default: true },
+        imageModel: { type: String, trim: true, default: '' },
+        /** Images one seller may generate per UTC day. 0 = unlimited. */
+        sellerDailyImageCap: { type: Number, min: 0, default: 20 },
+        /** Used only for the usage page's cost estimate (USD per generated image). */
+        imageCostUsd: { type: Number, min: 0, default: 0.04 },
     },
     { collection: 'ai_settings', timestamps: true }
 );

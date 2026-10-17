@@ -80,7 +80,8 @@ export async function getUsage(query = {}) {
     const inRate = (Number(settings.inputCostPer1M) || 0) / 1e6;
     const outRate = (Number(settings.outputCostPer1M) || 0) / 1e6;
     const round4 = (n) => Math.round(n * 10000) / 10000;
-    const cost = (p, o) => round4(p * inRate + o * outRate);
+    const imageRate = Number(settings.imageCostUsd) || 0;
+    const cost = (p, o, images = 0) => round4(p * inRate + o * outRate + images * imageRate);
 
     const [days, top] = await Promise.all([
         AiUsageDaily.aggregate([
@@ -92,6 +93,7 @@ export async function getUsage(query = {}) {
                     llmCalls: { $sum: '$llmCalls' },
                     promptTokens: { $sum: '$promptTokens' },
                     outputTokens: { $sum: '$outputTokens' },
+                    images: { $sum: { $ifNull: ['$images', 0] } },
                     users: { $sum: 1 },
                 },
             },
@@ -114,22 +116,24 @@ export async function getUsage(query = {}) {
         promptTokens: d.promptTokens,
         outputTokens: d.outputTokens,
         totalTokens: d.promptTokens + d.outputTokens,
-        estimatedCostUsd: cost(d.promptTokens, d.outputTokens),
+        images: d.images,
+        estimatedCostUsd: cost(d.promptTokens, d.outputTokens, d.images),
     }));
     const totals = daily.reduce((a, d) => ({
         messages: a.messages + d.messages,
         promptTokens: a.promptTokens + d.promptTokens,
         outputTokens: a.outputTokens + d.outputTokens,
         totalTokens: a.totalTokens + d.totalTokens,
+        images: a.images + d.images,
         estimatedCostUsd: round4(a.estimatedCostUsd + d.estimatedCostUsd),
-    }), { messages: 0, promptTokens: 0, outputTokens: 0, totalTokens: 0, estimatedCostUsd: 0 });
+    }), { messages: 0, promptTokens: 0, outputTokens: 0, totalTokens: 0, images: 0, estimatedCostUsd: 0 });
     const monthTokens = await tokensUsedThisMonth();
     const budget = Number(settings.monthlyTokenBudget) || 0;
     return {
         from: dayKey(from),
         to: dayKey(to),
         model: effectiveModel(settings),
-        rates: { inputCostPer1M: settings.inputCostPer1M, outputCostPer1M: settings.outputCostPer1M },
+        rates: { inputCostPer1M: settings.inputCostPer1M, outputCostPer1M: settings.outputCostPer1M, imageCostUsd: settings.imageCostUsd },
         daily,
         totals,
         month: {

@@ -250,6 +250,8 @@ GET /api/v1/payments/orders/:orderId/transactions
 GET /api/v1/payments/seller/:sellerId/wallet
 GET /api/v1/payments/wallet/balance
 GET /api/v1/payments/wallet/transactions
+GET /api/v1/seller/ai/images/jobs/:id
+GET /api/v1/seller/ai/images/status
 GET /api/v1/seller/analytics
 GET /api/v1/seller/app-banners
 GET /api/v1/seller/banners
@@ -508,6 +510,7 @@ POST /api/v1/orders/verify-payment
 POST /api/v1/payments/admin/settlements
 POST /api/v1/payments/admin/settlements/:id/process
 POST /api/v1/payments/webhook/razorpay
+POST /api/v1/seller/ai/images/jobs
 POST /api/v1/seller/banners
 POST /api/v1/seller/bulk-upload
 POST /api/v1/seller/categories

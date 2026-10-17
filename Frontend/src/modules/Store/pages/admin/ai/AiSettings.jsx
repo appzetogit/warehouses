@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { Bot, Save, KeyRound } from "lucide-react"
+import { Bot, Save, KeyRound, ImagePlus, AlertTriangle } from "lucide-react"
 import { adminAIAPI } from "@store/api"
 
 const errorMessage = (e, fallback) => e?.response?.data?.message || e?.message || fallback
@@ -11,6 +11,11 @@ const FIELDS = [
   { key: "retentionDays", label: "Keep conversations for (days)", hint: "Older conversations are deleted automatically.", min: 1 },
   { key: "inputCostPer1M", label: "Input cost (USD per 1M tokens)", hint: "Only used for the cost estimate on the usage page.", min: 0, step: "0.01" },
   { key: "outputCostPer1M", label: "Output cost (USD per 1M tokens)", hint: "Only used for the cost estimate on the usage page.", min: 0, step: "0.01" },
+]
+
+const IMAGE_FIELDS = [
+  { key: "sellerDailyImageCap", label: "AI images per seller per day", hint: "Enhance uses 1, Mannequin shots use 3. Resets at midnight UTC. 0 = unlimited.", min: 0 },
+  { key: "imageCostUsd", label: "Cost per image (USD)", hint: "Only used for the cost estimate on the usage page. Check Google's current pricing.", min: 0, step: "0.001" },
 ]
 
 export default function AiSettings() {
@@ -32,6 +37,9 @@ export default function AiSettings() {
       const body = {
         enabled: form.enabled,
         searchLlmFallback: form.searchLlmFallback,
+        imageStudioEnabled: form.imageStudioEnabled,
+        imageModel: form.imageModel || "",
+        ...Object.fromEntries(IMAGE_FIELDS.map((f) => [f.key, Number(form[f.key]) || 0])),
         model: form.model || "",
         systemPromptAddendum: form.systemPromptAddendum || "",
         ...Object.fromEntries(FIELDS.map((f) => [f.key, Number(form[f.key]) || 0])),
@@ -124,6 +132,62 @@ export default function AiSettings() {
               <p className="text-xs text-slate-500 mt-1">{f.hint}</p>
             </div>
           ))}
+        </div>
+
+        <div className="border-t border-slate-200 pt-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <ImagePlus className="w-4 h-4 text-indigo-600" />
+            <h2 className="text-sm font-bold text-slate-900">AI images for sellers</h2>
+          </div>
+          <p className="text-xs text-slate-500 -mt-2">Sellers can enhance a product photo or turn it into mannequin shots from their item page.</p>
+
+          {form.imageBillingRefusedAt && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                Google refused the last image request ({new Date(form.imageBillingRefusedAt).toLocaleString()}) because the Gemini key has no image quota.
+                Free-tier keys cannot generate images: turn on billing for this key&apos;s project in Google AI Studio. Sellers see &quot;not available yet&quot; until then.
+              </span>
+            </div>
+          )}
+
+          <label className="flex items-center justify-between gap-4">
+            <span>
+              <span className="block text-sm font-semibold text-slate-800">AI images enabled</span>
+              <span className="block text-xs text-slate-500">When off, sellers don't see the Enhance and Mannequin shots buttons.</span>
+            </span>
+            <input type="checkbox" className="h-5 w-5" checked={Boolean(form.imageStudioEnabled)} onChange={(e) => set("imageStudioEnabled", e.target.checked)} />
+          </label>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-800 mb-1" htmlFor="ai-image-model">Image model</label>
+            <input
+              id="ai-image-model"
+              value={form.imageModel || ""}
+              onChange={(e) => set("imageModel", e.target.value)}
+              placeholder={form.effectiveImageModel || "gemini-3.1-flash-image"}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <p className="text-xs text-slate-500 mt-1">Leave blank to use the server default ({form.effectiveImageModel}).</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            {IMAGE_FIELDS.map((f) => (
+              <div key={f.key}>
+                <label className="block text-sm font-semibold text-slate-800 mb-1" htmlFor={`ai-${f.key}`}>{f.label}</label>
+                <input
+                  id={`ai-${f.key}`}
+                  type="number"
+                  min={f.min}
+                  step={f.step || "1"}
+                  value={form[f.key] ?? ""}
+                  onChange={(e) => set(f.key, e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+                <p className="text-xs text-slate-500 mt-1">{f.hint}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="flex justify-end">

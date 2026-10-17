@@ -1423,6 +1423,11 @@ export const sellerAPI = {
   reportProductReview: (reviewId, reason) =>
     apiClient.post(`/seller/reviews/${reviewId}/report`, { reason }, { contextModule: 'seller' }),
   getWallet: () => apiClient.get('/seller/finance', { contextModule: 'seller' }),
+  /** AI image studio: today's allowance and the mannequin styles. */
+  getAiImageStatus: () => apiClient.get('/seller/ai/images/status', { contextModule: 'seller' }),
+  /** POST { kind: "enhance"|"mannequin", style?, imageUrl } -> 202 { job } */
+  startAiImageJob: (body) => apiClient.post('/seller/ai/images/jobs', body, { contextModule: 'seller' }),
+  getAiImageJob: (id) => apiClient.get(`/seller/ai/images/jobs/${id}`, { contextModule: 'seller' }),
   sendOTP: (phone, _purpose = "login") => {
     if (!phone) return Promise.reject(new Error("Phone is required"));
     return authService.requestSellerOtp(phone);

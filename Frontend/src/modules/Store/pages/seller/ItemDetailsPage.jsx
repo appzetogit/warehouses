@@ -15,7 +15,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Sparkles,
+  Shirt,
 } from "lucide-react"
+import AiImageStudioDialog from "@store/components/seller/AiImageStudioDialog"
 import { Switch } from "@store/components/ui/switch"
 // Removed getAllProducts and saveProduct - now using menu API
 import api from "@store/api"
@@ -120,6 +123,10 @@ export default function ItemDetailsPage() {
   const [uploadingImages, setUploadingImages] = useState(false)
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  // AI image studio: today's allowance, and the open dialog's kind and photo.
+  const [aiStatus, setAiStatus] = useState(null)
+  const [aiKind, setAiKind] = useState(null)
+  const [aiSource, setAiSource] = useState(null)
   const [touchStart, setTouchStart] = useState(null)
   const [touchEnd, setTouchEnd] = useState(null)
   const [direction, setDirection] = useState(0)
@@ -421,6 +428,54 @@ export default function ItemDetailsPage() {
     }
   }
 
+  const loadAiStatus = () =>
+    sellerAPI.getAiImageStatus()
+      .then((res) => setAiStatus(res?.data?.data || null))
+      .catch(() => setAiStatus(null))
+
+  useEffect(() => {
+    loadAiStatus()
+  }, [])
+
+  const openAiStudio = (kind) => {
+    const source = images[currentImageIndex]
+    if (!source) return
+    setAiSource(source)
+    setAiKind(kind)
+  }
+
+  /// The AI needs the photo on the server. A photo still only on this device is
+  /// uploaded now and swapped into the gallery, so saving does not upload it again.
+  const prepareAiSource = async () => {
+    if (!aiSource?.startsWith("blob:")) return aiSource
+    const file = imageFiles.get(aiSource)
+    if (!file) throw new Error("Please add this photo again and retry.")
+    const url = await uploadSellerImage(file)
+    setImages((prev) => prev.map((img) => (img === aiSource ? url : img)))
+    setImageFiles((prev) => {
+      const next = new Map(prev)
+      next.delete(aiSource)
+      return next
+    })
+    URL.revokeObjectURL(aiSource)
+    setAiSource(url)
+    return url
+  }
+
+  const applyAiImages = ({ replace, urls }) => {
+    if (replace) {
+      setImages((prev) => prev.map((img) => (img === aiSource ? urls[0] : img)))
+      toast.success("Enhanced photo in place. Save the item to keep it.")
+    } else {
+      const room = MAX_ITEM_IMAGES - images.length
+      const added = urls.slice(0, Math.max(room, 0))
+      setImages((prev) => [...prev, ...added])
+      setCurrentImageIndex(images.length)
+      toast.success(`${added.length} photo${added.length === 1 ? "" : "s"} added. Save the item to keep ${added.length === 1 ? "it" : "them"}.`)
+    }
+    setAiKind(null)
+  }
+
   /// Promotes an image to primary — the one used in menus, search and sharing.
   const handleMakePrimary = (index) => {
     if (index <= 0 || index >= images.length) return
@@ -568,67 +623,36 @@ export default function ItemDetailsPage() {
     try {
       setUploadingImages(true)
 
-      // Upload new images to Cloudinary
-      const uploadedImageUrls = []
+      // Upload the photos that are still only on this device (blob previews),
+      // then save every photo in the order shown, so the first stays primary.
+      // Photos already on the server are kept as they are, including relative
+      // /uploads/... paths (imported products and AI images use those).
+      const pendingUploads = images.filter((img) => typeof img === 'string' && img.startsWith('blob:') && imageFiles.has(img))
+      const uploadedByPreview = new Map()
 
-      // Separate existing URLs (already uploaded) from new files (blob URLs)
-      const existingImageUrls = images.filter(img =>
-        typeof img === 'string' &&
-        (img.startsWith('http://') || img.startsWith('https://')) &&
-        !img.startsWith('blob:')
-      )
-
-      debugLog('Images state:', images)
-      debugLog('Existing image URLs (already uploaded):', existingImageUrls)
-      debugLog('Image files map:', imageFiles)
-
-      // Upload new File objects to Cloudinary (files that are blob URLs)
-      const filesToUpload = Array.from(imageFiles.values())
-      debugLog('Files to upload:', filesToUpload.length, filesToUpload)
-
-      if (filesToUpload.length > 0) {
-        toast.info(`Uploading ${filesToUpload.length} image(s)...`)
-        for (let i = 0; i < filesToUpload.length; i++) {
-          const file = filesToUpload[i]
+      if (pendingUploads.length > 0) {
+        toast.info(`Uploading ${pendingUploads.length} image(s)...`)
+        for (const previewUrl of pendingUploads) {
+          const file = imageFiles.get(previewUrl)
           try {
-            debugLog(`Uploading image ${i + 1}/${filesToUpload.length}:`, file.name)
-            let uploadResponse
-            try {
-              uploadResponse = await uploadAPI.uploadMedia(file, {
-                folder: 'sellers/products'
-              })
-            } catch (folderUploadError) {
-              // Fallback: retry without folder in case provider/account rejects custom folder.
-              debugWarn(`Retrying upload without folder for ${file.name}:`, folderUploadError)
-              uploadResponse = await uploadAPI.uploadMedia(file)
-            }
-            const imageUrl = uploadResponse?.data?.data?.url || uploadResponse?.data?.url
-            if (imageUrl) {
-              uploadedImageUrls.push(imageUrl)
-              debugLog(`Successfully uploaded image ${i + 1}:`, imageUrl)
-            } else {
-              debugError('Upload response:', uploadResponse)
-              throw new Error("Failed to get uploaded image URL")
-            }
+            uploadedByPreview.set(previewUrl, await uploadSellerImage(file))
           } catch (uploadError) {
-            debugError(`Error uploading image ${i + 1} (${file.name}):`, uploadError)
-            toast.error(getUploadErrorMessage(uploadError, file.name))
+            debugError(`Error uploading ${file?.name}:`, uploadError)
+            toast.error(getUploadErrorMessage(uploadError, file?.name))
             setUploadingImages(false)
             return
           }
         }
       }
 
-      // Every photo the seller added, up to the form's limit.
-      const allImageUrls = [
-        ...existingImageUrls,
-        ...uploadedImageUrls
-      ].filter((url, index, self) =>
-        url &&
-        typeof url === 'string' &&
-        url.trim() !== '' &&
-        self.indexOf(url) === index
-      ).slice(0, MAX_ITEM_IMAGES)
+      const allImageUrls = images
+        .map((img) => (typeof img === 'string' && img.startsWith('blob:') ? uploadedByPreview.get(img) : img))
+        .filter((url, index, self) =>
+          url &&
+          typeof url === 'string' &&
+          url.trim() !== '' &&
+          self.indexOf(url) === index
+        ).slice(0, MAX_ITEM_IMAGES)
 
       if (isNewItem && allImageUrls.length === 0) {
         toast.error("Please add at least one image")
@@ -636,12 +660,7 @@ export default function ItemDetailsPage() {
         return
       }
 
-      // Debug: Log image URLs
-      debugLog('=== IMAGE UPLOAD SUMMARY ===')
-      debugLog('Existing image URLs:', existingImageUrls.length, existingImageUrls)
-      debugLog('Newly uploaded URLs:', uploadedImageUrls.length, uploadedImageUrls)
-      debugLog('Total image URLs to save:', allImageUrls.length, allImageUrls)
-      debugLog('==========================')
+      debugLog('Image URLs to save:', allImageUrls.length, allImageUrls)
 
       // Resolve categoryId from fetched categories (so Product stores categoryId efficiently).
       const matchedCategory = Array.isArray(categories)
@@ -934,6 +953,31 @@ export default function ItemDetailsPage() {
                 <p className="text-sm font-medium text-gray-600">No images added yet</p>
                 <p className="text-xs text-gray-500 mt-1">Tap below to add photos — you can select several at once</p>
               </div>
+            </div>
+          )}
+
+          {/* AI image studio, on the photo being shown */}
+          {images.length > 0 && aiStatus?.enabled && (
+            <div className="px-4 pt-4 bg-white border-t border-gray-100 md:px-5">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => openAiStudio("enhance")}
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 text-sm font-semibold hover:bg-violet-100"
+                >
+                  <Sparkles className="w-4 h-4" /> Enhance
+                </button>
+                <button
+                  onClick={() => openAiStudio("mannequin")}
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 text-sm font-semibold hover:bg-violet-100"
+                >
+                  <Shirt className="w-4 h-4" /> Mannequin shots
+                </button>
+              </div>
+              {aiStatus.remainingToday !== null && (
+                <p className="text-[11px] text-gray-500 text-center mt-1.5">
+                  AI works on the photo shown above · {aiStatus.remainingToday} of {aiStatus.dailyCap} left today
+                </p>
+              )}
             </div>
           )}
 
@@ -1421,6 +1465,18 @@ export default function ItemDetailsPage() {
         fileNamePrefix="item-photo"
         galleryInputRef={fileInputRef}
       />
+      {aiKind && (
+        <AiImageStudioDialog
+          kind={aiKind}
+          sourcePreview={aiSource}
+          prepareSource={prepareAiSource}
+          roomLeft={MAX_ITEM_IMAGES - images.length}
+          status={aiStatus}
+          onUse={applyAiImages}
+          onClose={() => setAiKind(null)}
+          onUsageChange={loadAiStatus}
+        />
+      )}
     </div>
   )
 }

@@ -56,7 +56,7 @@ export default function AiUsage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <Card label="Messages" value={n(data.totals.messages)} hint={`${data.from} to ${data.to}`} />
             <Card label="Tokens" value={n(data.totals.totalTokens)} hint={`${n(data.totals.promptTokens)} in · ${n(data.totals.outputTokens)} out`} />
-            <Card label="Estimated cost" value={usd(data.totals.estimatedCostUsd)} hint={`${data.model} at $${data.rates.inputCostPer1M}/$${data.rates.outputCostPer1M} per 1M`} />
+            <Card label="Estimated cost" value={usd(data.totals.estimatedCostUsd)} hint={`${data.model} at $${data.rates.inputCostPer1M}/$${data.rates.outputCostPer1M} per 1M · ${n(data.totals.images || 0)} AI images at $${data.rates.imageCostUsd ?? 0}`} />
             <Card
               label="This month's budget"
               value={month.budget ? `${n(month.tokens)} / ${n(month.budget)}` : `${n(month.tokens)} (no limit)`}
@@ -74,12 +74,13 @@ export default function AiUsage() {
                   <th className="px-3 py-2 text-right">Model calls</th>
                   <th className="px-3 py-2 text-right">Users</th>
                   <th className="px-3 py-2 text-right">Tokens</th>
+                  <th className="px-3 py-2 text-right">AI images</th>
                   <th className="px-3 py-2 w-40"></th>
                   <th className="px-3 py-2 text-right">Est. cost</th>
                 </tr>
               </thead>
               <tbody>
-                {daily.length === 0 && <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-500">No usage in this range</td></tr>}
+                {daily.length === 0 && <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">No usage in this range</td></tr>}
                 {daily.map((d) => (
                   <tr key={d.day} className="border-t border-slate-100">
                     <td className="px-3 py-2 whitespace-nowrap">{d.day}</td>
@@ -87,6 +88,7 @@ export default function AiUsage() {
                     <td className="px-3 py-2 text-right">{n(d.llmCalls)}</td>
                     <td className="px-3 py-2 text-right">{n(d.activeUsers)}</td>
                     <td className="px-3 py-2 text-right">{n(d.totalTokens)}</td>
+                    <td className="px-3 py-2 text-right">{n(d.images || 0)}</td>
                     <td className="px-3 py-2">
                       <div className="h-2 rounded bg-slate-100"><div className="h-2 rounded bg-indigo-500" style={{ width: `${(d.totalTokens / maxTokens) * 100}%` }} /></div>
                     </td>

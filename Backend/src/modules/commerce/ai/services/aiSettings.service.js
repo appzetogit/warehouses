@@ -1,5 +1,6 @@
 import { AiSettings } from '../models/aiSettings.model.js';
-import { DEFAULT_MODEL, hasGeminiKey } from './geminiClient.js';
+import { AiImageJob } from '../models/aiImageJob.model.js';
+import { DEFAULT_IMAGE_MODEL, DEFAULT_MODEL, hasGeminiKey } from './geminiClient.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 
 const EDITABLE = {
@@ -12,6 +13,10 @@ const EDITABLE = {
     inputCostPer1M: 'number',
     outputCostPer1M: 'number',
     searchLlmFallback: 'boolean',
+    imageStudioEnabled: 'boolean',
+    imageModel: 'string',
+    sellerDailyImageCap: 'number',
+    imageCostUsd: 'number',
 };
 
 let cached = null;
@@ -43,13 +48,26 @@ export async function getAiSettings({ fresh = false } = {}) {
 /** The model to call: the admin's choice, else GEMINI_MODEL, else the default. */
 export const effectiveModel = (settings) => settings?.model || process.env.GEMINI_MODEL || DEFAULT_MODEL;
 
+/** The image model: the admin's choice, else GEMINI_IMAGE_MODEL, else the default. */
+export const effectiveImageModel = (settings) => settings?.imageModel || process.env.GEMINI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL;
+
 /**
  * What the admin API returns. Only whether a key is configured; never the key,
  * any part of it, or its length.
  */
 export async function getAdminAiSettingsView() {
     const s = await getAiSettings({ fresh: true });
-    return { ...s, effectiveModel: effectiveModel(s), apiKeyConfigured: hasGeminiKey() };
+    // When the latest finished image job was refused for billing, say so: it is
+    // why sellers get nothing, and it clears itself once a job succeeds again.
+    const lastJob = await AiImageJob.findOne({ status: { $ne: 'running' } }).sort({ createdAt: -1 }).select('createdAt errorCode').lean();
+    const billingRefusal = lastJob?.errorCode === 'billing' ? lastJob : null;
+    return {
+        ...s,
+        effectiveModel: effectiveModel(s),
+        effectiveImageModel: effectiveImageModel(s),
+        apiKeyConfigured: hasGeminiKey(),
+        imageBillingRefusedAt: billingRefusal?.createdAt || null,
+    };
 }
 
 export async function updateAiSettings(body = {}) {
@@ -69,6 +87,9 @@ export async function updateAiSettings(body = {}) {
     }
     if (update.model !== undefined && update.model && !/^[a-z0-9][a-z0-9.\-]{1,63}$/i.test(update.model)) {
         throw new ValidationError('model must be a Gemini model name such as gemini-3.8-flash');
+    }
+    if (update.imageModel !== undefined && update.imageModel && !/^[a-z0-9][a-z0-9.\-]{1,63}$/i.test(update.imageModel)) {
+        throw new ValidationError('imageModel must be a Gemini model name such as gemini-3.1-flash-image');
     }
     if (update.systemPromptAddendum !== undefined && update.systemPromptAddendum.length > 2000) {
         throw new ValidationError('systemPromptAddendum must be at most 2000 characters');

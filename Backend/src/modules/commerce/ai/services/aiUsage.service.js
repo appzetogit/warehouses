@@ -10,7 +10,8 @@ export const userKeyFor = ({ userId, ip }) => (userId ? String(userId) : `ip:${i
 
 export async function tokensUsedThisMonth(now = new Date()) {
     const [row] = await AiUsageDaily.aggregate([
-        { $match: { day: { $regex: `^${monthPrefix(now)}` } } },
+        // Seller image-studio rows have their own daily cap and do not eat the assistant's budget.
+        { $match: { day: { $regex: `^${monthPrefix(now)}` }, userKey: { $not: /^seller:/ } } },
         { $group: { _id: null, t: { $sum: { $add: ['$promptTokens', '$outputTokens'] } } } },
     ]);
     return row?.t || 0;

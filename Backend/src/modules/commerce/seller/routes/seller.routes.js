@@ -46,6 +46,7 @@ import {
     deleteCategoryController
 } from '../controllers/sellerCategory.controller.js';
 import { getMenuController } from '../controllers/sellerMenu.controller.js';
+import { getImageJobController, imageStudioStatusController, startImageJobController } from '../../ai/controllers/imageStudio.controller.js';
 import * as feedbackExperienceController from '../../admin/controllers/feedbackExperience.controller.js';
 import {
     getCurrentSellerOutletTimingsController,
@@ -240,6 +241,11 @@ router.delete('/categories/:id', authMiddleware, requireSeller, deleteCategoryCo
 
 // Menu (seller dashboard) - only fields needed by UI
 router.get('/menu', authMiddleware, requireSeller, getMenuController);
+
+// AI image studio: enhance a product photo or draw it on a mannequin (polled job).
+router.get('/ai/images/status', authMiddleware, requireSeller, imageStudioStatusController);
+router.post('/ai/images/jobs', authMiddleware, requireSeller, startImageJobController);
+router.get('/ai/images/jobs/:id', authMiddleware, requireSeller, getImageJobController);
 
 // Feedback (seller dashboard)
 router.post('/feedback-experience', authMiddleware, requireSeller, feedbackExperienceController.createFeedbackExperience);

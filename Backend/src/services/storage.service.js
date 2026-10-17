@@ -300,6 +300,41 @@ const inferMimeFromUrl = (url) => {
     return map[ext] || 'image/jpeg';
 };
 
+/**
+ * Reads an image this server stored, given its public URL (absolute or /uploads/...).
+ * Returns { buffer, mimeType, path }, or null when the URL is not one of ours or
+ * the file is gone. Only the local disk is read: never a fetch, so a URL cannot
+ * be used to make the server request anything.
+ */
+export const readHostedImage = async (url) => {
+    const raw = String(url || '').trim();
+    if (!raw) return null;
+    let pathname;
+    try {
+        pathname = raw.startsWith('/') ? raw.split(/[?#]/)[0] : new URL(raw).pathname;
+    } catch {
+        return null;
+    }
+    const match = /^\/uploads\/(.+)$/.exec(decodeURIComponent(pathname));
+    if (!match) return null;
+    const relativePath = match[1];
+    let absolute;
+    try {
+        absolute = getAbsolutePath(relativePath);
+    } catch {
+        return null;
+    }
+    const ext = path.extname(relativePath).toLowerCase();
+    const mimeType = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' }[ext];
+    if (!mimeType) return null;
+    try {
+        return { buffer: await fs.readFile(absolute), mimeType, path: relativePath };
+    } catch (error) {
+        if (error?.code === 'ENOENT') return null;
+        throw error;
+    }
+};
+
 export const isHostedUploadUrl = (url) => {
     const normalized = String(url || '').trim();
     if (!normalized) return false;

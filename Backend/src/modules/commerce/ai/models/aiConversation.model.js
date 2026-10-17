@@ -55,6 +55,8 @@ const aiUsageDailySchema = new mongoose.Schema(
         llmCalls: { type: Number, default: 0 },
         promptTokens: { type: Number, default: 0 },
         outputTokens: { type: Number, default: 0 },
+        /** Images generated (or reserved by a running job) by the seller image studio. */
+        images: { type: Number, default: 0 },
     },
     { collection: 'ai_usage_daily', timestamps: true }
 );
