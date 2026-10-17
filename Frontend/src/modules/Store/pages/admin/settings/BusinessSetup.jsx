@@ -3,6 +3,7 @@ import { Info, Phone, Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { adminAPI } from "@store/api";
 import { setCachedSettings, updateFavicon, updateTitle } from "@store/utils/businessSettings";
+import PaymentSwitchesCard from "./PaymentSwitchesCard";
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -400,6 +401,8 @@ export default function BusinessSetup() {
       </div>
 
       <div className="space-y-4">
+        <PaymentSwitchesCard />
+
         {/* Company info */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200">
           {/* Company information */}

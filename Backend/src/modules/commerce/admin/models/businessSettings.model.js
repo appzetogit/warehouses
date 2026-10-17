@@ -61,6 +61,14 @@ const businessSettingsSchema = new mongoose.Schema(
             min: { type: Number, default: 2, min: 1, max: 30 },
             max: { type: Number, default: 4, min: 1, max: 30 }
         },
+        /**
+         * Which ways to pay checkout offers, switched in the admin panel. null means
+         * not set yet: the server's ONLINE_PAYMENTS_ENABLED / COD_ENABLED decide.
+         */
+        paymentSwitches: {
+            online: { type: Boolean, default: null },
+            cashOnDelivery: { type: Boolean, default: null }
+        },
         /** Public social profile links shown in the storefront footer (https only). */
         socialLinks: {
             facebook: { type: String, default: '', trim: true },

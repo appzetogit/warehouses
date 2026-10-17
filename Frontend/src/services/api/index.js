@@ -446,6 +446,14 @@ export const adminAPI = {
     apiClient.get("/admin/seller-subscription-settings", {
       contextModule: "admin",
     }),
+  getPaymentSettings: () =>
+    apiClient.get("/admin/payment-settings", {
+      contextModule: "admin",
+    }),
+  updatePaymentSettings: (body = {}) =>
+    apiClient.patch("/admin/payment-settings", body ?? {}, {
+      contextModule: "admin",
+    }),
   getSellerOrderAcceptanceSettings: () =>
     apiClient.get("/admin/seller-settings/order-acceptance", {
       contextModule: "admin",

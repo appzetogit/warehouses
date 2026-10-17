@@ -39,7 +39,7 @@ import {
     initiateRazorpayRefund,
     fetchRazorpayPayment
 } from '../helpers/razorpay.helper.js';
-import { onlinePaymentsEnabled } from '../../../../core/payments/paymentSwitches.js';
+import { cashOnDeliveryEnabled, onlinePaymentsEnabled } from '../../../../core/payments/paymentSwitches.js';
 import { getIO, rooms } from '../../../../config/socket.js';
 import { addOrderJob } from '../../../../queues/producers/order.producer.js';
 import { fetchPolyline } from '../utils/googleMaps.js';
@@ -633,10 +633,10 @@ export async function createOrder(userId, dto, options = {}) {
     // supports it (payment.status 'cod_pending' is the schema default, the seller
     // order-list filter and canExposeOrderToSeller both include 'cash', and rider
     // cash collection, deposits and cashInHand are all live).
-    if (paymentMethod === "cash" && String(process.env.COD_ENABLED || "true") !== "true") {
+    if (paymentMethod === "cash" && !(await cashOnDeliveryEnabled())) {
       throw new ValidationError("Cash on Delivery is no longer available. Please pay online.");
     }
-    if (paymentMethod === "razorpay" && !onlinePaymentsEnabled()) {
+    if (paymentMethod === "razorpay" && !(await onlinePaymentsEnabled())) {
       throw new ValidationError("Online payment is not available right now. Please choose Cash on Delivery.");
     }
     const isCash = paymentMethod === "cash";
