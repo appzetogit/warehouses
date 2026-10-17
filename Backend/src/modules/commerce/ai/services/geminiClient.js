@@ -4,7 +4,7 @@ import axios from 'axios';
  * The one place that talks to the Gemini API. The key is read from
  * GEMINI_API_KEY and sent as a header (never in a URL, never logged or returned).
  */
-export const DEFAULT_MODEL = 'gemini-2.5-flash';
+export const DEFAULT_MODEL = 'gemini-3.8-flash';
 
 export const hasGeminiKey = () => Boolean(process.env.GEMINI_API_KEY);
 

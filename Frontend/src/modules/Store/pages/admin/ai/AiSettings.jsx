@@ -88,7 +88,7 @@ export default function AiSettings() {
             id="ai-model"
             value={form.model || ""}
             onChange={(e) => set("model", e.target.value)}
-            placeholder={form.effectiveModel || "gemini-2.5-flash"}
+            placeholder={form.effectiveModel || "gemini-3.8-flash"}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
           <p className="text-xs text-slate-500 mt-1">Leave blank to use the server default ({form.effectiveModel}).</p>

@@ -68,7 +68,7 @@ export async function updateAiSettings(body = {}) {
         throw new ValidationError('retentionDays must be between 1 and 3650');
     }
     if (update.model !== undefined && update.model && !/^[a-z0-9][a-z0-9.\-]{1,63}$/i.test(update.model)) {
-        throw new ValidationError('model must be a Gemini model name such as gemini-2.5-flash');
+        throw new ValidationError('model must be a Gemini model name such as gemini-3.8-flash');
     }
     if (update.systemPromptAddendum !== undefined && update.systemPromptAddendum.length > 2000) {
         throw new ValidationError('systemPromptAddendum must be at most 2000 characters');

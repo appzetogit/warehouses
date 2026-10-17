@@ -636,7 +636,7 @@ Settings on this page:
 
 - **Assistant enabled:** when off, customers see a short notice instead of answers.
 - **Smart search uses the model as a fallback:** search asks the AI only when it can't understand a query itself.
-- **Model:** leave blank to use the default (gemini-2.5-flash).
+- **Model:** leave blank to use the default (gemini-3.8-flash).
 - **Extra instructions for the assistant:** up to 2,000 characters.
 - **Daily messages per user:** 0 means no limit.
 - **Monthly token budget:** 0 means no limit. When the budget runs out, the assistant switches itself off until next month.
