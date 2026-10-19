@@ -454,6 +454,19 @@ export const adminAPI = {
     apiClient.patch("/admin/payment-settings", body ?? {}, {
       contextModule: "admin",
     }),
+  getShippingSettings: () =>
+    apiClient.get("/admin/shipping-settings", {
+      contextModule: "admin",
+    }),
+  /** { enabled?, email?, password? (omit to keep, "" to remove), pickupLocation?, pickupPincode? } */
+  updateShippingSettings: (body = {}) =>
+    apiClient.put("/admin/shipping-settings", body ?? {}, {
+      contextModule: "admin",
+    }),
+  testShippingSettings: (body = {}) =>
+    apiClient.post("/admin/shipping-settings/test", body ?? {}, {
+      contextModule: "admin",
+    }),
   getSellerOrderAcceptanceSettings: () =>
     apiClient.get("/admin/seller-settings/order-acceptance", {
       contextModule: "admin",

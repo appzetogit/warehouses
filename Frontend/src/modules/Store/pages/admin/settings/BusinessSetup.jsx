@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { adminAPI } from "@store/api";
 import { setCachedSettings, updateFavicon, updateTitle } from "@store/utils/businessSettings";
 import PaymentSwitchesCard from "./PaymentSwitchesCard";
+import ShiprocketSettingsCard from "./ShiprocketSettingsCard";
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -402,6 +403,7 @@ export default function BusinessSetup() {
 
       <div className="space-y-4">
         <PaymentSwitchesCard />
+        <ShiprocketSettingsCard />
 
         {/* Company info */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200">

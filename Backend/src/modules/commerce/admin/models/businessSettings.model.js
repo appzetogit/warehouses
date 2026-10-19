@@ -125,9 +125,25 @@ const businessSettingsSchema = new mongoose.Schema(
          * site somebody forgot to project -- it has to be asked for by name,
          * which only the notification service and the admin save path do.
          */
-        firebaseServiceAccount: { type: String, default: '', select: false }
+        firebaseServiceAccount: { type: String, default: '', select: false },
+        /**
+         * Shiprocket API user, set in the admin panel; wins over SHIPROCKET_* in
+         * .env. Every field is `select: false` like the service account above,
+         * because this document is served publicly: only the shipping provider
+         * and the admin shipping endpoints ask for them (SHIPROCKET_SELECT).
+         */
+        shiprocket: {
+            enabled: { type: Boolean, default: true, select: false },
+            email: { type: String, default: '', trim: true, select: false },
+            password: { type: String, default: '', select: false },
+            pickupLocation: { type: String, default: '', trim: true, select: false },
+            pickupPincode: { type: String, default: '', trim: true, select: false }
+        }
     },
     { timestamps: true }
 );
 
 export const BusinessSettings = mongoose.model('BusinessSettings', businessSettingsSchema);
+
+/** The projection that loads the Shiprocket login (all of it is select: false). */
+export const SHIPROCKET_SELECT = '+shiprocket.enabled +shiprocket.email +shiprocket.password +shiprocket.pickupLocation +shiprocket.pickupPincode';
