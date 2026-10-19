@@ -6,8 +6,8 @@ import { logger } from '../../../../../utils/logger.js';
  * others, with the courier picked per shipment by price or speed. Chosen over a
  * single courier's API so coverage is not limited to one network's pincodes.
  *
- * Needs SHIPROCKET_EMAIL / SHIPROCKET_PASSWORD (an API user from the Shiprocket
- * panel) and SHIPROCKET_PICKUP_LOCATION (the pickup nickname set up there).
+ * Needs an API user's email and password (Shiprocket panel, Settings > API) and
+ * the pickup nickname set up there. Set in the admin panel, or SHIPROCKET_* in .env.
  */
 const BASE = process.env.SHIPROCKET_BASE_URL || 'https://apiv2.shiprocket.in/v1/external';
 const TOKEN_TTL_MS = 9 * 24 * 60 * 60 * 1000; // tokens last 10 days
@@ -40,12 +40,13 @@ const NDR_ACTIONS = { reattempt: 're-attempt', rto: 'return' };
 const kg = (grams) => Math.max(0.1, (Number(grams) || 500) / 1000);
 
 export class ShiprocketProvider extends ShippingProvider {
-    constructor({ email, password, pickupLocation, fetchImpl } = {}) {
+    constructor({ email, password, pickupLocation, pickupPincode, fetchImpl } = {}) {
         super();
         this.name = 'shiprocket';
         this.email = email;
         this.password = password;
         this.pickupLocation = pickupLocation || 'Primary';
+        this.pickupPincode = pickupPincode || process.env.SHIPROCKET_DEFAULT_PICKUP_PINCODE || '';
         this.fetch = fetchImpl || globalThis.fetch;
         this.token = null;
         this.tokenAt = 0;
@@ -78,9 +79,28 @@ export class ShiprocketProvider extends ShippingProvider {
         return body;
     }
 
+    /**
+     * Logs in and lists the account's pickup locations, to check credentials from
+     * the admin panel. { ok, pickupLocations: [{ nickname, pincode, city }] }; throws on bad login.
+     */
+    async testConnection() {
+        this.token = null;
+        await this.authToken();
+        const body = await this.call('GET', '/settings/company/pickup');
+        const list = body?.data?.shipping_address || [];
+        return {
+            ok: true,
+            pickupLocations: list.map((p) => ({
+                nickname: p.pickup_location || '',
+                pincode: String(p.pin_code || ''),
+                city: p.city || '',
+            })),
+        };
+    }
+
     async couriersFor(originPincode, destPincode, weightGrams) {
         const q = new URLSearchParams({
-            pickup_postcode: String(originPincode || process.env.SHIPROCKET_DEFAULT_PICKUP_PINCODE || ''),
+            pickup_postcode: String(originPincode || this.pickupPincode || ''),
             delivery_postcode: String(destPincode || ''),
             weight: String(kg(weightGrams)),
             cod: '0',

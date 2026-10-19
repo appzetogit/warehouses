@@ -45,6 +45,10 @@ const start = async () => {
         if (config.redisEnabled) {
             await connectRedis();
         }
+        // Scheduled jobs track courier shipments: use the admin panel's Shiprocket login too.
+        const shipping = await import('../src/modules/commerce/delivery/services/shipping/index.js');
+        await shipping.refreshShippingConfig();
+        shipping.startShippingConfigRefresh();
 
         const orderService = await import('../src/modules/commerce/orders/services/order.service.js');
 

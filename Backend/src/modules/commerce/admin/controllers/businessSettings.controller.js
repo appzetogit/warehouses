@@ -1,7 +1,9 @@
-import { BusinessSettings } from '../models/businessSettings.model.js';
+import { BusinessSettings, SHIPROCKET_SELECT } from '../models/businessSettings.model.js';
 import { clearPaymentSwitchCache, getPaymentSwitches } from '../../../../core/payments/paymentSwitches.js';
 import { getRazorpayKeyId, isRazorpayConfigured } from '../../orders/helpers/razorpay.helper.js';
 import { config } from '../../../../config/env.js';
+import { getShippingProvider, refreshShippingConfig, resolveShiprocketConfig } from '../../delivery/services/shipping/index.js';
+import { ShiprocketProvider } from '../../delivery/services/shipping/shiprocket.provider.js';
 import { sendResponse } from '../../../../utils/response.js';
 import { uploadImageBufferDetailed } from '../../../../services/cloudinary.service.js';
 
@@ -327,6 +329,109 @@ export async function updatePaymentSettings(req, res, next) {
             clearPaymentSwitchCache();
         }
         return sendResponse(res, 200, 'Payment settings updated successfully', await paymentSettingsView());
+    } catch (error) {
+        next(error);
+    }
+}
+
+/**
+ * What the panel is told about Shiprocket: the saved login minus the password
+ * (only whether one is saved), and which account is actually in use.
+ */
+const shippingSettingsView = async () => {
+    const doc = await BusinessSettings.findOne().select(SHIPROCKET_SELECT).lean();
+    const s = doc?.shiprocket || {};
+    const { source } = resolveShiprocketConfig();
+    const provider = getShippingProvider();
+    return {
+        active: provider?.name || 'mock',
+        source,
+        shiprocket: {
+            enabled: s.enabled !== false,
+            email: s.email || '',
+            passwordSet: Boolean(s.password),
+            pickupLocation: s.pickupLocation || '',
+            pickupPincode: s.pickupPincode || '',
+        },
+        forcedMock: String(process.env.SHIPPING_PROVIDER || '').toLowerCase() === 'mock',
+    };
+};
+
+export async function getShippingSettings(req, res, next) {
+    try {
+        await refreshShippingConfig();
+        return sendResponse(res, 200, 'Shipping settings fetched successfully', await shippingSettingsView());
+    } catch (error) {
+        next(error);
+    }
+}
+
+const parseShiprocketInput = (body = {}) => {
+    const out = {};
+    if (body.enabled !== undefined) {
+        if (typeof body.enabled !== 'boolean') return { error: 'enabled must be true or false' };
+        out.enabled = body.enabled;
+    }
+    if (body.email !== undefined) {
+        const email = String(body.email || '').trim();
+        if (email && (email.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return { error: 'Enter a valid Shiprocket API email' };
+        out.email = email;
+    }
+    // Undefined keeps the saved password (the panel never receives it); empty removes it.
+    if (body.password !== undefined) {
+        const password = String(body.password ?? '');
+        if (password.length > 200) return { error: 'Password is too long' };
+        out.password = password;
+    }
+    if (body.pickupLocation !== undefined) {
+        const nick = String(body.pickupLocation || '').trim();
+        if (nick.length > 100) return { error: 'Pickup location nickname is too long' };
+        out.pickupLocation = nick;
+    }
+    if (body.pickupPincode !== undefined) {
+        const pin = String(body.pickupPincode || '').trim();
+        if (pin && !/^\d{6}$/.test(pin)) return { error: 'Pickup pincode must be 6 digits' };
+        out.pickupPincode = pin;
+    }
+    return { values: out };
+};
+
+export async function updateShippingSettings(req, res, next) {
+    try {
+        const parsed = parseShiprocketInput(req.body || {});
+        if (parsed.error) return res.status(400).json({ success: false, message: parsed.error });
+        const set = Object.fromEntries(Object.entries(parsed.values).map(([k, v]) => [`shiprocket.${k}`, v]));
+        if (Object.keys(set).length) {
+            await BusinessSettings.findOneAndUpdate({}, { $set: set }, { upsert: true, setDefaultsOnInsert: true });
+        }
+        await refreshShippingConfig();
+        return sendResponse(res, 200, 'Shipping settings updated successfully', await shippingSettingsView());
+    } catch (error) {
+        next(error);
+    }
+}
+
+/**
+ * Logs in to Shiprocket with the posted login (a blank password means the
+ * saved one) and lists the pickup locations, without saving anything.
+ */
+export async function testShippingSettings(req, res, next) {
+    try {
+        const parsed = parseShiprocketInput(req.body || {});
+        if (parsed.error) return res.status(400).json({ success: false, message: parsed.error });
+        const saved = await BusinessSettings.findOne().select(SHIPROCKET_SELECT).lean();
+        const email = parsed.values.email ?? saved?.shiprocket?.email ?? '';
+        const password = parsed.values.password || saved?.shiprocket?.password || '';
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Enter the Shiprocket API email and password first' });
+        }
+        const probe = new ShiprocketProvider({ email, password });
+        try {
+            const result = await probe.testConnection();
+            return sendResponse(res, 200, 'Connected to Shiprocket', result);
+        } catch (err) {
+            return res.status(400).json({ success: false, message: String(err.message || 'Could not connect to Shiprocket').slice(0, 300) });
+        }
     } catch (error) {
         next(error);
     }

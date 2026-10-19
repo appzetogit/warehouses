@@ -7,6 +7,7 @@ import app from './src/app.js';
 import { config } from './src/config/env.js';
 import { validateConfig } from './src/config/validateEnv.js';
 import { connectDB, disconnectDB } from './src/config/db.js';
+import { refreshShippingConfig, startShippingConfigRefresh } from './src/modules/commerce/delivery/services/shipping/index.js';
 import { connectRedis, closeRedis } from './src/config/redis.js';
 import { initSocket } from './src/config/socket.js';
 import { initializeQueues, closeBullMQConnection } from './src/queues/index.js';
@@ -128,6 +129,10 @@ const startServer = async () => {
         logger.info(`Upload storage ready at ${path.resolve(config.uploadStorageRoot)}`);
 
         await connectDB();
+
+        // Courier credentials saved in the admin panel, then kept fresh every minute.
+        await refreshShippingConfig();
+        startShippingConfigRefresh();
 
         const httpServer = http.createServer(app);
 

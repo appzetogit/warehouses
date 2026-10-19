@@ -159,6 +159,7 @@ GET /api/v1/admin/shipments
 GET /api/v1/admin/shipments/:orderId/tracking
 GET /api/v1/admin/shipments/ndr
 GET /api/v1/admin/shipments/rto
+GET /api/v1/admin/shipping-settings
 GET /api/v1/admin/sidebar-badges
 GET /api/v1/admin/spin/campaigns
 GET /api/v1/admin/spin/report
@@ -460,6 +461,7 @@ POST /api/v1/admin/shipments/:orderId/book
 POST /api/v1/admin/shipments/:orderId/cancel
 POST /api/v1/admin/shipments/ndr/:orderId/action
 POST /api/v1/admin/shipments/rto/:orderId/receive
+POST /api/v1/admin/shipping-settings/test
 POST /api/v1/admin/spin/campaigns
 POST /api/v1/admin/sub-admins
 POST /api/v1/admin/zones
@@ -560,6 +562,7 @@ PUT /api/v1/admin/quick-home-layout
 PUT /api/v1/admin/referral-settings
 PUT /api/v1/admin/safety-emergency-reports/:id/priority
 PUT /api/v1/admin/safety-emergency-reports/:id/status
+PUT /api/v1/admin/shipping-settings
 PUT /api/v1/seller/outlet-timings
 PUT /api/v1/user/cart
 PUT /api/v1/user/reviews/products/:productId

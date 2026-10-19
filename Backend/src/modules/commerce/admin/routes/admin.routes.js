@@ -101,7 +101,7 @@ const resolveSectionFromRequest = (path = '', method = '') => {
     if (path.startsWith('/feedback-experiences')) return 'report_management';
     if (path.startsWith('/reports')) return 'report_management';
     if (path.startsWith('/ai/')) return 'system_settings';
-    if (path.startsWith('/feature-settings') || path.startsWith('/business-settings') || path.startsWith('/power-scanning') || path.startsWith('/payment-settings') || path.startsWith('/notifications')) return 'system_settings';
+    if (path.startsWith('/feature-settings') || path.startsWith('/business-settings') || path.startsWith('/power-scanning') || path.startsWith('/payment-settings') || path.startsWith('/shipping-settings') || path.startsWith('/notifications')) return 'system_settings';
     if (path.startsWith('/pages-social-media')) return 'pages_social_media';
     if (path.startsWith('/quick-home-layout')) return 'banner_management';
     if (path.startsWith('/sidebar-badges') || path.startsWith('/dashboard-stats')) return 'dashboard';
@@ -410,6 +410,9 @@ router.get('/power-scanning', businessSettingsController.getPowerScanningSetting
 router.patch('/power-scanning', businessSettingsController.updatePowerScanningSettings);
 router.get('/payment-settings', businessSettingsController.getPaymentSettings);
 router.patch('/payment-settings', businessSettingsController.updatePaymentSettings);
+router.get('/shipping-settings', businessSettingsController.getShippingSettings);
+router.put('/shipping-settings', businessSettingsController.updateShippingSettings);
+router.post('/shipping-settings/test', businessSettingsController.testShippingSettings);
 
 // ----- Seller Settings -----
 router.get('/seller-settings/order-acceptance', businessSettingsController.getOrderAcceptanceSettings);
