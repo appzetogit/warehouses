@@ -2,6 +2,8 @@ import express from 'express';
 import {
     requestUserOtpController,
     verifyUserOtpController,
+    requestUserEmailOtpController,
+    verifyUserEmailOtpController,
     adminLoginController,
     refreshTokenController,
     requestSellerOtpController,
@@ -9,6 +11,7 @@ import {
     requestDeliveryOtpController,
     verifyDeliveryOtpController,
     logoutController,
+    logoutAllController,
     getMeController,
     updateAdminProfileController,
     changeAdminPasswordController,
@@ -25,6 +28,10 @@ const router = express.Router();
 // User OTP login
 router.post('/user/request-otp', authRateLimiter, requestUserOtpController);
 router.post('/user/verify-otp', authRateLimiter, verifyUserOtpController);
+
+// User email OTP login (website); same tokens and response as the phone flow
+router.post('/user/email/request-otp', authRateLimiter, requestUserEmailOtpController);
+router.post('/user/email/verify-otp', authRateLimiter, verifyUserEmailOtpController);
 
 // Seller OTP login
 router.post('/seller/request-otp', authRateLimiter, requestSellerOtpController);
@@ -46,6 +53,9 @@ router.post('/refresh-token', refreshTokenController);
 
 // Logout (invalidates refresh token)
 router.post('/logout', logoutController);
+
+// Logout on every device (Bearer token): revokes all sessions for the caller
+router.post('/logout-all', authMiddleware, logoutAllController);
 
 // Authenticated user profile (requires Bearer token)
 router.get('/me', authMiddleware, getMeController);

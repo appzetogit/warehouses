@@ -39,6 +39,7 @@ import { FeeSettings } from '../models/feeSettings.model.js';
 import { FeedbackExperience } from '../models/feedbackExperience.model.js';
 import { User } from '../../../../core/users/user.model.js';
 import { RefreshToken } from '../../../../core/refreshTokens/refreshToken.model.js';
+import { revokeAllSellerSessions } from '../../../../core/auth/sessionVersion.js';
 import { DeliveryCashLimit } from '../models/deliveryCashLimit.model.js';
 import { DeliveryEmergencyHelp } from '../models/deliveryEmergencyHelp.model.js';
 import { ReferralSettings } from '../models/referralSettings.model.js';
@@ -3147,7 +3148,16 @@ export async function updateSellerById(id, body = {}) {
     if (body.coverImages !== undefined) doc.coverImages = toUrlList(body.coverImages, 10);
     if (body.galleryImages !== undefined) doc.galleryImages = toUrlList(body.galleryImages, 10);
 
+    // The login phone is ownerPhone / primaryContactNumber. Moving it moves the
+    // login, so every device signed in against the old number is signed out.
+    const loginPhoneChanged = doc.isModified('ownerPhone') || doc.isModified('primaryContactNumber');
+
     await doc.save();
+
+    if (loginPhoneChanged) {
+        await revokeAllSellerSessions(doc._id);
+        await RefreshToken.deleteMany({ userId: doc._id });
+    }
 
     if (body.openingTime !== undefined || body.closingTime !== undefined) {
         await syncAdminSellerOutletTimings(doc);
@@ -3188,7 +3198,7 @@ export async function updateSellerStatus(id, body = {}) {
     const rejectedAt = status === 'rejected' ? new Date() : undefined;
     const rejectionReason = status === 'rejected' ? 'Disabled by admin' : undefined;
 
-    return Seller.findByIdAndUpdate(
+    const updated = await Seller.findByIdAndUpdate(
         id,
         {
             $set: {
@@ -3200,6 +3210,13 @@ export async function updateSellerStatus(id, body = {}) {
         },
         { new: true, runValidators: false }
     ).lean();
+
+    // Disabling a store signs it out on every device (owner and staff alike).
+    if (updated && status === 'rejected') {
+        await revokeAllSellerSessions(updated._id);
+        await RefreshToken.deleteMany({ userId: updated._id });
+    }
+    return updated;
 }
 
 export async function updateSellerLocation(id, body = {}) {
@@ -4204,6 +4221,11 @@ export async function rejectSeller(id, reason) {
         },
         { new: true, runValidators: false }
     ).lean();
+
+    if (updated) {
+        await revokeAllSellerSessions(updated._id);
+        await RefreshToken.deleteMany({ userId: updated._id });
+    }
 
     if (updated) {
         try {

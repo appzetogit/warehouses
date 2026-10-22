@@ -51,7 +51,7 @@ before(async () => {
         as: w.admin.as, body: { couponCode: 'SHOP200', discountType: 'flat-price', discountValue: 200, minOrderValue: 0 },
     }), 'admin creates coupon', 201);
     w.customer = await createCustomer(db, 'Indore Customer');
-    ok(await call('POST', '/admin/coins/adjust', { as: w.admin.as, body: { userId: String(w.customer.id), amount: 300, reason: 'Loyalty' } }), 'grant coins');
+    ok(await call('POST', '/admin/coins/adjust', { as: w.admin.as, body: { userId: String(w.customer.id), amount: 375, reason: 'Loyalty' } }), 'grant coins');
 });
 after(stopApp);
 

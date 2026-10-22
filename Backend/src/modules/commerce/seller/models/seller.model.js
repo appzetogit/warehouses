@@ -389,11 +389,18 @@ const sellerSchema = new mongoose.Schema(
     },
     /**
      * Bumped on every successful login, and embedded in the JWT that login issues.
-     * A token whose version is behind the stored one is rejected, so signing in on
-     * a new device silently invalidates every older device rather than leaving the
-     * account live in two places at once.
+     * Sellers are multi-device (owner and staff share one phone number), so the
+     * version alone no longer decides validity — see sessionVersions.
      */
     tokenVersion: { type: Number, default: 0 },
+    /**
+     * The token versions of the seller's live sessions, newest last, capped at
+     * MAX_SELLER_SESSIONS (auth.service). A seller token is valid while its version
+     * is in this list; the 6th login drops the oldest device. Empty means "legacy":
+     * fall back to equality with tokenVersion. Cleared (with a tokenVersion bump)
+     * whenever every device must be signed out — block, reject, phone change.
+     */
+    sessionVersions: { type: [Number], default: [] },
   },
   {
     collection: "sellers",

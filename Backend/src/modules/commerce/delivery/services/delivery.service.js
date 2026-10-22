@@ -25,10 +25,19 @@ const savePartnerFcmToken = async (partnerId, fcmToken, platform) => {
     }
 };
 
+/** Only the optional sign-up extras that were actually filled in. */
+const pickSignupExtras = (extras) =>
+    Object.fromEntries(
+        Object.entries(extras)
+            .map(([key, value]) => [key, typeof value === 'string' ? value.trim() : value])
+            .filter(([, value]) => typeof value === 'string' && value)
+    );
+
 export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
     const { 
         name, phone, email, countryCode, address, city, state, 
         vehicleType, vehicleName, vehicleNumber, drivingLicenseNumber, panNumber, aadharNumber,
+        rcNumber, bankAccountHolderName, bankAccountNumber, bankIfscCode, bankName,
         fcmToken, platform 
     } = payload;
     const refRaw = typeof payload?.ref === 'string' ? String(payload.ref).trim() : '';
@@ -95,6 +104,17 @@ export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
             ).then((url) => ['drivingLicensePhoto', url])
         );
     }
+    if (files?.rcPhoto?.[0]) {
+        uploadTasks.push(
+            uploadImageBuffer(files.rcPhoto[0].buffer, 'delivery/rc').then((url) => ['rcPhoto', url])
+        );
+    }
+    // Selfie is required by the web sign-up only; older app builds don't send one.
+    if (files?.selfiePhoto?.[0]) {
+        uploadTasks.push(
+            uploadImageBuffer(files.selfiePhoto[0].buffer, 'delivery/selfie').then((url) => ['selfiePhoto', url])
+        );
+    }
 
     const images = Object.fromEntries(await Promise.all(uploadTasks));
 
@@ -103,7 +123,7 @@ export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
     const { customFields, documentKeys } = await collectDynamicRegistration(rawBody || {}, fileKeys);
 
     // Upload any admin-defined document files (skip keys already handled as known photos).
-    const KNOWN_DOC_FIELDS = new Set(['profilePhoto', 'aadharPhoto', 'panPhoto', 'drivingLicensePhoto', 'upiQrCode']);
+    const KNOWN_DOC_FIELDS = new Set(['profilePhoto', 'aadharPhoto', 'panPhoto', 'drivingLicensePhoto', 'rcPhoto', 'selfiePhoto', 'upiQrCode']);
     const customDocuments = {};
     const dynamicDocTasks = [];
     for (const key of documentKeys) {
@@ -144,6 +164,7 @@ export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
         drivingLicenseNumber,
         panNumber,
         aadharNumber,
+        ...pickSignupExtras({ rcNumber, bankAccountHolderName, bankAccountNumber, bankIfscCode, bankName }),
         status: 'pending',
         ...images,
         ...(Object.keys(customFields).length ? { customFields } : {}),
@@ -198,6 +219,7 @@ export const updateDeliveryPartnerProfile = async (userId, payload, files) => {
     const {
         name, countryCode, address, city, state,
         vehicleType, vehicleName, vehicleNumber, drivingLicenseNumber, panNumber, aadharNumber,
+        rcNumber, bankAccountHolderName, bankAccountNumber, bankIfscCode, bankName,
         fcmToken, platform
     } = payload;
 
@@ -235,6 +257,13 @@ export const updateDeliveryPartnerProfile = async (userId, payload, files) => {
     if (files?.profilePhoto?.[0]) {
         partner.profilePhoto = await uploadImageBuffer(files.profilePhoto[0].buffer, 'delivery/profile');
     }
+    if (files?.rcPhoto?.[0]) {
+        partner.rcPhoto = await uploadImageBuffer(files.rcPhoto[0].buffer, 'delivery/rc');
+    }
+    if (files?.selfiePhoto?.[0]) {
+        partner.selfiePhoto = await uploadImageBuffer(files.selfiePhoto[0].buffer, 'delivery/selfie');
+    }
+    Object.assign(partner, pickSignupExtras({ rcNumber, bankAccountHolderName, bankAccountNumber, bankIfscCode, bankName }));
 
     await partner.save();
 

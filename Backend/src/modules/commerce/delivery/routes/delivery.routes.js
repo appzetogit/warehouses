@@ -1,7 +1,7 @@
 import { resubmitController } from '../../shared/resubmitApplication.js';
 import { DeliveryPartner } from '../models/deliveryPartner.model.js';
 import express from 'express';
-import { upload } from '../../../../middleware/upload.js';
+import multer from 'multer';
 import { authMiddleware } from '../../../../core/auth/auth.middleware.js';
 import { requireRoles } from '../../../../core/roles/role.middleware.js';
 import * as orderController from '../../orders/controllers/order.controller.js';
@@ -10,19 +10,32 @@ import { getPublicFormSchemaController } from '../controllers/driverRegistration
 
 const router = express.Router();
 
-const uploadFields = upload.fields([
+/**
+ * Rider documents go up together: profile photo, Aadhaar, PAN, licence, RC and
+ * selfie are six files, plus any admin-defined documents, which is more than
+ * the shared upload middleware's 5-file cap. A smaller per-file cap keeps the
+ * per-request memory ceiling (10 x 20MB) below the shared one (5 x 50MB).
+ */
+const docUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 20 * 1024 * 1024, files: 10 },
+});
+
+const uploadFields = docUpload.fields([
     { name: 'profilePhoto', maxCount: 1 },
     { name: 'aadharPhoto', maxCount: 1 },
     { name: 'panPhoto', maxCount: 1 },
     { name: 'drivingLicensePhoto', maxCount: 1 },
+    { name: 'rcPhoto', maxCount: 1 },
+    { name: 'selfiePhoto', maxCount: 1 },
     { name: 'upiQrCode', maxCount: 1 }
 ]);
 
 // Public: admin-defined registration form schema (fields + documents, grouped by page).
 router.get('/registration-fields', getPublicFormSchemaController);
 
-// upload.any() accepts the fixed docs above AND any admin-defined document field.
-router.post('/register', upload.any(), registerDeliveryPartnerController);
+// docUpload.any() accepts the fixed docs above AND any admin-defined document field.
+router.post('/register', docUpload.any(), registerDeliveryPartnerController);
 router.get('/check-vehicle/:number', async (req, res) => {
     try {
         const { DeliveryPartner } = await import('../models/deliveryPartner.model.js');

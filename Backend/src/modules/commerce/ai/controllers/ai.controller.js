@@ -8,17 +8,37 @@ import { AiConversation } from '../models/aiConversation.model.js';
 // Bounds what one message can cost when it reaches the model.
 const MAX_MESSAGE_LENGTH = 500;
 
+/**
+ * Who the assistant talks to. 'seller' only for a caller signed in as a SELLER
+ * (and a SELLER token always gets it); anyone else asking for it stays a customer.
+ */
+export const resolveAudience = (req) => (String(req.user?.role || '').toUpperCase() === 'SELLER' ? 'seller' : 'customer');
+
+/** The seller behind a SELLER token still exists and the token is from its current session. */
+async function sellerSessionValid(user) {
+    if (!mongoose.Types.ObjectId.isValid(String(user?.userId))) return false;
+    const { Seller } = await import('../../seller/models/seller.model.js');
+    const doc = await Seller.findById(user.userId).select('tokenVersion').lean();
+    if (!doc) return false;
+    return user.tokenVersion === undefined || Number(user.tokenVersion) === (Number(doc.tokenVersion) || 0);
+}
+
 export const chatAssistantController = async (req, res, next) => {
     try {
         const { message, history, conversationId } = req.body || {};
         if (String(message || '').length > MAX_MESSAGE_LENGTH) {
             return sendError(res, 400, `Please keep messages under ${MAX_MESSAGE_LENGTH} characters`);
         }
+        const audience = resolveAudience(req);
         const userId = req.user?.userId || null;
-        const userKey = userKeyFor({ userId, ip: req.ip });
         const text = String(message || '').trim();
+        if (audience === 'seller') {
+            if (!text) return sendError(res, 400, 'Please type a message');
+            if (!(await sellerSessionValid(req.user))) return sendError(res, 401, 'Please log in again');
+        }
+        const userKey = userKeyFor({ userId, ip: req.ip, audience });
 
-        const gate = await checkAssistantAllowed({ userKey });
+        const gate = await checkAssistantAllowed({ userKey, audience });
         if (!gate.allowed) {
             // A normal reply, so the widget shows it in the chat instead of an error.
             return sendResponse(res, 200, 'Assistant unavailable', {
@@ -30,7 +50,7 @@ export const chatAssistantController = async (req, res, next) => {
             });
         }
 
-        const result = await geminiService.handleAssistantChat({ message: text, userId, history, settings: gate.settings });
+        const result = await geminiService.handleAssistantChat({ message: text, userId, history, settings: gate.settings, audience });
         const { usage, model, toolCalls, ...publicResult } = result;
 
         let savedId = conversationId || null;
@@ -39,13 +59,14 @@ export const chatAssistantController = async (req, res, next) => {
                 await recordUsage({
                     userKey,
                     userId,
+                    audience,
                     messages: 1,
                     llmCalls: usage ? 1 : 0,
                     promptTokens: usage?.promptTokens || 0,
                     outputTokens: usage?.outputTokens || 0,
                 });
                 savedId = await appendExchange({
-                    conversationId, userId, userKey, userText: text, reply: result.reply,
+                    conversationId, userId, userKey, audience, userText: text, reply: result.reply,
                     toolCalls: toolCalls || [], usage: usage || {}, model: model || '', settings: gate.settings,
                 });
             } catch (err) {

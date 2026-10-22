@@ -4,6 +4,7 @@ import { Seller } from '../../seller/models/seller.model.js';
 import { FeeSettings } from '../../admin/models/feeSettings.model.js';
 import { Offer } from '../../admin/models/offer.model.js';
 import { OfferUsage } from '../../admin/models/offerUsage.model.js';
+import { Category } from '../../admin/models/category.model.js';
 import { User } from '../../../../core/users/user.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import {
@@ -404,13 +405,48 @@ const offerSellerIds = (offer) =>
     .filter(Boolean)
     .map(String);
 
-/** The subtotal an offer discounts: its own stores' share, or the whole cart. */
-const offerBase = (offer, subtotalsBySeller) => {
-  if (offer.sellerScope !== 'selected') {
-    return [...subtotalsBySeller.values()].reduce((a, b) => a + b, 0);
+const offerCategoryIds = (offer) =>
+  (Array.isArray(offer?.categoryIds) ? offer.categoryIds : []).filter(Boolean).map(String);
+
+/**
+ * A store's line subtotals per product category ('' for a line without one),
+ * so a category offer ("20% off Kurtas") can discount just those lines.
+ */
+export function subtotalsByCategory(items = []) {
+  const out = new Map();
+  for (const item of Array.isArray(items) ? items : []) {
+    const key = item?.categoryId ? String(item.categoryId) : '';
+    const line = (Number(item?.price) || 0) * (Number(item?.quantity) || 1);
+    out.set(key, (out.get(key) || 0) + line);
   }
-  const allowed = new Set(offerSellerIds(offer));
-  return [...subtotalsBySeller].reduce((sum, [sellerId, sub]) => sum + (allowed.has(sellerId) ? sub : 0), 0);
+  return out;
+}
+
+/**
+ * What an offer discounts in each store: nothing outside its own stores; for a
+ * category offer only the lines in its categories or their subcategories
+ * (`ctx.parentOf` maps a cart category to its parent); otherwise the store's
+ * whole subtotal.
+ */
+const offerBaseBySeller = (offer, subtotalsBySeller, ctx = {}) => {
+  const allowed = offer.sellerScope === 'selected' ? new Set(offerSellerIds(offer)) : null;
+  const cats = offerCategoryIds(offer);
+  const wanted = cats.length ? new Set(cats) : null;
+  const out = new Map();
+  for (const [sellerId, sub] of subtotalsBySeller) {
+    if (allowed && !allowed.has(sellerId)) {
+      out.set(sellerId, 0);
+    } else if (!wanted) {
+      out.set(sellerId, sub);
+    } else {
+      let base = 0;
+      for (const [catId, lineSub] of ctx.bySellerCategory?.get(sellerId) || []) {
+        if (catId && (wanted.has(catId) || wanted.has(ctx.parentOf?.get(catId) || ''))) base += lineSub;
+      }
+      out.set(sellerId, round2(base));
+    }
+  }
+  return out;
 };
 
 const offerDiscount = (offer, base) => {
@@ -466,7 +502,49 @@ async function isOfferApplicable(offer, { userId, base, isFirstOrder, firstOrder
  * to some stores discounts only their share; `appliedCoupon.sellerIds` says
  * which stores it covers (null: all).
  */
-export async function resolveCoupon({ userId, codeRaw = '', subtotalsBySeller, phones = [], deviceId = '', now = new Date() }) {
+export async function resolveCoupon({
+  userId,
+  codeRaw = '',
+  subtotalsBySeller,
+  subtotalsBySellerCategory = new Map(),
+  phones = [],
+  deviceId = '',
+  now = new Date(),
+}) {
+  // Category offers need each cart category's parent, so an offer on "Ethnic
+  // Wear" covers a Kurta filed under its "Kurtas" subcategory. Loaded once,
+  // and only when some offer in play is category-scoped.
+  const ctx = { bySellerCategory: subtotalsBySellerCategory, parentOf: null };
+  const categoryNames = new Map();
+  const loadCategories = async (offer) => {
+    const wanted = offerCategoryIds(offer);
+    if (!wanted.length) return;
+    if (!ctx.parentOf) {
+      ctx.parentOf = new Map();
+      const cartCats = new Set();
+      for (const byCat of subtotalsBySellerCategory.values()) {
+        for (const catId of byCat.keys()) if (mongoose.Types.ObjectId.isValid(catId)) cartCats.add(catId);
+      }
+      if (cartCats.size) {
+        const docs = await Category.find({ _id: { $in: [...cartCats] } }).select('parentId name').lean();
+        for (const doc of docs) {
+          if (doc.parentId) ctx.parentOf.set(String(doc._id), String(doc.parentId));
+          categoryNames.set(String(doc._id), doc.name);
+        }
+      }
+    }
+    const missing = wanted.filter((id) => !categoryNames.has(id) && mongoose.Types.ObjectId.isValid(id));
+    if (missing.length) {
+      const docs = await Category.find({ _id: { $in: missing } }).select('name').lean();
+      for (const doc of docs) categoryNames.set(String(doc._id), doc.name);
+    }
+  };
+  const baseBySellerOf = async (offer) => {
+    await loadCategories(offer);
+    return offerBaseBySeller(offer, subtotalsBySeller, ctx);
+  };
+  const sumOf = (map) => [...map.values()].reduce((a, b) => a + b, 0);
+
   let firstOrder;
   const isFirstOrder = async () => {
     if (firstOrder === undefined) firstOrder = await isFirstOrderCustomer(userId, phones);
@@ -477,16 +555,21 @@ export async function resolveCoupon({ userId, codeRaw = '', subtotalsBySeller, p
     if (guardResult === undefined) guardResult = await checkFirstOrderEligibility({ userId, deviceId });
     return guardResult;
   };
-  const pick = (offer, isAutoApplied) => {
-    const discount = offerDiscount(offer, offerBase(offer, subtotalsBySeller));
+  const pick = (offer, isAutoApplied, baseBySeller) => {
+    const discount = offerDiscount(offer, sumOf(baseBySeller));
+    const cats = offerCategoryIds(offer);
     return {
       discount,
+      // What each store's share of the discount is weighed by (split checkout).
+      couponBaseBySeller: baseBySeller,
       appliedCoupon: {
         code: offer.couponCode,
         discount,
         isAutoApplied,
         sellerIds: offer.sellerScope === 'selected' ? offerSellerIds(offer) : null,
         firstOrder: isFirstOrderOffer(offer),
+        categoryIds: cats.length ? cats : null,
+        ...(cats.length ? { categoryNames: cats.map((id) => categoryNames.get(id)).filter(Boolean) } : {}),
       },
     };
   };
@@ -494,8 +577,9 @@ export async function resolveCoupon({ userId, codeRaw = '', subtotalsBySeller, p
   if (codeRaw) {
     const offer = await Offer.findOne({ couponCode: codeRaw }).lean();
     const why = {};
-    if (offer && (await isOfferApplicable(offer, { userId, base: offerBase(offer, subtotalsBySeller), isFirstOrder, firstOrderGuard, why, now }))) {
-      return pick(offer, false);
+    const baseBySeller = offer ? await baseBySellerOf(offer) : null;
+    if (offer && (await isOfferApplicable(offer, { userId, base: sumOf(baseBySeller), isFirstOrder, firstOrderGuard, why, now }))) {
+      return pick(offer, false, baseBySeller);
     }
     // A refused first-order coupon says why, so checkout can show it.
     return {
@@ -505,27 +589,33 @@ export async function resolveCoupon({ userId, codeRaw = '', subtotalsBySeller, p
     };
   }
 
-  if (!userId || !mongoose.Types.ObjectId.isValid(userId) || !(await isFirstOrder())) {
-    return { discount: 0, appliedCoupon: null };
-  }
+  // No code: the best of the automatic offers, i.e. the seller's auto-apply
+  // offers for anyone, plus the first-order offers on a first order.
+  const knownUser = Boolean(userId && mongoose.Types.ObjectId.isValid(userId));
+  const firstOrderEligible = knownUser && (await isFirstOrder());
+  const autoFilters = [{ autoApply: true }];
+  if (firstOrderEligible) autoFilters.push({ isFirstOrderOnly: true }, { customerScope: 'first-time' });
   const candidates = await Offer.find({
     status: 'active',
     showInCart: true,
-    $or: [{ isFirstOrderOnly: true }, { customerScope: 'first-time' }],
+    $or: autoFilters,
   }).lean();
   let best = null;
   let refused = null;
   for (const candidate of candidates) {
-    const base = offerBase(candidate, subtotalsBySeller);
+    // A first-order offer is never applied for someone we cannot identify.
+    if (isFirstOrderOffer(candidate) && !firstOrderEligible) continue;
+    const baseBySeller = await baseBySellerOf(candidate);
+    const base = sumOf(baseBySeller);
     const why = {};
     if (!(await isOfferApplicable(candidate, { userId, base, isFirstOrder, firstOrderGuard, why, now }))) {
       if (why.signal && !refused) refused = { code: candidate.couponCode, reason: why.reason, signal: why.signal };
       continue;
     }
     const d = offerDiscount(candidate, base);
-    if (d > 0 && (!best || d > best.d)) best = { offer: candidate, d };
+    if (d > 0 && (!best || d > best.d)) best = { offer: candidate, d, baseBySeller };
   }
-  return best ? pick(best.offer, true) : { discount: 0, appliedCoupon: null, couponRefusal: refused };
+  return best ? pick(best.offer, true, best.baseBySeller) : { discount: 0, appliedCoupon: null, couponRefusal: refused };
 }
 
 /**
@@ -603,6 +693,7 @@ export async function calculateOrderPricing(userId, dto, options = {}) {
       userId,
       codeRaw,
       subtotalsBySeller: new Map([[String(dto.sellerId || ''), subtotal]]),
+      subtotalsBySellerCategory: new Map([[String(dto.sellerId || ''), subtotalsByCategory(items)]]),
       phones: [deliveryAddress?.phone, dto?.deliveryAddress?.phone],
       deviceId: dto.deviceId,
     });

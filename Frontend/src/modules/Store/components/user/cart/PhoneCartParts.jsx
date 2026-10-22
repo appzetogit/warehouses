@@ -464,6 +464,7 @@ export function AddressPickerCard({
 
 const PAY_ICON_TINT = {
   cash: "bg-[#FDF1E4] text-[#B86A1E]",
+  paylater: "bg-[#F3E9DF] text-[#7A4A24]",
   razorpay: "bg-[#E8F5E9] text-[#2E7D32]",
   wallet: "bg-app-tint text-app-brown",
 }

@@ -69,7 +69,21 @@ export const ProfileDocsV2 = () => {
   const docs = [
     { label: "Aadhar Card", field: "aadharPhoto", data: profile?.documents?.aadhar },
     { label: "PAN Card", field: "panPhoto", data: profile?.documents?.pan },
-    { label: "Driving License", field: "drivingLicensePhoto", data: profile?.documents?.drivingLicense }
+    { label: "Driving License", field: "drivingLicensePhoto", data: profile?.documents?.drivingLicense },
+    {
+      label: "Vehicle RC",
+      field: "rcPhoto",
+      data: profile?.documents?.vehicleRC || (profile?.rcPhoto || profile?.rcNumber
+        ? { number: profile?.rcNumber || null, document: profile?.rcPhoto || null }
+        : null)
+    },
+    // The sign-up selfie is the verification record, so it is view-only here.
+    {
+      label: "Selfie Verification",
+      field: "selfiePhoto",
+      readOnly: true,
+      data: profile?.selfiePhoto ? { document: profile.selfiePhoto } : null
+    }
   ];
 
   return (
@@ -101,7 +115,8 @@ export const ProfileDocsV2 = () => {
                          {doc.data?.document && (
                             <button onClick={() => setShowViewer({ title: doc.label, url: doc.data.document })} className="p-3 bg-gray-50 rounded-xl text-gray-600 hover:bg-gray-100 active:scale-95 transition-all"><Eye className="w-5 h-5" /></button>
                          )}
-                         <button 
+                         {!doc.readOnly && (<>
+                         <button
                             onClick={() => handleTakeCameraPhoto(doc.field)}
                             className="p-3 bg-gray-900 rounded-xl text-white hover:bg-black active:scale-95 transition-all cursor-pointer relative"
                          >
@@ -113,6 +128,7 @@ export const ProfileDocsV2 = () => {
                          >
                             <ImageIcon className="w-5 h-5" />
                          </button>
+                         </>)}
                       </div>
                    </div>
                    {doc.data?.document && (

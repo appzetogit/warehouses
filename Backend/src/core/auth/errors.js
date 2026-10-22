@@ -33,3 +33,12 @@ export class NotFoundError extends Error {
     }
 }
 
+
+/** A feature that depends on something not set up on this server (e.g. SMTP). */
+export class ServiceUnavailableError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ServiceUnavailableError';
+        this.statusCode = 503;
+    }
+}

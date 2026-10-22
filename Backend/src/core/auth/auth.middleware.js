@@ -3,6 +3,7 @@ import { sendError } from '../../utils/response.js';
 import { User } from '../users/user.model.js';
 import { Seller } from '../../modules/commerce/seller/models/seller.model.js';
 import { DeliveryPartner } from '../../modules/commerce/delivery/models/deliveryPartner.model.js';
+import { isSessionVersionValid, SESSION_REVOKED_MESSAGE } from './sessionVersion.js';
 
 export const requireAdmin = (req, res, next) => {
     if (req.user?.role !== 'ADMIN') {
@@ -12,7 +13,8 @@ export const requireAdmin = (req, res, next) => {
 };
 
 /**
- * Accounts whose sessions are single-device.
+ * Accounts whose sessions are version-checked: single-device for USER and
+ * DELIVERY_PARTNER, up to MAX_SELLER_SESSIONS devices for SELLER.
  *
  * Admins are intentionally absent: the panel is routinely used across several
  * browser tabs and machines, so evicting the others on each sign-in would be a
@@ -53,7 +55,7 @@ export const authMiddleware = (req, res, next) => {
     // trip, and the other two roles now share the same path.
     model
         .findById(decoded.userId)
-        .select('isActive tokenVersion')
+        .select('isActive tokenVersion sessionVersions')
         .lean()
         .then((doc) => {
             if (!doc) return sendError(res, 401, 'Account not found');
@@ -62,20 +64,15 @@ export const authMiddleware = (req, res, next) => {
             }
 
             // A token minted before the latest login belongs to a device that has
-            // since been replaced.
+            // since been replaced (sellers: before the latest MAX_SELLER_SESSIONS
+            // logins — see isSessionVersionValid).
             //
             // Tokens issued BEFORE this feature shipped carry no version at all.
             // Treating those as 0 would sign every existing user out the moment a
             // single new login bumped anyone; instead they are accepted until the
             // account next logs in, which is when the eviction genuinely applies.
-            const stored = Number(doc.tokenVersion) || 0;
-            const presented = decoded.tokenVersion;
-            if (presented !== undefined && Number(presented) !== stored) {
-                return sendError(
-                    res,
-                    401,
-                    'You have been signed out because this account was used on another device'
-                );
+            if (!isSessionVersionValid(decoded.role, doc, decoded.tokenVersion)) {
+                return sendError(res, 401, SESSION_REVOKED_MESSAGE);
             }
 
             return next();

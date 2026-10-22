@@ -33,8 +33,8 @@ before(async () => {
     w.customer = await createCustomer(db, 'Cash Customer');
     w.rider = await createRider();
 
-    // The admin grants 120 coins and turns on a flat 25 cashback on delivered orders.
-    ok(await call('POST', '/admin/coins/adjust', { as: w.admin.as, body: { userId: String(w.customer.id), amount: 120, reason: 'Welcome' } }), 'grant coins');
+    // The admin grants 150 coins (80% usable = 120) and turns on a flat 25 cashback on delivered orders.
+    ok(await call('POST', '/admin/coins/adjust', { as: w.admin.as, body: { userId: String(w.customer.id), amount: 150, reason: 'Welcome' } }), 'grant coins');
     ok(await call('PUT', '/admin/cashback-settings', {
         as: w.admin.as, body: { isEnabled: true, cashbackType: 'flat', cashbackValue: 25, minOrderValue: 0, maxCashback: 0 },
     }), 'cashback settings');

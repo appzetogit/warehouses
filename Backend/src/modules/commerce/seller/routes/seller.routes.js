@@ -23,7 +23,8 @@ import {
     createSellerOfferController,
     listSellerOffersController,
     deleteSellerOfferController,
-    updateSellerOfferStatusController
+    updateSellerOfferStatusController,
+    updateSellerOfferController
 } from '../controllers/sellerOffer.controller.js';
 import {
     createSellerSupportTicketController,
@@ -298,6 +299,7 @@ router.get('/support/tickets', authMiddleware, requireSeller, listSellerSupportT
 router.get('/my-offers', authMiddleware, requireSeller, listSellerOffersController);
 router.post('/my-offers', authMiddleware, requireSeller, createSellerOfferController);
 router.patch('/my-offers/:id/status', authMiddleware, requireSeller, updateSellerOfferStatusController);
+router.patch('/my-offers/:id', authMiddleware, requireSeller, updateSellerOfferController);
 router.delete('/my-offers/:id', authMiddleware, requireSeller, deleteSellerOfferController);
 
 // Product reviews of this store's products: list, reply once, report.

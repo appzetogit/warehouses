@@ -18,7 +18,9 @@ const createOfferSchema = z.object({
     perUserLimit: z.number().min(0).optional(),
     isFirstOrderOnly: z.boolean().optional(),
     adminBearPercentage: z.number().min(0).max(100).optional(),
-    sellerBearPercentage: z.number().min(0).max(100).optional()
+    sellerBearPercentage: z.number().min(0).max(100).optional(),
+    categoryIds: z.array(z.string()).optional(),
+    autoApply: z.boolean().optional()
 });
 
 export const validateCreateOfferDto = (body) => {
@@ -41,7 +43,11 @@ export const validateCreateOfferDto = (body) => {
         perUserLimit: body?.perUserLimit !== undefined ? Number(body.perUserLimit) : undefined,
         isFirstOrderOnly: body?.isFirstOrderOnly !== undefined ? Boolean(body.isFirstOrderOnly) : undefined,
         adminBearPercentage: body?.adminBearPercentage !== undefined ? Number(body.adminBearPercentage) : undefined,
-        sellerBearPercentage: body?.sellerBearPercentage !== undefined ? Number(body.sellerBearPercentage) : undefined
+        sellerBearPercentage: body?.sellerBearPercentage !== undefined ? Number(body.sellerBearPercentage) : undefined,
+        categoryIds: Array.isArray(body?.categoryIds)
+            ? body.categoryIds.map((id) => String(id)).filter(Boolean)
+            : undefined,
+        autoApply: body?.autoApply !== undefined ? body.autoApply === true || body.autoApply === 'true' : undefined
     };
 
     const result = createOfferSchema.safeParse(normalized);
@@ -90,6 +96,11 @@ export const validateCreateOfferDto = (body) => {
             ...(result.data.sellerId ? [result.data.sellerId] : [])
         ])]
         : [];
+    const categoryIds = [...new Set(result.data.categoryIds || [])];
+    if (categoryIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
+        throw new ValidationError('Invalid category');
+    }
+
     const adminBearPercentage = result.data.adminBearPercentage ?? 100;
     const sellerBearPercentage = result.data.sellerBearPercentage ?? 0;
     if (Math.round((adminBearPercentage + sellerBearPercentage) * 100) / 100 !== 100) {
@@ -112,7 +123,9 @@ export const validateCreateOfferDto = (body) => {
         perUserLimit: result.data.perUserLimit,
         isFirstOrderOnly: result.data.isFirstOrderOnly,
         adminBearPercentage,
-        sellerBearPercentage
+        sellerBearPercentage,
+        categoryIds,
+        autoApply: result.data.autoApply ?? false
     };
 };
 

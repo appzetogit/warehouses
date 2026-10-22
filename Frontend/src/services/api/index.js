@@ -196,7 +196,9 @@ export const api = {
 
 /** Auth API - user OTP + admin login via new backend */
 export const authAPI = {
+  // Phone sign-in, or email sign-in when no phone but an email is given.
   sendOTP: (phone, _purpose = "login", _email = null) => {
+    if (!phone && _email) return authService.requestUserEmailOtp(_email);
     if (!phone) return Promise.reject(new Error("Phone is required"));
     return authService.requestUserOtp(phone);
   },
@@ -212,6 +214,8 @@ export const authAPI = {
     fcmToken = null,
     platform = "web",
   ) => {
+    if (!phone && _email && otp)
+      return authService.verifyUserEmailOtp(_email, otp, _referralCode, _name, fcmToken, platform);
     if (!phone || !otp)
       return Promise.reject(new Error("Phone and OTP are required"));
     return authService.verifyUserOtp(

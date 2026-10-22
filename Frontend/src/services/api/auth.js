@@ -8,6 +8,8 @@ import apiClient from "./axios.js";
 const AUTH = {
   USER_REQUEST_OTP: "/auth/user/request-otp",
   USER_VERIFY_OTP: "/auth/user/verify-otp",
+  USER_EMAIL_REQUEST_OTP: "/auth/user/email/request-otp",
+  USER_EMAIL_VERIFY_OTP: "/auth/user/email/verify-otp",
   ADMIN_LOGIN: "/auth/admin/login",
   SELLER_REQUEST_OTP: "/auth/seller/request-otp",
   SELLER_VERIFY_OTP: "/auth/seller/verify-otp",
@@ -94,6 +96,53 @@ export function verifyUserOtp(
   const refValue = typeof ref === "string" ? ref.trim() : "";
   return apiClient.post(AUTH.USER_VERIFY_OTP, {
     phone: normalized,
+    otp: otpStr,
+    ...(refValue ? { ref: refValue } : {}),
+    ...(name ? { name } : {}),
+    ...(fcmToken ? { fcmToken, platform } : {}),
+  });
+}
+
+/** Lower-cased, trimmed email, or "" when it is not a valid address. */
+function normalizeEmail(email) {
+  const value = typeof email === "string" ? email.trim().toLowerCase() : "";
+  return EMAIL_REGEX.test(value) ? value : "";
+}
+
+/** Request a sign-in code by email (user). */
+export function requestUserEmailOtp(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) {
+    return Promise.reject(new Error("Please enter a valid email address"));
+  }
+  return apiClient.post(AUTH.USER_EMAIL_REQUEST_OTP, { email: normalized });
+}
+
+/**
+ * Verify an emailed code and login (user). Same response as verifyUserOtp:
+ * { accessToken, refreshToken, user, isNewUser }.
+ */
+export function verifyUserEmailOtp(
+  email,
+  otp,
+  ref,
+  name = null,
+  fcmToken = null,
+  platform = "web",
+) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) {
+    return Promise.reject(new Error("Please enter a valid email address"));
+  }
+  const otpStr = String(otp ?? "")
+    .replace(/\D/g, "")
+    .slice(0, 4);
+  if (otpStr.length !== 4) {
+    return Promise.reject(new Error("OTP must be exactly 4 digits"));
+  }
+  const refValue = typeof ref === "string" ? ref.trim() : "";
+  return apiClient.post(AUTH.USER_EMAIL_VERIFY_OTP, {
+    email: normalized,
     otp: otpStr,
     ...(refValue ? { ref: refValue } : {}),
     ...(name ? { name } : {}),

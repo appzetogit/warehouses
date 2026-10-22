@@ -405,6 +405,7 @@ PATCH /api/v1/orders/:orderId/ratings
 PATCH /api/v1/seller/availability
 PATCH /api/v1/seller/banners/order
 PATCH /api/v1/seller/categories/:id
+PATCH /api/v1/seller/my-offers/:id
 PATCH /api/v1/seller/my-offers/:id/status
 PATCH /api/v1/seller/orders/:orderId/status
 PATCH /api/v1/seller/products/:id
@@ -474,9 +475,12 @@ POST /api/v1/auth/admin/login
 POST /api/v1/auth/delivery/request-otp
 POST /api/v1/auth/delivery/verify-otp
 POST /api/v1/auth/logout
+POST /api/v1/auth/logout-all
 POST /api/v1/auth/refresh-token
 POST /api/v1/auth/seller/request-otp
 POST /api/v1/auth/seller/verify-otp
+POST /api/v1/auth/user/email/request-otp
+POST /api/v1/auth/user/email/verify-otp
 POST /api/v1/auth/user/request-otp
 POST /api/v1/auth/user/verify-otp
 POST /api/v1/chat/conversations

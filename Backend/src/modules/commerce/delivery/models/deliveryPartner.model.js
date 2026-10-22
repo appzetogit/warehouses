@@ -76,6 +76,20 @@ const deliveryPartnerSchema = new mongoose.Schema(
         drivingLicensePhoto: {
             type: String
         },
+        // Vehicle Registration Certificate (optional at sign-up).
+        rcNumber: {
+            type: String,
+            trim: true,
+            uppercase: true
+        },
+        rcPhoto: {
+            type: String
+        },
+        // Live selfie taken at sign-up for identity verification. Kept apart
+        // from profilePhoto, which the rider can change later.
+        selfiePhoto: {
+            type: String
+        },
         status: {
             type: String,
             enum: ['pending', 'approved', 'rejected', 'deactivated'],

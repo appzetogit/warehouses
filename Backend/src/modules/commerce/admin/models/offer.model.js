@@ -9,6 +9,11 @@ const offerSchema = new mongoose.Schema(
         sellerScope: { type: String, enum: ['all', 'selected'], default: 'all', index: true },
         sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Seller' },
         sellerIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Seller' }],
+        // Only lines in these categories (or their subcategories) count towards
+        // the offer, e.g. 20% off Kurtas. Empty: the store's whole share of the cart.
+        categoryIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
+        // Applied without a code: joins the automatic best-offer pick at checkout.
+        autoApply: { type: Boolean, default: false, index: true },
         minOrderValue: { type: Number, default: 0, min: 0 },
         maxDiscount: { type: Number, default: null, min: 0 },
         usageLimit: { type: Number, default: null, min: 0 },

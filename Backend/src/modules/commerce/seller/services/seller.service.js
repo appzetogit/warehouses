@@ -6,11 +6,14 @@ import { CHANNELS, emptySellerChannel, parseChannelList, serializeSellerChannels
 import { uploadImageBuffer } from '../../../../services/cloudinary.service.js';
 import { normalizeMediaUrlForStorage } from '../../../../services/storage.service.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
+import { revokeAllSellerSessions } from '../../../../core/auth/sessionVersion.js';
+import { RefreshToken } from '../../../../core/refreshTokens/refreshToken.model.js';
 import mongoose from 'mongoose';
 import { Zone } from '../../admin/models/zone.model.js';
 import { Offer } from '../../admin/models/offer.model.js';
 import { OfferUsage } from '../../admin/models/offerUsage.model.js';
 import { Product } from '../../admin/models/product.model.js';
+import { Category } from '../../admin/models/category.model.js';
 import { Order } from '../../orders/models/order.model.js';
 import { SellerOutletTimings } from '../models/outletTimings.model.js';
 import { attachOutletTimingsToSellers } from './outletTimings.service.js';
@@ -1613,6 +1616,12 @@ export const updateSellerProfile = async (sellerId, body = {}) => {
             );
         }
 
+        // A new login phone signs every device out, as an admin phone change does.
+        if (update.ownerPhone !== undefined || update.primaryContactNumber !== undefined) {
+            await revokeAllSellerSessions(sellerId);
+            await RefreshToken.deleteMany({ userId: sellerId });
+        }
+
         return toSellerProfile(doc);
     } catch (err) {
         if (err && err.code === 11000) {
@@ -2294,13 +2303,54 @@ export const getSellerComplaints = async (sellerId, query = {}) => {
 
 
 /**
+ * The categories a seller's offer may cover: each must exist, be active, and
+ * hold at least one of the seller's products, directly or in a subcategory.
+ */
+export async function assertSellerOfferCategories(sellerId, rawIds = []) {
+    const ids = [...new Set((Array.isArray(rawIds) ? rawIds : []).map((id) => String(id || '').trim()).filter(Boolean))];
+    if (!ids.length) return [];
+    if (ids.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
+        throw new ValidationError('Invalid category');
+    }
+    const categories = await Category.find({ _id: { $in: ids }, isActive: { $ne: false } }).select('_id name').lean();
+    if (categories.length !== ids.length) {
+        throw new ValidationError('One or more categories do not exist or are not active');
+    }
+    const sold = (await Product.distinct('categoryId', { sellerId: new mongoose.Types.ObjectId(String(sellerId)) }))
+        .filter(Boolean)
+        .map(String);
+    const soldSet = new Set(sold);
+    const childParents = new Set(
+        (await Category.find({ parentId: { $in: ids }, _id: { $in: sold } }).select('parentId').lean())
+            .map((c) => String(c.parentId)),
+    );
+    const empty = categories.find((c) => !soldSet.has(String(c._id)) && !childParents.has(String(c._id)));
+    if (empty) {
+        throw new ValidationError(`You have no products in ${empty.name || 'this category'}`);
+    }
+    return ids.map((id) => new mongoose.Types.ObjectId(id));
+}
+
+const formatSellerOffer = (o) => ({
+    ...o,
+    id: String(o._id),
+    offerId: String(o._id),
+    categoryIds: (o.categoryIds || []).map(String),
+    autoApply: Boolean(o.autoApply)
+});
+
+/**
  * Create a new offer for a seller.
+ *
+ * A category offer ("20% off Kurtas") is still a coupon: product prices are
+ * never touched, so nothing goes back to approval.
  */
 export async function createSellerOffer(sellerId, body) {
     const existing = await Offer.findOne({ couponCode: body.couponCode }).lean();
     if (existing) {
         throw new ValidationError('Coupon code already exists');
     }
+    const categoryIds = await assertSellerOfferCategories(sellerId, body.categoryIds);
 
     const doc = await Offer.create({
         couponCode: body.couponCode,
@@ -2320,7 +2370,9 @@ export async function createSellerOffer(sellerId, body) {
         showInCart: true,
         createdByRole: 'SELLER',
         adminBearPercentage: 0,
-        sellerBearPercentage: 100
+        sellerBearPercentage: 100,
+        categoryIds,
+        autoApply: body.autoApply === true
     });
 
     return doc;
@@ -2335,11 +2387,33 @@ export async function listSellerOffers(sellerId) {
         sellerScope: 'selected'
     }).sort({ createdAt: -1 }).lean();
 
-    return list.map(o => ({
-        ...o,
-        id: String(o._id),
-        offerId: String(o._id)
-    }));
+    return list.map(formatSellerOffer);
+}
+
+/**
+ * Change which categories a seller's offer covers, or whether it applies
+ * without a code.
+ */
+export async function updateSellerOffer(sellerId, offerId, patch = {}) {
+    if (!mongoose.Types.ObjectId.isValid(String(offerId))) {
+        throw new NotFoundError('Offer not found or not owned by you');
+    }
+    const $set = {};
+    if (patch.categoryIds !== undefined) $set.categoryIds = await assertSellerOfferCategories(sellerId, patch.categoryIds);
+    if (patch.autoApply !== undefined) $set.autoApply = patch.autoApply === true;
+    const doc = await Offer.findOneAndUpdate(
+        {
+            _id: new mongoose.Types.ObjectId(String(offerId)),
+            sellerId: new mongoose.Types.ObjectId(String(sellerId)),
+            createdByRole: 'SELLER'
+        },
+        { $set },
+        { new: true }
+    ).lean();
+    if (!doc) {
+        throw new NotFoundError('Offer not found or not owned by you');
+    }
+    return formatSellerOffer(doc);
 }
 
 /**

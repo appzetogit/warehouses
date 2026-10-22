@@ -88,7 +88,14 @@ const sendSmsViaIndiaHub = async (phone, otp) => {
     }
 };
 
-export const createOrUpdateOtp = async (phone) => {
+/**
+ * Stores a fresh code for `phone` (an OTP key: a phone number, or `email:<address>`
+ * for email sign-in) and delivers it. `deliver(key, otp)` replaces the SMS sender;
+ * it may throw to report that the code could not be sent.
+ */
+export const createOrUpdateOtp = async (phone, { deliver, realOnly = false } = {}) => {
+    // realOnly: never the fixed test code (email sign-in must always send a real one).
+    const useTestCode = config.useDefaultOtp && !realOnly;
     const existing = await Otp.findOne({ phone });
     const now = new Date();
 
@@ -110,7 +117,7 @@ export const createOrUpdateOtp = async (phone) => {
     }
 
     let otp;
-    if (config.useDefaultOtp) {
+    if (useTestCode) {
         otp = '1234';
         logger.info(`Default OTP mode enabled – OTP is ${otp} for phone ${phone}`);
     } else {
@@ -144,9 +151,9 @@ export const createOrUpdateOtp = async (phone) => {
         });
     }
 
-    // Only send SMS if not in default OTP mode
-    if (!config.useDefaultOtp) {
-        await sendSmsViaIndiaHub(phone, otp);
+    // Only send the code if not in default OTP mode
+    if (!useTestCode) {
+        await (deliver || sendSmsViaIndiaHub)(phone, otp);
     }
 
     return otp;

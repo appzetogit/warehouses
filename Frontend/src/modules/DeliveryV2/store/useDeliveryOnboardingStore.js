@@ -9,7 +9,9 @@ export const useDeliveryOnboardingStore = create((set) => ({
     profilePhoto: null,
     aadharPhoto: null,
     panPhoto: null,
-    drivingLicensePhoto: null
+    drivingLicensePhoto: null,
+    rcPhoto: null,
+    selfiePhoto: null
   },
   
   setDocument: (type, file) => set((state) => ({
@@ -25,7 +27,9 @@ export const useDeliveryOnboardingStore = create((set) => ({
       profilePhoto: null,
       aadharPhoto: null,
       panPhoto: null,
-      drivingLicensePhoto: null
+      drivingLicensePhoto: null,
+      rcPhoto: null,
+      selfiePhoto: null
     }
   })
 }))

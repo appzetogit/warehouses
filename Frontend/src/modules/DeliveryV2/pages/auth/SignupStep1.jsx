@@ -28,7 +28,12 @@ export default function SignupStep1() {
       vehicleNumber: "",
       drivingLicenseNumber: "",
       panNumber: "",
-      aadharNumber: ""
+      aadharNumber: "",
+      rcNumber: "",
+      bankAccountHolderName: "",
+      bankAccountNumber: "",
+      bankIfscCode: "",
+      bankName: ""
     }
     if (saved) {
       try {
@@ -55,6 +60,11 @@ export default function SignupStep1() {
     /^[A-Za-z][A-Za-z\s]*[A-Za-z]$/.test(value.trim())
 
   const drivingLicenseRegex = /^[A-Z]{2}[0-9A-Z]{8,16}$/
+  const rcNumberRegex = /^[A-Z0-9]{6,20}$/
+  const bankFieldKeys = ["bankAccountHolderName", "bankAccountNumber", "bankIfscCode", "bankName"]
+  const [showBank, setShowBank] = useState(() =>
+    bankFieldKeys.some((key) => String(formData[key] || "").trim())
+  )
 
   const isValidEmailValue = (value) => {
     const normalizedValue = value.trim()
@@ -94,6 +104,21 @@ export default function SignupStep1() {
     // Auto-uppercase for Vehicle, DL and PAN numbers
     if (name === "vehicleNumber" || name === "panNumber" || name === "drivingLicenseNumber") {
       updatedValue = value.toUpperCase()
+    }
+
+    if (name === "rcNumber") {
+      updatedValue = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20)
+    }
+
+    // Bank fields: same clean-up as the profile bank page.
+    if (name === "bankAccountHolderName" || name === "bankName") {
+      updatedValue = value.replace(/[^a-zA-Z\s]/g, "")
+    }
+    if (name === "bankAccountNumber") {
+      updatedValue = value.replace(/\D/g, "").slice(0, 18)
+    }
+    if (name === "bankIfscCode") {
+      updatedValue = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 11)
     }
 
     if (name === "name") {
@@ -175,10 +200,36 @@ export default function SignupStep1() {
       newErrors.drivingLicenseNumber = "Invalid DL format (e.g., DL0120110012345)"
     }
 
-    if (!formData.panNumber.trim()) {
-      newErrors.panNumber = "PAN number is required"
-    } else if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber)) {
+    // PAN is optional; check the format only when one is entered.
+    if (formData.panNumber.trim() && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber)) {
       newErrors.panNumber = "Invalid PAN format (e.g., ABCDE1234F)"
+    }
+
+    // RC is optional too.
+    if (formData.rcNumber.trim() && !rcNumberRegex.test(formData.rcNumber)) {
+      newErrors.rcNumber = "Invalid RC number (letters and digits, e.g., MH12AB1234)"
+    }
+
+    // Bank details are optional, but once started all four are needed
+    // (same rules as the profile bank page).
+    const anyBank = bankFieldKeys.some((key) => String(formData[key] || "").trim())
+    if (anyBank) {
+      const holder = formData.bankAccountHolderName.trim()
+      if (!holder) newErrors.bankAccountHolderName = "Account holder name is required"
+      else if (!/^[a-zA-Z\s]+$/.test(holder)) newErrors.bankAccountHolderName = "Account holder name should only contain alphabets"
+
+      const account = formData.bankAccountNumber
+      if (!account) newErrors.bankAccountNumber = "Account number is required"
+      else if (!/^\d{9,18}$/.test(account)) newErrors.bankAccountNumber = "Account number must be 9 to 18 digits"
+
+      if (!formData.bankIfscCode) newErrors.bankIfscCode = "IFSC code is required"
+      else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.bankIfscCode)) newErrors.bankIfscCode = "Invalid IFSC code format (e.g., SBIN0012345)"
+
+      const bank = formData.bankName.trim()
+      if (!bank) newErrors.bankName = "Bank name is required"
+      else if (!/^[a-zA-Z\s]+$/.test(bank)) newErrors.bankName = "Bank name should only contain alphabets"
+
+      if (Object.keys(newErrors).some((key) => bankFieldKeys.includes(key))) setShowBank(true)
     }
 
     if (!formData.aadharNumber.trim()) {
@@ -225,7 +276,12 @@ export default function SignupStep1() {
         vehicleNumber: formData.vehicleNumber.trim(),
         drivingLicenseNumber: formData.drivingLicenseNumber.trim().toUpperCase(),
         panNumber: formData.panNumber.trim().toUpperCase(),
-        aadharNumber: formData.aadharNumber.replace(/\s/g, "")
+        aadharNumber: formData.aadharNumber.replace(/\s/g, ""),
+        rcNumber: formData.rcNumber.trim().toUpperCase(),
+        bankAccountHolderName: formData.bankAccountHolderName.trim(),
+        bankAccountNumber: formData.bankAccountNumber.trim(),
+        bankIfscCode: formData.bankIfscCode.trim().toUpperCase(),
+        bankName: formData.bankName.trim()
       }
       sessionStorage.setItem("deliverySignupDetails", JSON.stringify(details))
       toast.success("Details saved")
@@ -400,6 +456,24 @@ export default function SignupStep1() {
             {errors.vehicleNumber && <p className="text-red-500 text-sm mt-1">{errors.vehicleNumber}</p>}
           </div>
 
+          {/* RC Number */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              RC Number (Optional)
+            </label>
+            <input
+              type="text"
+              name="rcNumber"
+              value={formData.rcNumber}
+              onChange={handleChange}
+              maxLength={20}
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 uppercase ${errors.rcNumber ? "border-red-500" : "border-gray-300"
+                }`}
+              placeholder="Vehicle registration certificate number"
+            />
+            {errors.rcNumber && <p className="text-red-500 text-sm mt-1">{errors.rcNumber}</p>}
+          </div>
+
           {/* Driving License Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -421,7 +495,7 @@ export default function SignupStep1() {
           {/* PAN Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              PAN Number <span className="text-red-500">*</span>
+              PAN Number (Optional)
             </label>
             <input
               type="text"
@@ -453,6 +527,50 @@ export default function SignupStep1() {
               placeholder="123456789012"
             />
             {errors.aadharNumber && <p className="text-red-500 text-sm mt-1">{errors.aadharNumber}</p>}
+          </div>
+
+          {/* Bank Details (Optional) */}
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <button
+              type="button"
+              onClick={() => setShowBank((open) => !open)}
+              className="w-full flex items-center justify-between text-left"
+              aria-expanded={showBank}
+            >
+              <span>
+                <span className="block text-sm font-medium text-gray-700">Bank Account (Optional)</span>
+                <span className="block text-xs text-gray-500 mt-0.5">For payouts. You can add it later from your profile.</span>
+              </span>
+              <span className="text-sm font-bold text-[#00B761]">{showBank ? "Hide" : "Add"}</span>
+            </button>
+
+            {showBank && (
+              <div className="space-y-4 mt-4">
+                {[
+                  { name: "bankAccountHolderName", label: "Account Holder Name", placeholder: "As per bank records", inputMode: "text" },
+                  { name: "bankAccountNumber", label: "Account Number", placeholder: "9 to 18 digits", inputMode: "numeric", maxLength: 18 },
+                  { name: "bankIfscCode", label: "IFSC Code", placeholder: "e.g., SBIN0012345", inputMode: "text", maxLength: 11, uppercase: true },
+                  { name: "bankName", label: "Bank Name", placeholder: "e.g., State Bank of India", inputMode: "text" }
+                ].map((field) => (
+                  <div key={field.name}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+                    <input
+                      type="text"
+                      name={field.name}
+                      value={formData[field.name]}
+                      onChange={handleChange}
+                      inputMode={field.inputMode}
+                      maxLength={field.maxLength}
+                      autoComplete="off"
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${field.uppercase ? "uppercase " : ""}${errors[field.name] ? "border-red-500" : "border-gray-300"
+                        }`}
+                      placeholder={field.placeholder}
+                    />
+                    {errors[field.name] && <p className="text-red-500 text-sm mt-1">{errors[field.name]}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}

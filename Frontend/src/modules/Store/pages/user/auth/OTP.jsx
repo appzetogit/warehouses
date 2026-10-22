@@ -309,7 +309,7 @@ export default function OTP() {
       await authAPI.sendOTP(phone, purpose, email)
       setResendDeadline(Date.now() + RESEND_SECONDS * 1000)
     } catch (err) {
-      setError("Failed to resend OTP.")
+      setError(err?.response?.data?.message || err?.response?.data?.error || "Failed to resend OTP.")
     } finally {
       setIsLoading(false)
     }
@@ -326,7 +326,7 @@ export default function OTP() {
       title={showNameInput ? "One last step" : "Verify OTP 🔒"}
       subtitle={showNameInput ? "Tell us what to call you" : `Enter the 4-digit code sent to ${contactInfo}`}
       onBack={() => navigate("/auth/login")}
-      footer={<p className="text-[11.5px]">{companyName} keeps your number private.</p>}
+      footer={<p className="text-[11.5px]">{companyName} keeps your {contactType === "email" ? "email" : "number"} private.</p>}
     >
       <AnimatePresence mode="wait">
         {!showNameInput ? (
@@ -379,7 +379,7 @@ export default function OTP() {
 
             <div className="space-y-2 text-center text-[13.5px] text-[#757575]">
               <p>
-                Didn&apos;t receive OTP?{" "}
+                {contactType === "email" ? "No email? Check spam, or" : "Didn't receive OTP?"}{" "}
                 {resendTimer > 0 ? (
                   <span className="font-bold text-app-brown">
                     Resend in <span className="tabular-nums">{resendTimer}s</span>
@@ -391,7 +391,7 @@ export default function OTP() {
                 )}
               </p>
               <button type="button" onClick={() => navigate("/auth/login")} className="font-semibold text-app-brown underline-offset-2 hover:underline">
-                Edit Number
+                {contactType === "email" ? "Edit Email" : "Edit Number"}
               </button>
             </div>
           </motion.div>

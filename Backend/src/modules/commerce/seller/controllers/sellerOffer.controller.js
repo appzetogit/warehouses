@@ -1,6 +1,7 @@
 import * as sellerService from '../services/seller.service.js';
 import { sendResponse, sendError } from '../../../../utils/response.js';
 import { validateCreateOfferDto } from '../../admin/validators/offer.validator.js';
+import { validateUpdateSellerOfferDto } from '../validators/seller.validator.js';
 
 export const createSellerOfferController = async (req, res) => {
     try {
@@ -46,6 +47,18 @@ export const updateSellerOfferStatusController = async (req, res) => {
         const { status } = req.body;
         const doc = await sellerService.updateSellerOfferStatus(sellerId, offerId, status);
         return sendResponse(res, 200, 'Offer status updated successfully', { doc });
+    } catch (err) {
+        return sendError(res, err.statusCode || 400, err.message);
+    }
+};
+
+export const updateSellerOfferController = async (req, res) => {
+    try {
+        const sellerId = req.user.userId;
+        const { id: offerId } = req.params;
+        const patch = validateUpdateSellerOfferDto(req.body || {});
+        const doc = await sellerService.updateSellerOffer(sellerId, offerId, patch);
+        return sendResponse(res, 200, 'Offer updated successfully', { doc });
     } catch (err) {
         return sendError(res, err.statusCode || 400, err.message);
     }

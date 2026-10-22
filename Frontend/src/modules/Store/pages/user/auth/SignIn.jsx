@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link, useSearchParams, useLocation } from "react-router-dom"
-import { AlertCircle, Loader2, User } from "lucide-react"
+import { AlertCircle, Loader2, Mail, User } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { authAPI } from "@store/api"
 import AppAuthShell, { primaryBtn, secondaryBtn, phoneBox, fieldBox, errorLine } from "@store/components/user/auth/AppAuthShell"
@@ -8,11 +8,13 @@ import { isModuleAuthenticated } from "@store/utils/auth"
 import { pickRedirectPath } from "./authRedirect"
 
 const NAME_REGEX = /^[A-Za-z ]+$/
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 /**
  * Customer sign-in: a welcome with Login / Create Account, then the mobile
- * number (and the name, for a new account). Both go on to the OTP page;
- * signing in with a number that has no account yet creates one there.
+ * number or the email (and the name, for a new account). Both go on to the
+ * OTP page; signing in with a number or email that has no account yet
+ * creates one there.
  */
 export default function SignIn() {
   const navigate = useNavigate()
@@ -38,7 +40,10 @@ export default function SignIn() {
 
   // welcome -> login | signup
   const [step, setStep] = useState("welcome")
+  // "phone" | "email": how the code is sent
+  const [method, setMethod] = useState("phone")
   const [phone, setPhone] = useState("")
+  const [email, setEmail] = useState("")
   const [name, setName] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -52,6 +57,10 @@ export default function SignIn() {
       const data = JSON.parse(stored)
       const digits = String(data.phone || "").replace(/^\+91\s*/, "").replace(/\D/g, "").slice(0, 10)
       if (digits) setPhone(digits)
+      if (data.method === "email") {
+        setMethod("email")
+        if (data.email) setEmail(String(data.email))
+      }
       if (data.name) setName(data.name)
       setStep(data.isSignUp ? "signup" : "login")
     } catch {
@@ -65,6 +74,23 @@ export default function SignIn() {
     return ""
   }
 
+  const emailError = (value) => {
+    const v = value.trim()
+    if (!v) return "Enter your email address"
+    if (!EMAIL_REGEX.test(v) || v.includes("..")) return "Enter a valid email address"
+    return ""
+  }
+
+  const isEmail = method === "email"
+  const cleanEmail = email.trim().toLowerCase()
+  const contactReady = isEmail ? !emailError(email) : phone.length === 10
+
+  const switchMethod = (next) => {
+    if (next === method) return
+    setMethod(next)
+    setError("")
+  }
+
   const submit = async (e) => {
     e.preventDefault()
     const isSignUp = step === "signup"
@@ -73,9 +99,9 @@ export default function SignIn() {
       setError("Enter your name (letters and spaces only)")
       return
     }
-    const pErr = phoneError(phone)
-    if (pErr) {
-      setError(pErr)
+    const cErr = isEmail ? emailError(email) : phoneError(phone)
+    if (cErr) {
+      setError(cErr)
       return
     }
     if (submittingRef.current) return
@@ -84,15 +110,15 @@ export default function SignIn() {
     setError("")
 
     try {
-      const fullPhone = `+91 ${phone}`
-      await authAPI.sendOTP(fullPhone, isSignUp ? "register" : "login", null)
+      const fullPhone = isEmail ? null : `+91 ${phone}`
+      await authAPI.sendOTP(fullPhone, isSignUp ? "register" : "login", isEmail ? cleanEmail : null)
       const ref = String(searchParams.get("ref") || "").trim()
       sessionStorage.setItem(
         "userAuthData",
         JSON.stringify({
-          method: "phone",
+          method: isEmail ? "email" : "phone",
           phone: fullPhone,
-          email: null,
+          email: isEmail ? cleanEmail : null,
           name: isSignUp ? cleanName : null,
           referralCode: ref || null,
           isSignUp,
@@ -114,14 +140,20 @@ export default function SignIn() {
     setStep(next)
   }
 
+  const contactWord = isEmail ? "email" : "phone number"
   const heading =
-    step === "signup" ? "Create your account" : step === "login" ? "Enter your phone number" : "Fashion Near You"
+    step === "signup" ? "Create your account" : step === "login" ? `Enter your ${contactWord}` : "Fashion Near You"
   const explanation =
     step === "signup"
-      ? "Tell us your name and phone number. We will send a 4-digit code to verify it."
+      ? `Tell us your name and ${contactWord}. We will send a 4-digit code to verify it.`
       : step === "login"
-        ? "We will send a 4-digit verification code to verify your phone number."
+        ? `We will send a 4-digit verification code to verify your ${contactWord}.`
         : "Shop local stores, delivered fast. Courier in days or quick in minutes."
+
+  const tabBtn = (active) =>
+    `flex h-full flex-1 items-center justify-center rounded-[18px] text-[14px] font-bold transition ${
+      active ? "bg-app-brown text-white shadow-[0_3px_10px_rgba(88,50,29,0.25)]" : "text-app-brown"
+    }`
 
   return (
     <AppAuthShell
@@ -177,6 +209,15 @@ export default function SignIn() {
             className="space-y-3.5"
             noValidate
           >
+            <div role="tablist" aria-label="Sign in with" className="flex h-[46px] gap-1 rounded-[22px] border-[1.5px] border-app-line bg-white p-1">
+              <button type="button" role="tab" aria-selected={!isEmail} className={tabBtn(!isEmail)} onClick={() => switchMethod("phone")}>
+                Phone number
+              </button>
+              <button type="button" role="tab" aria-selected={isEmail} className={tabBtn(isEmail)} onClick={() => switchMethod("email")}>
+                Email
+              </button>
+            </div>
+
             {step === "signup" ? (
               <label className={fieldBox}>
                 <span className="sr-only">Your name</span>
@@ -196,30 +237,53 @@ export default function SignIn() {
               </label>
             ) : null}
 
-            <label className={phoneBox}>
-              <span className="sr-only">Mobile number</span>
-              <span className="flex h-full shrink-0 items-center gap-1.5 pl-4 pr-3 text-[16px] font-semibold text-app-ink">
-                <span aria-hidden="true" className="text-[20px] leading-none">
-                  🇮🇳
+            {isEmail ? (
+              <label className={phoneBox}>
+                <span className="sr-only">Email address</span>
+                <Mail className="ml-4 h-5 w-5 shrink-0 text-app-brown" aria-hidden="true" />
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  autoFocus={step === "login"}
+                  maxLength={254}
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value.replace(/\s/g, ""))
+                    setError("")
+                  }}
+                  placeholder="Enter email address"
+                  className="h-full w-full bg-transparent px-3 text-[15.5px] font-semibold text-app-ink caret-app-brown placeholder:text-[14.5px] placeholder:font-normal placeholder:text-[#9E9E9E] focus:outline-none"
+                />
+              </label>
+            ) : (
+              <label className={phoneBox}>
+                <span className="sr-only">Mobile number</span>
+                <span className="flex h-full shrink-0 items-center gap-1.5 pl-4 pr-3 text-[16px] font-semibold text-app-ink">
+                  <span aria-hidden="true" className="text-[20px] leading-none">
+                    🇮🇳
+                  </span>
+                  +91
                 </span>
-                +91
-              </span>
-              <span aria-hidden="true" className="h-7 w-px shrink-0 bg-app-line" />
-              <input
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel-national"
-                autoFocus={step === "login"}
-                maxLength={10}
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
-                  setError("")
-                }}
-                placeholder="Enter phone number"
-                className="h-full w-full bg-transparent px-3.5 text-[15.5px] font-semibold tracking-wider text-app-ink caret-app-brown placeholder:text-[14.5px] placeholder:font-normal placeholder:tracking-normal placeholder:text-[#9E9E9E] focus:outline-none"
-              />
-            </label>
+                <span aria-hidden="true" className="h-7 w-px shrink-0 bg-app-line" />
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  autoFocus={step === "login"}
+                  maxLength={10}
+                  value={phone}
+                  onChange={(e) => {
+                    setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+                    setError("")
+                  }}
+                  placeholder="Enter phone number"
+                  className="h-full w-full bg-transparent px-3.5 text-[15.5px] font-semibold tracking-wider text-app-ink caret-app-brown placeholder:text-[14.5px] placeholder:font-normal placeholder:tracking-normal placeholder:text-[#9E9E9E] focus:outline-none"
+                />
+              </label>
+            )}
 
             {error ? (
               <p role="alert" className={errorLine}>
@@ -229,7 +293,7 @@ export default function SignIn() {
             ) : null}
 
             <div className="pt-1.5">
-              <button type="submit" className={primaryBtn} disabled={isLoading || phone.length !== 10 || (step === "signup" && name.trim().length < 2)}>
+              <button type="submit" className={primaryBtn} disabled={isLoading || !contactReady || (step === "signup" && name.trim().length < 2)}>
                 {isLoading ? <Loader2 className="h-[22px] w-[22px] animate-spin" aria-hidden="true" /> : null}
                 {isLoading ? "Sending OTP…" : "Continue & Send OTP"}
               </button>

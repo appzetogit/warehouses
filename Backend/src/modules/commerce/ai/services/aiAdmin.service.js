@@ -21,6 +21,26 @@ async function usersById(ids) {
     return new Map(users.map((u) => [String(u._id), { _id: u._id, name: u.name || '', phone: u.phone || '', email: u.email || '' }]));
 }
 
+async function sellersById(ids) {
+    const valid = ids.filter((id) => id && mongoose.Types.ObjectId.isValid(String(id)));
+    if (!valid.length) return new Map();
+    const sellers = await mongoose.connection.db.collection('sellers')
+        .find({ _id: { $in: valid.map((id) => new mongoose.Types.ObjectId(String(id))) } })
+        .project({ sellerName: 1, ownerName: 1, ownerPhone: 1, email: 1 })
+        .toArray();
+    return new Map(sellers.map((x) => [String(x._id), { _id: x._id, name: x.sellerName || x.ownerName || '', phone: x.ownerPhone || '', email: x.email || '', seller: true }]));
+}
+
+/** Customer or seller details for rows of { userId, audience }; older rows without an audience are customers. */
+async function peopleFor(rows) {
+    const isSeller = (r) => r.audience === 'seller';
+    const [users, sellers] = await Promise.all([
+        usersById(rows.filter((r) => !isSeller(r)).map((r) => r.userId)),
+        sellersById(rows.filter(isSeller).map((r) => r.userId)),
+    ]);
+    return (r) => (r.userId ? (isSeller(r) ? sellers : users).get(String(r.userId)) || null : null);
+}
+
 /** Conversations, newest first. Filters: userId, from, to (YYYY-MM-DD or ISO). */
 export async function listConversations(query = {}) {
     const page = Math.max(parseInt(query.page, 10) || 1, 1);
@@ -42,7 +62,7 @@ export async function listConversations(query = {}) {
             { $limit: limit },
             {
                 $project: {
-                    userId: 1, model: 1, totalTokens: 1, createdAt: 1, updatedAt: 1, supportTicketId: 1,
+                    userId: 1, audience: { $ifNull: ['$audience', 'customer'] }, model: 1, totalTokens: 1, createdAt: 1, updatedAt: 1, supportTicketId: 1,
                     messageCount: { $size: '$messages' },
                     firstMessage: { $substrCP: [{ $ifNull: [{ $arrayElemAt: ['$messages.text', 0] }, ''] }, 0, 160] },
                 },
@@ -50,12 +70,12 @@ export async function listConversations(query = {}) {
         ]),
         AiConversation.countDocuments(filter),
     ]);
-    const users = await usersById(rows.map((r) => r.userId));
+    const personOf = await peopleFor(rows);
     return {
         conversations: rows.map((r) => ({
             ...r,
             anonymous: !r.userId,
-            user: r.userId ? users.get(String(r.userId)) || null : null,
+            user: personOf(r),
         })),
         total,
         page,
@@ -67,8 +87,9 @@ export async function getConversation(id) {
     if (!mongoose.Types.ObjectId.isValid(String(id))) return null;
     const doc = await AiConversation.findById(id).select('-userKey').lean();
     if (!doc) return null;
-    const users = await usersById([doc.userId]);
-    return { ...doc, user: doc.userId ? users.get(String(doc.userId)) || null : null };
+    const audience = doc.audience || 'customer';
+    const personOf = await peopleFor([{ userId: doc.userId, audience }]);
+    return { ...doc, audience, user: personOf({ userId: doc.userId, audience }) };
 }
 
 /** Tokens and estimated cost per day, plus the top users over the range. */
@@ -101,13 +122,13 @@ export async function getUsage(query = {}) {
         ]),
         AiUsageDaily.aggregate([
             { $match: { ...range, userId: { $ne: null } } },
-            { $group: { _id: '$userId', messages: { $sum: '$messages' }, promptTokens: { $sum: '$promptTokens' }, outputTokens: { $sum: '$outputTokens' } } },
+            { $group: { _id: '$userId', audience: { $first: '$audience' }, messages: { $sum: '$messages' }, promptTokens: { $sum: '$promptTokens' }, outputTokens: { $sum: '$outputTokens' } } },
             { $addFields: { tokens: { $add: ['$promptTokens', '$outputTokens'] } } },
             { $sort: { tokens: -1, messages: -1 } },
             { $limit: 10 },
         ]),
     ]);
-    const users = await usersById(top.map((t) => t._id));
+    const personOf = await peopleFor(top.map((t) => ({ userId: t._id, audience: t.audience })));
     const daily = days.map((d) => ({
         day: d._id,
         messages: d.messages,
@@ -144,7 +165,8 @@ export async function getUsage(query = {}) {
         },
         topUsers: top.map((t) => ({
             userId: t._id,
-            user: users.get(String(t._id)) || null,
+            audience: t.audience || 'customer',
+            user: personOf({ userId: t._id, audience: t.audience }),
             messages: t.messages,
             tokens: t.tokens,
             estimatedCostUsd: cost(t.promptTokens, t.outputTokens),

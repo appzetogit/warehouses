@@ -282,9 +282,8 @@ function IconLink({ to, label, icon: Icon, badge = 0, caption, onClick, asButton
 
 /**
  * Desktop (lg+) storefront header: the cream band + category bar, sticky.
- * Props: onOpenSpin() opens the existing Spin & Win modal.
  */
-export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
+export default function DesktopHeader({ desktopOnly = false }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { isQuick, storePath, fulfilmentMode } = useStoreMode()
@@ -383,10 +382,6 @@ export default function DesktopHeader({ onOpenSpin, desktopOnly = false }) {
     }`
 
   const extraLinks = [
-    // Stays in the current store (Quick or Shop); /offers is Shop-only.
-    { label: "Today's Deals", to: storePath("/search?minDiscount=10") },
-    { label: "Coins", to: "/coins" },
-    { label: "Spin & Win", to: "/spin", onClick: onOpenSpin },
     { label: `Sell on ${brandName}`, to: "/seller/signup" },
     { label: "Help", to: "/help" },
   ]

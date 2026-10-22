@@ -15,8 +15,15 @@ const createEmptyUploadedDocs = () => ({
   profilePhoto: null,
   aadharPhoto: null,
   panPhoto: null,
-  drivingLicensePhoto: null
+  drivingLicensePhoto: null,
+  rcPhoto: null,
+  selfiePhoto: null
 })
+
+// Documents the web sign-up insists on. PAN and RC are optional. The selfie is
+// required here only: the backend still accepts a sign-up without one, because
+// older rider app builds don't send it.
+const REQUIRED_DOCUMENT_TYPES = ["profilePhoto", "aadharPhoto", "drivingLicensePhoto", "selfiePhoto"]
 
 const sanitizeUploadedDocValue = (value) => {
   if (!value) return null
@@ -40,7 +47,9 @@ const sanitizeUploadedDocs = (docs) => ({
   profilePhoto: sanitizeUploadedDocValue(docs?.profilePhoto),
   aadharPhoto: sanitizeUploadedDocValue(docs?.aadharPhoto),
   panPhoto: sanitizeUploadedDocValue(docs?.panPhoto),
-  drivingLicensePhoto: sanitizeUploadedDocValue(docs?.drivingLicensePhoto)
+  drivingLicensePhoto: sanitizeUploadedDocValue(docs?.drivingLicensePhoto),
+  rcPhoto: sanitizeUploadedDocValue(docs?.rcPhoto),
+  selfiePhoto: sanitizeUploadedDocValue(docs?.selfiePhoto)
 })
 
 const MAX_DOCUMENT_IMAGE_BYTES = 5 * 1024 * 1024
@@ -227,7 +236,9 @@ export default function SignupStep2() {
     profilePhoto: null,
     aadharPhoto: null,
     panPhoto: null,
-    drivingLicensePhoto: null
+    drivingLicensePhoto: null,
+    rcPhoto: null,
+    selfiePhoto: null
   })
   const { documents, setDocument, removeDocument, clearOnboardingState } = useDeliveryOnboardingStore()
   const [uploadedDocs, setUploadedDocs] = useState(() => {
@@ -240,7 +251,7 @@ export default function SignupStep2() {
   const [activePicker, setActivePicker] = useState(null) // { docType: string, title: string, ref: any }
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploading, setUploading] = useState({})
-  const documentTypes = ["profilePhoto", "aadharPhoto", "panPhoto", "drivingLicensePhoto"]
+  const documentTypes = ["profilePhoto", "aadharPhoto", "panPhoto", "drivingLicensePhoto", "rcPhoto", "selfiePhoto"]
   const isMountedRef = useRef(true)
 
   useEffect(() => {
@@ -386,7 +397,12 @@ export default function SignupStep2() {
       return
     }
 
-    if (!documents.profilePhoto || !documents.aadharPhoto || !documents.panPhoto || !documents.drivingLicensePhoto) {
+    if (!documents.selfiePhoto) {
+      toast.error("Please take a selfie to verify your identity")
+      return
+    }
+
+    if (REQUIRED_DOCUMENT_TYPES.some((docType) => !documents[docType])) {
       toast.error("Please upload all required documents")
       return
     }
@@ -425,10 +441,20 @@ export default function SignupStep2() {
     }
     if (details.panNumber) formData.append("panNumber", details.panNumber)
     if (details.aadharNumber) formData.append("aadharNumber", details.aadharNumber)
+    if (details.rcNumber) formData.append("rcNumber", details.rcNumber)
+    // Optional bank details: Step 1 only lets them through complete and valid.
+    if (details.bankAccountNumber && details.bankIfscCode) {
+      formData.append("bankAccountHolderName", details.bankAccountHolderName || "")
+      formData.append("bankAccountNumber", details.bankAccountNumber)
+      formData.append("bankIfscCode", details.bankIfscCode)
+      formData.append("bankName", details.bankName || "")
+    }
     formData.append("profilePhoto", documents.profilePhoto)
     formData.append("aadharPhoto", documents.aadharPhoto)
-    formData.append("panPhoto", documents.panPhoto)
+    if (documents.panPhoto) formData.append("panPhoto", documents.panPhoto)
     formData.append("drivingLicensePhoto", documents.drivingLicensePhoto)
+    if (documents.rcPhoto) formData.append("rcPhoto", documents.rcPhoto)
+    formData.append("selfiePhoto", documents.selfiePhoto)
 
     // Try to get FCM token before registering
     let fcmToken = null;
@@ -610,9 +636,89 @@ export default function SignupStep2() {
     )
   }
 
+  /**
+   * Live selfie for identity verification. capture="user" opens the front
+   * camera on phones (desktop browsers fall back to a file picker); the shot
+   * is previewed in-page and can be retaken.
+   */
+  const SelfieCapture = () => {
+    const docType = "selfiePhoto"
+    const isUploading = Boolean(uploading[docType])
+    const previewSrc = uploadedDocs[docType] ? getPreviewSrc(docType) : null
+    const controlsDisabled = isUploading || isSubmitting
+    const openSelfieCamera = () => fileInputRefs.current[docType]?.click()
+
+    return (
+      <div className="bg-white rounded-lg p-4 border border-gray-200">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Selfie Verification <span className="text-red-500">*</span>
+        </label>
+        <p className="text-xs text-gray-500 mb-3">
+          Take a clear selfie with your face fully visible. No caps, masks or sunglasses.
+        </p>
+
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative w-40 h-40 rounded-full overflow-hidden border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
+            {isUploading ? (
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+            ) : previewSrc ? (
+              <img src={previewSrc} alt="Your selfie" className="w-full h-full object-cover" />
+            ) : (
+              <Camera className="w-10 h-10 text-gray-400" />
+            )}
+          </div>
+
+          {previewSrc && !isUploading && (
+            <div className="bg-green-500 text-white px-3 py-1 rounded-full flex items-center gap-1 text-sm">
+              <Check className="w-4 h-4" />
+              <span>Selfie captured</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            disabled={controlsDisabled}
+            onClick={openSelfieCamera}
+            className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-white text-xs font-bold transition-all ${
+              controlsDisabled
+                ? "bg-gray-400 cursor-not-allowed"
+                : previewSrc
+                  ? "bg-gray-900 cursor-pointer hover:bg-black active:scale-95"
+                  : "bg-[#00B761] cursor-pointer hover:bg-[#00A055] active:scale-95"
+            }`}
+          >
+            <Camera className="w-4 h-4" />
+            <span>{previewSrc ? "Retake Selfie" : "Take Selfie"}</span>
+          </button>
+        </div>
+
+        <input
+          ref={(node) => {
+            fileInputRefs.current[docType] = node
+          }}
+          type="file"
+          className="hidden"
+          accept="image/*"
+          capture="user"
+          onClick={(e) => {
+            e.target.value = ""
+          }}
+          onChange={(e) => {
+            const selectedFile = e.target.files[0]
+            if (selectedFile) {
+              handleFileSelect(docType, selectedFile)
+            }
+            e.target.value = ""
+          }}
+          disabled={controlsDisabled}
+        />
+      </div>
+    )
+  }
+
   const isAnyUploading = documentTypes.some((docType) => Boolean(uploading[docType]))
-  const hasAllDocuments = documentTypes.every((docType) => documents[docType])
-  const hasAllPreviews = documentTypes.every((docType) => {
+  const hasAllDocuments = REQUIRED_DOCUMENT_TYPES.every((docType) => documents[docType])
+  const hasAllPreviews = REQUIRED_DOCUMENT_TYPES.every((docType) => {
     if (!documents[docType]) return false
     return Boolean(getPreviewSrc(docType))
   })
@@ -641,8 +747,10 @@ export default function SignupStep2() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <DocumentUpload docType="profilePhoto" label="Profile Photo" required={true} />
           <DocumentUpload docType="aadharPhoto" label="Aadhar Card Photo" required={true} />
-          <DocumentUpload docType="panPhoto" label="PAN Card Photo" required={true} />
           <DocumentUpload docType="drivingLicensePhoto" label="Driving License Photo" required={true} />
+          <DocumentUpload docType="panPhoto" label="PAN Card Photo (Optional)" required={false} />
+          <DocumentUpload docType="rcPhoto" label="Vehicle RC Photo (Optional)" required={false} />
+          <SelfieCapture />
 
           {/* Submit Button */}
           <button

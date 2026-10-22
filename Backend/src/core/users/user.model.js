@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logger } from '../../utils/logger.js';
 
 const userAddressSchema = new mongoose.Schema(
     {
@@ -67,9 +68,11 @@ const userAddressSchema = new mongoose.Schema(
 
 const userSchema = new mongoose.Schema(
     {
+        // Empty for an account made by email sign-in; such a user gives a
+        // contact number on the delivery address instead.
         phone: {
             type: String,
-            required: true,
+            default: '',
             trim: true
         },
         countryCode: {
@@ -155,8 +158,37 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-userSchema.index({ phone: 1 }, { unique: true });
+// Unique among accounts that have a phone; email-only accounts (phone '') are
+// not indexed, so any number of them can exist.
+export const USER_PHONE_INDEX_OPTIONS = { unique: true, partialFilterExpression: { phone: { $gt: '' } } };
+userSchema.index({ phone: 1 }, USER_PHONE_INDEX_OPTIONS);
+userSchema.index({ email: 1 });
 userSchema.index({ 'addresses.location': '2dsphere' });
 
 export const User = mongoose.model('User', userSchema);
+
+let phoneIndexChecked = false;
+/**
+ * Databases made before email sign-in have a plain unique index on phone, which
+ * lets only one account have no phone. Swap it for the partial one, once per
+ * process; called before an email-only account is created.
+ */
+export async function ensureUserPhoneIndex() {
+    if (phoneIndexChecked) return;
+    // Let Mongoose's own startup index build finish first; on an old database it
+    // fails on the legacy index, which is what this replaces.
+    await User.init().catch(() => {});
+    try {
+        const indexes = await User.collection.indexes();
+        const legacy = indexes.find(
+            (ix) => ix.unique && ix.key && Object.keys(ix.key).length === 1 && ix.key.phone === 1 && !ix.partialFilterExpression
+        );
+        if (legacy) await User.collection.dropIndex(legacy.name);
+        await User.createIndexes();
+        phoneIndexChecked = true;
+    } catch (err) {
+        logger.warn(`User phone index check failed: ${err?.message || err}`);
+        // collection may not exist yet; try again next time
+    }
+}
 

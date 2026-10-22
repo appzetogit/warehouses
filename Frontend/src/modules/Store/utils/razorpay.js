@@ -75,6 +75,7 @@ export const loadRazorpayScript = () => {
  * @param {String} options.prefill.email - Customer email
  * @param {String} options.prefill.contact - Customer phone
  * @param {Object} options.notes - Additional notes
+ * @param {Object} [options.config] - Razorpay Checkout display config (method blocks)
  * @param {Function} options.handler - Success callback
  * @param {Function} options.onError - Error callback
  * @param {Function} options.onClose - Close callback
@@ -134,6 +135,10 @@ export const initRazorpayPayment = async (options) => {
         ...options.retry
       }
     };
+    // Which payment methods Checkout shows first (Pay Later / Pay Online).
+    if (options.config && typeof options.config === "object") {
+      razorpayOptions.config = options.config;
+    }
 
     const razorpay = new window.Razorpay(razorpayOptions);
     

@@ -23,8 +23,12 @@ const messageSchema = new mongoose.Schema(
  */
 const aiConversationSchema = new mongoose.Schema(
     {
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
-        /** userId, or "ip:<addr>" for signed-out visitors: what the daily cap counts against. */
+        /** A customer (User) id, or a Seller id for seller help chats; userModel says which. */
+        userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'userModel', default: null, index: true },
+        userModel: { type: String, enum: ['User', 'Seller'], default: 'User' },
+        /** Who the assistant was talking to. Older conversations have none and are customer ones. */
+        audience: { type: String, enum: ['customer', 'seller'], default: 'customer' },
+        /** userId, "sellerchat:<sellerId>" for sellers, or "ip:<addr>" for signed-out visitors: what the daily cap counts against. */
         userKey: { type: String, default: '', index: true },
         messages: { type: [messageSchema], default: [] },
         promptTokens: { type: Number, default: 0 },
@@ -51,6 +55,8 @@ const aiUsageDailySchema = new mongoose.Schema(
         day: { type: String, required: true }, // YYYY-MM-DD (UTC)
         userKey: { type: String, required: true },
         userId: { type: mongoose.Schema.Types.ObjectId, default: null },
+        /** Assistant chat rows: 'customer' or 'seller'. Unset on older rows and on image-studio rows. */
+        audience: { type: String, enum: ['customer', 'seller'] },
         messages: { type: Number, default: 0 },
         llmCalls: { type: Number, default: 0 },
         promptTokens: { type: Number, default: 0 },

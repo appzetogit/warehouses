@@ -4,7 +4,7 @@ import { Order } from '../models/order.model.js';
 import { ValidationError, NotFoundError } from '../../../../core/auth/errors.js';
 import { logger } from '../../../../utils/logger.js';
 import { restoreOrderStock } from './inventory.service.js';
-import { applyCheckoutShare, calculateOrderPricing, loadActiveFeeSettings, resolveCoupon } from './order-pricing.service.js';
+import { applyCheckoutShare, calculateOrderPricing, loadActiveFeeSettings, resolveCoupon, subtotalsByCategory } from './order-pricing.service.js';
 import { normalizeDeliveryAddress } from '../../shared/geo.utils.js';
 import { readAddressPoint, findZoneForPoint } from '../../shared/zoneServiceability.js';
 import {
@@ -135,17 +135,23 @@ export async function calculateCheckoutPricing(userId, dto = {}) {
 
     // One coupon for the cart, shared across the stores it covers.
     const codeRaw = dto.couponCode ? String(dto.couponCode).trim().toUpperCase() : '';
-    const { discount: couponTotal, appliedCoupon, couponRefusal = null } = await resolveCoupon({
+    const { discount: couponTotal, appliedCoupon, couponRefusal = null, couponBaseBySeller = null } = await resolveCoupon({
         userId,
         codeRaw,
         subtotalsBySeller: new Map(stores.map((s) => [s.sellerId, s.base.subtotal])),
+        subtotalsBySellerCategory: new Map(stores.map((s) => [s.sellerId, subtotalsByCategory(s.items)])),
         phones: [deliveryAddress?.phone],
         deviceId: dto.deviceId,
     });
+    // Shared by what the coupon discounts in each store: its covered stores'
+    // subtotals, or for a category offer just those categories' lines.
     const covered = appliedCoupon?.sellerIds ? new Set(appliedCoupon.sellerIds) : null;
     const couponShares = shareByWeight(
         couponTotal,
-        stores.map((s) => (!covered || covered.has(s.sellerId) ? s.base.subtotal : 0)),
+        stores.map((s) => {
+            if (couponBaseBySeller) return Number(couponBaseBySeller.get(s.sellerId)) || 0;
+            return !covered || covered.has(s.sellerId) ? s.base.subtotal : 0;
+        }),
     );
 
     const { gstRate } = await loadActiveFeeSettings();

@@ -5,8 +5,26 @@ import { getAiSettings } from './aiSettings.service.js';
 export const dayKey = (d = new Date()) => d.toISOString().slice(0, 10);
 const monthPrefix = (d = new Date()) => d.toISOString().slice(0, 7);
 
-/** userId when signed in, else the caller's IP: what the daily cap counts. */
-export const userKeyFor = ({ userId, ip }) => (userId ? String(userId) : `ip:${ip || 'unknown'}`);
+/**
+ * userId when signed in, else the caller's IP: what the daily cap counts.
+ * Sellers get their own "sellerchat:" key, apart from the image studio's "seller:"
+ * rows (which the monthly budget skips), so seller chats count towards the budget.
+ */
+export const userKeyFor = ({ userId, ip, audience = 'customer' }) => {
+    if (audience === 'seller' && userId) return `sellerchat:${userId}`;
+    return userId ? String(userId) : `ip:${ip || 'unknown'}`;
+};
+
+const GATE_MESSAGES = {
+    customer: {
+        disabled: 'The shopping assistant is turned off right now. You can still browse and search as usual.',
+        budget: 'The shopping assistant is taking a break for the rest of the month. Search and support are still available.',
+    },
+    seller: {
+        disabled: 'AI Help is turned off right now. You can still raise a ticket from Help > Support.',
+        budget: 'AI Help is taking a break for the rest of the month. You can still raise a ticket from Help > Support.',
+    },
+};
 
 export async function tokensUsedThisMonth(now = new Date()) {
     const [row] = await AiUsageDaily.aggregate([
@@ -28,13 +46,14 @@ export async function underMonthlyBudget(settings, now = new Date()) {
  * Whether this caller may send another message now.
  * { allowed: true } or { allowed: false, reason: 'disabled' | 'budget' | 'daily_cap', message }.
  */
-export async function checkAssistantAllowed({ userKey, now = new Date() }) {
+export async function checkAssistantAllowed({ userKey, audience = 'customer', now = new Date() }) {
     const settings = await getAiSettings();
+    const text = GATE_MESSAGES[audience] || GATE_MESSAGES.customer;
     if (!settings.enabled) {
-        return { allowed: false, reason: 'disabled', message: 'The shopping assistant is turned off right now. You can still browse and search as usual.' };
+        return { allowed: false, reason: 'disabled', message: text.disabled };
     }
     if (!(await underMonthlyBudget(settings, now))) {
-        return { allowed: false, reason: 'budget', message: 'The shopping assistant is taking a break for the rest of the month. Search and support are still available.' };
+        return { allowed: false, reason: 'budget', message: text.budget };
     }
     const cap = Number(settings.dailyUserMessageCap) || 0;
     if (cap) {
@@ -46,12 +65,12 @@ export async function checkAssistantAllowed({ userKey, now = new Date() }) {
     return { allowed: true, settings };
 }
 
-export async function recordUsage({ userKey, userId = null, messages = 0, llmCalls = 0, promptTokens = 0, outputTokens = 0, now = new Date() }) {
+export async function recordUsage({ userKey, userId = null, audience = 'customer', messages = 0, llmCalls = 0, promptTokens = 0, outputTokens = 0, now = new Date() }) {
     await AiUsageDaily.updateOne(
         { day: dayKey(now), userKey },
         {
             $inc: { messages, llmCalls, promptTokens, outputTokens },
-            $setOnInsert: { userId: userId && mongoose.Types.ObjectId.isValid(String(userId)) ? new mongoose.Types.ObjectId(String(userId)) : null },
+            $setOnInsert: { audience, userId: userId && mongoose.Types.ObjectId.isValid(String(userId)) ? new mongoose.Types.ObjectId(String(userId)) : null },
         },
         { upsert: true }
     );
@@ -63,7 +82,7 @@ const clip = (s, n) => String(s ?? '').slice(0, n);
  * Appends one exchange to a conversation (creating it when conversationId is
  * missing or not the caller's) and pushes its expiry out by the retention setting.
  */
-export async function appendExchange({ conversationId, userId, userKey, userText, reply, toolCalls = [], usage = {}, model = '', settings, now = new Date() }) {
+export async function appendExchange({ conversationId, userId, userKey, audience = 'customer', userText, reply, toolCalls = [], usage = {}, model = '', settings, now = new Date() }) {
     const retentionDays = Number(settings?.retentionDays) || 90;
     const expiresAt = new Date(now.getTime() + retentionDays * 24 * 60 * 60 * 1000);
     const promptTokens = Number(usage.promptTokens) || 0;
@@ -83,6 +102,8 @@ export async function appendExchange({ conversationId, userId, userKey, userText
     }
     const created = await AiConversation.create({
         userId: userId && mongoose.Types.ObjectId.isValid(String(userId)) ? userId : null,
+        userModel: audience === 'seller' ? 'Seller' : 'User',
+        audience,
         userKey,
         messages: msgs,
         promptTokens,

@@ -424,6 +424,8 @@ export const listOwnerTokens = async ({ ownerType, ownerId, platform }) => {
     return readTokensFromDoc(doc, platform);
 };
 
+const SELLER_MAX_PUSH_TOKENS = 5;
+
 export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, platform = 'web' }) => {
     const normalizedToken = sanitizeString(token);
     const normalizedPlatform = normalizePlatform(platform);
@@ -473,6 +475,14 @@ export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, pla
     if (!result.matchedCount) {
         console.error(`[FCM-DEBUG] upsert - Owner profile not found for id ${ownerId}`);
         throw new Error('Owner profile not found.');
+    }
+
+    // Sellers sign in on up to 5 devices; keep only the newest tokens per list
+    // so devices signed out by later logins stop getting pushes.
+    if (String(ownerType).toUpperCase() === 'SELLER') {
+        await model.updateOne({ _id: ownerId }, [
+            { $set: { [field]: { $slice: [{ $ifNull: [`$${field}`, []] }, -SELLER_MAX_PUSH_TOKENS] } } },
+        ]);
     }
 
     console.log('[FCM-DEBUG] upsert - Token list updated atomically.');
@@ -529,6 +539,9 @@ export const removeFirebaseDeviceToken = async ({ ownerType, ownerId, token }) =
     // No token means "this authenticated owner is signing out": clear the whole
     // list. Scoped by ownerId, so it can only ever affect the caller's own account.
     if (!normalizedToken) {
+        // A seller account is shared by up to 5 devices: one signing out must
+        // not silence the others. Its token is pruned when FCM reports it gone.
+        if (String(ownerType).toUpperCase() === 'SELLER') return { success: true, cleared: 'none' };
         const model = getOwnerModel(ownerType);
         if (!model) throw new Error(`Unsupported owner type: ${ownerType}`);
         await model.updateOne(

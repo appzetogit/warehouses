@@ -161,3 +161,23 @@ export const validateSellerRegisterDto = (body) => {
     };
 };
 
+
+/**
+ * What a seller may change on an existing offer: which categories it covers
+ * (empty: the whole store) and whether it applies without a code.
+ */
+export const validateUpdateSellerOfferDto = (body = {}) => {
+    const out = {};
+    if (body.categoryIds !== undefined) {
+        if (!Array.isArray(body.categoryIds)) throw new ValidationError('categoryIds must be a list');
+        const ids = [...new Set(body.categoryIds.map((id) => String(id || '').trim()).filter(Boolean))];
+        if (ids.some((id) => !/^[0-9a-fA-F]{24}$/.test(id))) throw new ValidationError('Invalid category');
+        out.categoryIds = ids;
+    }
+    if (body.autoApply !== undefined) {
+        if (typeof body.autoApply !== 'boolean') throw new ValidationError('autoApply must be true or false');
+        out.autoApply = body.autoApply;
+    }
+    if (Object.keys(out).length === 0) throw new ValidationError('Nothing to update');
+    return out;
+};

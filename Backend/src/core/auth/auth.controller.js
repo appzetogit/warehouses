@@ -1,6 +1,8 @@
 import {
   requestUserOtp,
   verifyUserOtpAndLogin,
+  requestUserEmailOtp,
+  verifyUserEmailOtpAndLogin,
   adminLogin,
   refreshAccessToken,
   requestSellerOtp,
@@ -8,6 +10,7 @@ import {
   requestDeliveryOtp,
   verifyDeliveryOtpAndLogin,
   logout,
+  logoutAllDevices,
   getProfile,
   updateAdminProfile,
   changeAdminPassword,
@@ -16,6 +19,7 @@ import {
 } from "./auth.service.js";
 import { validateUserOtpRequestDto } from "../../dtos/auth/userOtpRequest.dto.js";
 import { validateUserOtpVerifyDto } from "../../dtos/auth/userOtpVerify.dto.js";
+import { validateUserEmailOtpRequestDto, validateUserEmailOtpVerifyDto } from "../../dtos/auth/userEmailOtp.dto.js";
 import { validateAdminLoginDto } from "../../dtos/auth/adminLogin.dto.js";
 import { validateSellerOtpRequestDto } from "../../dtos/auth/sellerOtpRequest.dto.js";
 import { validateSellerOtpVerifyDto } from "../../dtos/auth/sellerOtpVerify.dto.js";
@@ -142,6 +146,16 @@ export const logoutController = async (req, res, next) => {
   }
 };
 
+export const logoutAllController = async (req, res, next) => {
+  try {
+    const { userId, role } = req.user;
+    const result = await logoutAllDevices(userId, role);
+    return sendResponse(res, 200, "Logged out on all devices", result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getMeController = async (req, res, next) => {
   try {
     const { userId, role } = req.user;
@@ -206,6 +220,30 @@ export const resetAdminPasswordWithOtpController = async (req, res, next) => {
     return sendResponse(res, 200, "Password reset successfully", {
       success: true,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Customer sign-in by email (the phone endpoints above are unchanged).
+export const requestUserEmailOtpController = async (req, res, next) => {
+  try {
+    const { email } = validateUserEmailOtpRequestDto(req.body);
+    const result = await requestUserEmailOtp(email);
+    return sendResponse(res, 200, "OTP sent successfully", {
+      email,
+      ...result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyUserEmailOtpController = async (req, res, next) => {
+  try {
+    const { email, otp, ref, fcmToken, platform, name } = validateUserEmailOtpVerifyDto(req.body);
+    const result = await verifyUserEmailOtpAndLogin(email, otp, ref, fcmToken, platform, name);
+    return sendResponse(res, 200, "Login successful", result);
   } catch (error) {
     next(error);
   }

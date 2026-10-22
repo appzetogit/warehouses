@@ -8,6 +8,17 @@ const debugWarn = (...args) => {}
 const debugError = (...args) => {}
 
 
+// Vehicle RC and the sign-up selfie are stored as flat fields on the rider
+// (rcNumber / rcPhoto / selfiePhoto), which the details API passes through.
+const getVehicleRC = (details) => {
+  const rc = details?.documents?.vehicleRC
+  if (rc && (rc.number || rc.document)) return rc
+  if (details?.rcNumber || details?.rcPhoto) {
+    return { number: details.rcNumber || null, document: details.rcPhoto || null }
+  }
+  return null
+}
+
 export default function JoinRequest() {
   const [activeTab, setActiveTab] = useState("pending")
   const [searchQuery, setSearchQuery] = useState("")
@@ -821,16 +832,16 @@ export default function JoinRequest() {
                       )}
 
                       {/* Vehicle RC */}
-                      {viewDetails.documents.vehicleRC && (viewDetails.documents.vehicleRC.number || viewDetails.documents.vehicleRC.document) && (
+                      {getVehicleRC(viewDetails) && (
                         <div>
                           <label className="text-xs font-semibold text-slate-500 uppercase">Vehicle RC</label>
                           <div className="mt-2">
-                            {viewDetails.documents.vehicleRC.number && (
-                              <p className="text-sm text-slate-700 mb-1">Number: {viewDetails.documents.vehicleRC.number}</p>
+                            {getVehicleRC(viewDetails).number && (
+                              <p className="text-sm text-slate-700 mb-1">Number: {getVehicleRC(viewDetails).number}</p>
                             )}
-                            {viewDetails.documents.vehicleRC.document && (
+                            {getVehicleRC(viewDetails).document && (
                               <a 
-                                href={viewDetails.documents.vehicleRC.document} 
+                                href={getVehicleRC(viewDetails).document} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
@@ -838,6 +849,26 @@ export default function JoinRequest() {
                                 <ExternalLink className="w-3 h-3" /> View Document
                               </a>
                             )}
+                          </div>
+                        </div>
+                      )}
+                      {/* Selfie Verification */}
+                      {viewDetails.selfiePhoto && (
+                        <div>
+                          <label className="text-xs font-semibold text-slate-500 uppercase">Selfie Verification</label>
+                          <div className="mt-2">
+                            <a
+                              href={viewDetails.selfiePhoto}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block"
+                            >
+                              <img
+                                src={viewDetails.selfiePhoto}
+                                alt="Rider selfie"
+                                className="w-20 h-20 rounded-full object-cover border border-slate-200"
+                              />
+                            </a>
                           </div>
                         </div>
                       )}

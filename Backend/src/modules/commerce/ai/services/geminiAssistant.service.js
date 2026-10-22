@@ -113,7 +113,9 @@ async function toolGetActiveOffers() {
  * Process a user chat message with intelligent local intent resolution
  * and optional Google Gemini API augmentation.
  */
-export async function handleAssistantChat({ message, userId = null, history = [], settings = null }) {
+export async function handleAssistantChat({ message, userId = null, history = [], settings = null, audience = 'customer' }) {
+    // Sellers get how-to help only: none of the shopper shortcuts below run for them.
+    if (audience === 'seller') return handleSellerHelpChat({ message, history, settings });
     const text = String(message || '').trim();
     if (!text) {
         return {
@@ -212,11 +214,7 @@ export async function handleAssistantChat({ message, userId = null, history = []
     if (hasGeminiKey()) {
         try {
             const addendum = String(settings?.systemPromptAddendum || '').trim();
-            const priorTurns = (Array.isArray(history) ? history : []).slice(-6)
-                .filter((h) => h && typeof h.text === 'string' && h.text.trim())
-                .map((h) => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text.slice(0, 1000) }] }));
-            // Gemini wants the conversation to open with a user turn.
-            while (priorTurns.length && priorTurns[0].role !== 'user') priorTurns.shift();
+            const priorTurns = toGeminiTurns(history);
             const result = await callGemini({
                 model: effectiveModel(settings),
                 systemText: addendum ? `${systemInstruction()}
@@ -251,4 +249,89 @@ function fallbackReply(extra = {}) {
         suggestions: ['Search summer collection', 'What is Quick Delivery?', 'Check today’s coupons', 'My coins'],
         ...extra,
     };
+}
+
+/** The last few chat turns in Gemini's shape, opening with a user turn as Gemini requires. */
+function toGeminiTurns(history) {
+    const turns = (Array.isArray(history) ? history : []).slice(-6)
+        .filter((h) => h && typeof h.text === 'string' && h.text.trim())
+        .map((h) => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text.slice(0, 1000) }] }));
+    while (turns.length && turns[0].role !== 'user') turns.shift();
+    return turns;
+}
+
+/* ------------------------------------------------------------ seller help */
+
+/**
+ * The seller help persona: how to use the seller panel and app. It carries no
+ * seller data (orders, earnings, documents, phone); the model only explains.
+ */
+const sellerSystemInstruction = () => `You are the seller help assistant for ${config.brand.name}, a marketplace where stores sell through two channels: Quick (about 30-minute delivery from the store to nearby customers) and Shop (standard courier shipping).
+You help sellers use the seller panel and the seller app. Explain step by step, using the panel's own names:
+- Products: Inventory > add a product with name, category, price, MRP, stock and photos (clear, well lit, plain background). Products with options (size, colour, pack size) get variants, each with its own price and stock. New and edited products go to admin approval before customers see them; a rejected product shows the reason, fix it and resubmit. Each product can be offered on Quick, Shop or both.
+- Orders: new orders appear in Live orders. Accept the order, mark it Preparing while you pack it, then Ready so the delivery partner (Quick) or courier (Shop) can pick it up. Past orders are in Order history; customer issues are under Complaints.
+- Store: Store Timings sets opening hours and the open or closed switch (a closed store gets no Quick orders). Store Info holds the store details; Zone setup and the store location decide which customers can order on Quick.
+- Payouts: Payouts shows earnings, settlements, invoices and withdrawals; Bank details is where the payout account is set. Settlements follow delivered orders, after the platform commission.
+- Documents and approval: a new store uploads its documents (such as ID, GST or FSSAI where needed) and waits for admin approval; each channel (Quick, Shop) is approved separately.
+- Support: for anything you cannot solve here, raise a ticket from Help > Support.
+You cannot see or change the seller's account, orders, earnings or documents, and you must not claim to. Never invent policies, fees, commission rates or payout dates; for account-specific questions, point the seller to the right panel page or to a Support ticket.
+Keep answers short and practical, with numbered steps when there is a process.`;
+
+export const SELLER_SUGGESTIONS = ['How do I add a product?', 'How do variants work?', 'How do I accept an order?', 'When do I get paid?'];
+
+const SELLER_SUPPORT_LINE = 'If you still need help, raise a ticket from Help > Support and our team will get back to you.';
+
+/** Short how-to answers used when the model is off, so sellers still get something useful. */
+const SELLER_TOPICS = [
+    { re: /variant|size|colou?r|pack/i, reply: 'To add options such as size or colour, open the product in Inventory and add variants. Each variant has its own price and stock.' },
+    { re: /photo|image|picture/i, reply: 'Add product photos from the product form in Inventory. Use clear, well lit photos on a plain background; the first photo is the one customers see first.' },
+    { re: /approv|reject|document|kyc|gst|fssai/i, reply: 'New and edited products, and your store documents, are reviewed by the admin team. A rejected item shows the reason: fix it and resubmit. Quick and Shop are approved separately.' },
+    { re: /product|inventory|stock|catalog/i, reply: 'To add a product, open Inventory, tap Add product, fill in the name, category, price, MRP and stock, add photos, choose Quick, Shop or both, and submit it for approval.' },
+    { re: /order|accept|prepar|ready|pick ?up/i, reply: 'New orders appear in Live orders. Accept the order, mark it Preparing while you pack it, then mark it Ready so it can be picked up. Past orders are in Order history.' },
+    { re: /timing|hours|open|close|holiday/i, reply: 'Set your opening hours and the open or closed switch from Store Timings. While the store is closed it gets no Quick orders.' },
+    { re: /quick|shop|courier|channel/i, reply: 'Quick is about 30-minute delivery from your store to nearby customers; Shop is standard courier shipping. Each product can be offered on either or both.' },
+    { re: /pay|settle|earning|withdraw|bank|invoice|commission/i, reply: 'Your earnings, settlements, invoices and withdrawals are under Payouts, and your payout account is under Bank details.' },
+    { re: /zone|location|area|address|map/i, reply: 'Your store location and Zone setup decide which nearby customers can order from you on Quick. Update them from Store Info and Zone setup.' },
+    { re: /ticket|support|help|complain/i, reply: 'Raise a ticket from Help > Support. Customer complaints about orders are listed under Complaints.' },
+];
+
+function sellerFallbackReply(text, extra = {}) {
+    const topic = SELLER_TOPICS.find((t) => t.re.test(text || ''));
+    return {
+        reply: topic
+            ? `${topic.reply}\n\n${SELLER_SUPPORT_LINE}`
+            : `I can explain how to add products and variants, handle orders, set store timings, and understand payouts. ${SELLER_SUPPORT_LINE}`,
+        suggestions: SELLER_SUGGESTIONS,
+        ...extra,
+    };
+}
+
+/**
+ * Seller "AI Help": how-to answers about the seller panel. No catalogue,
+ * order, coin or cart lookups, and no seller data in the prompt. Never throws
+ * for a missing key or a failed model call; it falls back to a plain answer.
+ */
+export async function handleSellerHelpChat({ message, history = [], settings = null }) {
+    const text = String(message || '').trim();
+    if (!text) {
+        return { reply: 'Hi! Ask me how to do something in the seller panel, such as adding a product or accepting an order.', suggestions: SELLER_SUGGESTIONS };
+    }
+    if (hasGeminiKey()) {
+        try {
+            const result = await callGemini({
+                model: effectiveModel(settings),
+                systemText: sellerSystemInstruction(),
+                contents: [...toGeminiTurns(history), { role: 'user', parts: [{ text }] }],
+                generationConfig: { maxOutputTokens: 500 },
+            });
+            if (result.text) {
+                return { reply: result.text, usage: result.usage, model: result.model, suggestions: SELLER_SUGGESTIONS };
+            }
+            return sellerFallbackReply(text, { usage: result.usage, model: result.model });
+        } catch (geminiErr) {
+            // The message only; the request config (with its headers) is never logged.
+            logger.warn(`Gemini seller help call skipped/failed: ${geminiErr.message}`);
+        }
+    }
+    return sellerFallbackReply(text);
 }

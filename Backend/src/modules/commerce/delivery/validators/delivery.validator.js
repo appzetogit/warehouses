@@ -12,6 +12,39 @@ const aadharRegex = /^[0-9]{12}$/;
 // India-wide DL support (normalized, no spaces/hyphens):
 // 2 letters (state) + 8 to 16 alphanumeric characters
 const drivingLicenseRegex = /^[A-Z]{2}[0-9A-Z]{8,16}$/;
+// Vehicle RC number (normalized): letters/digits only, as printed on the card.
+const rcNumberRegex = /^[A-Z0-9]{6,20}$/;
+const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+const bankAccountRegex = /^[0-9]{9,18}$/;
+
+const upperNoSpaces = (value) =>
+    typeof value === 'string' ? value.replace(/[\s-]/g, '').toUpperCase() : value;
+const trimmed = (value) => (typeof value === 'string' ? value.trim() : value);
+
+// Optional at sign-up: vehicle RC and bank details. Older clients (the Flutter
+// rider app) never send these, so every one of them may be missing or blank.
+const optionalSignupExtras = {
+    rcNumber: z.preprocess(
+        upperNoSpaces,
+        z.string().regex(rcNumberRegex, 'Invalid RC number').optional().or(z.literal(''))
+    ),
+    bankAccountHolderName: z.preprocess(
+        trimmed,
+        z.string().regex(/^[a-zA-Z\s.]{2,100}$/, 'Account holder name should only contain letters').optional().or(z.literal(''))
+    ),
+    bankAccountNumber: z.preprocess(
+        upperNoSpaces,
+        z.string().regex(bankAccountRegex, 'Account number must be 9 to 18 digits').optional().or(z.literal(''))
+    ),
+    bankIfscCode: z.preprocess(
+        upperNoSpaces,
+        z.string().regex(ifscRegex, 'Invalid IFSC code format (e.g., SBIN0012345)').optional().or(z.literal(''))
+    ),
+    bankName: z.preprocess(
+        trimmed,
+        z.string().regex(/^[a-zA-Z\s.&()]{2,100}$/, 'Bank name should only contain letters').optional().or(z.literal(''))
+    )
+};
 
 const deliveryRegisterSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -40,6 +73,7 @@ const deliveryRegisterSchema = z.object({
         .regex(aadharRegex, 'Invalid Aadhar format')
         .optional()
         .or(z.literal('')),
+    ...optionalSignupExtras,
     fcmToken: z.string().optional().nullable(),
     platform: z.preprocess(
         (value) => normalizePlatform(value, { allowUndefined: true }),
@@ -47,11 +81,26 @@ const deliveryRegisterSchema = z.object({
     )
 });
 
+/**
+ * Bank details are optional at sign-up, but once a rider starts filling them
+ * the account number and IFSC must both be there and well-formed (same rules
+ * as the profile bank page).
+ */
+const checkSignupBank = (data) => {
+    const anyBank = [data.bankAccountHolderName, data.bankAccountNumber, data.bankIfscCode, data.bankName]
+        .some((v) => typeof v === 'string' && v.trim());
+    if (!anyBank) return;
+    if (!data.bankAccountNumber || !data.bankIfscCode) {
+        throw new ValidationError('Account number and IFSC code are both required for bank details');
+    }
+};
+
 export const validateDeliveryRegisterDto = (body) => {
     const result = deliveryRegisterSchema.safeParse(body);
     if (!result.success) {
         throw new ValidationError(result.error.errors[0].message);
     }
+    checkSignupBank(result.data);
     return result.data;
 };
 
@@ -69,6 +118,7 @@ const deliveryProfileUpdateSchema = z.object({
         .regex(drivingLicenseRegex, 'Invalid driving license format')
         .optional()
         .or(z.literal('')),
+    ...optionalSignupExtras,
     fcmToken: z.string().optional().nullable(),
     platform: z.preprocess(
         (value) => normalizePlatform(value, { allowUndefined: true }),
@@ -81,6 +131,7 @@ export const validateDeliveryProfileUpdateDto = (body) => {
     if (!result.success) {
         throw new ValidationError(result.error.errors[0].message);
     }
+    checkSignupBank(result.data);
     return result.data;
 };
 

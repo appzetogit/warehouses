@@ -12,7 +12,9 @@ const optionalAuth = (req, res, next) => {
             const token = authHeader.substring(7);
             const decoded = verifyAccessToken(token);
             if (decoded?.userId) {
-                req.user = { userId: decoded.userId, role: decoded.role };
+                // Any role's token is accepted here (USER for the shop, SELLER for AI Help);
+                // tokenVersion lets the controller check a seller session is still current.
+                req.user = { userId: decoded.userId, role: decoded.role, tokenVersion: decoded.tokenVersion };
             }
         } catch (_) {
             // Non-blocking for AI chat

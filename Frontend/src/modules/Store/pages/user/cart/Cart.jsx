@@ -20,6 +20,7 @@ import { catalogAPI } from "@/services/api"
 import { resolveMediaUrl } from "@/shared/utils/mediaUrl"
 import { CHANNEL_COPY, addToOtherStoreCart, channelAvailability, findUnavailableCartItem, isQuantityRefusal, lineQuantityCap, otherChannel } from "@store/utils/channelStock"
 import { initRazorpayPayment } from "@store/utils/razorpay"
+import { isOnlinePayChoice, toBackendPaymentMethod, razorpayCheckoutConfig, payChoiceLabel } from "@store/utils/checkoutPayment"
 import { toast } from "sonner"
 import { getCompanyNameAsync } from "@store/utils/businessSettings"
 import { getCachedFeeSettings, loadCorePublicAppConfig } from "@store/services/publicAppConfig"
@@ -553,7 +554,7 @@ export default function Cart() {
   useEffect(() => {
     if (selectedPaymentMethod === "cash" && !payCash) {
       setSelectedPaymentMethod(payOnline ? "razorpay" : "wallet")
-    } else if (selectedPaymentMethod === "razorpay" && !payOnline && payCash) {
+    } else if (isOnlinePayChoice(selectedPaymentMethod) && !payOnline && payCash) {
       setSelectedPaymentMethod("cash")
     }
   }, [selectedPaymentMethod, payCash, payOnline])
@@ -1642,8 +1643,7 @@ export default function Cart() {
   const itemDiscountAmount = appliedCoupon && discount > 0 ? discount : 0
   const otherSavings = Math.max(0, savings - itemDiscountAmount)
   const compareItemTotal = getCartCompareItemTotal(cart)
-  const selectedPaymentLabel =
-    selectedPaymentMethod === "wallet" ? "Wallet" : selectedPaymentMethod === "cash" ? "Cash on Delivery" : "Online Payment"
+  const selectedPaymentLabel = payChoiceLabel(selectedPaymentMethod)
 
   const formatAddressDistanceLabel = (address) => {
     const addressId = getAddressId(address)
@@ -2073,6 +2073,13 @@ export default function Cart() {
       return
     }
 
+    // An account made by email sign-in has no phone: ask for a delivery contact.
+    if (!sanitizeRecipientPhone(recipientPhone || defaultAddress?.phone || "")) {
+      toast.error("Add a contact phone number for delivery")
+      setIsEditingRecipient(true)
+      return
+    }
+
     if (isScheduled) {
       if (!scheduledDate || !scheduledTime) {
         toast.error("Please select both date and time to schedule your order")
@@ -2152,7 +2159,7 @@ export default function Cart() {
           fulfilmentMode: storeFulfilmentMode,
           couponCode: resolvedCouponCode,
           coins: useCoins ? Number(checkoutQuote?.coinsUsed) || 0 : 0,
-          paymentMethod: selectedPaymentMethod === "wallet" ? "wallet" : (selectedPaymentMethod === "cash" ? "cash" : "razorpay"),
+          paymentMethod: toBackendPaymentMethod(selectedPaymentMethod),
           note: String(note || "").trim(),
           // The recipient edited at checkout and the delivery instructions go
           // on every store's order, as they do for a single-store order.
@@ -2215,6 +2222,7 @@ export default function Cart() {
           order_id: rzData.orderId,
           name: await getCompanyNameAsync(),
           description: `Order ${checkoutId}`,
+          config: razorpayCheckoutConfig(selectedPaymentMethod),
           prefill: {
             name: recipientName || userProfile?.name || "",
             email: userProfile?.email || "",
@@ -2470,7 +2478,8 @@ export default function Cart() {
         note: String(note || "").trim(),
         deliveryInstructions: deliveryInstructionText,
         deliveryMode,
-        paymentMethod: selectedPaymentMethod,
+        // Pay Later and Pay Online are both Razorpay payments to the server.
+        paymentMethod: toBackendPaymentMethod(selectedPaymentMethod),
         // `useZone()` can return `null`. Zod expects string/undefined, not null.
         zoneId: zoneId || undefined,
         scheduledAt: isScheduled ? new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString() : undefined,
@@ -2583,6 +2592,7 @@ export default function Cart() {
         order_id: razorpay.orderId,
         name: companyName,
         description: `Order ${order._id || order.orderId} - ${RUPEE_SYMBOL}${(razorpay.amount / 100).toFixed(2)}`,
+        config: razorpayCheckoutConfig(selectedPaymentMethod),
         prefill: {
           name: userName,
           email: userEmail,
@@ -2769,10 +2779,19 @@ export default function Cart() {
       selectedColor: 'bg-amber-500 text-white',
     },
     payOnline && {
+      id: 'paylater',
+      name: 'Pay Later',
+      description: 'Simpl, LazyPay & more — pay in 15 days',
+      note: 'Pick a pay-later provider on the next screen. Your other ways to pay stay available there too.',
+      icon: <Clock className="w-5 h-5" />,
+      color: 'bg-orange-50 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+      selectedColor: 'bg-orange-600 text-white',
+    },
+    payOnline && {
       id: 'razorpay',
-      name: 'Online Payment',
+      name: 'Pay Online',
       description: 'Pay now, securely',
-      chips: ['UPI', 'Cards', 'Netbanking'],
+      chips: ['UPI', 'Wallet', 'Cards', 'Net Banking'],
       note: 'You will finish the payment securely on the next screen.',
       icon: <Zap className="w-5 h-5" />,
       color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400',
@@ -3481,8 +3500,8 @@ export default function Cart() {
                     </div>
                     <div>
                       <p className="text-lg font-semibold text-gray-900">
-                        {selectedPaymentMethod === "razorpay"
-                          ? `Pay ${RUPEE_SYMBOL}${total.toFixed(2)} online (Razorpay)`
+                        {isOnlinePayChoice(selectedPaymentMethod)
+                          ? `Pay ${RUPEE_SYMBOL}${total.toFixed(2)} ${selectedPaymentMethod === "paylater" ? "later" : "online"} (Razorpay)`
                           : selectedPaymentMethod === "wallet"
                             ? `Pay ${RUPEE_SYMBOL}${total.toFixed(2)} from Wallet`
                             : `Pay on Delivery (COD)`}

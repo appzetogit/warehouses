@@ -29,7 +29,7 @@ before(async () => {
         name: 'Linen Shirt', price: 1200, channels: { quick: true, shop: true }, stock: { quick: 6, shop: 30 },
     });
     w.customer = await createCustomer(db, 'Online Customer');
-    ok(await call('POST', '/admin/coins/adjust', { as: w.admin.as, body: { userId: String(w.customer.id), amount: 200, reason: 'Promo' } }), 'grant coins');
+    ok(await call('POST', '/admin/coins/adjust', { as: w.admin.as, body: { userId: String(w.customer.id), amount: 250, reason: 'Promo' } }), 'grant coins');
 });
 after(stopApp);
 

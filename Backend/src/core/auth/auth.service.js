@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import ms from "ms";
-import { User } from "../users/user.model.js";
+import { User, ensureUserPhoneIndex } from "../users/user.model.js";
 import { Admin } from "../admin/admin.model.js";
 import { AdminResetOtp } from "../admin/adminResetOtp.model.js";
 import { Seller } from "../../modules/commerce/seller/models/seller.model.js";
@@ -11,10 +11,10 @@ import { ReferralLog } from "../../modules/commerce/admin/models/referralLog.mod
 import { createOrUpdateOtp, verifyOtp } from "../otp/otp.service.js";
 import { signAccessToken, signRefreshToken } from "./token.util.js";
 import { RefreshToken } from "../refreshTokens/refreshToken.model.js";
-import { ValidationError, AuthError } from "./errors.js";
+import { ValidationError, AuthError, ServiceUnavailableError } from "./errors.js";
 import { config } from "../../config/env.js";
 import { logger } from "../../utils/logger.js";
-import { sendAdminResetOtpEmail } from "../../utils/email.js";
+import { sendAdminResetOtpEmail, isEmailConfigured, sendUserLoginOtpEmail } from "../../utils/email.js";
 import mongoose from "mongoose";
 import { creditReferralReward } from "../../modules/commerce/user/services/userWallet.service.js";
 import { ADMIN_FULL_PERMISSIONS, sanitizeAdminPermissions } from '../../constants/permissions.js';
@@ -25,6 +25,16 @@ import {
   upsertFirebaseDeviceToken,
 } from "../notifications/firebase.service.js";
 import { assertStrongAdminPassword } from "../admin/adminPassword.js";
+import {
+  MAX_SELLER_SESSIONS,
+  SESSION_REVOKED_MESSAGE,
+  addSellerSession,
+  isSessionVersionValid,
+  removeSellerSession,
+  revokeAllSellerSessions,
+} from "./sessionVersion.js";
+
+export { MAX_SELLER_SESSIONS, addSellerSession };
 
 const ROLES = {
   USER: "USER",
@@ -35,22 +45,22 @@ const ROLES = {
 
 /**
  * Roles whose sessions are single-device, and whose push tokens must therefore be
- * single-device too. Mirrors SESSION_SCOPED_MODELS in auth.middleware — admins are
- * excluded there because the panel is used across several tabs and machines, and
- * evicting those would be a regression rather than a safeguard.
+ * single-device too. Admins are excluded because the panel is used across several
+ * tabs and machines. Sellers are excluded because the owner and staff share one
+ * phone number and may be signed in on up to MAX_SELLER_SESSIONS devices, all of
+ * which should keep receiving pushes (their tokens are upserted, never duplicated).
  */
 const SINGLE_DEVICE_ROLES = new Set([
   ROLES.USER,
-  ROLES.SELLER,
   ROLES.DELIVERY_PARTNER,
 ]);
 
 const saveLoginFcmToken = async ({ ownerType, ownerId, fcmToken, platform, ownerDoc }) => {
   if (!fcmToken || !ownerId) return;
   try {
-    // Logging in already invalidated every earlier session for this account. Its
-    // push tokens have to go with it, or the signed-out device keeps receiving
-    // pushes it can no longer act on.
+    // For single-device roles, logging in already invalidated every earlier
+    // session. Its push tokens have to go with it, or the signed-out device keeps
+    // receiving pushes it can no longer act on. Multi-device roles add theirs.
     const save = SINGLE_DEVICE_ROLES.has(ownerType)
       ? replaceFirebaseDeviceToken
       : upsertFirebaseDeviceToken;
@@ -141,8 +151,24 @@ export const verifyUserOtpAndLogin = async (
     throw new AuthError(result.reason || "OTP verification failed");
   }
 
-  let userDoc = await User.findOne({ phone });
-  
+  return loginVerifiedUser({
+    findUser: () => User.findOne({ phone }),
+    newUserFields: { phone },
+    ref,
+    fcmToken,
+    platform,
+    name,
+  });
+};
+
+/**
+ * Everything after a customer's code checked out, shared by phone and email
+ * sign-in: find or create the account, then issue the tokens. `findUser` loads
+ * the existing account (or null); `newUserFields` seeds a new one.
+ */
+const loginVerifiedUser = async ({ findUser, newUserFields, ref, fcmToken, platform, name, beforeCreate }) => {
+  let userDoc = await findUser();
+
   // Ensure user exists and mark as verified on successful OTP.
   // Check if user is new or hasn't provided a name yet
   const needsNamePrompt = !userDoc || !userDoc.name || String(userDoc.name).trim() === "" || String(userDoc.name).toLowerCase() === "null";
@@ -150,8 +176,9 @@ export const verifyUserOtpAndLogin = async (
   const trimmedName = typeof name === "string" ? name.trim() : "";
 
   if (!userDoc) {
+    if (beforeCreate) await beforeCreate();
     userDoc = await User.create({
-      phone,
+      ...newUserFields,
       isVerified: true,
       ...(trimmedName ? { name: trimmedName } : {}),
     });
@@ -289,6 +316,74 @@ export const verifyUserOtpAndLogin = async (
   return { accessToken, refreshToken, user, isNewUser };
 };
 
+/* ------------------------------------------------------------------ */
+/* Customer sign-in by email: same OTP store, limits and tokens as the */
+/* phone flow, with the code keyed as `email:<address>` and mailed.    */
+/* ------------------------------------------------------------------ */
+
+export const EMAIL_LOGIN_UNAVAILABLE = "Email sign-in isn't available right now. Please use your phone number.";
+const EMAIL_SEND_FAILED = "We couldn't send the email. Please try again, or sign in with your phone number.";
+
+const normalizeLoginEmail = (email) => String(email || "").trim().toLowerCase();
+const emailOtpKey = (email) => `email:${email}`;
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Minutes a code stays valid, mirroring the expiry otp.service applies. */
+const otpValidMinutes = () => {
+  if (config.otpExpirySeconds) return Math.max(1, Math.round(config.otpExpirySeconds / 60));
+  if (config.otpExpiryMinutes) return config.otpExpiryMinutes;
+  return Math.max(1, Math.round(ms(config.otpExpiry || "5m") / 60000));
+};
+
+export const requestUserEmailOtp = async (email) => {
+  const normalized = normalizeLoginEmail(email);
+  if (!normalized) {
+    throw new ValidationError("Email is required");
+  }
+  // Always a real emailed code, even when phone sign-in runs on the fixed test
+  // code: an email address is often public, so 1234 would open any account.
+  if (!isEmailConfigured()) {
+    logger.warn("Email sign-in requested but SMTP is not configured (EMAIL_HOST, EMAIL_USER, EMAIL_PASS)");
+    throw new ServiceUnavailableError(EMAIL_LOGIN_UNAVAILABLE);
+  }
+
+  await createOrUpdateOtp(emailOtpKey(normalized), {
+    realOnly: true,
+    deliver: async (_key, code) => {
+      const sent = await sendUserLoginOtpEmail(normalized, code, otpValidMinutes());
+      if (!sent) throw new ServiceUnavailableError(EMAIL_SEND_FAILED);
+    },
+  });
+  return {};
+};
+
+export const verifyUserEmailOtpAndLogin = async (email, otp, ref, fcmToken, platform, name) => {
+  const normalized = normalizeLoginEmail(email);
+  if (!normalized) {
+    throw new ValidationError("Email is required");
+  }
+  const result = await verifyOtp(emailOtpKey(normalized), otp);
+  if (!result.valid) {
+    throw new AuthError(result.reason || "OTP verification failed");
+  }
+
+  return loginVerifiedUser({
+    // Case-insensitive: older accounts (profile edits, the shop import) may
+    // have kept the address as typed. Oldest account wins if there are several.
+    findUser: () =>
+      User.findOne({
+        email: new RegExp(`^${escapeRegex(normalized)}$`, "i"),
+        role: { $in: [ROLES.USER, null] },
+      }).sort({ createdAt: 1 }),
+    newUserFields: { email: normalized, phone: "" },
+    beforeCreate: ensureUserPhoneIndex,
+    ref,
+    fcmToken,
+    platform,
+    name,
+  });
+};
+
 export const adminLogin = async (email, password) => {
   if (!email || !password) {
     throw new ValidationError("Email and password are required");
@@ -422,7 +517,8 @@ export const verifySellerOtpAndLogin = async (phone, otp, fcmToken, platform) =>
   const payload = {
     userId: seller._id.toString(),
     role: ROLES.SELLER,
-    tokenVersion: await bumpTokenVersion(Seller, seller._id),
+    // Multi-device: opens one of MAX_SELLER_SESSIONS slots, evicting the oldest.
+    tokenVersion: await addSellerSession(seller._id),
   };
   const accessToken = signAccessToken(payload);
   const refreshToken = signRefreshToken(payload);
@@ -552,7 +648,41 @@ export const logout = async (refreshToken, fcmToken, platform) => {
 
   // 2. Invalidate the refresh token (standard logout procedure)
   const deleted = await RefreshToken.deleteOne({ token: refreshToken });
+
+  // 3. A seller device that signs out frees its session slot, so it does not
+  //    count against MAX_SELLER_SESSIONS. Only for a refresh token we actually
+  //    issued and that still verifies.
+  if (deleted.deletedCount > 0) {
+    try {
+      const jwt = await import("jsonwebtoken");
+      const payload = jwt.default.verify(refreshToken, config.jwtRefreshSecret);
+      if (payload?.role === ROLES.SELLER && payload.tokenVersion !== undefined) {
+        await removeSellerSession(payload.userId, payload.tokenVersion);
+      }
+    } catch {
+      // Expired or malformed: nothing to free.
+    }
+  }
   return { invalidated: deleted.deletedCount > 0 };
+};
+
+/**
+ * Signs the caller out everywhere: every refresh token is deleted and every
+ * access token stops working on its next request.
+ */
+export const logoutAllDevices = async (userId, role) => {
+  if (!userId || !role) {
+    throw new AuthError("Invalid token payload");
+  }
+  if (role === ROLES.SELLER) {
+    await revokeAllSellerSessions(userId);
+  } else if (role === ROLES.USER) {
+    await bumpTokenVersion(User, userId);
+  } else if (role === ROLES.DELIVERY_PARTNER) {
+    await bumpTokenVersion(DeliveryPartner, userId);
+  }
+  const deleted = await RefreshToken.deleteMany({ userId });
+  return { invalidated: deleted.deletedCount || 0 };
 };
 
 export const getProfile = async (userId, role) => {
@@ -958,15 +1088,19 @@ export const refreshAccessToken = async (token) => {
   if (sessionModel) {
     const owner = await sessionModel
       .findById(payload.userId)
-      .select('tokenVersion')
+      .select('tokenVersion sessionVersions')
       .lean();
-    const stored = Number(owner?.tokenVersion) || 0;
-    if (tokenVersion !== undefined && Number(tokenVersion) !== stored) {
-      throw new AuthError(
-        'You have been signed out because this account was used on another device',
-      );
+    if (!isSessionVersionValid(payload.role, owner, tokenVersion)) {
+      throw new AuthError(SESSION_REVOKED_MESSAGE);
     }
-    tokenVersion = stored;
+    // A seller device keeps its own slot's version; every other case (and a
+    // pre-versioning token) takes the stored one, as before.
+    const keepOwn =
+      payload.role === ROLES.SELLER &&
+      tokenVersion !== undefined &&
+      Array.isArray(owner?.sessionVersions) &&
+      owner.sessionVersions.length > 0;
+    tokenVersion = keepOwn ? Number(tokenVersion) : Number(owner?.tokenVersion) || 0;
   }
 
   const newAccessToken = signAccessToken({

@@ -6,8 +6,8 @@ import { useBusinessSettings } from "../desktop/useDesktopShell"
 /**
  * The app's service strip (shop_home_screen.dart _ServiceStrip): one 36px line
  * of promises gliding left, each followed by an orange star. Only promises the
- * live settings back up are listed — the return window, the courier time, cash
- * on delivery when checkout offers it, and how many local stores sell here.
+ * live settings back up are listed — the delivery time and cash on delivery
+ * when checkout offers it.
  */
 
 const daysText = (min, max) => {
@@ -17,7 +17,7 @@ const daysText = (min, max) => {
   return lo > 0 && lo < hi ? `${lo}–${hi} days` : `${hi} day${hi === 1 ? "" : "s"}`
 }
 
-function useServiceItems(storeCount = 0) {
+function useServiceItems() {
   const { isQuick } = useStoreMode()
   const business = useBusinessSettings()
   const eta = useQuickEta()
@@ -26,10 +26,8 @@ function useServiceItems(storeCount = 0) {
   const configured = s?.standardDeliveryDays
   const courier = daysText(configured?.min, configured?.max) || daysText(estimate?.minDays, estimate?.maxDays)
   return [
-    business.returnWindowDays ? `Easy ${business.returnWindowDays}-day returns` : "",
     isQuick ? `Delivered in ${eta} minutes` : courier ? `Delivered in ${courier}` : "",
     s?.payments?.cashOnDelivery === true ? "Cash on Delivery available" : "",
-    storeCount > 0 ? `${storeCount} local store${storeCount === 1 ? "" : "s"}` : "",
   ].filter(Boolean)
 }
 
@@ -46,8 +44,8 @@ function Line({ items }) {
   )
 }
 
-export default function ServiceMarquee({ storeCount = 0 }) {
-  const items = useServiceItems(storeCount)
+export default function ServiceMarquee() {
+  const items = useServiceItems()
   if (!items.length) return null
   // Six copies; the track slides by half (three) and repeats, so even a short
   // line fills the screen. About 27px a second, as in the app.
