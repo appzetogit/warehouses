@@ -27,6 +27,8 @@ const uploadFields = docUpload.fields([
     { name: 'panPhoto', maxCount: 1 },
     { name: 'drivingLicensePhoto', maxCount: 1 },
     { name: 'rcPhoto', maxCount: 1 },
+    // Alias some app builds send for the RC photo; stored as rcPhoto.
+    { name: 'vehicleRcPhoto', maxCount: 1 },
     { name: 'selfiePhoto', maxCount: 1 },
     { name: 'upiQrCode', maxCount: 1 }
 ]);

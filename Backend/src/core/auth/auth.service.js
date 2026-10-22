@@ -777,6 +777,9 @@ export const getProfile = async (userId, role) => {
         ...partner,
         email: partner.email || null,
         deliveryId,
+        // The app reads the RC photo under either name.
+        rcPhoto: partner.rcPhoto || null,
+        vehicleRcPhoto: partner.rcPhoto || null,
         status: partner.status === "rejected" ? "blocked" : partner.status,
         profileImage: partner.profilePhoto
           ? { url: partner.profilePhoto }

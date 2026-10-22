@@ -2469,14 +2469,34 @@ export async function getContactMessages(query = {}) {
 // ----- Delivery Cash Limit (admin) -----
 export async function getDeliveryCashLimitSettings() {
     const doc = await DeliveryCashLimit.findOne({ isActive: true }).sort({ createdAt: -1 }).lean();
-    const settings = doc || { deliveryCashLimit: 0, deliveryWithdrawalLimit: 100, isActive: true };
+    const settings = doc || { deliveryCashLimit: 0, deliveryWithdrawalLimit: 100, deliveryWithdrawalMaxPercent: DEFAULT_WITHDRAWAL_MAX_PERCENT, isActive: true };
     return {
         deliveryCashLimit: Number(settings.deliveryCashLimit) || 0,
-        deliveryWithdrawalLimit: Number(settings.deliveryWithdrawalLimit) || 100
+        deliveryWithdrawalLimit: Number(settings.deliveryWithdrawalLimit) || 100,
+        deliveryWithdrawalMaxPercent: normalizeWithdrawalMaxPercent(settings.deliveryWithdrawalMaxPercent)
     };
 }
 
+const DEFAULT_WITHDRAWAL_MAX_PERCENT = 10;
+
+/** A stored share outside 1-100 (or missing, on older docs) falls back to the default. */
+function normalizeWithdrawalMaxPercent(value) {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 1 && n <= 100 ? n : DEFAULT_WITHDRAWAL_MAX_PERCENT;
+}
+
+/** Admin input: undefined leaves it unchanged; anything else must be a number from 1 to 100. */
+function parseWithdrawalMaxPercent(value) {
+    if (value === undefined) return undefined;
+    const n = typeof value === 'string' && value.trim() === '' ? NaN : Number(value);
+    if (!Number.isFinite(n) || n < 1 || n > 100) {
+        throw new ValidationError('Max withdrawal per request must be between 1% and 100% of the wallet');
+    }
+    return n;
+}
+
 export async function upsertDeliveryCashLimitSettings(body = {}) {
+    const nextMaxPercent = parseWithdrawalMaxPercent(body.deliveryWithdrawalMaxPercent);
     const existing = await DeliveryCashLimit.findOne({ isActive: true }).sort({ createdAt: -1 });
     const nextCashLimit = body.deliveryCashLimit;
     const nextWithdrawalLimit = body.deliveryWithdrawalLimit;
@@ -2484,22 +2504,26 @@ export async function upsertDeliveryCashLimitSettings(body = {}) {
     if (existing) {
         if (nextCashLimit !== undefined) existing.deliveryCashLimit = Math.max(0, Number(nextCashLimit) || 0);
         if (nextWithdrawalLimit !== undefined) existing.deliveryWithdrawalLimit = Math.max(0, Number(nextWithdrawalLimit) || 0);
+        if (nextMaxPercent !== undefined) existing.deliveryWithdrawalMaxPercent = nextMaxPercent;
         await existing.save();
         return {
             deliveryCashLimit: existing.deliveryCashLimit,
-            deliveryWithdrawalLimit: existing.deliveryWithdrawalLimit
+            deliveryWithdrawalLimit: existing.deliveryWithdrawalLimit,
+            deliveryWithdrawalMaxPercent: normalizeWithdrawalMaxPercent(existing.deliveryWithdrawalMaxPercent)
         };
     }
 
     const created = await DeliveryCashLimit.create({
         deliveryCashLimit: nextCashLimit !== undefined ? Math.max(0, Number(nextCashLimit) || 0) : 0,
         deliveryWithdrawalLimit: nextWithdrawalLimit !== undefined ? Math.max(0, Number(nextWithdrawalLimit) || 0) : 100,
+        deliveryWithdrawalMaxPercent: nextMaxPercent !== undefined ? nextMaxPercent : DEFAULT_WITHDRAWAL_MAX_PERCENT,
         isActive: true
     });
 
     return {
         deliveryCashLimit: created.deliveryCashLimit,
-        deliveryWithdrawalLimit: created.deliveryWithdrawalLimit
+        deliveryWithdrawalLimit: created.deliveryWithdrawalLimit,
+        deliveryWithdrawalMaxPercent: normalizeWithdrawalMaxPercent(created.deliveryWithdrawalMaxPercent)
     };
 }
 

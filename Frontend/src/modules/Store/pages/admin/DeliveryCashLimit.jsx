@@ -13,6 +13,8 @@ export default function DeliveryCashLimit() {
   const [savingWithdrawal, setSavingWithdrawal] = useState(false)
   const [deliveryCashLimit, setDeliveryCashLimit] = useState("")
   const [deliveryWithdrawalLimit, setDeliveryWithdrawalLimit] = useState("")
+  const [withdrawalMaxPercent, setWithdrawalMaxPercent] = useState("")
+  const [savingMaxPercent, setSavingMaxPercent] = useState(false)
   const isMountedRef = useRef(true)
 
   const fetchLimit = useCallback(async ({ silent = false } = {}) => {
@@ -27,6 +29,7 @@ export default function DeliveryCashLimit() {
       if (!isMountedRef.current) return
       setDeliveryCashLimit(limit !== undefined && limit !== null ? String(limit) : "")
       setDeliveryWithdrawalLimit(wl !== undefined && wl !== null ? String(wl) : "100")
+      setWithdrawalMaxPercent(String(data.deliveryWithdrawalMaxPercent ?? 10))
     } catch (error) {
       debugError("Error fetching delivery cash limit:", error)
       if (!isMountedRef.current) return
@@ -35,6 +38,7 @@ export default function DeliveryCashLimit() {
       }
       setDeliveryCashLimit("")
       setDeliveryWithdrawalLimit("100")
+      setWithdrawalMaxPercent("10")
     } finally {
       if (!silent && isMountedRef.current) {
         setLoading(false)
@@ -107,6 +111,32 @@ export default function DeliveryCashLimit() {
       toast.error(error.response?.data?.message || "Failed to update withdrawal limit")
     } finally {
       setSavingWithdrawal(false)
+    }
+  }
+
+  const saveMaxPercent = async () => {
+    const value = Number(withdrawalMaxPercent)
+    if (withdrawalMaxPercent === "" || !Number.isFinite(value) || value < 1 || value > 100) {
+      toast.error("Max withdrawal per request must be between 1 and 100%")
+      return
+    }
+
+    try {
+      setSavingMaxPercent(true)
+      // Only this field: the server leaves the other limits as they are.
+      const response = await adminAPI.updateDeliveryCashLimit({ deliveryWithdrawalMaxPercent: value })
+      const saved =
+        response?.data?.data?.deliveryWithdrawalMaxPercent ??
+        response?.data?.deliveryWithdrawalMaxPercent ??
+        value
+      setWithdrawalMaxPercent(String(saved))
+      toast.success("Max withdrawal per request updated successfully")
+      await fetchLimit({ silent: true })
+    } catch (error) {
+      debugError("Error saving max withdrawal percent:", error)
+      toast.error(error.response?.data?.message || "Failed to update max withdrawal per request")
+    } finally {
+      setSavingMaxPercent(false)
     }
   }
 
@@ -214,6 +244,46 @@ export default function DeliveryCashLimit() {
                     className="px-4 py-2.5 text-sm font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {savingWithdrawal && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 bg-sky-50 border border-sky-200 rounded-lg mt-6">
+            <div className="flex items-start gap-3">
+              <Wallet className="w-5 h-5 text-sky-700 mt-0.5" />
+              <div className="flex-1">
+                <label htmlFor="delivery-withdrawal-max-percent" className="block font-semibold text-sky-900 mb-1">
+                  Max withdrawal per request (% of wallet)
+                </label>
+                <div className="text-sm text-sky-800/80 mb-3">
+                  A delivery partner can take at most this share of their current wallet balance in one withdrawal
+                  request (1–100%). For example, 10% of a ₹571 balance allows up to ₹57.10.
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                  <div className="flex-1">
+                    <input
+                      id="delivery-withdrawal-max-percent"
+                      type="number"
+                      min="1"
+                      max="100"
+                      step="1"
+                      value={withdrawalMaxPercent}
+                      onChange={(e) => setWithdrawalMaxPercent(e.target.value)}
+                      className="w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm border-sky-200"
+                      placeholder={loading ? "Loading..." : "e.g., 10"}
+                      disabled={loading || savingMaxPercent}
+                    />
+                  </div>
+                  <button
+                    onClick={saveMaxPercent}
+                    disabled={loading || savingMaxPercent}
+                    className="px-4 py-2.5 text-sm font-medium rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {savingMaxPercent && <Loader2 className="w-4 h-4 animate-spin" />}
                     Save
                   </button>
                 </div>

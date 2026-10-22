@@ -25,6 +25,21 @@ const savePartnerFcmToken = async (partnerId, fcmToken, platform) => {
     }
 };
 
+/**
+ * Some app builds send the RC photo as `vehicleRcPhoto`. Treat it as `rcPhoto`
+ * (an explicit `rcPhoto` wins when both are sent); there is no separate field.
+ */
+export const withRcPhotoAlias = (files) => {
+    if (!files || typeof files !== 'object') return files;
+    const { vehicleRcPhoto, ...rest } = files;
+    if (!rest.rcPhoto?.[0] && vehicleRcPhoto?.[0]) rest.rcPhoto = vehicleRcPhoto;
+    return rest;
+};
+
+/** The partner as the app reads it: the RC photo under both names. */
+export const withRcPhotoAliasOut = (partner) =>
+    partner ? { ...partner, rcPhoto: partner.rcPhoto || null, vehicleRcPhoto: partner.rcPhoto || null } : partner;
+
 /** Only the optional sign-up extras that were actually filled in. */
 const pickSignupExtras = (extras) =>
     Object.fromEntries(
@@ -33,7 +48,8 @@ const pickSignupExtras = (extras) =>
             .filter(([, value]) => typeof value === 'string' && value)
     );
 
-export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
+export const registerDeliveryPartner = async (payload, rawFiles, rawBody = {}) => {
+    const files = withRcPhotoAlias(rawFiles);
     const { 
         name, phone, email, countryCode, address, city, state, 
         vehicleType, vehicleName, vehicleNumber, drivingLicenseNumber, panNumber, aadharNumber,
@@ -123,7 +139,7 @@ export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
     const { customFields, documentKeys } = await collectDynamicRegistration(rawBody || {}, fileKeys);
 
     // Upload any admin-defined document files (skip keys already handled as known photos).
-    const KNOWN_DOC_FIELDS = new Set(['profilePhoto', 'aadharPhoto', 'panPhoto', 'drivingLicensePhoto', 'rcPhoto', 'selfiePhoto', 'upiQrCode']);
+    const KNOWN_DOC_FIELDS = new Set(['profilePhoto', 'aadharPhoto', 'panPhoto', 'drivingLicensePhoto', 'rcPhoto', 'vehicleRcPhoto', 'selfiePhoto', 'upiQrCode']);
     const customDocuments = {};
     const dynamicDocTasks = [];
     for (const key of documentKeys) {
@@ -207,10 +223,11 @@ export const registerDeliveryPartner = async (payload, files, rawBody = {}) => {
         console.error('Failed to notify admins of new delivery partner registration:', e);
     }
 
-    return partner.toObject();
+    return withRcPhotoAliasOut(partner.toObject());
 };
 
-export const updateDeliveryPartnerProfile = async (userId, payload, files) => {
+export const updateDeliveryPartnerProfile = async (userId, payload, rawFiles) => {
+    const files = withRcPhotoAlias(rawFiles);
     const partner = await DeliveryPartner.findById(userId);
     if (!partner) {
         throw new ValidationError('Delivery partner not found');
@@ -272,7 +289,7 @@ export const updateDeliveryPartnerProfile = async (userId, payload, files) => {
     }
 
     return {
-        partner: partner.toObject(),
+        partner: withRcPhotoAliasOut(partner.toObject()),
         requiresReapproval: false
     };
 };

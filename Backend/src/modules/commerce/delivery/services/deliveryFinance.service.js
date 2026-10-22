@@ -156,6 +156,8 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
         }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
+    const withdrawalMaxPercent = Number(cashLimitSettings.deliveryWithdrawalMaxPercent) || DEFAULT_WITHDRAWAL_MAX_PERCENT;
+
     return {
         totalBalance: totalEarned + totalBonus, // Gross lifetime earnings
         pocketBalance, // Available to withdraw
@@ -168,9 +170,27 @@ export const getDeliveryPartnerWalletEnhanced = async (deliveryPartnerId) => {
         totalCashLimit,
         availableCashLimit: Math.max(0, totalCashLimit - cashInHand),
         deliveryWithdrawalLimit,
+        withdrawalMaxPercent, // Max share of pocketBalance per withdrawal request
+        maxWithdrawable: maxWithdrawablePaise(pocketBalance, withdrawalMaxPercent) / 100,
         transactions: transactions.slice(0, 50)
     };
 };
+
+const DEFAULT_WITHDRAWAL_MAX_PERCENT = 10;
+
+const toPaise = (rupees) => Math.round((Number(rupees) || 0) * 100);
+
+/**
+ * The most one withdrawal may take: `percent`% of the balance, floored to the
+ * paisa. Worked in integer paise so 10% of ₹571 is exactly ₹57.10.
+ */
+const maxWithdrawablePaise = (balanceRupees, percent) => {
+    const balance = Math.max(0, toPaise(balanceRupees));
+    return Math.max(0, Math.min(balance, Math.floor((balance * percent) / 100)));
+};
+
+/** Mongo filter matching a wallet field exactly as it was read (missing stays missing). */
+const sameAs = (value) => (value === undefined ? { $exists: false } : value);
 
 /**
  * Submits a new withdrawal request for a delivery partner.
@@ -180,6 +200,21 @@ export const requestDeliveryWithdrawal = async (deliveryPartnerId, payload) => {
     const { bankDetails, paymentMethod = 'bank_transfer' } = payload;
 
     if (!Number.isFinite(amount) || amount < 1) throw new ValidationError('Invalid amount');
+    if (!deliveryPartnerId || !mongoose.Types.ObjectId.isValid(deliveryPartnerId)) {
+        throw new ValidationError('Invalid delivery partner ID');
+    }
+    const partnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
+    if (!(await DeliveryPartner.exists({ _id: partnerId }))) throw new ValidationError('Delivery partner not found');
+
+    // Snapshot the ledger row BEFORE computing the balance. The debit at the end
+    // only applies while the row is still exactly this, so two requests racing
+    // each other cannot both spend the same balance (the loser is rejected).
+    await DeliveryWallet.updateOne(
+        { deliveryPartnerId: partnerId },
+        { $setOnInsert: { balance: 0, lockedAmount: 0 } },
+        { upsert: true }
+    );
+    const walletDoc = await DeliveryWallet.findOne({ deliveryPartnerId: partnerId }).lean();
 
     const wallet = await getDeliveryPartnerWalletEnhanced(deliveryPartnerId);
     if (amount < wallet.deliveryWithdrawalLimit) {
@@ -188,11 +223,15 @@ export const requestDeliveryWithdrawal = async (deliveryPartnerId, payload) => {
     if (amount > wallet.pocketBalance) {
         throw new ValidationError('Insufficient balance for this withdrawal');
     }
+    const maxPaise = maxWithdrawablePaise(wallet.pocketBalance, wallet.withdrawalMaxPercent);
+    if (toPaise(amount) > maxPaise) {
+        throw new ValidationError(
+            `You can withdraw up to ${wallet.withdrawalMaxPercent}% of your wallet balance (₹${(maxPaise / 100).toFixed(2)}) at a time.`
+        );
+    }
 
-    const partnerId = new mongoose.Types.ObjectId(deliveryPartnerId);
-    const [partner, walletDoc, pendingAgg] = await Promise.all([
+    const [partner, pendingAgg] = await Promise.all([
         DeliveryPartner.findById(deliveryPartnerId).lean(),
-        DeliveryWallet.findOne({ deliveryPartnerId: partnerId }),
         DeliveryWithdrawal.aggregate([
             {
                 $match: {
@@ -223,6 +262,9 @@ export const requestDeliveryWithdrawal = async (deliveryPartnerId, payload) => {
         throw new ValidationError('Insufficient balance for this withdrawal');
     }
 
+    // Record the request (a pending request counts against the balance at once),
+    // then lock the amount on the ledger only if the row is unchanged since the
+    // snapshot. If another request got there first, withdraw this one.
     const withdrawal = await DeliveryWithdrawal.create({
         deliveryPartnerId: partnerId,
         amount,
@@ -238,16 +280,26 @@ export const requestDeliveryWithdrawal = async (deliveryPartnerId, payload) => {
         status: 'pending'
     });
 
-    await DeliveryWallet.findOneAndUpdate(
-        { deliveryPartnerId: partnerId },
+    const locked = await DeliveryWallet.updateOne(
+        {
+            _id: walletDoc._id,
+            balance: sameAs(walletDoc.balance),
+            lockedAmount: sameAs(walletDoc.lockedAmount)
+        },
         {
             $set: {
                 balance: targetLedgerBalance,
                 lockedAmount: effectiveLockedBefore + amount
             }
-        },
-        { upsert: true, new: true }
-    );
+        }
+    ).catch(async (err) => {
+        await DeliveryWithdrawal.deleteOne({ _id: withdrawal._id }).catch(() => {});
+        throw err;
+    });
+    if (locked.matchedCount !== 1) {
+        await DeliveryWithdrawal.deleteOne({ _id: withdrawal._id });
+        throw new ValidationError('Your wallet changed while this withdrawal was being made. Please check your balance and try again.');
+    }
 
     return withdrawal.toObject();
 };
