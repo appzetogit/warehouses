@@ -7,6 +7,7 @@ export const SUBSCRIPTION_TRANSACTION_TYPES = [
   "waiver",
   "adjustment",
   "legacy_carryforward",
+  "ai_usage",
 ];
 
 /**

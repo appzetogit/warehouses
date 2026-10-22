@@ -41,6 +41,7 @@ before(async () => {
     const seller = await Seller.create({
         channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: 'Secret Store Name', ownerName: 'Owner', ownerPhone: '9333333333', status: 'approved',
+        aiAccess: { chatEnabled: true },
         location: { type: 'Point', coordinates: [77.59, 12.97], latitude: 12.97, longitude: 77.59 },
     });
     ids.seller = seller._id;

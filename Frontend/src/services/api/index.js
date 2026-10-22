@@ -3202,6 +3202,14 @@ export const adminAIAPI = {
   getConversation: (id) =>
     apiClient.get(`/admin/ai/conversations/${id}`, { contextModule: "admin" }),
   getUsage: (params = {}) => apiClient.get("/admin/ai/usage", { params, contextModule: "admin" }),
+  /** AI image usage per store for a month ({ month: 'YYYY-MM' }), and its CSV. */
+  getStoreUsage: (params = {}) => apiClient.get("/admin/ai/store-usage", { params, contextModule: "admin" }),
+  exportStoreUsage: (params = {}) =>
+    apiClient.get("/admin/ai/store-usage/export", { params, responseType: "blob", contextModule: "admin" }),
+  /** Per-store AI switches (images, AI Help chat) and monthly image cap. */
+  getStoreAccess: (sellerId) => apiClient.get(`/admin/sellers/${sellerId}/ai-access`, { contextModule: "admin" }),
+  updateStoreAccess: (sellerId, body = {}) =>
+    apiClient.patch(`/admin/sellers/${sellerId}/ai-access`, body, { contextModule: "admin" }),
 };
 
 export const heroBannerAPI = createStubAPI();

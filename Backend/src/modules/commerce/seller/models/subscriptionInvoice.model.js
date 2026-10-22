@@ -36,6 +36,15 @@ const subscriptionInvoiceSchema = new mongoose.Schema(
     },
     planAmount: { type: Number, required: true, min: 0 },
     gstAmount: { type: Number, default: 0, min: 0 },
+    // The month's AI image charges (ai_usage_charges linked by invoiceId),
+    // included in totalAmount/outstandingAmount. amount is GST-inclusive.
+    aiUsage: {
+      images: { type: Number, default: 0, min: 0 },
+      included: { type: Number, default: 0, min: 0 },
+      extra: { type: Number, default: 0, min: 0 },
+      unitPrice: { type: Number, default: 0, min: 0 },
+      amount: { type: Number, default: 0, min: 0 },
+    },
     totalAmount: { type: Number, required: true, min: 0 },
 
     paidAmount: { type: Number, default: 0, min: 0 },

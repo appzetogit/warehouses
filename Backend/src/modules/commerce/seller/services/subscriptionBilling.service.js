@@ -10,6 +10,7 @@ import {
 import { SubscriptionInvoice } from "../models/subscriptionInvoice.model.js";
 import { SubscriptionTransaction } from "../models/subscriptionTransaction.model.js";
 import { SubscriptionBillingRun } from "../models/subscriptionBillingRun.model.js";
+import { AiUsageCharge } from "../../ai/models/aiUsageCharge.model.js";
 import { Notification } from "../../../../core/notifications/models/notification.model.js";
 import { notifyOwnerSafely } from "../../../../core/notifications/firebase.service.js";
 import { getSellerSubscriptionSettings } from "../../admin/services/admin.service.js";
@@ -153,23 +154,33 @@ async function notifySellerBilling(sellerId, sellerName, title, message, data = 
  * Generates the postpaid invoice for one seller for a closed billing month.
  * Skips zero-GMV months and months already invoiced (unique index is the backstop).
  */
-export async function generateInvoiceForSeller(seller, billingMonth, settings, generatedBy = "system") {
+export async function generateInvoiceForSeller(seller, billingMonth, settings, generatedBy = "system", { aiOnly = false } = {}) {
   const sellerId = seller?._id;
   if (!sellerId) return { status: "skipped", reason: "missing_seller" };
 
   const existing = await SubscriptionInvoice.findOne({ sellerId, billingMonth })
     .select("_id")
     .lean();
-  if (existing) return { status: "skipped", reason: "already_invoiced" };
+  if (existing) {
+    // A repeated run only picks up AI charges that are not on the invoice yet.
+    await attachAiUsageToInvoice(existing._id);
+    return { status: "skipped", reason: "already_invoiced" };
+  }
 
   const { start, end } = getMonthWindow(billingMonth);
   const { gmv, orderCount } = await computeMonthlyGmv(sellerId, start, end);
-  if (gmv <= 0) return { status: "skipped", reason: "zero_gmv" };
+  // The plan fee needs GMV (and a seller who is not billing-exempt); AI image
+  // charges are billed regardless, on an invoice with no plan fee if need be.
+  const chargePlan = !aiOnly && gmv > 0;
+  if (!chargePlan) {
+    const unbilledAi = await unbilledAiAmount(sellerId, billingMonth);
+    if (unbilledAi <= 0) return { status: "skipped", reason: aiOnly ? "no_ai_charges" : "zero_gmv" };
+  }
 
   const catalog = buildPlanCatalog(settings);
   const planName = resolveEligiblePlanByGmv(gmv, catalog);
   const planEntry = catalog.plans.find((plan) => plan.id === planName) || catalog.plans[0];
-  const planAmount = Math.max(0, Number(planEntry?.basePrice) || 0);
+  const planAmount = chargePlan ? Math.max(0, Number(planEntry?.basePrice) || 0) : 0;
   const gstAmount = Math.round(planAmount * GST_RATE);
   const totalAmount = planAmount + gstAmount;
 
@@ -200,32 +211,128 @@ export async function generateInvoiceForSeller(seller, billingMonth, settings, g
       generatedBy,
     });
   } catch (err) {
-    if (err?.code === 11000) return { status: "skipped", reason: "already_invoiced" };
+    if (err?.code === 11000) {
+      const raced = await SubscriptionInvoice.findOne({ sellerId, billingMonth }).select("_id").lean();
+      if (raced) await attachAiUsageToInvoice(raced._id);
+      return { status: "skipped", reason: "already_invoiced" };
+    }
     throw err;
   }
+
+  // The month's AI image charges go on the invoice before it is announced.
+  const attached = await attachAiUsageToInvoice(invoice._id, { logTransaction: false });
+  if (attached?.invoice) invoice = attached.invoice;
+  const aiAmount = round2(invoice.aiUsage?.amount || 0);
+  const finalTotal = round2(invoice.totalAmount);
+  const planText = chargePlan
+    ? `${planEntry?.label || planName} plan ₹${totalAmount} (incl. GST) based on monthly GMV of ₹${gmv}`
+    : "no plan fee this month";
+  const aiText = aiAmount > 0 ? `, AI images ₹${aiAmount} (${invoice.aiUsage.extra} extra image${invoice.aiUsage.extra === 1 ? "" : "s"})` : "";
 
   await SubscriptionTransaction.create({
     sellerId,
     invoiceId: invoice._id,
     billingMonth,
     type: "invoice_generated",
-    amount: totalAmount,
-    outstandingAfter: totalAmount,
-    invoiceStatusAfter: "pending",
+    amount: finalTotal,
+    outstandingAfter: round2(invoice.outstandingAmount),
+    invoiceStatusAfter: invoice.status || "pending",
     processedBy: { role: "SYSTEM" },
-    remarks: `Monthly invoice for ${billingMonthLabel(billingMonth)} — GMV ₹${gmv}, ${planEntry?.label || planName} plan`,
-    metadata: { gmv, orderCount, planAmount, gstAmount },
+    remarks: `Monthly invoice for ${billingMonthLabel(billingMonth)} — GMV ₹${gmv}, ${chargePlan ? `${planEntry?.label || planName} plan` : "no plan fee"}${aiText}`,
+    metadata: { gmv, orderCount, planAmount, gstAmount, aiUsage: invoice.aiUsage || null, aiOnly: !chargePlan },
   });
 
   await notifySellerBilling(
     sellerId,
     seller.sellerName,
     "Subscription Invoice Generated 💳",
-    `Your ${billingMonthLabel(billingMonth)} subscription invoice is ready: ${planEntry?.label || planName} plan ₹${totalAmount} (incl. GST) based on monthly GMV of ₹${gmv}. The amount is due and locked against your wallet balance.`,
-    { billingMonth, invoiceId: String(invoice._id), amount: String(totalAmount) },
+    `Your ${billingMonthLabel(billingMonth)} subscription invoice is ready: ${planText}${aiText}. Total ₹${finalTotal}. The amount is due and locked against your wallet balance.`,
+    { billingMonth, invoiceId: String(invoice._id), amount: String(finalTotal) },
   );
 
   return { status: "invoiced", invoice };
+}
+
+// ---------- AI image charges on the invoice ----------
+
+/** Charged AI image amount for the seller's month not on any invoice yet. */
+async function unbilledAiAmount(sellerId, billingMonth) {
+  const [row] = await AiUsageCharge.aggregate([
+    { $match: { sellerId: new mongoose.Types.ObjectId(String(sellerId)), billingMonth, status: "charged", invoiceId: null } },
+    { $group: { _id: null, amount: { $sum: "$amount" } } },
+  ]);
+  return round2(row?.amount || 0);
+}
+
+/**
+ * Links the seller's charged, unbilled AI image charges for the invoice's month
+ * to the invoice and adds their amount to totalAmount and outstandingAmount
+ * (so wallet deduction, waiver, adjustment, mark-paid and the CSV export all
+ * see it). Safe to call any number of times: a charge is linked to one invoice
+ * once, and the invoice only grows by what is new since the last call.
+ * The AI amount carries no extra GST (extraImagePrice is GST-inclusive).
+ */
+export async function attachAiUsageToInvoice(invoiceId, { logTransaction = true } = {}) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const invoice = await SubscriptionInvoice.findById(invoiceId);
+    if (!invoice || invoice.billingMonth === "legacy") return null;
+    await AiUsageCharge.updateMany(
+      { sellerId: invoice.sellerId, billingMonth: invoice.billingMonth, status: "charged", invoiceId: null },
+      { $set: { invoiceId: invoice._id } },
+    );
+    const [sum] = await AiUsageCharge.aggregate([
+      { $match: { invoiceId: invoice._id, status: "charged" } },
+      {
+        $group: {
+          _id: null,
+          images: { $sum: "$images" },
+          included: { $sum: "$includedImages" },
+          extra: { $sum: "$extraImages" },
+          amount: { $sum: "$amount" },
+        },
+      },
+    ]);
+    if (!sum) return { invoice, added: 0 };
+    const prevAmount = round2(invoice.aiUsage?.amount || 0);
+    const amount = round2(sum.amount);
+    const delta = round2(amount - prevAmount);
+    if (delta === 0 && (invoice.aiUsage?.images || 0) === sum.images) return { invoice, added: 0 };
+
+    const aiUsage = {
+      images: sum.images,
+      included: sum.included,
+      extra: sum.extra,
+      unitPrice: sum.extra ? round2(amount / sum.extra) : 0,
+      amount,
+    };
+    const updated = await SubscriptionInvoice.findOneAndUpdate(
+      { _id: invoice._id, "aiUsage.amount": prevAmount ? prevAmount : { $in: [0, null] } },
+      { $set: { aiUsage }, $inc: { totalAmount: delta, outstandingAmount: delta } },
+      { new: true },
+    );
+    if (!updated) continue; // another call moved the invoice first: recompute from it
+    updated.status = resolveInvoiceStatus(updated);
+    await updated.save();
+    if (logTransaction && delta > 0) {
+      await appendTransaction(
+        updated,
+        "ai_usage",
+        delta,
+        null,
+        `AI images for ${billingMonthLabel(updated.billingMonth)}: ₹${delta} added (${aiUsage.extra} extra image${aiUsage.extra === 1 ? "" : "s"} in total)`,
+        { aiUsage },
+      );
+    }
+    return { invoice: updated, added: delta };
+  }
+  throw new Error(`AI usage could not be added to invoice ${invoiceId}: it kept changing`);
+}
+
+/** Adds late AI charges to the seller's invoice for that month, when it exists already. */
+export async function attachAiUsageForSellerMonth(sellerId, billingMonth) {
+  const invoice = await SubscriptionInvoice.findOne({ sellerId, billingMonth }).select("_id").lean();
+  if (!invoice) return null;
+  return attachAiUsageToInvoice(invoice._id);
 }
 
 /**
@@ -270,6 +377,30 @@ export async function runMonthlyBilling(billingMonth, { generatedBy = "system" }
     }
   }
 
+  // Stores left out above (billing-exempt, or no longer approved) still pay for
+  // the AI images they made: an invoice with the AI line and no plan fee.
+  let aiOnlyInvoicedCount = 0;
+  const processed = new Set(sellers.map((s) => String(s._id)));
+  const aiSellerIds = await AiUsageCharge.distinct("sellerId", {
+    billingMonth, status: "charged", invoiceId: null, amount: { $gt: 0 },
+  });
+  for (const id of aiSellerIds) {
+    if (processed.has(String(id))) continue;
+    try {
+      const seller = await Seller.findById(id).select("_id sellerName").lean();
+      if (!seller) continue;
+      const result = await generateInvoiceForSeller(seller, billingMonth, settings, generatedBy, { aiOnly: true });
+      if (result.status === "invoiced") {
+        invoicedCount += 1;
+        aiOnlyInvoicedCount += 1;
+      }
+    } catch (err) {
+      errorCount += 1;
+      errors.push(`${id}: ${err?.message || err}`);
+      logger.error(`AI-only billing failed for seller ${id} (${billingMonth}): ${err?.message || err}`);
+    }
+  }
+
   run.status = errorCount > 0 ? "failed" : "completed";
   run.invoicedCount = invoicedCount;
   run.skippedZeroGmvCount = skippedZeroGmvCount;
@@ -281,7 +412,7 @@ export async function runMonthlyBilling(billingMonth, { generatedBy = "system" }
   logger.info(
     `[SUBSCRIPTION BILLING] ${billingMonth}: invoiced=${invoicedCount}, zeroGmvSkipped=${skippedZeroGmvCount}, errors=${errorCount}`,
   );
-  return { billingMonth, invoicedCount, skippedZeroGmvCount, errorCount };
+  return { billingMonth, invoicedCount, aiOnlyInvoicedCount, skippedZeroGmvCount, errorCount };
 }
 
 /**

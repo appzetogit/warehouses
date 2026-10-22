@@ -27,6 +27,18 @@ const aiSettingsSchema = new mongoose.Schema(
         sellerDailyImageCap: { type: Number, min: 0, default: 20 },
         /** Used only for the usage page's cost estimate (USD per generated image). */
         imageCostUsd: { type: Number, min: 0, default: 0.04 },
+        /**
+         * Store AI image billing. Images a store gets free each month by its
+         * subscription plan (0 = none: every image is charged), the price of each
+         * image beyond that (rupees, added to the monthly subscription invoice),
+         * and the most images one store may make in a month (0 = no cap; a store's
+         * own aiAccess.monthlyImageCap overrides it).
+         */
+        includedImagesStarter: { type: Number, min: 0, default: 0 },
+        includedImagesGrowth: { type: Number, min: 0, default: 0 },
+        includedImagesPremium: { type: Number, min: 0, default: 0 },
+        extraImagePrice: { type: Number, min: 0, default: 5 },
+        storeMonthlyImageCap: { type: Number, min: 0, default: 300 },
     },
     { collection: 'ai_settings', timestamps: true }
 );

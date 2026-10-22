@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, Loader2, Sparkles, Shirt, X } from "lucide-react";
 import { toast } from "sonner";
 import { sellerAPI } from "@store/api";
+import { aiImageCost } from "./aiImageCost";
 
 const POLL_MS = 2000;
 const GIVE_UP_MS = 3 * 60 * 1000;
@@ -43,7 +44,9 @@ export default function AiImageStudioDialog({ kind, sourcePreview, prepareSource
   const copy = COPY[kind];
   const needs = kind === "mannequin" ? status?.mannequinCount || 3 : 1;
   const left = status?.remainingToday;
-  const outOfImages = left !== null && left !== undefined && left < needs;
+  const cost = aiImageCost(status, needs);
+  const outOfToday = left !== null && left !== undefined && left < needs;
+  const outOfImages = outOfToday || cost.blocked;
 
   const generate = async () => {
     setPhase("working");
@@ -88,7 +91,7 @@ export default function AiImageStudioDialog({ kind, sourcePreview, prepareSource
   };
 
   const close = () => {
-    if (phase === "working" && !window.confirm("The images are still being made. Close anyway? They will still count towards today's limit.")) return;
+    if (phase === "working" && !window.confirm("The images are still being made. Close anyway? They will still count towards today's limit and this month's bill.")) return;
     onClose();
   };
 
@@ -146,6 +149,7 @@ export default function AiImageStudioDialog({ kind, sourcePreview, prepareSource
 
               {phase === "failed" && <p className="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</p>}
 
+              <p className={`text-sm mb-2 rounded-lg px-3 py-2 ${cost.blocked ? "bg-amber-50 text-amber-800 border border-amber-200" : "bg-violet-50 text-violet-800"}`}>{cost.text}</p>
               {left !== null && left !== undefined && (
                 <p className="text-xs text-gray-500 mb-3">{left} of {status.dailyCap} AI images left today.</p>
               )}
@@ -155,7 +159,7 @@ export default function AiImageStudioDialog({ kind, sourcePreview, prepareSource
                 disabled={outOfImages}
                 className="w-full py-3 rounded-xl bg-violet-600 text-white text-sm font-semibold disabled:opacity-50"
               >
-                {outOfImages ? "Not enough AI images left today" : phase === "failed" ? "Try again" : copy.action}
+                {cost.blocked ? "Monthly AI image limit reached" : outOfToday ? "Not enough AI images left today" : phase === "failed" ? "Try again" : copy.action}
               </button>
             </>
           )}

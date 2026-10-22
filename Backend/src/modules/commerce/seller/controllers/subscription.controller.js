@@ -13,6 +13,7 @@ import { getSellerFinance } from '../services/sellerFinance.service.js';
 import { getSellerSubscriptionSettings } from '../../admin/services/admin.service.js';
 import { FEATURE_KEYS, isFeatureEnabled } from '../../admin/services/featureSettings.service.js';
 import { buildPlanCatalog, resolveEligiblePlanByGmv, GST_RATE } from '../services/subscriptionPlan.service.js';
+import { getStoreAiSummary } from '../../ai/services/aiStoreBilling.service.js';
 
 /**
  * GET /subscription/overview — current-month live GMV, estimated plan/fee,
@@ -27,11 +28,12 @@ export const getSubscriptionOverviewController = async (req, res, next) => {
 
         const currentMonth = formatBillingMonth(new Date());
         const { start, end } = getMonthWindow(currentMonth);
-        const [gmvResult, settings, outstanding, finance] = await Promise.all([
+        const [gmvResult, settings, outstanding, finance, aiUsage] = await Promise.all([
             computeMonthlyGmv(sellerId, start, new Date()),
             getSellerSubscriptionSettings(),
             getOutstandingSummary(sellerId),
             getSellerFinance(sellerId),
+            getStoreAiSummary(sellerId).catch(() => null),
         ]);
 
         const catalog = buildPlanCatalog(settings || {});
@@ -62,6 +64,19 @@ export const getSubscriptionOverviewController = async (req, res, next) => {
                 lockedMonths: outstanding.monthsLabel,
                 openInvoices: outstanding.openInvoices,
             },
+            // This month's AI images: billed on the month's subscription invoice.
+            aiUsage: aiUsage ? {
+                billingMonth: aiUsage.billingMonth,
+                imagesEnabled: aiUsage.access.imagesEnabled,
+                plan: aiUsage.plan,
+                usedThisMonth: aiUsage.usedThisMonth,
+                includedThisMonth: aiUsage.includedThisMonth,
+                remainingIncluded: aiUsage.remainingIncluded,
+                extraImagesThisMonth: aiUsage.extraImagesThisMonth,
+                extraCostThisMonth: aiUsage.extraCostThisMonth,
+                extraImagePrice: aiUsage.extraImagePrice,
+                monthlyCap: aiUsage.monthlyCap,
+            } : null,
             wallet: {
                 totalBalance: Number(finance?.wallet?.withdrawableBalance ?? finance?.currentCycle?.withdrawableBalance ?? 0),
                 netAvailable: Number(finance?.wallet?.netAvailable ?? finance?.currentCycle?.netAvailable ?? 0),

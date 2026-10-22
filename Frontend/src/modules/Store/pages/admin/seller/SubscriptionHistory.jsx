@@ -302,6 +302,13 @@ function InvoiceDrawer({ invoiceId, onClose, onChanged }) {
                 <p className="text-slate-500">GST (18%)</p>
                 <p className="font-bold text-slate-900 text-sm">{formatMoney(invoice.gstAmount)}</p>
               </div>
+              {invoice.aiUsage?.amount > 0 && (
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <p className="text-slate-500">AI images</p>
+                  <p className="font-bold text-slate-900 text-sm">{formatMoney(invoice.aiUsage.amount)}</p>
+                  <p className="text-[10px] text-slate-400">{invoice.aiUsage.extra} extra of {invoice.aiUsage.images} images</p>
+                </div>
+              )}
               <div className="bg-slate-50 rounded-lg p-3">
                 <p className="text-slate-500">Invoice total</p>
                 <p className="font-bold text-slate-900 text-sm">{formatMoney(invoice.totalAmount)}</p>

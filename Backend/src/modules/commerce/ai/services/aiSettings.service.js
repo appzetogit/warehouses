@@ -17,6 +17,11 @@ const EDITABLE = {
     imageModel: 'string',
     sellerDailyImageCap: 'number',
     imageCostUsd: 'number',
+    includedImagesStarter: 'number',
+    includedImagesGrowth: 'number',
+    includedImagesPremium: 'number',
+    extraImagePrice: 'number',
+    storeMonthlyImageCap: 'number',
 };
 
 let cached = null;
@@ -40,7 +45,9 @@ export async function getAiSettings({ fresh = false } = {}) {
         ).lean());
     }
     const { _id, __v, key, ...rest } = doc;
-    cached = rest;
+    // A settings document saved before a field existed has no value for it: read the schema default.
+    const { _id: _d, key: _k, ...defaults } = new AiSettings().toObject();
+    cached = { ...defaults, ...rest };
     cachedAt = Date.now();
     return cached;
 }

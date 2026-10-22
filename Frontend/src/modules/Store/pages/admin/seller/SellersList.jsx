@@ -13,6 +13,7 @@ import sellerIcon from "@store/assets/Dashboard-icons/image2.png"
 import inactiveIcon from "@store/assets/Dashboard-icons/image3.png"
 import { useAdminBase, useAdminPanel } from "@store/components/admin/useAdminPanel"
 import { ChannelStatusBadges, SellerChannelsPanel } from "@store/components/admin/sellers/SellerChannels"
+import SellerAiAccessCard from "@store/components/admin/sellers/SellerAiAccessCard"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -1926,6 +1927,8 @@ export default function SellersList() {
                       }}
                     />
                   </div>
+                  {/* Per-store AI access: off until switched on here */}
+                  {(r?._id || r?.id) && <SellerAiAccessCard key={String(r._id || r.id)} sellerId={String(r._id || r.id)} />}
                   {/* Seller Basic Info */}
                   <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
                     <div className="w-32 h-32 rounded-3xl overflow-hidden bg-slate-50 shrink-0 shadow-inner group">

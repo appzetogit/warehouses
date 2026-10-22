@@ -10,8 +10,10 @@ import {
   ChevronUp,
   BadgeCheck,
   CircleAlert,
+  Sparkles,
 } from "lucide-react"
 import BottomNavOrders from "@store/components/seller/BottomNavOrders"
+import { aiUsageSummary } from "@store/components/seller/aiImageCost"
 import { sellerAPI } from "@store/api"
 
 const debugError = (...args) => {}
@@ -121,6 +123,12 @@ function InvoiceCard({ invoice }) {
               <p className="text-gray-500">GST (18%)</p>
               <p className="font-bold text-gray-900">{formatMoney(invoice.gstAmount)}</p>
             </div>
+            {invoice.aiUsage?.amount > 0 && (
+              <div className="bg-white rounded-lg p-2.5 border border-gray-100 col-span-2">
+                <p className="text-gray-500">AI images ({invoice.aiUsage.extra} extra of {invoice.aiUsage.images})</p>
+                <p className="font-bold text-gray-900">{formatMoney(invoice.aiUsage.amount)}</p>
+              </div>
+            )}
             <div className="bg-white rounded-lg p-2.5 border border-gray-100">
               <p className="text-gray-500">Paid</p>
               <p className="font-bold text-green-700">{formatMoney(invoice.paidAmount)}</p>
@@ -218,6 +226,7 @@ export default function Subscription() {
   const currentMonth = overview?.currentMonth || {}
   const outstanding = overview?.outstanding || {}
   const wallet = overview?.wallet || {}
+  const aiUsage = overview?.aiUsage || null
   const lockedAmount = Number(outstanding.lockedAmount || 0)
   const totalBalance = Number(wallet.totalBalance || 0)
   const netAvailable = Number(wallet.netAvailable || 0)
@@ -344,6 +353,34 @@ export default function Subscription() {
               )}
             </div>
             </div>
+
+            {/* AI image usage this month: billed on this month's invoice */}
+            {aiUsage && (aiUsage.imagesEnabled || aiUsage.usedThisMonth > 0) && (
+              <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm md:shadow-md md:border-slate-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-violet-600" />
+                  <h2 className="text-sm font-bold text-gray-900 md:text-base">AI usage — this month</h2>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-xl bg-gray-50 p-3 md:bg-slate-50">
+                    <p className="text-[10px] text-gray-500 uppercase font-semibold">Images made</p>
+                    <p className="text-lg font-bold text-gray-900 mt-0.5">{aiUsage.usedThisMonth || 0}</p>
+                    {aiUsage.monthlyCap ? <p className="text-[10px] text-gray-400">of {aiUsage.monthlyCap} a month</p> : null}
+                  </div>
+                  <div className="rounded-xl bg-gray-50 p-3 md:bg-slate-50">
+                    <p className="text-[10px] text-gray-500 uppercase font-semibold">Included</p>
+                    <p className="text-lg font-bold text-gray-900 mt-0.5">{aiUsage.includedThisMonth || 0}</p>
+                    <p className="text-[10px] text-gray-400">{aiUsage.includedThisMonth > 0 ? `${aiUsage.remainingIncluded} left` : "with your plan"}</p>
+                  </div>
+                  <div className="rounded-xl bg-gray-50 p-3 md:bg-slate-50">
+                    <p className="text-[10px] text-gray-500 uppercase font-semibold">Extra cost</p>
+                    <p className="text-lg font-bold text-gray-900 mt-0.5">{formatMoney(aiUsage.extraCostThisMonth)}</p>
+                    <p className="text-[10px] text-gray-400">{formatMoney(aiUsage.extraImagePrice)} per image</p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-3">{aiUsageSummary(aiUsage)}. Added to your monthly subscription invoice.</p>
+              </div>
+            )}
 
             {/* Tabs */}
             <div className="flex gap-2 md:inline-flex md:rounded-full md:bg-slate-900/95 md:p-1 md:shadow-sm">

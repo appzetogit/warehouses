@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Bot, Save, KeyRound, ImagePlus, AlertTriangle } from "lucide-react"
+import { Link } from "react-router-dom"
 import { adminAIAPI } from "@store/api"
 
 const errorMessage = (e, fallback) => e?.response?.data?.message || e?.message || fallback
@@ -16,6 +17,15 @@ const FIELDS = [
 const IMAGE_FIELDS = [
   { key: "sellerDailyImageCap", label: "AI images per seller per day", hint: "Enhance uses 1, Mannequin shots use 3. Resets at midnight UTC. 0 = unlimited.", min: 0 },
   { key: "imageCostUsd", label: "Cost per image (USD)", hint: "Only used for the cost estimate on the usage page. Check Google's current pricing.", min: 0, step: "0.001" },
+]
+
+// Store billing: what stores pay for AI images, on their monthly subscription invoice.
+const BILLING_FIELDS = [
+  { key: "extraImagePrice", label: "Price per image (₹)", hint: "Charged for every image a store makes beyond its plan's included images. Added to the monthly subscription invoice (GST-inclusive).", min: 0, step: "0.01" },
+  { key: "storeMonthlyImageCap", label: "Images per store per month", hint: "The most a store can make in a month. A store's own cap (on its seller page) overrides this. 0 = no cap.", min: 0 },
+  { key: "includedImagesStarter", label: "Included images: Starter", hint: "Free each month on the Starter plan (and stores with no plan). 0 = none.", min: 0 },
+  { key: "includedImagesGrowth", label: "Included images: Growth", hint: "Free each month on the Growth plan. 0 = none.", min: 0 },
+  { key: "includedImagesPremium", label: "Included images: Premium", hint: "Free each month on the Premium plan. 0 = none.", min: 0 },
 ]
 
 export default function AiSettings() {
@@ -40,6 +50,7 @@ export default function AiSettings() {
         imageStudioEnabled: form.imageStudioEnabled,
         imageModel: form.imageModel || "",
         ...Object.fromEntries(IMAGE_FIELDS.map((f) => [f.key, Number(form[f.key]) || 0])),
+        ...Object.fromEntries(BILLING_FIELDS.map((f) => [f.key, Number(form[f.key]) || 0])),
         model: form.model || "",
         systemPromptAddendum: form.systemPromptAddendum || "",
         ...Object.fromEntries(FIELDS.map((f) => [f.key, Number(form[f.key]) || 0])),
@@ -154,7 +165,7 @@ export default function AiSettings() {
           <label className="flex items-center justify-between gap-4">
             <span>
               <span className="block text-sm font-semibold text-slate-800">AI images enabled</span>
-              <span className="block text-xs text-slate-500">When off, sellers don't see the Enhance and Mannequin shots buttons.</span>
+              <span className="block text-xs text-slate-500">The master switch. When off, no store sees the Enhance and Mannequin shots buttons. When on, each store still needs AI images switched on from its seller page.</span>
             </span>
             <input type="checkbox" className="h-5 w-5" checked={Boolean(form.imageStudioEnabled)} onChange={(e) => set("imageStudioEnabled", e.target.checked)} />
           </label>
@@ -173,6 +184,31 @@ export default function AiSettings() {
 
           <div className="grid sm:grid-cols-2 gap-4">
             {IMAGE_FIELDS.map((f) => (
+              <div key={f.key}>
+                <label className="block text-sm font-semibold text-slate-800 mb-1" htmlFor={`ai-${f.key}`}>{f.label}</label>
+                <input
+                  id={`ai-${f.key}`}
+                  type="number"
+                  min={f.min}
+                  step={f.step || "1"}
+                  value={form[f.key] ?? ""}
+                  onChange={(e) => set(f.key, e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+                <p className="text-xs text-slate-500 mt-1">{f.hint}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-slate-200 pt-5 space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-slate-900">Store billing for AI images</h2>
+            <Link to="/admin/ai/store-usage" className="text-xs font-semibold text-indigo-600 hover:underline">Usage by store →</Link>
+          </div>
+          <p className="text-xs text-slate-500 -mt-2">AI is off for every store until you switch it on from the store's page (Sellers → store → AI). Only images actually produced are charged.</p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {BILLING_FIELDS.map((f) => (
               <div key={f.key}>
                 <label className="block text-sm font-semibold text-slate-800 mb-1" htmlFor={`ai-${f.key}`}>{f.label}</label>
                 <input

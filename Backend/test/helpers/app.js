@@ -59,3 +59,11 @@ export function ok(res, what, status = 200) {
 }
 
 export const oid = (id) => new mongoose.Types.ObjectId(String(id));
+
+/** A request whose response is not JSON (CSV exports): { status, text }. */
+export async function callText(method, path, { as } = {}) {
+    const headers = {};
+    if (as) headers.authorization = `Bearer ${as}`;
+    const res = await fetch(`${base}${path}`, { method, headers });
+    return { status: res.status, text: await res.text() };
+}

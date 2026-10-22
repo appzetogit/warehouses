@@ -13,5 +13,7 @@ router.put('/settings', requireAdminPermission('system_settings', 'edit'), c.put
 router.get('/conversations', c.listConversationsController);
 router.get('/conversations/:id', c.getConversationController);
 router.get('/usage', c.getUsageController);
+router.get('/store-usage', c.listStoreAiUsageController);
+router.get('/store-usage/export', c.exportStoreAiUsageController);
 
 export default router;

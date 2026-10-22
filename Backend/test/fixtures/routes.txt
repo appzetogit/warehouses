@@ -48,6 +48,8 @@ GET /.well-known/assetlinks.json
 GET /api/v1/admin/ai/conversations
 GET /api/v1/admin/ai/conversations/:id
 GET /api/v1/admin/ai/settings
+GET /api/v1/admin/ai/store-usage
+GET /api/v1/admin/ai/store-usage/export
 GET /api/v1/admin/ai/usage
 GET /api/v1/admin/analytics/daily-metrics
 GET /api/v1/admin/analytics/fulfillment-summary
@@ -148,6 +150,7 @@ GET /api/v1/admin/seller-subscriptions/sellers/:sellerId/overview
 GET /api/v1/admin/seller-subscriptions/summary
 GET /api/v1/admin/sellers
 GET /api/v1/admin/sellers/:id
+GET /api/v1/admin/sellers/:id/ai-access
 GET /api/v1/admin/sellers/:id/analytics
 GET /api/v1/admin/sellers/:id/quick-zone
 GET /api/v1/admin/sellers/complaints
@@ -356,6 +359,7 @@ PATCH /api/v1/admin/seller-commissions/:id/toggle
 PATCH /api/v1/admin/seller-settings/order-acceptance
 PATCH /api/v1/admin/seller-subscription-settings
 PATCH /api/v1/admin/sellers/:id
+PATCH /api/v1/admin/sellers/:id/ai-access
 PATCH /api/v1/admin/sellers/:id/approve
 PATCH /api/v1/admin/sellers/:id/channels/:channel
 PATCH /api/v1/admin/sellers/:id/location

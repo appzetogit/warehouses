@@ -209,6 +209,7 @@ const adminSidebarMenuTemplate = [
       { type: "link", label: "AI Settings", path: "/ai/settings", icon: "Zap" },
       { type: "link", label: "Conversations", path: "/ai/conversations", icon: "MessageSquare" },
       { type: "link", label: "AI Usage", path: "/ai/usage", icon: "Receipt" },
+      { type: "link", label: "AI Images by Store", path: "/ai/store-usage", icon: "Image" },
     ],
   },
   {

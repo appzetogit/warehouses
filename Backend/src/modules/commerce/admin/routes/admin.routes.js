@@ -33,6 +33,7 @@ import * as reportsController from '../controllers/reports.controller.js';
 import shipmentReturnAdminRoutes from '../../orders/routes/shipmentReturn.admin.routes.js';
 import { pushCampaignAdminRoutes, firstOrderGuardAdminRoutes } from '../../campaigns/routes/pushCampaign.admin.routes.js';
 import aiAdminRoutes from '../../ai/routes/aiAdmin.routes.js';
+import * as aiAdminController from '../../ai/controllers/aiAdmin.controller.js';
 import courierOpsAdminRoutes from '../../orders/routes/courierOps.admin.routes.js';
 import { adminReviewRoutes } from '../../reviews/routes/productReview.routes.js';
 import {
@@ -265,6 +266,10 @@ router.patch('/sellers/:id/reject', adminController.rejectSeller);
 router.patch('/sellers/:id/channels/:channel', adminController.decideSellerChannel);
 router.get('/sellers/:id/quick-zone', adminController.getSellerQuickZone);
 router.patch('/sellers/:id/zone', adminController.assignSellerZone);
+// Per-store AI access (images billed on the subscription invoice, AI Help chat).
+// seller_management view/edit, from the section resolver above.
+router.get('/sellers/:id/ai-access', aiAdminController.getStoreAiAccessController);
+router.patch('/sellers/:id/ai-access', aiAdminController.updateStoreAiAccessController);
 router.delete('/sellers/:id', adminController.deleteSeller);
 
 

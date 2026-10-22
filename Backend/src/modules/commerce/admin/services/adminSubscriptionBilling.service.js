@@ -451,7 +451,7 @@ export async function exportSubscriptionInvoicesAdmin(query = {}) {
 
     const header = [
         'Billing Month', 'Seller', 'Owner', 'Phone', 'GMV', 'Orders', 'Plan',
-        'Plan Amount', 'GST', 'Total', 'Paid', 'Waived', 'Adjustment', 'Outstanding', 'Status', 'Generated At',
+        'Plan Amount', 'GST', 'AI Images', 'AI Extra Images', 'AI Amount', 'Total', 'Paid', 'Waived', 'Adjustment', 'Outstanding', 'Status', 'Generated At',
     ];
     const rows = invoices.map((inv) => [
         billingMonthLabel(inv.billingMonth),
@@ -463,6 +463,9 @@ export async function exportSubscriptionInvoicesAdmin(query = {}) {
         inv.planName,
         inv.planAmount,
         inv.gstAmount,
+        inv.aiUsage?.images || 0,
+        inv.aiUsage?.extra || 0,
+        inv.aiUsage?.amount || 0,
         inv.totalAmount,
         inv.paidAmount,
         inv.waivedAmount,

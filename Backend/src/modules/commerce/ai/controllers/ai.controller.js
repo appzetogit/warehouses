@@ -4,6 +4,7 @@ import { checkAssistantAllowed, recordUsage, appendExchange, userKeyFor } from '
 import { logger } from '../../../../utils/logger.js';
 import mongoose from 'mongoose';
 import { AiConversation } from '../models/aiConversation.model.js';
+import { STORE_CHAT_OFF_MESSAGE } from '../services/aiStoreBilling.service.js';
 
 // Bounds what one message can cost when it reaches the model.
 const MAX_MESSAGE_LENGTH = 500;
@@ -14,13 +15,17 @@ const MAX_MESSAGE_LENGTH = 500;
  */
 export const resolveAudience = (req) => (String(req.user?.role || '').toUpperCase() === 'SELLER' ? 'seller' : 'customer');
 
-/** The seller behind a SELLER token still exists and the token is from its current session. */
-async function sellerSessionValid(user) {
-    if (!mongoose.Types.ObjectId.isValid(String(user?.userId))) return false;
+/**
+ * The seller behind a SELLER token, when it still exists and the token is from
+ * its current session; else null.
+ */
+async function sellerForSession(user) {
+    if (!mongoose.Types.ObjectId.isValid(String(user?.userId))) return null;
     const { Seller } = await import('../../seller/models/seller.model.js');
-    const doc = await Seller.findById(user.userId).select('tokenVersion').lean();
-    if (!doc) return false;
-    return user.tokenVersion === undefined || Number(user.tokenVersion) === (Number(doc.tokenVersion) || 0);
+    const doc = await Seller.findById(user.userId).select('tokenVersion aiAccess').lean();
+    if (!doc) return null;
+    const current = user.tokenVersion === undefined || Number(user.tokenVersion) === (Number(doc.tokenVersion) || 0);
+    return current ? doc : null;
 }
 
 export const chatAssistantController = async (req, res, next) => {
@@ -34,7 +39,18 @@ export const chatAssistantController = async (req, res, next) => {
         const text = String(message || '').trim();
         if (audience === 'seller') {
             if (!text) return sendError(res, 400, 'Please type a message');
-            if (!(await sellerSessionValid(req.user))) return sendError(res, 401, 'Please log in again');
+            const seller = await sellerForSession(req.user);
+            if (!seller) return sendError(res, 401, 'Please log in again');
+            // AI Help is free, but only for stores an admin has switched it on for.
+            if (seller.aiAccess?.chatEnabled !== true) {
+                return sendResponse(res, 200, 'Assistant unavailable', {
+                    reply: STORE_CHAT_OFF_MESSAGE,
+                    unavailable: true,
+                    reason: 'store_disabled',
+                    suggestions: [],
+                    conversationId: conversationId || null,
+                });
+            }
         }
         const userKey = userKeyFor({ userId, ip: req.ip, audience });
 

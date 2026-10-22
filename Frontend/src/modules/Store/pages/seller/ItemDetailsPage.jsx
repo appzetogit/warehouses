@@ -19,6 +19,7 @@ import {
   Shirt,
 } from "lucide-react"
 import AiImageStudioDialog from "@store/components/seller/AiImageStudioDialog"
+import { aiImageCost } from "@store/components/seller/aiImageCost"
 import { Switch } from "@store/components/ui/switch"
 // Removed getAllProducts and saveProduct - now using menu API
 import api from "@store/api"
@@ -973,11 +974,22 @@ export default function ItemDetailsPage() {
                   <Shirt className="w-4 h-4" /> Mannequin shots
                 </button>
               </div>
+              <div className="grid grid-cols-2 gap-2 mt-1.5 text-[11px] text-gray-600 text-center">
+                <p>{aiImageCost(aiStatus, 1).text}</p>
+                <p>{aiImageCost(aiStatus, aiStatus.mannequinCount || 3).text}</p>
+              </div>
               {aiStatus.remainingToday !== null && (
                 <p className="text-[11px] text-gray-500 text-center mt-1.5">
                   AI works on the photo shown above · {aiStatus.remainingToday} of {aiStatus.dailyCap} left today
                 </p>
               )}
+            </div>
+          )}
+          {images.length > 0 && aiStatus && !aiStatus.enabled && aiStatus.platformEnabled && aiStatus.storeEnabled === false && (
+            <div className="px-4 pt-4 bg-white border-t border-gray-100 md:px-5">
+              <p className="flex items-center justify-center gap-1.5 text-xs text-gray-500 text-center">
+                <Sparkles className="w-3.5 h-3.5 text-gray-400" /> AI images aren't enabled for your store. Contact the admin.
+              </p>
             </div>
           )}
 

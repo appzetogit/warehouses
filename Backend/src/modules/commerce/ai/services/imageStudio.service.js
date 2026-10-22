@@ -8,6 +8,7 @@ import { callGeminiImage, hasGeminiKey } from './geminiClient.js';
 import { readHostedImage, saveImageBuffer } from '../../../../services/storage.service.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 import { logger } from '../../../../utils/logger.js';
+import { getStoreAiSummary, reserveStoreImages, settleStoreImages, STORE_IMAGES_OFF_MESSAGE } from './aiStoreBilling.service.js';
 
 /**
  * Seller image studio. A seller picks one of their product photos and either
@@ -58,13 +59,30 @@ async function imagesUsedToday(sellerId, now = new Date()) {
     return row?.images || 0;
 }
 
-/** What the seller panel shows: whether the studio is on, and today's allowance. */
+/**
+ * What the seller panel shows: whether the studio is on for this store, today's
+ * allowance, and this month's billing (included images, extra price, store cap).
+ */
 export async function getImageStudioStatus(sellerId, now = new Date()) {
     const settings = await getAiSettings();
     const cap = Number(settings.sellerDailyImageCap) || 0;
-    const used = await imagesUsedToday(sellerId, now);
+    const [used, month] = await Promise.all([imagesUsedToday(sellerId, now), getStoreAiSummary(sellerId, { settings, now })]);
+    const platformOn = Boolean(settings.imageStudioEnabled) && hasGeminiKey();
+    const storeEnabled = month.access.imagesEnabled;
     return {
-        enabled: Boolean(settings.imageStudioEnabled) && hasGeminiKey(),
+        enabled: platformOn && storeEnabled,
+        platformEnabled: platformOn,
+        storeEnabled,
+        disabledMessage: storeEnabled ? '' : STORE_IMAGES_OFF_MESSAGE,
+        plan: month.plan,
+        billingMonth: month.billingMonth,
+        includedThisMonth: month.includedThisMonth,
+        usedThisMonth: month.usedThisMonth,
+        remainingIncluded: month.remainingIncluded,
+        extraImagePrice: month.extraImagePrice,
+        extraCostThisMonth: month.extraCostThisMonth,
+        monthlyCap: month.monthlyCap,
+        remainingThisMonth: month.remainingThisMonth,
         dailyCap: cap,
         usedToday: used,
         remainingToday: cap ? Math.max(cap - used, 0) : null,
@@ -79,6 +97,8 @@ export async function getImageStudioStatus(sellerId, now = new Date()) {
  */
 async function reserveImages(sellerId, count, cap, now) {
     if (cap && count > cap) return false;
+    // The upsert below relies on the unique (day, userKey) index; make sure it is built.
+    await AiUsageDaily.init();
     const day = dayKey(now);
     const userKey = sellerKey(sellerId);
     const filter = cap ? { day, userKey, images: { $lte: cap - count } } : { day, userKey };
@@ -152,6 +172,10 @@ export async function startImageJob({ sellerId, kind, style, imageUrl, now = new
     if (!settings.imageStudioEnabled || !hasGeminiKey()) {
         throw new ValidationError('AI images are switched off right now.');
     }
+    const { Seller } = await import('../../seller/models/seller.model.js');
+    const seller = await Seller.findById(sellerOid).select('aiAccess subscriptionPlan').lean();
+    if (!seller) throw new ValidationError('Store not found');
+    if (seller.aiAccess?.imagesEnabled !== true) throw new ValidationError(STORE_IMAGES_OFF_MESSAGE);
 
     const source = await readHostedImage(imageUrl);
     if (!source) throw new ValidationError('Upload this photo first, then try again.');
@@ -165,14 +189,31 @@ export async function startImageJob({ sellerId, kind, style, imageUrl, now = new
             : `You've used all ${cap} AI images for today. It resets at midnight (UTC).`);
     }
 
-    const job = await AiImageJob.create({
-        sellerId: sellerOid,
-        kind,
-        style: useStyle,
-        sourceUrl: String(imageUrl),
-        count,
-        model: effectiveImageModel(settings),
-    });
+    // The store's month (cap, included images, then the extra charge), after the daily cap.
+    const jobId = new mongoose.Types.ObjectId();
+    try {
+        await reserveStoreImages({ sellerId: sellerOid, jobId, kind, count, settings, seller, now });
+    } catch (err) {
+        await releaseImages(sellerOid, count, now);
+        throw err;
+    }
+
+    let job;
+    try {
+        job = await AiImageJob.create({
+            _id: jobId,
+            sellerId: sellerOid,
+            kind,
+            style: useStyle,
+            sourceUrl: String(imageUrl),
+            count,
+            model: effectiveImageModel(settings),
+        });
+    } catch (err) {
+        await releaseImages(sellerOid, count, now);
+        await settleStoreImages(jobId, 0);
+        throw err;
+    }
 
     // Deliberately not awaited: the request returns the job and the seller polls it.
     runImageJob(job, source.buffer, now).catch((err) => logger.error(`Image job ${job._id} crashed: ${err.message}`));
@@ -190,6 +231,7 @@ export async function runImageJob(job, sourceBuffer, reservedAt = new Date()) {
         source = await prepareSource(sourceBuffer);
     } catch {
         await releaseImages(job.sellerId, job.count, reservedAt);
+        await settleStoreImages(job._id, 0);
         await AiImageJob.updateOne({ _id: job._id }, { $set: { status: 'failed', error: SELLER_MESSAGES.safety, errorCode: 'error', finishedAt: new Date() } });
         return;
     }
@@ -229,6 +271,12 @@ export async function runImageJob(job, sourceBuffer, reservedAt = new Date()) {
         { day: dayKey(reservedAt), userKey: sellerKey(job.sellerId) },
         { $inc: { images: -failed, llmCalls: prompts.length, promptTokens, outputTokens } }
     );
+    // Charge only the images actually produced; nothing made releases the reservation.
+    try {
+        await settleStoreImages(job._id, results.length);
+    } catch (err) {
+        logger.error(`Image job ${job._id}: AI charge not settled: ${err.message}`);
+    }
     await AiImageJob.updateOne({ _id: job._id }, {
         $set: {
             status: results.length ? 'done' : 'failed',
@@ -255,7 +303,10 @@ export async function getImageJob(sellerId, jobId) {
             { $set: { status: 'failed', error: SELLER_MESSAGES.error, errorCode: 'error', finishedAt: new Date() } },
             { new: true }
         ).lean() || await AiImageJob.findById(job._id).lean();
-        if (job.status === 'failed' && !job.results?.length) await releaseImages(job.sellerId, job.count, job.createdAt);
+        if (job.status === 'failed' && !job.results?.length) {
+            await releaseImages(job.sellerId, job.count, job.createdAt);
+            await settleStoreImages(job._id, 0);
+        }
     }
     return publicJob(job);
 }

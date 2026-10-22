@@ -388,6 +388,19 @@ const sellerSchema = new mongoose.Schema(
       index: true,
     },
     /**
+     * Per-store AI access, switched on by an admin. Off for every store until then
+     * (stores predating this field have no value, which reads as off).
+     * AI images are billed on the monthly subscription invoice; AI Help chat is free.
+     * monthlyImageCap overrides the platform's storeMonthlyImageCap (null = use it).
+     */
+    aiAccess: {
+      imagesEnabled: { type: Boolean, default: false },
+      chatEnabled: { type: Boolean, default: false },
+      monthlyImageCap: { type: Number, min: 0, default: null },
+      updatedAt: { type: Date, default: null },
+      updatedBy: { type: mongoose.Schema.Types.ObjectId, default: null },
+    },
+    /**
      * Bumped on every successful login, and embedded in the JWT that login issues.
      * Sellers are multi-device (owner and staff share one phone number), so the
      * version alone no longer decides validity — see sessionVersions.

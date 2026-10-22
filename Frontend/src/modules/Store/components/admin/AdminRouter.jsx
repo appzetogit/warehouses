@@ -72,6 +72,7 @@ const PushCampaigns = lazy(() => import("@store/pages/admin/campaigns/PushCampai
 const AiSettings = lazy(() => import("@store/pages/admin/ai/AiSettings"));
 const AiConversations = lazy(() => import("@store/pages/admin/ai/AiConversations"));
 const AiUsage = lazy(() => import("@store/pages/admin/ai/AiUsage"));
+const AiStoreUsage = lazy(() => import("@store/pages/admin/ai/AiStoreUsage"));
 const NdrQueue = lazy(() => import("@store/pages/admin/shipments/NdrQueue"));
 const RtoQueue = lazy(() => import("@store/pages/admin/shipments/RtoQueue"));
 const CodRemittances = lazy(() => import("@store/pages/admin/cod/CodRemittances"));
@@ -368,6 +369,7 @@ export default function AdminRouter() {
             <Route path="ai/settings" element={<AiSettings />} />
             <Route path="ai/conversations" element={<AiConversations />} />
             <Route path="ai/usage" element={<AiUsage />} />
+            <Route path="ai/store-usage" element={<AiStoreUsage />} />
             <Route path="checkouts/:checkoutId" element={<CheckoutDetail />} />
             <Route path="returns" element={<Returns />} />
             <Route path="payments/reconciliation" element={<PaymentReconciliation />} />

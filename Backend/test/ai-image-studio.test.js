@@ -60,6 +60,7 @@ before(async () => {
     const makeSeller = (name, phone) => Seller.create({
         channels: { quick: { status: 'approved' }, shop: { status: 'approved' } },
         sellerName: name, ownerName: 'O', ownerPhone: phone, status: 'approved',
+        aiAccess: { imagesEnabled: true, chatEnabled: true },
         location: { type: 'Point', coordinates: [77.59, 12.97], latitude: 12.97, longitude: 77.59 },
     });
     ids.seller = (await makeSeller('Image Store', '9111111121'))._id;
@@ -79,6 +80,8 @@ beforeEach(async () => {
     nextGemini = () => 'image';
     await db.collection('ai_usage_daily').deleteMany({});
     await db.collection('ai_image_jobs').deleteMany({});
+    await db.collection('ai_usage_counters').deleteMany({});
+    await db.collection('ai_usage_charges').deleteMany({});
     await db.collection('ai_settings').deleteMany({});
     const { clearAiSettingsCache } = await import('../src/modules/commerce/ai/services/aiSettings.service.js');
     clearAiSettingsCache();
