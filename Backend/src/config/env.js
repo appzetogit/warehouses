@@ -69,6 +69,15 @@ export const config = {
     otpRateLimit: Number(process.env.OTP_RATE_LIMIT || 3),
     otpRateWindow: Number(process.env.OTP_RATE_WINDOW || 600),
     useDefaultOtp: process.env.USE_DEFAULT_OTP === 'true',
+    /**
+     * Store-review demo logins: these numbers (last 10 digits, comma separated)
+     * always sign in with the fixed code 1234 and get no SMS, even when real
+     * OTPs are on for everyone else. Keep the list to review accounts only.
+     */
+    reviewLoginPhones: String(process.env.REVIEW_LOGIN_PHONES ?? '9301988718')
+        .split(',')
+        .map((p) => p.replace(/\D/g, '').slice(-10))
+        .filter((p) => p.length === 10),
 
     // SMS India Hub
     smsIndiaHubUsername: process.env.SMS_INDIA_HUB_USERNAME,

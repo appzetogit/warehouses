@@ -93,9 +93,18 @@ const sendSmsViaIndiaHub = async (phone, otp) => {
  * for email sign-in) and delivers it. `deliver(key, otp)` replaces the SMS sender;
  * it may throw to report that the code could not be sent.
  */
+/** True for a store-review demo number (config.reviewLoginPhones), never for email keys. */
+export const isReviewLoginPhone = (key) => {
+    const raw = String(key || '');
+    if (!raw || raw.startsWith('email:')) return false;
+    const last10 = raw.replace(/\D/g, '').slice(-10);
+    return last10.length === 10 && (config.reviewLoginPhones || []).includes(last10);
+};
+
 export const createOrUpdateOtp = async (phone, { deliver, realOnly = false } = {}) => {
     // realOnly: never the fixed test code (email sign-in must always send a real one).
-    const useTestCode = config.useDefaultOtp && !realOnly;
+    const reviewLogin = !realOnly && isReviewLoginPhone(phone);
+    const useTestCode = (config.useDefaultOtp && !realOnly) || reviewLogin;
     const existing = await Otp.findOne({ phone });
     const now = new Date();
 
@@ -105,7 +114,7 @@ export const createOrUpdateOtp = async (phone, { deliver, realOnly = false } = {
         const isInWindow = now - existing.lastRequestAt < windowMs;
 
         if (isInWindow) {
-            if (existing.requestCount >= (config.otpRateLimit || 3)) {
+            if (!reviewLogin && existing.requestCount >= (config.otpRateLimit || 3)) {
                 logger.warn(`Rate limit exceeded for phone ${phone}`);
                 throw new ValidationError(`Too many OTP requests. Please try again after ${Math.ceil(windowMs / 60000)} minutes.`);
             }
@@ -119,7 +128,9 @@ export const createOrUpdateOtp = async (phone, { deliver, realOnly = false } = {
     let otp;
     if (useTestCode) {
         otp = '1234';
-        logger.info(`Default OTP mode enabled – OTP is ${otp} for phone ${phone}`);
+        logger.info(reviewLogin
+            ? `Store-review login – fixed OTP for phone ${phone}`
+            : `Default OTP mode enabled – OTP is ${otp} for phone ${phone}`);
     } else {
         otp = generateOtpCode();
     }
