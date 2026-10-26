@@ -67,6 +67,8 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
   const [isSpinning, setIsSpinning] = useState(false)
   const [rotation, setRotation] = useState(0)
   const [wonResult, setWonResult] = useState(null)
+  // How the won coins can be spent (from the server: usable share and the order cap).
+  const [wonUse, setWonUse] = useState(null)
   const [loading, setLoading] = useState(false)
   const [isGuest, setIsGuest] = useState(true)
   const wheelRef = useRef(null)
@@ -172,6 +174,9 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
       setCanSpin(left > 0)
       setSpinsRemaining(left)
       setWonResult(wonSegment)
+      setWonUse(server && Number.isFinite(server.coinsUsable)
+        ? { usable: server.coinsUsable, redeem: server.coinRedeemPercent, cap: server.coinMaxOrderPercent }
+        : null)
 
       if (wonSegment.type === "coins" && wonSegment.value > 0) {
         confetti({
@@ -335,7 +340,9 @@ export default function SpinWheelModal({ isOpen, onClose, onRewardEarned }) {
                   <p className="text-xs text-app-cream/85 mt-1 mb-3">
                     {isGuest
                       ? "Sign in to save these coins to your wallet and get discounts!"
-                      : "Added directly to your coin balance. Use at checkout!"}
+                      : wonUse && wonUse.usable < wonResult.value
+                        ? `${wonUse.usable} of these coins can be used at checkout (${wonUse.redeem}% of every win)${wonUse.cap ? `, paying up to ${wonUse.cap}% of an order` : ""}. 1 coin = ₹1.`
+                        : `Added to your coin balance. Use them at checkout${wonUse?.cap ? ` for up to ${wonUse.cap}% of an order` : ""}. 1 coin = ₹1.`}
                   </p>
 
                   {isGuest && (

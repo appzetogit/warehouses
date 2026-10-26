@@ -36,7 +36,7 @@ before(async () => {
     w.jacket = await listProduct(w.seller, w.admin, { name: 'Denim Jacket', price: 1000, channels: { quick: true, shop: true }, stock: { quick: 20, shop: 20 } });
     w.customer = await createCustomer(db, 'Coin Collector');
     const settings = ok(await call('GET', '/admin/coins/settings', { as: w.admin.as }), 'coin settings');
-    assert.equal(settings.redeemPercent, 80, 'refund coins are 80% usable');
+    assert.equal(settings.redeemPercent, 80, 'coins are 80% usable');
     assert.equal(settings.maxOrderPercent, 50, 'coins pay at most half an order');
 });
 after(stopApp);
@@ -64,12 +64,12 @@ test('the wheel only turns inside its window, once a day, and pays coins into th
 
     const spun = ok(await call('POST', '/user/spin/play', { as: w.customer.as, body: {} }), 'spin');
     assert.equal(spun.coinsAwarded, 50);
-    assert.equal(spun.balance, 50);
+    assert.equal(spun.balance, 40, 'the 80% rule: 40 of the 50 are usable');
     assert.equal(spun.spinsRemaining, 0);
     assert.equal((await call('POST', '/user/spin/play', { as: w.customer.as, body: {} })).status, 400, 'one spin a day');
 
     const b = await balance();
-    assert.deepEqual([b.coins, b.usable], [50, 50], 'wheel coins are fully usable');
+    assert.deepEqual([b.coins, b.usable], [50, 40], 'wheel coins follow the 80% rule');
     const ledger = ok(await call('GET', '/user/coins/ledger', { as: w.customer.as }), 'ledger').entries;
     const credits = ledger.filter((e) => e.type === 'credit');
     assert.equal(credits.length, 1);
@@ -103,10 +103,11 @@ test('a returned Shop order refunded as coins: only 80% of them can be spent', a
     const refundCoins = Math.round(ret.amounts.refundAmount);
     assert.ok(refundCoins >= 900, `a 1000 jacket comes back as ~1000 coins (${refundCoins})`);
     w.refundCoins = refundCoins;
-    w.locked = refundCoins - Math.floor(refundCoins * 0.8);
+    // Locked: 20% of the refund coins plus 20% of the 50 wheel coins (10).
+    w.locked = refundCoins - Math.floor(refundCoins * 0.8) + 10;
     const b = await balance();
     assert.equal(b.coins, 50 + refundCoins);
-    assert.equal(b.usable, 50 + Math.floor(refundCoins * 0.8), 'wheel coins in full, refund coins at 80%');
+    assert.equal(b.usable, 40 + Math.floor(refundCoins * 0.8), 'wheel and refund coins both at 80%');
     const view = ok(await call('GET', `/orders/${order._id}/returns`, { as: w.customer.as }), 'customer view');
     assert.equal(view.returns[0].refund.method, 'coins', 'the customer sees it came back as coins');
     assert.equal((await orderDoc(order._id)).payment.refund.amount, ret.amounts.refundAmount);
@@ -141,7 +142,7 @@ test('at checkout, coins pay at most half the order, and never the locked 20%', 
 
     const after = await balance();
     assert.equal(after.usable, 0);
-    assert.equal(after.coins, w.locked, 'the locked 20% of the refund coins remain, unspendable');
+    assert.equal(after.coins, w.locked, 'the locked 20% of the refund and wheel coins remain, unspendable');
     const ledger = ok(await call('GET', '/user/coins/ledger', { as: w.customer.as }), 'ledger').entries;
     const debit = ledger.filter((e) => e.type === 'debit' && String(e.orderId) === String(placed.checkout._id));
     assert.equal(debit.length, 1);

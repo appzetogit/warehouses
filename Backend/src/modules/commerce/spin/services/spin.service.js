@@ -71,6 +71,10 @@ export async function getSpinStatus(userId) {
         nextSpinAt: nextStoreDayStart(),
         segments: campaign.segments,
         coinBalance: coinBalance.usable,
+        // How won coins can be spent: this share of each win is usable, and coins
+        // pay at most this share of an order (coin settings).
+        coinRedeemPercent: coinBalance.redeemPercent ?? null,
+        coinMaxOrderPercent: coinBalance.maxOrderPercent ?? null,
         isActive: true,
     };
 }
@@ -169,7 +173,7 @@ export async function playSpin(userId, { ip = '' } = {}) {
                 amount: segment.value,
                 source: 'spin',
                 refId: `spin:${spinId}`,
-                spendablePercent: 100,
+                // No spendablePercent: spin coins follow the admin redeem % (80%) like every lot.
                 note: `Won on ${campaign.title || 'the wheel'} (${segment.label})`,
             });
             await SpinResult.updateOne({ _id: spinId }, { $set: { rewardStatus: 'credited' } });
@@ -186,6 +190,9 @@ export async function playSpin(userId, { ip = '' } = {}) {
         segment,
         coinsAwarded: pays ? segment.value : 0,
         balance: balance.usable,
+        coinsUsable: pays ? Math.floor((segment.value * (balance.redeemPercent ?? 100)) / 100) : 0,
+        coinRedeemPercent: balance.redeemPercent ?? null,
+        coinMaxOrderPercent: balance.maxOrderPercent ?? null,
         spinsRemaining: Math.max(0, dailyLimit - result.seq),
     };
 }
