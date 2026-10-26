@@ -1613,8 +1613,10 @@ export default function Cart() {
 
   const maxCoinsRedeemable = useMemo(() => {
     if (!coinBalance?.isEnabled || !coinBalance?.usable) return 0
-    const halfOrder = Math.floor((effectivePricing?.total || 0) * 0.5)
-    return Math.min(Number(coinBalance.usable) || 0, Math.max(0, halfOrder))
+    // The admin's order cap (coin settings maxOrderPercent), 50% if the server didn't say.
+    const capPercent = Number.isFinite(Number(coinBalance.maxOrderPercent)) ? Number(coinBalance.maxOrderPercent) : 50
+    const orderCap = Math.floor(((effectivePricing?.total || 0) * capPercent) / 100)
+    return Math.min(Number(coinBalance.usable) || 0, Math.max(0, orderCap))
   }, [coinBalance, effectivePricing?.total])
 
   const coinDiscount = useCoins
