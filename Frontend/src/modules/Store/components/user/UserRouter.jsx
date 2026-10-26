@@ -301,7 +301,9 @@ export default function UserRouter() {
           <Route path="auth/otp" element={<OTP />} />
           <Route path="auth/callback" element={<AuthCallback />} />
 
-          {/* Help */}
+          {/* Help. /support is the public support URL (app store listings);
+              /help stays because existing links and order help use it. */}
+          <Route path="support" element={<Help />} />
           <Route path="help" element={<Help />} />
           <Route path="help/orders/:orderId" element={<OrderHelp />} />
 
