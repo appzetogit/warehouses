@@ -19,4 +19,4 @@ export default [
     linterOptions: { reportUnusedDisableDirectives: 'off' },
     rules: { 'no-undef': 'error' },
   },
-]
+];

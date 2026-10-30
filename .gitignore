@@ -11,3 +11,5 @@ Backend/.qa-mem-mongo.mjs
 
 # Private server access & project notes (never commit)
 SERVER_NOTES.md
+config.bat
+node_modules
