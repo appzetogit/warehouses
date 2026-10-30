@@ -98,6 +98,7 @@ export const config = {
 
     // Security
     bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS || 10),
+    sellerMaxSessions: Math.max(5, Number(process.env.SELLER_MAX_SESSIONS || 5)),
 
     // Uploads (local VPS storage — served by nginx, not Node)
     uploadStorageRoot: process.env.UPLOAD_STORAGE_ROOT

@@ -424,7 +424,8 @@ export const listOwnerTokens = async ({ ownerType, ownerId, platform }) => {
     return readTokensFromDoc(doc, platform);
 };
 
-const SELLER_MAX_PUSH_TOKENS = 5;
+const getSellerMaxPushTokens = () =>
+    Math.max(5, Number(config?.sellerMaxSessions || process.env.SELLER_MAX_SESSIONS || 5));
 
 export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, platform = 'web' }) => {
     const normalizedToken = sanitizeString(token);
@@ -477,11 +478,12 @@ export const upsertFirebaseDeviceToken = async ({ ownerType, ownerId, token, pla
         throw new Error('Owner profile not found.');
     }
 
-    // Sellers sign in on up to 5 devices; keep only the newest tokens per list
+    // Sellers sign in on multiple devices (min 5); keep only the newest tokens per list
     // so devices signed out by later logins stop getting pushes.
     if (String(ownerType).toUpperCase() === 'SELLER') {
+        const sellerMaxTokens = getSellerMaxPushTokens();
         await model.updateOne({ _id: ownerId }, [
-            { $set: { [field]: { $slice: [{ $ifNull: [`$${field}`, []] }, -SELLER_MAX_PUSH_TOKENS] } } },
+            { $set: { [field]: { $slice: [{ $ifNull: [`$${field}`, []] }, -sellerMaxTokens] } } },
         ]);
     }
 

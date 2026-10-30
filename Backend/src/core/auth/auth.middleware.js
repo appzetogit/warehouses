@@ -4,6 +4,7 @@ import { User } from '../users/user.model.js';
 import { Seller } from '../../modules/commerce/seller/models/seller.model.js';
 import { DeliveryPartner } from '../../modules/commerce/delivery/models/deliveryPartner.model.js';
 import { isSessionVersionValid, SESSION_REVOKED_MESSAGE } from './sessionVersion.js';
+import { logger } from '../../utils/logger.js';
 
 export const requireAdmin = (req, res, next) => {
     if (req.user?.role !== 'ADMIN') {
@@ -72,6 +73,9 @@ export const authMiddleware = (req, res, next) => {
             // single new login bumped anyone; instead they are accepted until the
             // account next logs in, which is when the eviction genuinely applies.
             if (!isSessionVersionValid(decoded.role, doc, decoded.tokenVersion)) {
+                logger.warn(
+                    `[AUTH-REVOKED] ${decoded.role} id=${decoded.userId} presentedVersion=${decoded.tokenVersion} currentTokenVersion=${doc?.tokenVersion} liveSessions=${JSON.stringify(doc?.sessionVersions || [])}`
+                );
                 return sendError(res, 401, SESSION_REVOKED_MESSAGE);
             }
 
