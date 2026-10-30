@@ -79,6 +79,11 @@ export const config = {
         .map((p) => p.replace(/\D/g, '').slice(-10))
         .filter((p) => p.length === 10),
 
+    // MSG91
+    msg91AuthKey: process.env.MSG91_AUTH_KEY,
+    msg91OtpTemplateId: process.env.MSG91_OTP_TEMPLATE_ID,
+    msg91SenderId: process.env.MSG91_SENDER_ID || 'BJTWKS',
+
     // SMS India Hub
     smsIndiaHubUsername: process.env.SMS_INDIA_HUB_USERNAME,
     smsIndiaHubPassword: process.env.SMS_INDIA_HUB_PASSWORD,

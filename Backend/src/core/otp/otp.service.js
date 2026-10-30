@@ -11,11 +11,59 @@ const generateOtpCode = () => {
 };
 
 /**
+ * Sends SMS via MSG91 Flow API
+ * @param {string} phone - 10-digit mobile number (will be prefixed with 91)
+ * @param {string} otp
+ */
+export const sendSmsViaMsg91 = async (phone, otp) => {
+    try {
+        const digits = String(phone || '').replace(/\D/g, '');
+        const msisdn = digits.startsWith('91') ? digits : `91${digits}`;
+
+        const payload = {
+            template_id: config.msg91OtpTemplateId,
+            sender: config.msg91SenderId || 'BJTWKS',
+            short_url: '0',
+            recipients: [
+                {
+                    mobiles: msisdn,
+                    var: String(otp),
+                },
+            ],
+        };
+
+        logger.info(`[MSG91] Sending OTP to ${msisdn}...`);
+
+        const response = await fetch('https://control.msg91.com/api/v5/flow', {
+            method: 'POST',
+            headers: {
+                authkey: config.msg91AuthKey,
+                'content-type': 'application/json',
+                accept: 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || (data && data.type === 'error')) {
+            const errMsg = data?.message || JSON.stringify(data) || response.statusText;
+            logger.error(`❌ [MSG91 ERROR] Failed for ${msisdn}: ${errMsg}`);
+        } else {
+            logger.info(`✅ [MSG91] OTP sent successfully to ${msisdn}. ID: ${data?.message || 'OK'}`);
+        }
+    } catch (error) {
+        logger.error(`Error sending MSG91 OTP to ${phone}: ${error.message}`);
+        // Do NOT throw — OTP is already stored in DB; SMS failure should not block the flow
+    }
+};
+
+/**
  * Sends SMS via SMS India Hub API
  * @param {string} phone - 10-digit mobile number (will be prefixed with 91)
  * @param {string} otp
  */
-const sendSmsViaIndiaHub = async (phone, otp) => {
+export const sendSmsViaIndiaHub = async (phone, otp) => {
     try {
         // Normalize phone: strip non-digits, ensure 91 country code prefix
         const digits = String(phone || '').replace(/\D/g, '');
@@ -86,6 +134,17 @@ const sendSmsViaIndiaHub = async (phone, otp) => {
         logger.error(`Error sending SMS to ${phone}: ${error.message}`);
         // Do NOT throw — OTP is already stored in DB; SMS failure should not block the flow
     }
+};
+
+/**
+ * Sends SMS using the configured provider:
+ * MSG91 if configured, otherwise falls back to SMS India Hub.
+ */
+export const sendSmsOtp = async (phone, otp) => {
+    if (config.msg91AuthKey && config.msg91OtpTemplateId) {
+        return sendSmsViaMsg91(phone, otp);
+    }
+    return sendSmsViaIndiaHub(phone, otp);
 };
 
 /**
@@ -164,7 +223,7 @@ export const createOrUpdateOtp = async (phone, { deliver, realOnly = false } = {
 
     // Only send the code if not in default OTP mode
     if (!useTestCode) {
-        await (deliver || sendSmsViaIndiaHub)(phone, otp);
+        await (deliver || sendSmsOtp)(phone, otp);
     }
 
     return otp;
@@ -194,4 +253,3 @@ export const verifyOtp = async (phone, otp) => {
     await record.deleteOne();
     return { valid: true };
 };
-
