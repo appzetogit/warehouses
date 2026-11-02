@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { Product } from '../../admin/models/product.model.js';
+import { Category } from '../../admin/models/category.model.js';
 import { Order } from '../../orders/models/order.model.js';
 import { Offer } from '../../admin/models/offer.model.js';
 import { getCoinBalance } from '../../coins/services/coin.service.js';
@@ -18,32 +19,85 @@ You help customers:
 You cannot place, cancel or refund orders; point the customer to the app for that.
 Keep answers concise and helpful. Suggest relevant actions when useful.`;
 
-/**
- * Tool 1: Search products from live catalogue.
- */
-async function toolSearchProducts(query, maxPrice = null) {
-    const filter = {
-        isDeleted: { $ne: true },
-        isAvailable: true,
-    };
-    if (query && typeof query === 'string') {
-        const clean = query.replace(/[^\w\s]/g, '').trim();
-        if (clean) {
-            filter.$or = [
-                { name: { $regex: clean, $options: 'i' } },
-                { description: { $regex: clean, $options: 'i' } },
-                { brand: { $regex: clean, $options: 'i' } },
-            ];
-        }
-    }
-    if (maxPrice && Number(maxPrice) > 0) {
-        filter.price = { $lte: Number(maxPrice) };
-    }
+// Words that say nothing about the product wanted.
+const NOISE_WORDS = new Set(`find show give me search for buy get looking look want need i a an the some any please pls of in
+with to my can you do have is are there hi hello hey ok okay thanks thank yes no see more other another all also and or on at
+popular trending latest new best good nice top products product items item something anything stuff clothes clothing collection
+filter low lowest first price prices cheap cheapest budget chahiye dikhao mujhe koi ka ki ke wala wali hai`.split(/\s+/));
 
-    const items = await Product.find(filter)
+// Spellings of the same thing; each key is matched by its pattern in names and categories.
+const TERM_PATTERNS = {
+    tshirt: 't[\\s-]?shirts?|tees?',
+    women: "wom[ae]n(?:'?s)?|ladies|lady|girls?",
+    men: "m[ae]n(?:'?s)?|gents?|boys?",
+    kids: 'kids?|child(?:ren)?',
+};
+const TERM_ALIASES = {
+    woman: 'women', womens: 'women', ladies: 'women', lady: 'women', girl: 'women', girls: 'women',
+    man: 'men', mens: 'men', gents: 'men', boy: 'men', boys: 'men',
+    kid: 'kids', children: 'kids', child: 'kids',
+};
+
+const escapeRegex = (v) => String(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The product words in a message: "find the t-shirt" -> ['tshirt']. */
+function searchTerms(text) {
+    const cleaned = String(text || '').toLowerCase()
+        .replace(/\bt[\s-]?shirts?\b|\btees?\b/g, 'tshirt')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ');
+    const terms = cleaned.split(/\s+/)
+        .filter((w) => w && !NOISE_WORDS.has(w) && !/^\d+$/.test(w))
+        .map((w) => TERM_ALIASES[w] || w);
+    return [...new Set(terms)].slice(0, 6);
+}
+
+const termRegex = (term) => {
+    if (TERM_PATTERNS[term]) return new RegExp(`\\b(?:${TERM_PATTERNS[term]})\\b`, 'i');
+    const stem = term.length > 3 ? term.replace(/(es|s)$/, '') : term;
+    return new RegExp(`\\b${escapeRegex(stem)}(?:s|es)?\\b`, 'i');
+};
+
+/** Categories a term names, with their subcategories: "women" covers Tops, Kurtas... */
+async function categoryIdsForTerm(regex) {
+    const hits = await Category.find({ name: regex, isActive: { $ne: false } }).select('_id').lean();
+    if (!hits.length) return [];
+    const ids = hits.map((c) => c._id);
+    const children = await Category.find({ parentId: { $in: ids } }).select('_id').lean();
+    return [...ids, ...children.map((c) => c._id)];
+}
+
+/**
+ * Tool 1: Search products from live catalogue. Every term has to match, in any
+ * order, in the name, brand or category; the description only if nothing does.
+ */
+async function toolSearchProducts(terms, { maxPrice = null, sort = null } = {}) {
+    const base = { isDeleted: { $ne: true }, isAvailable: true, approvalStatus: 'approved' };
+    if (maxPrice && Number(maxPrice) > 0) base.price = { $lte: Number(maxPrice) };
+
+    const clauses = await Promise.all((terms || []).map(async (term) => {
+        const regex = termRegex(term);
+        const categoryIds = await categoryIdsForTerm(regex);
+        return {
+            regex,
+            or: [
+                { name: regex },
+                { brand: regex },
+                { categoryName: regex },
+                ...(categoryIds.length ? [{ categoryId: { $in: categoryIds } }] : []),
+            ],
+        };
+    }));
+
+    const run = (filter) => Product.find(filter)
         .select('_id name brand price mrp image images categoryName sellerId isAvailable availableIn variants')
+        .sort(sort || { createdAt: -1 })
         .limit(6)
         .lean();
+
+    let items = await run(clauses.length ? { ...base, $and: clauses.map((c) => ({ $or: c.or })) } : base);
+    if (!items.length && clauses.length) {
+        items = await run({ ...base, $and: clauses.map((c) => ({ $or: [...c.or, { description: c.regex }] })) });
+    }
 
     return items.map((p) => {
         const primaryImage = p.image || p.images?.[0] || '';
@@ -186,28 +240,48 @@ export async function handleAssistantChat({ message, userId = null, history = []
     }
 
     // 4. Check intent: Product search
-    let searchQuery = text;
-    let maxPrice = null;
-
-    // Extract price constraint if present e.g. "under 500" or "below 1000"
     const priceMatch = text.match(/(?:under|below|less than|within)\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
-    if (priceMatch) {
-        maxPrice = parseInt(priceMatch[1], 10);
-        searchQuery = text.replace(priceMatch[0], '').replace(/(find|show|give|me|search|for|buy|get)/gi, '').trim();
-    } else {
-        searchQuery = text.replace(/(find|show|give|me|search|for|buy|get|looking for)/gi, '').trim();
+    const maxPrice = priceMatch ? parseInt(priceMatch[1], 10) : null;
+    const withoutPrice = priceMatch ? text.replace(priceMatch[0], ' ') : text;
+    const sort = /low(est)? price|cheap/i.test(text) ? { price: 1 } : null;
+
+    // A question about the store goes to the assistant, not the catalogue.
+    const wantsProducts = /\b(find|show|search|buy|recommend|suggest|looking|want|need|products?|popular|trending|latest|chahiye|dikhao)\b/i.test(text);
+    const isInfo = !wantsProducts && (/\?|^(what|how|why|when|where|who|does|can|is|are|do)\b/i.test(text)
+        || /\b(quick|delivery|shipping|courier|return|refund|cancel|payment|cod|support|contact|help|policy)\b/i.test(text));
+
+    if (!isInfo) {
+        // "1" answers the numbered list in the assistant's last message.
+        const picked = /^\d{1,2}$/.test(text) ? pickFromLastList(history, Number(text)) : '';
+        const terms = searchTerms(picked || withoutPrice);
+        const prior = priorShoppingTerms(history, text);
+
+        // A short message refines what was being looked for: "women" after "t-shirt".
+        const attempts = [];
+        if (terms.length <= 2 && prior.length) {
+            attempts.push([...prior, ...terms]);
+            if (prior.length > 1 && terms.length) attempts.push([prior[prior.length - 1], ...terms]);
+        }
+        if (terms.length) attempts.push(terms);
+        else if (!prior.length && (wantsProducts || maxPrice || sort)) attempts.push([]);
+
+        for (const attempt of attempts) {
+            const unique = [...new Set(attempt)];
+            const foundProducts = await toolSearchProducts(unique, { maxPrice, sort });
+            if (foundProducts.length > 0) {
+                const label = unique.map((t) => (t === 'tshirt' ? 't-shirts' : t)).join(' ');
+                return {
+                    reply: `Here ${foundProducts.length > 1 ? `are ${foundProducts.length} options` : 'is 1 option'}${label ? ` for "${label}"` : ''}${maxPrice ? ` under ₹${maxPrice}` : ''}:`,
+                    products: foundProducts,
+                    toolCalls: [{ name: 'searchProducts', args: { query: label, maxPrice } }],
+                    suggestions: productSuggestions(foundProducts, maxPrice),
+                };
+            }
+        }
     }
 
-    const foundProducts = await toolSearchProducts(searchQuery, maxPrice);
-
-    if (foundProducts.length > 0) {
-        return {
-            reply: `I found ${foundProducts.length} great option${foundProducts.length > 1 ? 's' : ''} for "${searchQuery || text}"${maxPrice ? ` under ₹${maxPrice}` : ''}:`,
-            products: foundProducts,
-            toolCalls: [{ name: 'searchProducts', args: { query: searchQuery, maxPrice } }],
-            suggestions: ['Filter by low price', 'Check active coupons', 'View delivery modes'],
-        };
-    }
+    // Nothing to show: never let the assistant make up what the store sells.
+    const categories = await sellingCategoryNames();
 
     // 5. Ask Gemini when a key is configured (the caller has already checked
     //    the enabled switch, the daily cap and the monthly budget).
@@ -215,12 +289,14 @@ export async function handleAssistantChat({ message, userId = null, history = []
         try {
             const addendum = String(settings?.systemPromptAddendum || '').trim();
             const priorTurns = toGeminiTurns(history);
+            const catalogue = `What the store sells right now: ${categories.join(', ') || 'see the categories in the app'}.
+Rules:
+- Only mention these categories. Never invent products, styles, brands or prices.
+- Our product search already ran for this message and found nothing. If the customer asked for something not listed, say plainly we don't have it yet and suggest the closest category above.
+- Ask at most one short question, and never repeat a question from earlier in this chat. Do not give numbered lists of options.`;
             const result = await callGemini({
                 model: effectiveModel(settings),
-                systemText: addendum ? `${systemInstruction()}
-
-Additional guidance from the store:
-${addendum}` : systemInstruction(),
+                systemText: `${systemInstruction()}\n\n${catalogue}${addendum ? `\n\nAdditional guidance from the store:\n${addendum}` : ''}`,
                 contents: [...priorTurns, { role: 'user', parts: [{ text }] }],
                 generationConfig: { maxOutputTokens: 400 },
             });
@@ -229,24 +305,64 @@ ${addendum}` : systemInstruction(),
                     reply: result.text,
                     usage: result.usage,
                     model: result.model,
-                    suggestions: ['Search popular products', 'My coins', 'Track latest order'],
+                    suggestions: isInfo ? ['Search popular products', 'My coins', 'Track latest order'] : categories.slice(0, 4),
                 };
             }
-            return fallbackReply({ usage: result.usage, model: result.model });
+            return fallbackReply(categories, isInfo, { usage: result.usage, model: result.model });
         } catch (geminiErr) {
             // The message only; the request config (with its headers) is never logged.
             logger.warn(`Gemini API call skipped/failed: ${geminiErr.message}`);
         }
     }
 
-    return fallbackReply();
+    return fallbackReply(categories, isInfo);
 }
 
-function fallbackReply(extra = {}) {
-    // Fallback general response
+/** The label of option `n` in the assistant's last numbered list, if it wrote one. */
+function pickFromLastList(history, n) {
+    const last = [...(Array.isArray(history) ? history : [])].reverse().find((h) => h && h.role !== 'user' && typeof h.text === 'string');
+    if (!last) return '';
+    const line = last.text.match(new RegExp(`(?:^|\\n|\\s)${n}[.)]\\s*\\**([^*:\\n]+)`));
+    return line ? line[1].trim() : '';
+}
+
+/** What the customer was looking for earlier in this chat, oldest first. */
+function priorShoppingTerms(history, currentText) {
+    const earlier = (Array.isArray(history) ? history : [])
+        .filter((h) => h && h.role === 'user' && typeof h.text === 'string' && h.text.trim() !== currentText)
+        .slice(-2);
+    return [...new Set(earlier
+        .filter((h) => !/\b(coin|reward|wallet|order|track|offer|coupon|deal|quick|delivery|standard)/i.test(h.text))
+        .flatMap((h) => searchTerms(h.text)))];
+}
+
+/** Next steps that exist: the categories in these results, and a price filter. */
+function productSuggestions(products, maxPrice) {
+    const names = [...new Set(products.map((p) => p.categoryName).filter(Boolean))].slice(0, 2);
+    return [...names, ...(maxPrice ? [] : ['Under ₹500']), 'Lowest price first', 'Check active coupons'].slice(0, 4);
+}
+
+/** Names of the subcategories that have products on sale, for honest answers. */
+async function sellingCategoryNames() {
+    try {
+        const names = await Product.distinct('categoryName', { isDeleted: { $ne: true }, isAvailable: true, approvalStatus: 'approved' });
+        return names.filter(Boolean).slice(0, 20);
+    } catch {
+        return [];
+    }
+}
+
+function fallbackReply(categories = [], isInfo = false, extra = {}) {
+    if (!isInfo && categories.length) {
+        return {
+            reply: `I couldn't find that right now. We currently have: ${categories.slice(0, 8).join(', ')}. Pick one and I'll show you what's available.`,
+            suggestions: categories.slice(0, 4),
+            ...extra,
+        };
+    }
     return {
         reply: `I can help you explore products, check available deals, track your courier shipments, or manage coins. What would you like to discover?`,
-        suggestions: ['Search summer collection', 'What is Quick Delivery?', 'Check today’s coupons', 'My coins'],
+        suggestions: ['Search popular products', 'What is Quick Delivery?', 'Check today’s coupons', 'My coins'],
         ...extra,
     };
 }
