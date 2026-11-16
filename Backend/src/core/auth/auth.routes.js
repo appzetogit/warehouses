@@ -2,6 +2,7 @@ import express from 'express';
 import {
     requestUserOtpController,
     verifyUserOtpController,
+    userGoogleLoginController,
     requestUserEmailOtpController,
     verifyUserEmailOtpController,
     adminLoginController,
@@ -28,6 +29,7 @@ const router = express.Router();
 // User OTP login
 router.post('/user/request-otp', authRateLimiter, requestUserOtpController);
 router.post('/user/verify-otp', authRateLimiter, verifyUserOtpController);
+router.post('/user/google', authRateLimiter, userGoogleLoginController);
 
 // User email OTP login (website); same tokens and response as the phone flow
 router.post('/user/email/request-otp', authRateLimiter, requestUserEmailOtpController);
