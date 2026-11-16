@@ -21,11 +21,22 @@ export const updateCurrentUserProfile = async (userId, body) => {
     if (!user) throw new AuthError('Profile not found');
 
     if (body.phone !== undefined) {
-        const nextPhone = String(body.phone || '').trim();
-        const currentPhone = String(user.phone || '').trim();
-        // OTP login is phone-based in this project; don't allow changing it from profile edit.
-        if (nextPhone && nextPhone !== currentPhone) {
+        const nextPhone = String(body.phone || '').trim().replace(/\D/g, '');
+        const currentPhone = String(user.phone || '').trim().replace(/\D/g, '');
+        // Once a phone number is set, prevent changing it from a simple profile update
+        if (currentPhone && nextPhone !== currentPhone) {
             throw new ValidationError('Phone number cannot be changed');
+        }
+        // If the user signed in via Google/Email and doesn't have a phone yet, allow setting it
+        if (!currentPhone && nextPhone) {
+            if (nextPhone.length < 8 || nextPhone.length > 15) {
+                throw new ValidationError('Please enter a valid phone number');
+            }
+            const existing = await User.findOne({ phone: nextPhone, _id: { $ne: user._id } });
+            if (existing) {
+                throw new ValidationError('This phone number is already linked to another account');
+            }
+            user.phone = nextPhone;
         }
     }
 
