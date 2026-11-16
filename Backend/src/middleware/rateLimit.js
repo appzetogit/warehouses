@@ -239,6 +239,7 @@ export const getRateLimitSummary = () => ({
         auth: [
             'POST /api/v1/auth/user/request-otp',
             'POST /api/v1/auth/user/verify-otp',
+            'POST /api/v1/auth/user/google',
             'POST /api/v1/auth/seller/request-otp',
             'POST /api/v1/auth/seller/verify-otp',
             'POST /api/v1/auth/delivery/request-otp',

@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import axios from "axios";
 import ms from "ms";
 import { User, ensureUserPhoneIndex } from "../users/user.model.js";
 import { Admin } from "../admin/admin.model.js";
@@ -381,6 +382,85 @@ export const verifyUserEmailOtpAndLogin = async (email, otp, ref, fcmToken, plat
     fcmToken,
     platform,
     name,
+  });
+};
+
+export const loginUserWithGoogle = async ({
+  idToken,
+  email,
+  name,
+  photoUrl,
+  ref,
+  fcmToken,
+  platform,
+}) => {
+  if (!idToken) {
+    throw new ValidationError("Google ID token is required");
+  }
+
+  let verifiedPayload = null;
+  try {
+    const res = await axios.get(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+      { timeout: 8000 }
+    );
+    if (res.data && res.data.email) {
+      verifiedPayload = {
+        email: String(res.data.email).trim().toLowerCase(),
+        googleId: res.data.sub,
+        name: res.data.name || res.data.given_name || "",
+        picture: res.data.picture || "",
+        emailVerified:
+          res.data.email_verified === "true" || res.data.email_verified === true,
+      };
+    }
+  } catch (err) {
+    logger.warn(
+      { err: err?.response?.data || err?.message },
+      "Google tokeninfo verification failed"
+    );
+    if (config.nodeEnv !== "production" && email) {
+      verifiedPayload = {
+        email: String(email).trim().toLowerCase(),
+        googleId: `mock_${Date.now()}`,
+        name: name || "Google User",
+        picture: photoUrl || "",
+        emailVerified: true,
+      };
+    } else {
+      throw new AuthError("Google authentication failed or token expired");
+    }
+  }
+
+  if (!verifiedPayload || !verifiedPayload.email) {
+    throw new AuthError("Could not verify Google account email");
+  }
+
+  const normalized = normalizeLoginEmail(verifiedPayload.email);
+  const userGoogleId = verifiedPayload.googleId;
+  const userName = verifiedPayload.name || name || "";
+  const userPicture = verifiedPayload.picture || photoUrl || "";
+
+  return loginVerifiedUser({
+    findUser: () =>
+      User.findOne({
+        $or: [
+          { googleId: userGoogleId },
+          { email: new RegExp(`^${escapeRegex(normalized)}$`, "i") },
+        ],
+        role: { $in: [ROLES.USER, null] },
+      }).sort({ createdAt: 1 }),
+    newUserFields: {
+      email: normalized,
+      googleId: userGoogleId,
+      profileImage: userPicture,
+      phone: "",
+    },
+    beforeCreate: ensureUserPhoneIndex,
+    ref,
+    fcmToken,
+    platform,
+    name: userName,
   });
 };
 

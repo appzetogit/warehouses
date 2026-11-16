@@ -1,6 +1,7 @@
 import {
   requestUserOtp,
   verifyUserOtpAndLogin,
+  loginUserWithGoogle,
   requestUserEmailOtp,
   verifyUserEmailOtpAndLogin,
   adminLogin,
@@ -20,6 +21,7 @@ import {
 import { validateUserOtpRequestDto } from "../../dtos/auth/userOtpRequest.dto.js";
 import { validateUserOtpVerifyDto } from "../../dtos/auth/userOtpVerify.dto.js";
 import { validateUserEmailOtpRequestDto, validateUserEmailOtpVerifyDto } from "../../dtos/auth/userEmailOtp.dto.js";
+import { validateUserGoogleLoginDto } from "../../dtos/auth/userGoogleLogin.dto.js";
 import { validateAdminLoginDto } from "../../dtos/auth/adminLogin.dto.js";
 import { validateSellerOtpRequestDto } from "../../dtos/auth/sellerOtpRequest.dto.js";
 import { validateSellerOtpVerifyDto } from "../../dtos/auth/sellerOtpVerify.dto.js";
@@ -244,6 +246,16 @@ export const verifyUserEmailOtpController = async (req, res, next) => {
     const { email, otp, ref, fcmToken, platform, name } = validateUserEmailOtpVerifyDto(req.body);
     const result = await verifyUserEmailOtpAndLogin(email, otp, ref, fcmToken, platform, name);
     return sendResponse(res, 200, "Login successful", result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const userGoogleLoginController = async (req, res, next) => {
+  try {
+    const data = validateUserGoogleLoginDto(req.body);
+    const result = await loginUserWithGoogle(data);
+    return sendResponse(res, 200, "Google login successful", result);
   } catch (error) {
     next(error);
   }

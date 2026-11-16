@@ -85,6 +85,11 @@ const userSchema = new mongoose.Schema(
         email: {
             type: String
         },
+        googleId: {
+            type: String,
+            default: null,
+            trim: true
+        },
         profileImage: {
             type: String,
             default: ''
@@ -163,6 +168,7 @@ const userSchema = new mongoose.Schema(
 export const USER_PHONE_INDEX_OPTIONS = { unique: true, partialFilterExpression: { phone: { $gt: '' } } };
 userSchema.index({ phone: 1 }, USER_PHONE_INDEX_OPTIONS);
 userSchema.index({ email: 1 });
+userSchema.index({ googleId: 1 }, { sparse: true });
 userSchema.index({ 'addresses.location': '2dsphere' });
 
 export const User = mongoose.model('User', userSchema);
