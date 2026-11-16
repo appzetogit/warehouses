@@ -156,6 +156,13 @@ export const config = {
         process.env.VITE_GOOGLE_MAPS_API_KEY ||
         '',
 
+    // Google sign-in: OAuth client IDs (web, Android, iOS) whose ID tokens we accept.
+    // Comma separated. Empty = Google sign-in refused.
+    googleClientIds: String(process.env.GOOGLE_CLIENT_IDS || '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean),
+
     // Socket.io
     // One origin, or several separated by commas (the store answers on more than one domain).
     socketCorsOrigin: (() => {

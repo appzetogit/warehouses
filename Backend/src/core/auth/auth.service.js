@@ -385,9 +385,62 @@ export const verifyUserEmailOtpAndLogin = async (email, otp, ref, fcmToken, plat
   });
 };
 
+const GOOGLE_ISSUERS = new Set(["accounts.google.com", "https://accounts.google.com"]);
+
+/**
+ * Checks a Google ID token with Google and returns the account it proves.
+ * Google checks the signature and expiry; we check the token was issued to one of
+ * OUR client IDs (else a token from any other site using Google sign-in could be
+ * replayed here) and that Google has verified the email we match accounts on.
+ */
+export const verifyGoogleIdToken = async (idToken) => {
+  const allowedAudiences = config.googleClientIds || [];
+  if (allowedAudiences.length === 0) {
+    logger.warn("Google sign-in refused: GOOGLE_CLIENT_IDS is not set");
+    throw new AuthError("Google sign-in isn't available right now");
+  }
+
+  let info;
+  try {
+    const res = await axios.get("https://oauth2.googleapis.com/tokeninfo", {
+      params: { id_token: idToken },
+      timeout: 8000,
+    });
+    info = res.data || {};
+  } catch (err) {
+    logger.warn(
+      { err: err?.response?.data || err?.message },
+      "Google tokeninfo verification failed"
+    );
+    throw new AuthError("Google authentication failed or token expired");
+  }
+
+  if (!allowedAudiences.includes(String(info.aud || ""))) {
+    logger.warn({ aud: info.aud }, "Google sign-in refused: token issued to another app");
+    throw new AuthError("Google authentication failed or token expired");
+  }
+  if (!GOOGLE_ISSUERS.has(String(info.iss || ""))) {
+    throw new AuthError("Google authentication failed or token expired");
+  }
+  if (Number(info.exp) * 1000 <= Date.now()) {
+    throw new AuthError("Google authentication failed or token expired");
+  }
+  const emailVerified = info.email_verified === true || info.email_verified === "true";
+  if (!info.sub || !info.email || !emailVerified) {
+    throw new AuthError("Could not verify Google account email");
+  }
+
+  return {
+    email: String(info.email).trim().toLowerCase(),
+    googleId: String(info.sub),
+    name: info.name || info.given_name || "",
+    picture: info.picture || "",
+  };
+};
+
 export const loginUserWithGoogle = async ({
   idToken,
-  email,
+  // The email always comes from the verified token, never from the request.
   name,
   photoUrl,
   ref,
@@ -398,43 +451,7 @@ export const loginUserWithGoogle = async ({
     throw new ValidationError("Google ID token is required");
   }
 
-  let verifiedPayload = null;
-  try {
-    const res = await axios.get(
-      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
-      { timeout: 8000 }
-    );
-    if (res.data && res.data.email) {
-      verifiedPayload = {
-        email: String(res.data.email).trim().toLowerCase(),
-        googleId: res.data.sub,
-        name: res.data.name || res.data.given_name || "",
-        picture: res.data.picture || "",
-        emailVerified:
-          res.data.email_verified === "true" || res.data.email_verified === true,
-      };
-    }
-  } catch (err) {
-    logger.warn(
-      { err: err?.response?.data || err?.message },
-      "Google tokeninfo verification failed"
-    );
-    if (config.nodeEnv !== "production" && email) {
-      verifiedPayload = {
-        email: String(email).trim().toLowerCase(),
-        googleId: `mock_${Date.now()}`,
-        name: name || "Google User",
-        picture: photoUrl || "",
-        emailVerified: true,
-      };
-    } else {
-      throw new AuthError("Google authentication failed or token expired");
-    }
-  }
-
-  if (!verifiedPayload || !verifiedPayload.email) {
-    throw new AuthError("Could not verify Google account email");
-  }
+  const verifiedPayload = await verifyGoogleIdToken(idToken);
 
   const normalized = normalizeLoginEmail(verifiedPayload.email);
   const userGoogleId = verifiedPayload.googleId;
