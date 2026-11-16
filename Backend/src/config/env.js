@@ -157,8 +157,11 @@ export const config = {
         '',
 
     // Google sign-in: OAuth client IDs (web, Android, iOS) whose ID tokens we accept.
-    // Comma separated. Empty = Google sign-in refused.
-    googleClientIds: String(process.env.GOOGLE_CLIENT_IDS || '')
+    // Comma separated. Defaults to The Warehouses official Google client IDs when unset.
+    googleClientIds: String(
+        process.env.GOOGLE_CLIENT_IDS ||
+        '1066677391346-g28v98sn9bmvf9ld0hhcqi1idk9u91ma.apps.googleusercontent.com,1066677391346-bb47jmp54bv1d9rlve9bj52b0lvblghi.apps.googleusercontent.com,1066677391346-evlfv34fj21jf80utqq87ncn1tp3rblk.apps.googleusercontent.com,1066677391346-17p20bfrgvl9jgmjc4kkumj63cvkltfb.apps.googleusercontent.com'
+    )
         .split(',')
         .map((id) => id.trim())
         .filter(Boolean),
