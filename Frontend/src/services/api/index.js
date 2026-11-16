@@ -2728,6 +2728,11 @@ export const userAPI = {
     apiClient.patch("/user/profile", body ?? {}, {
       contextModule: "user",
     }),
+  /** OTP for adding a phone to an account that has none; send it back as `phoneOtp` in updateProfile. */
+  sendPhoneLinkOtp: (phone) =>
+    apiClient.post("/user/profile/phone/otp", { phone }, {
+      contextModule: "user",
+    }),
   /** Upload and set user profile image (multipart). Field name: file */
   uploadProfileImage: async (file) => {
     if (!file) return Promise.reject(new Error("File is required"));

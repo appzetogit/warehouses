@@ -485,6 +485,7 @@ POST /api/v1/auth/seller/request-otp
 POST /api/v1/auth/seller/verify-otp
 POST /api/v1/auth/user/email/request-otp
 POST /api/v1/auth/user/email/verify-otp
+POST /api/v1/auth/user/google
 POST /api/v1/auth/user/request-otp
 POST /api/v1/auth/user/verify-otp
 POST /api/v1/chat/conversations
@@ -549,6 +550,7 @@ POST /api/v1/uploads/image
 POST /api/v1/user/addresses
 POST /api/v1/user/favorites/products/:productId
 POST /api/v1/user/favorites/sellers/:sellerId
+POST /api/v1/user/profile/phone/otp
 POST /api/v1/user/profile/profile-image
 POST /api/v1/user/reviews/:reviewId/helpful
 POST /api/v1/user/reviews/:reviewId/report

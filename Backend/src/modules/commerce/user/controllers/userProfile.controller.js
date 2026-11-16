@@ -4,8 +4,20 @@ import {
     getCurrentUserProfile,
     updateCurrentUserProfile,
     uploadCurrentUserProfileImage,
-    deleteCurrentUserAccount
+    deleteCurrentUserAccount,
+    requestPhoneLinkOtp
 } from '../services/userProfile.service.js';
+
+/** POST /profile/phone/otp { phone } — sends the OTP needed to add a phone to the account. */
+export const requestPhoneLinkOtpController = async (req, res, next) => {
+    try {
+        const userId = req.user?.userId;
+        const result = await requestPhoneLinkOtp(userId, req.body?.phone);
+        return sendResponse(res, 200, 'OTP sent successfully', result);
+    } catch (error) {
+        next(error);
+    }
+};
 
 export const getCurrentUserProfileController = async (req, res, next) => {
     try {

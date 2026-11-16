@@ -11,6 +11,7 @@ const schema = z.object({
     name: z.string().max(200).optional(),
     email: z.string().email().max(200).optional(),
     phone: z.string().max(30).optional(),
+    phoneOtp: z.string().regex(/^\d{4,8}$/, 'Enter the OTP sent to your phone').optional(),
     profileImage: z.string().max(2000).optional(),
     dateOfBirth: isoDate.optional(),
     anniversary: isoDate.optional(),

@@ -1,6 +1,40 @@
 import { User } from '../../../../core/users/user.model.js';
 import { AuthError, ValidationError } from '../../../../core/auth/errors.js';
 import { uploadImageBuffer } from '../../../../services/cloudinary.service.js';
+import { createOrUpdateOtp, verifyOtp, sendSmsOtp } from '../../../../core/otp/otp.service.js';
+import { config } from '../../../../config/env.js';
+
+// OTP key for adding a phone to an account that has none (Google/Email sign-in),
+// kept apart from the phone-login key so the two codes never overwrite each other.
+const phoneLinkOtpKey = (phone) => `phone-link:${phone}`;
+
+/** Checks that `user` (no phone yet) may add `rawPhone`; returns the digits-only number. */
+const assertPhoneCanBeAdded = async (user, rawPhone) => {
+    if (String(user.phone || '').replace(/\D/g, '')) {
+        throw new ValidationError('Phone number cannot be changed');
+    }
+    const phone = String(rawPhone || '').trim().replace(/\D/g, '');
+    if (phone.length < 8 || phone.length > 15) {
+        throw new ValidationError('Please enter a valid phone number');
+    }
+    const existing = await User.findOne({ phone, _id: { $ne: user._id } }).select('_id').lean();
+    if (existing) {
+        throw new ValidationError('This phone number is already linked to another account');
+    }
+    return phone;
+};
+
+/** Sends an OTP to a phone number the signed-in customer wants to add to their account. */
+export const requestPhoneLinkOtp = async (userId, rawPhone) => {
+    const user = await User.findById(userId).select('phone').lean();
+    if (!user) throw new AuthError('Profile not found');
+    const phone = await assertPhoneCanBeAdded(user, rawPhone);
+    const otp = await createOrUpdateOtp(phoneLinkOtpKey(phone), {
+        deliver: (_key, code) => sendSmsOtp(phone, code),
+    });
+    // Only the fixed test code (USE_DEFAULT_OTP) is ever returned; a real OTP goes by SMS only.
+    return config.useDefaultOtp ? { phone, otp } : { phone };
+};
 
 const parseIsoDateOrNull = (value) => {
     if (value === undefined) return undefined;
@@ -27,16 +61,18 @@ export const updateCurrentUserProfile = async (userId, body) => {
         if (currentPhone && nextPhone !== currentPhone) {
             throw new ValidationError('Phone number cannot be changed');
         }
-        // If the user signed in via Google/Email and doesn't have a phone yet, allow setting it
+        // A Google/Email account without a phone may add one, but only with the OTP sent
+        // to it: phone login would otherwise drop the number's real owner into this account.
         if (!currentPhone && nextPhone) {
-            if (nextPhone.length < 8 || nextPhone.length > 15) {
-                throw new ValidationError('Please enter a valid phone number');
+            const phone = await assertPhoneCanBeAdded(user, nextPhone);
+            if (!body.phoneOtp) {
+                throw new ValidationError('Please verify your phone number with the OTP');
             }
-            const existing = await User.findOne({ phone: nextPhone, _id: { $ne: user._id } });
-            if (existing) {
-                throw new ValidationError('This phone number is already linked to another account');
+            const result = await verifyOtp(phoneLinkOtpKey(phone), String(body.phoneOtp).trim());
+            if (!result.valid) {
+                throw new ValidationError(result.reason || 'OTP verification failed');
             }
-            user.phone = nextPhone;
+            user.phone = phone;
         }
     }
 

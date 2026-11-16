@@ -154,6 +154,10 @@ export default function EditProfile() {
     email: "",
     dateOfBirth: "",
   })
+  // Adding a phone to an account that has none (Google/Email sign-in) needs the OTP sent to it.
+  const [phoneOtp, setPhoneOtp] = useState("")
+  const [phoneOtpSentFor, setPhoneOtpSentFor] = useState("")
+  const [isSendingPhoneOtp, setIsSendingPhoneOtp] = useState(false)
   const fileInputRef = useRef(null)
   const hydratedFromDraftRef = useRef(Boolean(draftProfile))
 
@@ -454,6 +458,26 @@ export default function EditProfile() {
     validateDateOfBirth(formData.dateOfBirth)
   )
 
+  const phoneLocked = Boolean(initialData.mobile)
+  const addingPhone = !phoneLocked && /^\d{10}$/.test(formData.mobile)
+  const phoneOtpSent = addingPhone && phoneOtpSentFor === formData.mobile
+
+  const handleSendPhoneOtp = async () => {
+    if (!addingPhone || isSendingPhoneOtp) return
+    try {
+      setIsSendingPhoneOtp(true)
+      await userAPI.sendPhoneLinkOtp(formData.mobile)
+      setPhoneOtpSentFor(formData.mobile)
+      setPhoneOtp("")
+      toast.success(`OTP sent to ${formData.mobile}`)
+    } catch (error) {
+      debugError('Error sending phone OTP:', error)
+      toast.error(error?.response?.data?.message || 'Failed to send OTP')
+    } finally {
+      setIsSendingPhoneOtp(false)
+    }
+  }
+
   const getSafeEmailForLocalProfile = (emailValue) => (
     validateEmail(emailValue) ? "" : String(emailValue || "").trim()
   )
@@ -462,6 +486,11 @@ export default function EditProfile() {
     if (isSaving) return
     if (!validateForm()) {
       toast.error("Please fix the highlighted fields")
+      return
+    }
+    if (addingPhone && (!phoneOtpSent || !/^\d{4,8}$/.test(phoneOtp))) {
+      setFieldErrors((prev) => ({ ...prev, mobile: "Verify your mobile number with the OTP first" }))
+      toast.error("Verify your mobile number with the OTP first")
       return
     }
 
@@ -473,6 +502,7 @@ export default function EditProfile() {
         name: formData.name.trim(),
         email: formData.email || undefined,
         phone: formData.mobile || undefined,
+        phoneOtp: addingPhone ? phoneOtp : undefined,
         dateOfBirth: formData.dateOfBirth || undefined,
         anniversary: formData.anniversary || undefined,
         gender: formData.gender || undefined,
@@ -637,10 +667,39 @@ export default function EditProfile() {
                   type="tel"
                   value={formData.mobile}
                   onChange={(e) => handleChange('mobile', e.target.value)}
-                  className="flex-1 h-12 text-base  border border-gray-300 dark:border-gray-700 focus:border-wh-brand focus:ring-1 focus:ring-wh-brand rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white"
+                  readOnly={phoneLocked}
+                  className="flex-1 h-12 text-base  border border-gray-300 dark:border-gray-700 focus:border-wh-brand focus:ring-1 focus:ring-wh-brand rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white read-only:bg-gray-50 read-only:text-gray-500 dark:read-only:bg-[#141414]"
                   placeholder="Mobile"
                 />
+                {addingPhone && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSendPhoneOtp}
+                    disabled={isSendingPhoneOtp}
+                    className="h-12 shrink-0 rounded-lg"
+                  >
+                    {isSendingPhoneOtp ? <Loader2 className="h-4 w-4 animate-spin" /> : phoneOtpSent ? "Resend OTP" : "Send OTP"}
+                  </Button>
+                )}
               </div>
+              {phoneOtpSent && (
+                <Input
+                  id="phoneOtp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={phoneOtp}
+                  onChange={(e) => {
+                    setPhoneOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    setFieldErrors((prev) => ({ ...prev, mobile: "" }))
+                  }}
+                  className="h-12 text-base border border-gray-300 dark:border-gray-700 focus:border-wh-brand focus:ring-1 focus:ring-wh-brand rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white"
+                  placeholder="Enter the OTP sent to your mobile"
+                  aria-label="Mobile OTP"
+                />
+              )}
               {fieldErrors.mobile && (
                 <p className="text-xs text-red-600">{fieldErrors.mobile}</p>
               )}

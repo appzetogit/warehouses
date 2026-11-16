@@ -1,4 +1,5 @@
 import express from 'express';
+import { authRateLimiter } from '../../../../middleware/rateLimit.js';
 import { upload } from '../../../../middleware/upload.js';
 import {
     listAddressesController,
@@ -11,7 +12,8 @@ import {
     getCurrentUserProfileController,
     updateCurrentUserProfileController,
     uploadCurrentUserProfileImageController,
-    deleteCurrentUserAccountController
+    deleteCurrentUserAccountController,
+    requestPhoneLinkOtpController
 } from '../controllers/userProfile.controller.js';
 import {
     getUserWalletController,
@@ -66,6 +68,7 @@ const router = express.Router();
 
 router.get('/profile', getCurrentUserProfileController);
 router.patch('/profile', updateCurrentUserProfileController);
+router.post('/profile/phone/otp', authRateLimiter, requestPhoneLinkOtpController);
 router.post('/profile/profile-image', upload.single('file'), uploadCurrentUserProfileImageController);
 router.delete('/profile', deleteCurrentUserAccountController);
 // Marketing push opt-out (default on).
