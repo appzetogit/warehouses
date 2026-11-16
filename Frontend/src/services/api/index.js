@@ -846,6 +846,11 @@ export const adminAPI = {
     apiClient.post("/admin/products/bulk-delete", body ?? {}, {
       contextModule: "admin",
     }),
+  /** { productIds, categoryId }: moves products from a main category into its subcategory. */
+  moveProductsToSubcategory: (body) =>
+    apiClient.patch("/admin/products/bulk-move-category", body ?? {}, {
+      contextModule: "admin",
+    }),
   /** Customers (admin) */
   getCustomers: (params = {}) =>
     apiClient.get("/admin/customers", { params, contextModule: "admin" }),

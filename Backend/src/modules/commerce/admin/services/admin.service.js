@@ -64,6 +64,8 @@ import {
     backfillLegacyCategoryWorkflow,
     serializeCategoryForResponse
 } from '../../shared/categoryWorkflow.js';
+import { buildCategoryTree } from '../../seller/services/sellerCategory.service.js';
+import { assertSubcategoryChosen } from '../../shared/subcategoryRule.js';
 import { normalizeFoodType } from '../../shared/foodType.js';
 import {
     extractRawProductVariants,
@@ -3360,6 +3362,28 @@ export async function getCategories(query) {
             }];
         }
     }
+    // sellerId => only what that store can file a product under, the same set
+    // its own product form lists: active, approved, global or its own, and in
+    // its zone (or zone-less). Used by the admin product form's picker.
+    if (query.sellerId !== undefined && String(query.sellerId).trim()) {
+        const sid = String(query.sellerId).trim();
+        if (!mongoose.Types.ObjectId.isValid(sid)) throw new ValidationError('Invalid sellerId');
+        const seller = await Seller.findById(sid).select('zoneId').lean();
+        if (!seller?._id) throw new ValidationError('Store not found');
+        filter.isActive = { $ne: false };
+        filter.$and = [
+            ...(filter.$and || []),
+            { $or: [{ approvalStatus: 'approved' }, { approvalStatus: { $exists: false }, isApproved: { $ne: false } }] },
+            { $or: [{ sellerId: { $exists: false } }, { sellerId: null }, { sellerId: seller._id }] },
+            {
+                $or: [
+                    ...(seller.zoneId ? [{ zoneId: seller.zoneId }] : []),
+                    { zoneId: { $exists: false } },
+                    { zoneId: null }
+                ]
+            }
+        ];
+    }
 
     const [list, total] = await Promise.all([
         Category.find(filter)
@@ -3393,7 +3417,8 @@ export async function getCategories(query) {
     }));
     const categories = hydratedList.map((category) => serializeCategoryForResponse(category, { includeCounts: true, statsById }));
 
-    return { categories, total, page, limit };
+    // `tree` (additive): each main category with its subcategories under `children`.
+    return { categories, tree: buildCategoryTree(categories), total, page, limit };
 }
 
 /**
@@ -3628,6 +3653,11 @@ export async function getProducts(query) {
     if (listChannel) {
         filter[`channels.${listChannel}`] = { $ne: false };
     }
+    // Products filed directly under a main category that has subcategories --
+    // the ones the new picker would ask to move one level down. Read-only.
+    if (query.needsSubcategory === true || query.needsSubcategory === 'true' || query.needsSubcategory === '1') {
+        filter.categoryId = { $in: await mainCategoryIdsWithChildren() };
+    }
 
     const [list, total] = await Promise.all([
         Product.find(filter)
@@ -3674,6 +3704,43 @@ export async function getProducts(query) {
     }));
 
     return { products, total, page, limit };
+}
+
+/** Main categories with at least one active, approved subcategory. */
+async function mainCategoryIdsWithChildren() {
+    return Category.distinct('parentId', {
+        parentId: { $ne: null },
+        isActive: { $ne: false },
+        $or: [{ approvalStatus: 'approved' }, { approvalStatus: { $exists: false }, isApproved: { $ne: false } }]
+    });
+}
+
+/**
+ * Moves the selected products from a main category to one of its
+ * subcategories. Only categoryId/categoryName change, and only on products
+ * currently filed under that subcategory's own parent, so nothing can be moved
+ * sideways into an unrelated category.
+ */
+export async function moveProductsToSubcategory({ productIds = [], categoryId } = {}) {
+    if (!categoryId || !mongoose.Types.ObjectId.isValid(String(categoryId))) {
+        throw new ValidationError('Choose a subcategory');
+    }
+    const target = await Category.findById(categoryId).select('name parentId isActive').lean();
+    if (!target?._id || !target.parentId) throw new ValidationError('Choose a subcategory');
+    if (target.isActive === false) throw new ValidationError('This subcategory is inactive');
+    const ids = (Array.isArray(productIds) ? productIds : [])
+        .filter((id) => mongoose.Types.ObjectId.isValid(String(id)))
+        .map((id) => new mongoose.Types.ObjectId(String(id)));
+    if (!ids.length) throw new ValidationError('No valid products selected');
+
+    const result = await Product.updateMany(
+        { _id: { $in: ids }, categoryId: target.parentId },
+        { $set: { categoryId: target._id, categoryName: target.name || '' } }
+    );
+    return {
+        movedCount: result.modifiedCount ?? 0,
+        skippedCount: ids.length - (result.matchedCount ?? 0)
+    };
 }
 
 const resolveAdminCategory = async ({ categoryId, categoryName }) => {
@@ -3780,7 +3847,7 @@ export async function createProduct(body) {
         throw new ValidationError('Valid sellerId is required');
     }
     const seller = await Seller.findById(sellerId)
-        .select('_id status channels')
+        .select('_id status channels zoneId')
         .lean();
     if (!seller?._id) {
         throw new ValidationError('Store not found');
@@ -3796,6 +3863,7 @@ export async function createProduct(body) {
         categoryId: body.categoryId,
         categoryName
     });
+    await assertSubcategoryChosen(body, categoryId, { sellerId: seller._id, zoneId: seller.zoneId });
     const checkedVariants = await applyCategoryAttributes(categoryId, variants);
 
     const doc = new Product({
@@ -3856,7 +3924,7 @@ export async function updateProduct(id, body) {
     const doc = await Product.findById(id);
     if (!doc) return null;
     const seller = await Seller.findById(doc.sellerId)
-        .select('_id status channels')
+        .select('_id status channels zoneId')
         .lean();
     if (!seller?._id) {
         throw new ValidationError('Store not found');
@@ -3893,6 +3961,11 @@ export async function updateProduct(id, body) {
         const { categoryId, categoryName } = await resolveAdminCategory({
             categoryId: body.categoryId !== undefined ? body.categoryId : doc.categoryId,
             categoryName: nextCategoryName
+        });
+        await assertSubcategoryChosen(body, categoryId, {
+            sellerId: seller._id,
+            zoneId: seller.zoneId,
+            previousCategoryId: doc.categoryId
         });
         doc.categoryId = categoryId;
         doc.categoryName = categoryName;

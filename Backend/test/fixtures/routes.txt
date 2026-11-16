@@ -349,6 +349,7 @@ PATCH /api/v1/admin/product-reviews/:id/unhide
 PATCH /api/v1/admin/products/:id
 PATCH /api/v1/admin/products/:id/approve
 PATCH /api/v1/admin/products/:id/reject
+PATCH /api/v1/admin/products/bulk-move-category
 PATCH /api/v1/admin/push-campaigns/:id
 PATCH /api/v1/admin/returns/settings
 PATCH /api/v1/admin/seller-app-banners/:id

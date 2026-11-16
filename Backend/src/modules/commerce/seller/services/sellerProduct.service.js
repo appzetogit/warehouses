@@ -17,6 +17,7 @@ import {
     backfillLegacyCategoryWorkflow,
     GLOBAL_CATEGORY_FILTER
 } from '../../shared/categoryWorkflow.js';
+import { assertSubcategoryChosen } from '../../shared/subcategoryRule.js';
 import { normalizeFoodType } from '../../shared/foodType.js';
 import {
     CHANNELS,
@@ -244,7 +245,7 @@ const getSellerContext = async (sellerId) => {
     }
 
     const seller = await Seller.findById(sellerId)
-        .select('_id status channels')
+        .select('_id status channels zoneId')
         .lean();
     if (!seller?._id) {
         throw new ValidationError('Store not found');
@@ -266,6 +267,11 @@ const getAccessibleCategoryFilter = (context) => ({
             ]
         }
     ]
+});
+
+const subcategoryScope = (context) => ({
+    sellerId: context.sellerId,
+    zoneId: context.seller?.zoneId || null
 });
 
 const resolveCategoryForSeller = async (context, body = {}) => {
@@ -543,6 +549,7 @@ export async function createSellerProduct(sellerId, body = {}) {
     const foodType = normalizeFoodType(body.foodType);
     const preparationTime = toStr(body.preparationTime);
     const { categoryObjectId, categoryName } = await resolveCategoryForSeller(context, body);
+    await assertSubcategoryChosen(body, categoryObjectId, subcategoryScope(context));
     await assertSellerMayListInCategory(await loadSellerLicence(sellerId), categoryObjectId);
     const variants = await applyCategoryAttributes(categoryObjectId, rawVariants);
 
@@ -636,6 +643,10 @@ export async function updateSellerProduct(sellerId, productId, body = {}) {
         const { categoryObjectId, categoryName } = await resolveCategoryForSeller(context, {
             categoryId: body.categoryId !== undefined ? body.categoryId : existing.categoryId,
             categoryName: body.categoryName !== undefined ? body.categoryName : existing.categoryName
+        });
+        await assertSubcategoryChosen(body, categoryObjectId, {
+            ...subcategoryScope(context),
+            previousCategoryId: existing.categoryId
         });
         update.categoryId = categoryObjectId;
         update.categoryName = categoryName || '';

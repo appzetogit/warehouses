@@ -339,6 +339,8 @@ const invalidatePublicMenus = async (_req, _res, next) => {
     next();
 };
 
+// Before /products/:id so "bulk-move-category" is not taken for an id.
+router.patch('/products/bulk-move-category', invalidatePublicMenus, adminController.moveProductsToSubcategory);
 router.post('/products', invalidatePublicMenus, adminController.createProduct);
 router.patch('/products/:id', invalidatePublicMenus, adminController.updateProduct);
 router.delete('/products/:id', invalidatePublicMenus, adminController.deleteProduct);

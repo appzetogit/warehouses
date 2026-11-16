@@ -107,8 +107,8 @@ export async function listSellerCategories(sellerId, query = {}) {
         .limit(limit)
         .select(
             compact
-                ? 'name image type approvalStatus rejectionReason zoneId sellerId createdBySellerId isActive sortOrder requestedAt approvedAt rejectedAt globalizedAt'
-                : 'name image type approvalStatus rejectionReason zoneId sellerId createdBySellerId isActive sortOrder requestedAt approvedAt rejectedAt globalizedAt createdAt updatedAt'
+                ? 'name image type approvalStatus rejectionReason zoneId sellerId createdBySellerId isActive sortOrder requestedAt approvedAt rejectedAt globalizedAt parentId'
+                : 'name image type approvalStatus rejectionReason zoneId sellerId createdBySellerId isActive sortOrder requestedAt approvedAt rejectedAt globalizedAt parentId createdAt updatedAt'
         );
 
     const [list, total] = await Promise.all([
@@ -150,7 +150,10 @@ export async function listSellerCategories(sellerId, query = {}) {
         })
     );
 
-    return { categories, total, page, limit };
+    // `categories` stays the flat list older clients (the Flutter seller app)
+    // read; `tree` adds each main category with its subcategories under
+    // `children`, for the Category -> Subcategory picker.
+    return { categories, tree: buildCategoryTree(categories), total, page, limit };
 }
 
 export async function listPublicCategories(query = {}) {

@@ -1677,6 +1677,21 @@ export async function bulkApproveProducts(req, res, next) {
     }
 }
 
+/** Moves selected products from a main category to one of its subcategories. */
+export async function moveProductsToSubcategory(req, res, next) {
+    try {
+        const { productIds, categoryId } = req.body || {};
+        const result = await adminService.moveProductsToSubcategory({ productIds, categoryId });
+        res.status(200).json({
+            success: true,
+            message: `Moved ${result.movedCount} item(s)`,
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
 export async function bulkDeleteProducts(req, res, next) {
     try {
         const { sellerId, productIds, selectAll, search } = req.body || {};

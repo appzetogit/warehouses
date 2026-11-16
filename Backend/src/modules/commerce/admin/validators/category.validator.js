@@ -14,6 +14,8 @@ const booleanQuerySchema = z.preprocess((value) => {
 const listSchema = z.object({
     search: z.string().optional(),
     zoneId: z.string().optional(),
+    /** Only the categories this store may file products under (admin product form). */
+    sellerId: z.string().max(100).optional(),
     isApproved: booleanQuerySchema.optional(),
     approvalStatus: z.enum(['pending', 'approved', 'rejected']).optional(),
     page: z.coerce.number().int().min(1).optional(),

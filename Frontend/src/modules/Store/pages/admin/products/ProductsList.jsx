@@ -4,12 +4,12 @@ import { Search, Trash2, Loader2, Eye, Pencil, Plus, Save, ChevronDown, ChevronL
 import { adminAPI, uploadAPI } from "@store/api"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@store/components/ui/dialog"
-import { Popover, PopoverContent, PopoverTrigger } from "@store/components/ui/popover"
 import { getProductDisplayOtherPrice, getProductDisplayPrice, getProductVariants } from "@store/utils/productVariants"
 import { canCurrentAdminAction } from "@store/utils/adminRbac"
 import VariantMatrixEditor, { CHANNELS, CHANNEL_LABEL, createVariantDraft, perChannelDraft, perChannelPayload, toVariantPayload } from "@store/components/shared/products/VariantMatrixEditor"
 import { getApprovedChannels } from "@store/components/admin/sellers/SellerChannels"
 import { useAdminPanel } from "@store/components/admin/useAdminPanel"
+import { buildCategoryPicker, childrenOf, splitCategoryId } from "@store/utils/categoryPicker"
 const debugLog = (...args) => {}
 const debugWarn = (...args) => {}
 const debugError = (...args) => {}
@@ -80,8 +80,15 @@ export default function ProductsList() {
   const [editingProduct, setEditingProduct] = useState(null)
   const [submittingProduct, setSubmittingProduct] = useState(false)
   const [categoryOptions, setCategoryOptions] = useState([])
-  const [categorySearch, setCategorySearch] = useState("")
-  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false)
+  const [categoriesLoading, setCategoriesLoading] = useState(false)
+  // True once the admin picks a category in the form. An edit that leaves it
+  // alone neither sends it nor needs a subcategory.
+  const [categoryTouched, setCategoryTouched] = useState(false)
+  // List filter: products filed under a main category that has subcategories.
+  const [needsSubcategoryOnly, setNeedsSubcategoryOnly] = useState(false)
+  const [listCategories, setListCategories] = useState([])
+  const [bulkMoveTargetId, setBulkMoveTargetId] = useState("")
+  const [isBulkMoving, setIsBulkMoving] = useState(false)
   const [selectedImageFile, setSelectedImageFile] = useState(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState("")
 
@@ -200,6 +207,7 @@ export default function ProductsList() {
       const params = { page: currentPage, limit: pageSize, channel }
       if (selectedSeller !== "all") params.sellerId = selectedSeller
       if (debouncedSearchQuery) params.search = debouncedSearchQuery
+      if (needsSubcategoryOnly) params.needsSubcategory = true
 
       const productsRes = await adminAPI.getProducts(params)
       const list = productsRes?.data?.data?.products || []
@@ -260,7 +268,7 @@ export default function ProductsList() {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, pageSize, selectedSeller, debouncedSearchQuery, channel])
+  }, [currentPage, pageSize, selectedSeller, debouncedSearchQuery, channel, needsSubcategoryOnly])
 
   useEffect(() => {
     fetchAllProducts()
@@ -363,7 +371,8 @@ export default function ProductsList() {
   useEffect(() => {
     setSelectedProductIds(new Set())
     setSelectAllForSeller(false)
-  }, [selectedSeller, debouncedSearchQuery])
+    setBulkMoveTargetId("")
+  }, [selectedSeller, debouncedSearchQuery, needsSubcategoryOnly])
 
   useEffect(() => {
     if (!selectAllForSeller) return
@@ -397,8 +406,7 @@ export default function ProductsList() {
     setSelectedImageFile(null)
     setImagePreviewUrl("")
     setProductImages([])
-    setCategorySearch("")
-    setCategoryPopoverOpen(false)
+    setCategoryTouched(false)
     setShowProductFormModal(true)
   }
 
@@ -437,13 +445,14 @@ export default function ProductsList() {
         .filter(Boolean)
         .map((url, i) => ({ key: `saved-${i}-${url}`, url, previewUrl: url })),
     )
-    setCategorySearch("")
-    setCategoryPopoverOpen(false)
+    setCategoryTouched(false)
     setShowProductFormModal(true)
   }
 
+  // The categories the chosen seller may file products under (what its own
+  // product form lists), with parentId for the Category -> Subcategory picker.
   useEffect(() => {
-    if (!showProductFormModal) {
+    if (!showProductFormModal || !productForm.sellerId) {
       setCategoryOptions([])
       return
     }
@@ -452,18 +461,16 @@ export default function ProductsList() {
 
     const loadCategoryOptions = async () => {
       try {
-        const res = await adminAPI.getCategories({ limit: 1000 })
+        setCategoriesLoading(true)
+        const res = await adminAPI.getCategories({ limit: 1000, sellerId: productForm.sellerId })
         const list = res?.data?.data?.categories || []
-        const options = Array.isArray(list)
-          ? list
-              .map((c) => ({ id: String(c.id || c._id || c.name), name: String(c.name || "").trim() }))
-              .filter((c) => c.name)
-          : []
-        if (!cancelled) setCategoryOptions(options)
+        if (!cancelled) setCategoryOptions(Array.isArray(list) ? list : [])
       } catch (error) {
         if (!cancelled) {
           setCategoryOptions([])
         }
+      } finally {
+        if (!cancelled) setCategoriesLoading(false)
       }
     }
 
@@ -472,7 +479,45 @@ export default function ProductsList() {
     return () => {
       cancelled = true
     }
-  }, [showProductFormModal])
+  }, [showProductFormModal, productForm.sellerId])
+
+  const categoryPicker = useMemo(() => buildCategoryPicker(categoryOptions), [categoryOptions])
+  const { mainId: formMainId, subId: formSubId } = splitCategoryId(categoryPicker, productForm.categoryId)
+  const formSubOptions = childrenOf(categoryPicker, formMainId)
+  const formMissingSubcategory = formSubOptions.length > 0 && !formSubId
+  const formSubRequired = productFormMode !== "edit" || categoryTouched
+  // The product's current category when this seller's list does not include it.
+  const formUnlistedCategory =
+    !categoriesLoading && Boolean(productForm.categoryId || productForm.categoryName) && !categoryPicker.byId.has(String(productForm.categoryId || ""))
+
+  const pickFormCategory = (id) => {
+    const node = categoryPicker.byId.get(String(id || ""))
+    if (!node) return
+    setProductForm((prev) => ({ ...prev, categoryId: node.id, categoryName: node.name }))
+    setCategoryTouched(true)
+  }
+
+  // Bulk move (needs-subcategory view): the seller's categories, for the target list.
+  useEffect(() => {
+    if (!needsSubcategoryOnly || selectedSeller === "all") {
+      setListCategories([])
+      return
+    }
+    let cancelled = false
+    adminAPI
+      .getCategories({ limit: 1000, sellerId: selectedSeller })
+      .then((res) => {
+        const list = res?.data?.data?.categories
+        if (!cancelled) setListCategories(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (!cancelled) setListCategories([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [needsSubcategoryOnly, selectedSeller])
+  const listCategoryPicker = useMemo(() => buildCategoryPicker(listCategories), [listCategories])
 
   const handleVariantsChange = (variants) => {
     if (!ensureActionAccess(productFormMode === "edit" ? "edit" : "create")) return
@@ -485,8 +530,15 @@ export default function ProductsList() {
       toast.error("Please select a seller")
       return
     }
-    if (!String(productForm.categoryName || "").trim()) {
-      toast.error("Please select or enter a category")
+    // The category is sent on a new product or when the admin changed it; an
+    // edit that leaves it alone keeps the product's current category.
+    const sendCategory = productFormMode !== "edit" || categoryTouched
+    if (sendCategory && !categoryPicker.byId.has(String(productForm.categoryId || ""))) {
+      toast.error("Please select a category")
+      return
+    }
+    if (sendCategory && formMissingSubcategory) {
+      toast.error("Choose a subcategory")
       return
     }
     if (!productForm.name.trim()) {
@@ -564,8 +616,13 @@ export default function ProductsList() {
 
       const payload = {
         sellerId: productForm.sellerId,
-        categoryId: productForm.categoryId || undefined,
-        categoryName: String(productForm.categoryName || "").trim(),
+        ...(sendCategory
+          ? {
+              categoryId: productForm.categoryId,
+              categoryName: String(productForm.categoryName || "").trim(),
+              requireSubcategory: true,
+            }
+          : {}),
         name: productForm.name.trim(),
         price: hasVariants ? undefined : parsedPrice,
         otherPrice: hasVariants ? 0 : parsedOtherPrice,
@@ -724,6 +781,37 @@ export default function ProductsList() {
     setSelectedProductIds(new Set())
   }
 
+  // Mains (with subcategories) that the selected products are filed under.
+  const bulkMoveMains = useMemo(() => {
+    const selectedMainIds = new Set(
+      products.filter((p) => selectedProductIds.has(p.id)).map((p) => String(p.categoryId || ""))
+    )
+    return listCategoryPicker.mains.filter((m) => m.children.length && selectedMainIds.has(m.id))
+  }, [products, selectedProductIds, listCategoryPicker])
+
+  const handleBulkMove = async () => {
+    if (!ensureActionAccess("edit")) return
+    if (!bulkMoveTargetId || selectedProductIds.size === 0) return
+    try {
+      setIsBulkMoving(true)
+      const response = await adminAPI.moveProductsToSubcategory({
+        productIds: Array.from(selectedProductIds),
+        categoryId: bulkMoveTargetId,
+      })
+      const moved = response?.data?.data?.movedCount ?? 0
+      const skipped = response?.data?.data?.skippedCount ?? 0
+      toast.success(`Moved ${moved} product(s)${skipped ? `, ${skipped} skipped (different main category)` : ""}`)
+      setSelectedProductIds(new Set())
+      setBulkMoveTargetId("")
+      await fetchAllProducts()
+    } catch (error) {
+      debugError("Error moving products:", error)
+      toast.error(error?.response?.data?.message || "Failed to move products")
+    } finally {
+      setIsBulkMoving(false)
+    }
+  }
+
   const handleBulkDelete = async () => {
     if (!ensureActionAccess("delete")) return
     if (!isSellerSelected) {
@@ -855,6 +943,21 @@ export default function ProductsList() {
                   </option>
                 ))}
               </select>
+              <label
+                className="inline-flex items-center gap-2 text-sm text-slate-700"
+                title="Products filed directly under a main category that has subcategories"
+              >
+                <input
+                  type="checkbox"
+                  checked={needsSubcategoryOnly}
+                  onChange={(e) => {
+                    setNeedsSubcategoryOnly(e.target.checked)
+                    setCurrentPage(1)
+                  }}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                Needs subcategory
+              </label>
             </div>
           </div>
         </div>
@@ -862,6 +965,45 @@ export default function ProductsList() {
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        {needsSubcategoryOnly && (
+          <div className="px-6 py-3 bg-amber-50 border-b border-amber-100 text-sm text-amber-900 flex flex-wrap items-center gap-2">
+            {!isSellerSelected ? (
+              <span>Showing products filed under a main category that has subcategories. Select a seller to move them.</span>
+            ) : selectedProductIds.size === 0 || selectAllForSeller ? (
+              <span>Select products on this page to move them into a subcategory.</span>
+            ) : (
+              <>
+                <span>Move {selectedProductIds.size} selected to</span>
+                <select
+                  value={bulkMoveTargetId}
+                  onChange={(e) => setBulkMoveTargetId(e.target.value)}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-slate-300 bg-white"
+                >
+                  <option value="">Choose a subcategory</option>
+                  {bulkMoveMains.map((main) => (
+                    <optgroup key={main.id} label={main.label}>
+                      {main.children.map((sub) => (
+                        <option key={sub.id} value={sub.id}>
+                          {sub.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleBulkMove}
+                  disabled={!bulkMoveTargetId || isBulkMoving}
+                  className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-60 inline-flex items-center gap-2"
+                >
+                  {isBulkMoving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Move
+                </button>
+                <span className="text-xs text-amber-800">Only products in that subcategory's main category are moved.</span>
+              </>
+            )}
+          </div>
+        )}
         {isSellerSelected && allPageSelected && totalProducts > products.length && !selectAllForSeller && (
           <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 text-sm text-blue-800 flex flex-wrap items-center gap-2">
             <span>All {products.length} items on this page are selected.</span>
@@ -1180,8 +1322,7 @@ export default function ProductsList() {
             setEditingProduct(null)
             setProductForm(createProductForm())
             setCategoryOptions([])
-            setCategorySearch("")
-            setCategoryPopoverOpen(false)
+            setCategoryTouched(false)
             setSelectedImageFile(null)
             setImagePreviewUrl("")
             setProductImages([])
@@ -1214,56 +1355,57 @@ export default function ProductsList() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white text-left flex items-center justify-between"
-                    >
-                      <span className={productForm.categoryName ? "text-slate-900" : "text-slate-400"}>
-                        {productForm.categoryName || "Select category"}
-                      </span>
-                      <ChevronDown className="w-4 h-4 text-slate-500" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
-                    <input
-                      type="text"
-                      value={categorySearch}
-                      onChange={(e) => setCategorySearch(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm bg-white mb-2"
-                      placeholder="Search category..."
-                      autoFocus
-                    />
-                    <div className="max-h-56 overflow-y-auto">
-                      {categoryOptions
-                        .filter((c) => {
-                          const q = String(categorySearch || "").trim().toLowerCase()
-                          if (!q) return true
-                          return String(c.name || "").toLowerCase().includes(q)
-                        })
-                        .map((c) => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => {
-                              setProductForm((prev) => ({ ...prev, categoryId: c.id, categoryName: c.name }))
-                              setCategoryPopoverOpen(false)
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-slate-100 ${
-                              String(productForm.categoryName || "") === String(c.name) ? "bg-slate-100 font-medium" : ""
-                            }`}
-                          >
-                            {c.name}
-                          </button>
-                        ))}
-                      {categoryOptions.length === 0 && (
-                        <div className="px-3 py-2 text-sm text-slate-500">No categories found</div>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <select
+                  value={formUnlistedCategory ? "__current" : formMainId}
+                  onChange={(e) => pickFormCategory(e.target.value)}
+                  disabled={!productForm.sellerId || categoriesLoading}
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white disabled:bg-slate-100"
+                >
+                  <option value="" disabled>
+                    {!productForm.sellerId
+                      ? "Select a seller first"
+                      : categoriesLoading
+                        ? "Loading categories..."
+                        : categoryPicker.mains.length
+                          ? "Select category"
+                          : "No categories found"}
+                  </option>
+                  {formUnlistedCategory && (
+                    <option value="__current" disabled>
+                      {(productForm.categoryName || "Current category") + " (current)"}
+                    </option>
+                  )}
+                  {categoryPicker.mains.map((main) => (
+                    <option key={main.id} value={main.id}>
+                      {main.label}
+                    </option>
+                  ))}
+                </select>
               </div>
+              {formSubOptions.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Subcategory</label>
+                  <select
+                    value={formSubId}
+                    onChange={(e) => pickFormCategory(e.target.value || formMainId)}
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white ${
+                      formMissingSubcategory && formSubRequired ? "border-red-400" : "border-slate-300"
+                    }`}
+                  >
+                    <option value="">—</option>
+                    {formSubOptions.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.name}
+                      </option>
+                    ))}
+                  </select>
+                  {formMissingSubcategory && (
+                    <p className={`mt-1 text-xs ${formSubRequired ? "text-red-600" : "text-amber-700"}`}>
+                      Pick a subcategory
+                    </p>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Product Name</label>
                 <input

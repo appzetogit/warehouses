@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { useNavigate, useParams, useLocation } from "react-router-dom"
 import useSellerBackNavigation from "@store/hooks/useSellerBackNavigation"
 import { motion, AnimatePresence } from "framer-motion"
@@ -28,6 +28,7 @@ import { toast } from "sonner"
 import { ImageSourcePicker } from "@store/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable } from "@store/utils/imageUploadUtils"
 import { CHANNELS, isChannelApproved } from "@store/components/seller/channels"
+import { buildCategoryPicker, childrenOf, splitCategoryId } from "@store/utils/categoryPicker"
 import {
   ProductChannelFields,
   emptyChannelDraft,
@@ -93,7 +94,10 @@ export default function ItemDetailsPage() {
   const [itemName, setItemName] = useState("")
   const [category, setCategory] = useState(defaultCategory)
   const [selectedCategoryId, setSelectedCategoryId] = useState(defaultCategoryId)
-  const [subCategory, setSubCategory] = useState("")
+  // True once the seller picks a category here. An edit that leaves the
+  // category alone neither sends it nor needs a subcategory, so older items
+  // filed under a main category still save.
+  const [categoryTouched, setCategoryTouched] = useState(false)
   const [servesInfo, setServesInfo] = useState("")
   const [itemSizeQuantity, setItemSizeQuantity] = useState("")
   const [itemSizeUnit, setItemSizeUnit] = useState("piece")
@@ -132,7 +136,6 @@ export default function ItemDetailsPage() {
   const [touchEnd, setTouchEnd] = useState(null)
   const [direction, setDirection] = useState(0)
   const carouselRef = useRef(null)
-  const [isCategoryPopupOpen, setIsCategoryPopupOpen] = useState(false)
   const [isServesPopupOpen, setIsServesPopupOpen] = useState(false)
   const [isItemSizePopupOpen, setIsItemSizePopupOpen] = useState(false)
   const [isGstPopupOpen, setIsGstPopupOpen] = useState(false)
@@ -182,8 +185,8 @@ export default function ItemDetailsPage() {
 
     setItemName(item.name || "")
     setCategory(item.category || item.categoryName || defaultCategory)
-    setSelectedCategoryId(item.categoryId || "")
-    setSubCategory(item.subCategory || item.category || item.categoryName || "Starters")
+    setSelectedCategoryId(item.categoryId ? String(item.categoryId) : "")
+    setCategoryTouched(false)
     setServesInfo(item.servesInfo || "")
     setItemSizeQuantity(item.itemSizeQuantity || "")
     setItemSizeUnit(item.itemSizeUnit || "piece")
@@ -306,30 +309,24 @@ export default function ItemDetailsPage() {
     fetchItemData()
   }, [id, isNewItem, location.state, defaultCategory])
 
-  // Fetch categories from seller-specific API
+  // Fetch categories from seller-specific API (flat list with parentId; the
+  // picker groups subcategories under their main category).
   useEffect(() => {
+    let alive = true
     const fetchCategories = async () => {
       try {
         setLoadingCategories(true)
         const response = await sellerAPI.getCategories()
-        if (response.data.success && response.data.data.categories) {
-          // Format categories for the UI - flat list, no subcategories
-          const formattedCategories = response.data.data.categories.map(cat => ({
-            id: cat._id || cat.id,
+        const list = response?.data?.data?.categories
+        if (!alive) return
+        if (response?.data?.success && Array.isArray(list)) {
+          const formattedCategories = list.map((cat) => ({
+            id: String(cat._id || cat.id),
             name: cat.name,
+            parentId: cat.parentId ? String(cat.parentId) : "",
           }))
-
           debugLog('Formatted seller categories:', formattedCategories)
           setCategories(formattedCategories)
-          if (!selectedCategoryId && formattedCategories.length > 0) {
-            const preferredName = String(category || defaultCategory || "").trim()
-            const matchedByName = formattedCategories.find((cat) => cat.name === preferredName)
-            const nextCategory = matchedByName || (isNewItem ? formattedCategories[0] : null)
-            if (nextCategory) {
-              setSelectedCategoryId(nextCategory.id)
-              setCategory(nextCategory.name)
-            }
-          }
         } else {
           // If no categories exist, show empty array (user can add categories)
           setCategories([])
@@ -337,14 +334,51 @@ export default function ItemDetailsPage() {
       } catch (error) {
         debugError('Error fetching seller categories:', error)
         // Show empty array on error - user can add categories
-        setCategories([])
+        if (alive) setCategories([])
       } finally {
-        setLoadingCategories(false)
+        if (alive) setLoadingCategories(false)
       }
     }
 
     fetchCategories()
-  }, [category, defaultCategory, defaultCategoryId, isNewItem, selectedCategoryId])
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const categoryPicker = useMemo(() => buildCategoryPicker(categories), [categories])
+  const { mainId: selectedMainId, subId: selectedSubId } = splitCategoryId(categoryPicker, selectedCategoryId)
+  const subcategoryOptions = childrenOf(categoryPicker, selectedMainId)
+  const missingSubcategory = subcategoryOptions.length > 0 && !selectedSubId
+  // A category the item is filed under that this list does not show (inactive,
+  // awaiting approval...): kept visible so the form does not look blank.
+  const unlistedCurrentCategory = Boolean(selectedCategoryId) && !loadingCategories && !categoryPicker.byId.has(String(selectedCategoryId))
+
+  // An item known only by category name (opened from a category, or an older
+  // item without categoryId): select the category with that name.
+  useEffect(() => {
+    if (selectedCategoryId || !categories.length) return
+    const preferredName = String(category || "").trim()
+    const matched = preferredName && categories.find((cat) => cat.name === preferredName)
+    if (matched) setSelectedCategoryId(matched.id)
+  }, [categories, category, selectedCategoryId])
+
+  const handleMainCategoryChange = (mainId) => {
+    const main = categoryPicker.mainById.get(String(mainId || ""))
+    if (!main) return
+    setSelectedCategoryId(main.id)
+    setCategory(main.name)
+    setCategoryTouched(true)
+  }
+
+  const handleSubCategoryChange = (subId) => {
+    const sub = subId ? categoryPicker.byId.get(String(subId)) : null
+    if (!sub) return handleMainCategoryChange(selectedMainId)
+    setSelectedCategoryId(sub.id)
+    setCategory(sub.name)
+    setCategoryTouched(true)
+  }
+
 
   // Keep focused form fields visible above mobile keyboard
   useEffect(() => {
@@ -580,14 +614,6 @@ export default function ItemDetailsPage() {
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
-  const handleCategorySelect = (catId, subCat) => {
-    const selectedCategory = categories.find(c => c.id === catId)
-    setSelectedCategoryId(selectedCategory?.id || "")
-    setCategory(selectedCategory?.name || "")
-    setSubCategory(subCat)
-    setIsCategoryPopupOpen(false)
-  }
-
   const handleServesSelect = (option) => {
     setServesInfo(option)
     setIsServesPopupOpen(false)
@@ -663,19 +689,23 @@ export default function ItemDetailsPage() {
 
       debugLog('Image URLs to save:', allImageUrls.length, allImageUrls)
 
-      // Resolve categoryId from fetched categories (so Product stores categoryId efficiently).
-      const matchedCategory = Array.isArray(categories)
-        ? categories.find((c) => String(c?.id || "") === String(selectedCategoryId || ""))
-        : null
-      const categoryId = matchedCategory?.id || matchedCategory?._id || null
-      const categoryName = matchedCategory?.name || category || ""
-
-      if (!categoryId) {
+      // The category is sent on a new item or when the seller changed it; an
+      // edit that leaves it alone keeps the item's current category as is.
+      const sendCategory = isNewItem || categoryTouched
+      const matchedCategory = categoryPicker.byId.get(String(selectedCategoryId || "")) || null
+      if (sendCategory && !matchedCategory) {
         toast.error("Please select an approved category first")
-        setIsCategoryPopupOpen(true)
         setUploadingImages(false)
         return
       }
+      if (sendCategory && missingSubcategory) {
+        toast.error("Choose a subcategory")
+        setUploadingImages(false)
+        return
+      }
+      const categoryFields = sendCategory
+        ? { categoryId: matchedCategory.id, categoryName: matchedCategory.name, requireSubcategory: true }
+        : {}
 
       const [variantError, variantPayload] = toVariantPayload(variants)
       if (variantError) {
@@ -729,8 +759,7 @@ export default function ItemDetailsPage() {
           foodType: foodType,
           isAvailable: isInStock,
           preparationTime: preparationTime || "",
-          categoryId: categoryId || undefined,
-          categoryName,
+          ...categoryFields,
           isRecommended,
         })
         const created = createRes?.data?.data?.product || createRes?.data?.product
@@ -759,8 +788,7 @@ export default function ItemDetailsPage() {
           foodType: foodType,
           isAvailable: isInStock,
           preparationTime: preparationTime || "",
-          categoryId: categoryId || undefined,
-          categoryName,
+          ...categoryFields,
           isRecommended,
         })
       }
@@ -1019,20 +1047,72 @@ export default function ItemDetailsPage() {
         {/* Form Fields */}
         <div className="p-4 space-y-3 md:p-0 md:space-y-5">
           <div className="md:bg-white md:rounded-2xl md:border md:border-slate-200 md:shadow-sm md:p-6 md:space-y-5">
-          {/* Category Selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              Category
-            </label>
-            <button
-              onClick={() => setIsCategoryPopupOpen(true)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-left flex items-center justify-between bg-white hover:bg-gray-50 transition-colors md:rounded-xl"
-            >
-              <span className="text-sm text-gray-900">
-                {category || "Select category"}
-              </span>
-              <ChevronDown className="w-5 h-5 text-gray-500" />
-            </button>
+          {/* Category -> Subcategory */}
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="item-category" className="block text-sm font-medium text-gray-900">
+                  Category
+                </label>
+                <button
+                  type="button"
+                  onClick={() => navigate('/seller/menu-categories')}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-gray-700 hover:text-gray-900"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add category
+                </button>
+              </div>
+              <div className="relative">
+                <select
+                  id="item-category"
+                  value={unlistedCurrentCategory ? String(selectedCategoryId) : selectedMainId}
+                  onChange={(e) => handleMainCategoryChange(e.target.value)}
+                  disabled={loadingCategories}
+                  className="w-full appearance-none px-4 py-3 pr-10 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent md:rounded-xl disabled:opacity-60"
+                >
+                  <option value="" disabled>
+                    {loadingCategories ? "Loading categories..." : categoryPicker.mains.length ? "Select category" : "No categories available"}
+                  </option>
+                  {unlistedCurrentCategory && (
+                    <option value={String(selectedCategoryId)} disabled>
+                      {(category && category !== "Select category" ? category : "Current category") + " (current)"}
+                    </option>
+                  )}
+                  {categoryPicker.mains.map((main) => (
+                    <option key={main.id} value={main.id}>{main.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              </div>
+            </div>
+
+            {subcategoryOptions.length > 0 && (
+              <div>
+                <label htmlFor="item-subcategory" className="block text-sm font-medium text-gray-900 mb-2">
+                  Subcategory
+                </label>
+                <div className="relative">
+                  <select
+                    id="item-subcategory"
+                    value={selectedSubId}
+                    onChange={(e) => handleSubCategoryChange(e.target.value)}
+                    className={`w-full appearance-none px-4 py-3 pr-10 border rounded-lg text-sm text-gray-900 bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent md:rounded-xl ${missingSubcategory && (isNewItem || categoryTouched) ? "border-red-400" : "border-gray-300"}`}
+                  >
+                    <option value="">—</option>
+                    {subcategoryOptions.map((sub) => (
+                      <option key={sub.id} value={sub.id}>{sub.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                </div>
+                {missingSubcategory && (
+                  <p className={`mt-1 text-xs ${isNewItem || categoryTouched ? "text-red-600" : "text-amber-700"}`}>
+                    Pick a subcategory
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Item Name */}
@@ -1220,168 +1300,6 @@ export default function ItemDetailsPage() {
         </div>
         </div>
       </div>
-
-      {/* Category Selection Popup */}
-      <AnimatePresence>
-        {isCategoryPopupOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsCategoryPopupOpen(false)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-            {/* Mobile bottom sheet */}
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-50 max-h-[85vh] flex flex-col md:hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-bold text-gray-900">Select category</h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setIsCategoryPopupOpen(false)
-                      navigate('/seller/menu-categories')
-                    }}
-                    className="p-2 rounded-lg bg-black text-white hover:bg-gray-800 transition-colors flex items-center gap-1.5"
-                    title="Add Category"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="text-sm font-medium">Add</span>
-                  </button>
-                  <button
-                    onClick={() => setIsCategoryPopupOpen(false)}
-                    className="p-1 rounded-full hover:bg-gray-100"
-                  >
-                    <X className="w-5 h-5 text-gray-600" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto p-2">
-                {loadingCategories ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
-                  </div>
-                ) : categories.length === 0 ? (
-                  <div className="text-center py-12 space-y-4">
-                    <p className="text-sm text-gray-500">No categories available</p>
-                    <button
-                      onClick={() => {
-                        setIsCategoryPopupOpen(false)
-                        navigate('/seller/menu-categories')
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Add Category
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {categories.map((cat) => (
-                      <button
-                        key={cat.id}
-                        onClick={() => handleCategorySelect(cat.id, cat.name)}
-                        className={`w-full rounded-lg px-4 py-3 text-left transition-colors ${String(selectedCategoryId || "") === String(cat.id)
-                          ? "bg-gray-900 text-white"
-                          : "bg-gray-50 text-gray-900 hover:bg-gray-100"
-                          }`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-sm font-medium">{cat.name}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-
-            {/* Desktop centered dialog */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 12 }}
-              transition={{ duration: 0.2 }}
-              className="hidden md:flex fixed inset-0 z-50 items-center justify-center p-6"
-              onClick={() => setIsCategoryPopupOpen(false)}
-            >
-              <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden border border-slate-200"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                  <h2 className="text-lg font-bold text-gray-900">Select category</h2>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setIsCategoryPopupOpen(false)
-                        navigate('/seller/menu-categories')
-                      }}
-                      className="p-2 rounded-lg bg-black text-white hover:bg-gray-800 transition-colors flex items-center gap-1.5"
-                      title="Add Category"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span className="text-sm font-medium">Add</span>
-                    </button>
-                    <button
-                      onClick={() => setIsCategoryPopupOpen(false)}
-                      className="p-1 rounded-full hover:bg-gray-100"
-                    >
-                      <X className="w-5 h-5 text-gray-600" />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex-1 overflow-y-auto p-3">
-                  {loadingCategories ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
-                    </div>
-                  ) : categories.length === 0 ? (
-                    <div className="text-center py-12 space-y-4">
-                      <p className="text-sm text-gray-500">No categories available</p>
-                      <button
-                        onClick={() => {
-                          setIsCategoryPopupOpen(false)
-                          navigate('/seller/menu-categories')
-                        }}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
-                      >
-                        <Plus className="w-5 h-5" />
-                        Add Category
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {categories.map((cat) => (
-                        <button
-                          key={`desktop-${cat.id}`}
-                          onClick={() => handleCategorySelect(cat.id, cat.name)}
-                          className={`w-full rounded-xl px-4 py-3 text-left transition-colors ${String(selectedCategoryId || "") === String(cat.id)
-                            ? "bg-gray-900 text-white"
-                            : "bg-slate-50 text-gray-900 hover:bg-slate-100"
-                            }`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm font-medium">{cat.name}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
 
       {/* GST Popup */}
       {/* <AnimatePresence>
